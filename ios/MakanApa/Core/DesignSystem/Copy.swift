@@ -2,8 +2,8 @@ import Foundation
 
 /// Centralized Malaysian-voice copy so tone stays consistent across screens.
 enum Copy {
-    static let homeGreeting = "Hungry ah?"
-    static let homeTagline = "Don't think so much."
+    static let homeGreeting = "Hungry?"
+    static let homeSubtext = "Okay, what we doing today?"
     static let gengComingSoon = "Soon lah 👀 Geng mode is still cooking."
 
     static let soloMoodPrompt = "What mood today?"

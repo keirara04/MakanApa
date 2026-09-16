@@ -20,7 +20,11 @@ struct HomeView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
+                (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))
+                    .font(.makanDisplay(20))
+
                 Spacer()
+
                 Image(systemName: "gearshape.fill")
                     .foregroundStyle(.secondary)
                     .opacity(0.4)
@@ -31,15 +35,15 @@ struct HomeView: View {
                     #endif
             }
 
-            Image("Logo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 190, height: 190)
-                .clipShape(RoundedRectangle(cornerRadius: 36))
-
-            Text(Copy.homeGreeting)
-                .font(.makanDisplay(28))
-                .foregroundStyle(Color.kicap)
+            VStack(spacing: 6) {
+                Text(Copy.homeGreeting)
+                    .font(.makanDisplay(28))
+                    .foregroundStyle(Color.kicap)
+                Text(Copy.homeSubtext)
+                    .font(.makanBody(15))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 12)
 
             VStack(spacing: 16) {
                 Button {
@@ -88,18 +92,25 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("GENG").font(.makanDisplay(20))
                             Text("Settle for us").font(.makanBody(14))
-                            Text("COMING SOON").font(.makanBody(11)).foregroundStyle(.secondary)
                         }
-                        .foregroundStyle(Color.kicap.opacity(0.5))
+                        .foregroundStyle(Color.kicap.opacity(0.65))
 
                         Spacer()
+
+                        Text("Soon")
+                            .font(.makanBody(10))
+                            .foregroundStyle(Color.kicap.opacity(0.5))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.kicap.opacity(0.08))
+                            .clipShape(Capsule())
 
                         Image(systemName: "chevron.right")
                             .foregroundStyle(Color.kicap.opacity(0.3))
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 22)
-                    .background(Color.kicap.opacity(0.06))
+                    .background(Color.kicap.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 30))
                     .shadow(color: Color.kicap.opacity(0.06), radius: 6, y: 3)
                 }
@@ -109,12 +120,7 @@ struct HomeView: View {
 
             Spacer()
 
-            VStack(spacing: 6) {
-                MascotView(mood: .idle, caption: Copy.homeTagline)
-                Capsule()
-                    .fill(Color.kunyit.opacity(0.5))
-                    .frame(width: 40, height: 3)
-            }
+            MascotView(mood: .idle, size: 180)
         }
         .padding()
         .frame(maxHeight: .infinity)

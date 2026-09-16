@@ -35,7 +35,7 @@ struct MascotView: View {
             Image(mood.imageName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: size, height: size)
+                .frame(width: size)
                 .accessibilityHidden(true)
                 .offset(y: offsetY)
                 .rotationEffect(.degrees(rotationDegrees))

@@ -12,6 +12,18 @@ struct MakanApaApp: App {
         GMSServices.provideAPIKey(MapsConfig.apiKey)
     }
 
+    /// Google Maps SDK's first `GMSMapView` allocation on a cold app launch pays a one-time
+    /// cost (Metal pipeline, tile renderer, font atlas setup) — normally paid exactly when the
+    /// user taps the Nearby tab, which reads as a stutter. Paying it here instead, while
+    /// they're still looking at Home, means Nearby's first real map view reuses warm SDK state.
+    private func warmUpGoogleMaps() {
+        Task.detached(priority: .utility) {
+            await MainActor.run {
+                _ = GMSMapView(frame: .zero)
+            }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             TabView {
@@ -55,6 +67,15 @@ struct MakanApaApp: App {
             .environment(locationService)
             .tint(.sambalRed)
             .preferredColorScheme(.light)
+            .task {
+                // First-time users get the system location prompt immediately on launch,
+                // instead of only after tapping into the Solo flow — reduces drop-off from
+                // people never realizing the app needs it.
+                if case .notDetermined = locationService.state {
+                    locationService.requestLocation()
+                }
+                warmUpGoogleMaps()
+            }
         }
     }
 }
