@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Dokploy's Traefik proxy terminates TLS and forwards plain HTTP to the container —
+        // without trusting it, Laravel thinks every request is HTTP and generates http:// URLs
+        // (e.g. signed photo URLs), which iOS App Transport Security then blocks.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
