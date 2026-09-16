@@ -13,9 +13,7 @@ struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(LocationService.self) private var locationService
     @State private var showGengComingSoon = false
-    #if DEBUG
-    @State private var showDebugLocationToggled = false
-    #endif
+    @State private var showSettings = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -25,14 +23,16 @@ struct HomeView: View {
 
                 Spacer()
 
-                Image(systemName: "gearshape.fill")
-                    .foregroundStyle(.secondary)
-                    .opacity(0.4)
-                    #if DEBUG
-                    .onLongPressGesture(minimumDuration: 0.6) {
-                        toggleDebugLocation()
-                    }
-                    #endif
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 18))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Settings")
             }
 
             VStack(spacing: 6) {
@@ -128,28 +128,8 @@ struct HomeView: View {
         .alert(Copy.gengComingSoon, isPresented: $showGengComingSoon) {
             Button("Okay", role: .cancel) {}
         }
-        #if DEBUG
-        .alert(
-            DebugLocationOverride.isEnabled ? "Debug: fixture location ON" : "Debug: fixture location OFF",
-            isPresented: $showDebugLocationToggled
-        ) {
-            Button("Okay", role: .cancel) {}
-        } message: {
-            Text(DebugLocationOverride.isEnabled
-                 ? "Using Bangi test coordinates instead of device GPS."
-                 : "Using real device/Simulator GPS.")
-        }
-        #endif
-    }
-
-    #if DEBUG
-    private func toggleDebugLocation() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        DebugLocationOverride.isEnabled.toggle()
-        showDebugLocationToggled = true
-        if case .authorized = locationService.state {
-            locationService.requestLocation()
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
     }
-    #endif
 }

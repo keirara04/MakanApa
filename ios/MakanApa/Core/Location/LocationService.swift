@@ -34,12 +34,10 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func requestLocation() {
-        #if DEBUG
-        if let override = DebugLocationOverride.activeCoordinate {
+        if let override = debugOverrideCoordinate() {
             state = .authorized(override)
             return
         }
-        #endif
 
         switch manager.authorizationStatus {
         case .notDetermined:
@@ -60,10 +58,25 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         case .denied, .restricted:
             state = .denied
         case .authorizedWhenInUse, .authorizedAlways:
-            manager.requestLocation()
+            // Checked here too, not just in requestLocation() — otherwise an authorization-change
+            // callback (e.g. app foregrounding) calls manager.requestLocation() directly and
+            // silently overwrites the test coordinate with real GPS once didUpdateLocations fires.
+            if let override = debugOverrideCoordinate() {
+                state = .authorized(override)
+            } else {
+                manager.requestLocation()
+            }
         @unknown default:
             state = .unavailable
         }
+    }
+
+    private func debugOverrideCoordinate() -> CLLocationCoordinate2D? {
+        #if DEBUG
+        return DebugLocationOverride.activeCoordinate
+        #else
+        return nil
+        #endif
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
