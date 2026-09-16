@@ -3,7 +3,7 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
-FROM php:8.3-apache AS app
+FROM php:8.4-apache AS app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev \
