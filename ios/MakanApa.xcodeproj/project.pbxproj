@@ -1,0 +1,539 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		26F420CEA5D465057DA7B27D /* restaurants.json in Resources */ = {isa = PBXBuildFile; fileRef = A98FF18AB7352F2071C01E14 /* restaurants.json */; };
+		3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */; };
+		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
+		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
+		73F68EC3B71470C16270E723 /* Preference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5BFCC70359130D60E8F3DF /* Preference.swift */; };
+		8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09287437BC53CD13153BE4A7 /* MakanApaApp.swift */; };
+		8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459312E9025F68024DF77A1 /* HomeView.swift */; };
+		8B75375487C7968CECECC799 /* Restaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = A818E3D6E401E821242D61F5 /* Restaurant.swift */; };
+		A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */; };
+		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
+		B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676DDD5174F3FF818051408B /* SoloViewModel.swift */; };
+		CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */; };
+		D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */; };
+		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
+		D897C3873BA278F71EAAD0A3 /* RestaurantCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA7647A549007920D02DFDA /* RestaurantCard.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F19031B0CBA6752F7BE0662D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 14648CA29CBC730A0EF22059 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B88585201835D1B2EC84A334;
+			remoteInfo = MakanApa;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		011E6031DBB15CA7420E8B83 /* PreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceView.swift; sourceTree = "<group>"; };
+		04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureLoader.swift; sourceTree = "<group>"; };
+		09287437BC53CD13153BE4A7 /* MakanApaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaApp.swift; sourceTree = "<group>"; };
+		1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MakanApaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		217BC4E792F65DECF27B6B66 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngineTests.swift; sourceTree = "<group>"; };
+		2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngine.swift; sourceTree = "<group>"; };
+		4CA7647A549007920D02DFDA /* RestaurantCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantCard.swift; sourceTree = "<group>"; };
+		53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationScore.swift; sourceTree = "<group>"; };
+		676DDD5174F3FF818051408B /* SoloViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloViewModel.swift; sourceTree = "<group>"; };
+		683267D9139BFC5DB72D9BEE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8F5BFCC70359130D60E8F3DF /* Preference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preference.swift; sourceTree = "<group>"; };
+		A818E3D6E401E821242D61F5 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
+		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
+		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		06C9463FC641A4C2F3E54F64 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				0B770F667258CD7D0B04EFC1 /* Home */,
+				BFADF2C6ADCB6DE37EB66D0C /* Result */,
+				9E1A840A9A06159719A2F591 /* Solo */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		0A2C37FFCE6E437A66DA4DB0 /* fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				A98FF18AB7352F2071C01E14 /* restaurants.json */,
+			);
+			name = fixtures;
+			path = ../fixtures;
+			sourceTree = "<group>";
+		};
+		0B770F667258CD7D0B04EFC1 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				B459312E9025F68024DF77A1 /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		0E30E7A7002E151AEB63935D = {
+			isa = PBXGroup;
+			children = (
+				0A2C37FFCE6E437A66DA4DB0 /* fixtures */,
+				234C7B3EB4C2B4691EE5230D /* MakanApa */,
+				6470C1D0A2DA506BB2CA3438 /* MakanApaTests */,
+				A0DC9F4EF41803B45CFC6CEA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		234C7B3EB4C2B4691EE5230D /* MakanApa */ = {
+			isa = PBXGroup;
+			children = (
+				BCE64D809F8FF7BE2592776B /* App */,
+				FBC7439E66BE36D77444C27F /* Core */,
+				06C9463FC641A4C2F3E54F64 /* Features */,
+				4E27FFC2EABB76DEABAC8AE7 /* Resources */,
+			);
+			path = MakanApa;
+			sourceTree = "<group>";
+		};
+		4E27FFC2EABB76DEABAC8AE7 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				683267D9139BFC5DB72D9BEE /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4F41E7A8AAE083FF6AABFFF0 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		5D5559575A04323ABEAEBE8E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8F5BFCC70359130D60E8F3DF /* Preference.swift */,
+				A818E3D6E401E821242D61F5 /* Restaurant.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		6470C1D0A2DA506BB2CA3438 /* MakanApaTests */ = {
+			isa = PBXGroup;
+			children = (
+				2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */,
+			);
+			path = MakanApaTests;
+			sourceTree = "<group>";
+		};
+		8FBF37F80AF568BBC436A27D /* Recommendation */ = {
+			isa = PBXGroup;
+			children = (
+				2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */,
+				53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */,
+			);
+			path = Recommendation;
+			sourceTree = "<group>";
+		};
+		9E1A840A9A06159719A2F591 /* Solo */ = {
+			isa = PBXGroup;
+			children = (
+				011E6031DBB15CA7420E8B83 /* PreferenceView.swift */,
+				676DDD5174F3FF818051408B /* SoloViewModel.swift */,
+			);
+			path = Solo;
+			sourceTree = "<group>";
+		};
+		A0DC9F4EF41803B45CFC6CEA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E5F436EA902AE1A46B6C8B77 /* MakanApa.app */,
+				1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BCE64D809F8FF7BE2592776B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				217BC4E792F65DECF27B6B66 /* AppRouter.swift */,
+				09287437BC53CD13153BE4A7 /* MakanApaApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BFADF2C6ADCB6DE37EB66D0C /* Result */ = {
+			isa = PBXGroup;
+			children = (
+				4CA7647A549007920D02DFDA /* RestaurantCard.swift */,
+				E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */,
+			);
+			path = Result;
+			sourceTree = "<group>";
+		};
+		FBC7439E66BE36D77444C27F /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				4F41E7A8AAE083FF6AABFFF0 /* Data */,
+				5D5559575A04323ABEAEBE8E /* Models */,
+				8FBF37F80AF568BBC436A27D /* Recommendation */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B6B3465C0FF7B5ED979F4253 /* MakanApaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6335CE12654D38553C4DBEC2 /* Build configuration list for PBXNativeTarget "MakanApaTests" */;
+			buildPhases = (
+				915F932691F780AB005FCB11 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				633DA59517E27607EB75A67D /* PBXTargetDependency */,
+			);
+			name = MakanApaTests;
+			packageProductDependencies = (
+			);
+			productName = MakanApaTests;
+			productReference = 1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B88585201835D1B2EC84A334 /* MakanApa */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0AB6A93803AB4014696B30CC /* Build configuration list for PBXNativeTarget "MakanApa" */;
+			buildPhases = (
+				E99C9D59EC292950BA4E4E72 /* Sources */,
+				185723508EDECF81A7BD6218 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MakanApa;
+			packageProductDependencies = (
+			);
+			productName = MakanApa;
+			productReference = E5F436EA902AE1A46B6C8B77 /* MakanApa.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		14648CA29CBC730A0EF22059 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = F5A59F5F6EB6B79353C6264D /* Build configuration list for PBXProject "MakanApa" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 0E30E7A7002E151AEB63935D;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A0DC9F4EF41803B45CFC6CEA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B88585201835D1B2EC84A334 /* MakanApa */,
+				B6B3465C0FF7B5ED979F4253 /* MakanApaTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		185723508EDECF81A7BD6218 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */,
+				26F420CEA5D465057DA7B27D /* restaurants.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		915F932691F780AB005FCB11 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E99C9D59EC292950BA4E4E72 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */,
+				3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */,
+				8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */,
+				8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */,
+				73F68EC3B71470C16270E723 /* Preference.swift in Sources */,
+				B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */,
+				D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */,
+				A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */,
+				8B75375487C7968CECECC799 /* Restaurant.swift in Sources */,
+				D897C3873BA278F71EAAD0A3 /* RestaurantCard.swift in Sources */,
+				72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */,
+				B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		633DA59517E27607EB75A67D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B88585201835D1B2EC84A334 /* MakanApa */;
+			targetProxy = F19031B0CBA6752F7BE0662D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0193939EECF5D46C869AFB83 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApa;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		2347A3A2EED9FD43CA8D8805 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApa;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7A46BEA306CA057EA5110A48 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApaTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MakanApa.app/MakanApa";
+			};
+			name = Release;
+		};
+		A9329B640C88CAA2BE23EBE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApaTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MakanApa.app/MakanApa";
+			};
+			name = Debug;
+		};
+		DD8C78307D26EEE619CA392B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		FC89FB1D52BC9ED515D4E30D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0AB6A93803AB4014696B30CC /* Build configuration list for PBXNativeTarget "MakanApa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0193939EECF5D46C869AFB83 /* Debug */,
+				2347A3A2EED9FD43CA8D8805 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6335CE12654D38553C4DBEC2 /* Build configuration list for PBXNativeTarget "MakanApaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9329B640C88CAA2BE23EBE5 /* Debug */,
+				7A46BEA306CA057EA5110A48 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F5A59F5F6EB6B79353C6264D /* Build configuration list for PBXProject "MakanApa" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC89FB1D52BC9ED515D4E30D /* Debug */,
+				DD8C78307D26EEE619CA392B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 14648CA29CBC730A0EF22059 /* Project object */;
+}

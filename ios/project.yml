@@ -1,0 +1,43 @@
+name: MakanApa
+options:
+  bundleIdPrefix: com.makanapa
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  SWIFT_VERSION: "6.0"
+targets:
+  MakanApa:
+    type: application
+    platform: iOS
+    sources:
+      - path: MakanApa
+      - path: ../fixtures/restaurants.json
+        buildPhase: resources
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.makanapa.MakanApa
+      GENERATE_INFOPLIST_FILE: true
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      INFOPLIST_KEY_UILaunchScreen_Generation: true
+      INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+      INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
+      TARGETED_DEVICE_FAMILY: "1,2"
+  MakanApaTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MakanApaTests
+    dependencies:
+      - target: MakanApa
+    settings:
+      GENERATE_INFOPLIST_FILE: true
+schemes:
+  MakanApa:
+    build:
+      targets:
+        MakanApa: all
+        MakanApaTests: [test]
+    test:
+      targets:
+        - MakanApaTests
+    run:
+      config: Debug
