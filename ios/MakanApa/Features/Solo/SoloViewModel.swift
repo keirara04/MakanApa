@@ -1,22 +1,19 @@
 import Foundation
 import Observation
-
-/// Hardcoded user location near the fixture test area (Bangi). Skips CoreLocation for Phase 1.
-private let defaultLatitude = 2.928400
-private let defaultLongitude = 101.780200
+import CoreLocation
 
 @Observable
 final class SoloViewModel {
-    private(set) var restaurants: [Restaurant] = []
-    private(set) var loadError: Error?
-
     var selectedMoodTags: Set<String> = []
-    var selectedCuisines: Set<String> = []
-    var budgetMax: Int = 2
+    var budgetMax: Int? = 2
     var maxDistanceKm: Double = 2.0
 
-    private(set) var candidates: [ScoredRestaurant] = []
-    private(set) var currentPick: ScoredRestaurant?
+    private(set) var decisionId: Int?
+    private(set) var currentPick: RecommendationResponse.Recommendation?
+    private(set) var apiError: APIError?
+    private(set) var isEmptyResult = false
+
+    private var lastCoordinate: CLLocationCoordinate2D?
 
     struct MoodOption {
         let tag: String
@@ -25,8 +22,9 @@ final class SoloViewModel {
     }
 
     struct BudgetOption {
-        let tier: Int
-        let symbol: String
+        /// nil = "Anything lah" — no price filter, not the top tier.
+        let tier: Int?
+        let amount: String
         let label: String
     }
 
@@ -34,6 +32,7 @@ final class SoloViewModel {
         let km: Double
         let emoji: String
         let label: String
+        let subtext: String
     }
 
     static let moodOptions: [MoodOption] = [
@@ -43,50 +42,65 @@ final class SoloViewModel {
         MoodOption(tag: "quick", emoji: "⚡", label: "Quick"),
     ]
 
-    static let cuisineOptions = ["malay", "chinese", "japanese", "korean", "thai", "western", "indian"]
-
     static let budgetOptions: [BudgetOption] = [
-        BudgetOption(tier: 1, symbol: "RM", label: "Cheap"),
-        BudgetOption(tier: 2, symbol: "RM RM", label: "Okay"),
-        BudgetOption(tier: 3, symbol: "RM RM RM", label: "Treat"),
+        BudgetOption(tier: 1, amount: "~RM10", label: "save sikit"),
+        BudgetOption(tier: 2, amount: "~RM20", label: "normal lah"),
+        BudgetOption(tier: 3, amount: "~RM35+", label: "feeling kaya"),
     ]
 
     static let distanceOptions: [DistanceOption] = [
-        DistanceOption(km: 1.0, emoji: "🚶", label: "5 min"),
-        DistanceOption(km: 2.0, emoji: "🚶‍♂️", label: "10 min"),
-        DistanceOption(km: 5.0, emoji: "🚗", label: "Don't mind"),
+        DistanceOption(km: 1.0, emoji: "🚶", label: "5 min", subtext: "dekat je"),
+        DistanceOption(km: 2.0, emoji: "🚶‍♂️", label: "10 min", subtext: "okay lah"),
+        DistanceOption(km: 5.0, emoji: "🚗", label: "Don't mind", subtext: "janji sedap"),
     ]
 
-    init() {
-        loadFixture()
-    }
-
-    func loadFixture() {
+    @MainActor
+    func decide(coordinate: CLLocationCoordinate2D) async {
+        lastCoordinate = coordinate
+        apiError = nil
+        isEmptyResult = false
         do {
-            restaurants = try FixtureLoader.loadRestaurants()
+            let response = try await APIClient.recommendSolo(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude,
+                budgetMax: budgetMax,
+                maxDistanceKm: maxDistanceKm,
+                moods: Array(selectedMoodTags)
+            )
+            decisionId = response.decisionId
+            currentPick = response.recommendation
+            isEmptyResult = response.recommendation == nil
+        } catch let error as APIError {
+            apiError = error
         } catch {
-            loadError = error
+            apiError = .transport(error)
         }
     }
 
-    private func currentPreference() -> Preference {
-        Preference(
-            moodTags: Array(selectedMoodTags),
-            cuisines: Array(selectedCuisines),
-            budgetMax: budgetMax,
-            maxDistanceKm: maxDistanceKm,
-            latitude: defaultLatitude,
-            longitude: defaultLongitude
-        )
+    @MainActor
+    func retry() async {
+        guard let lastCoordinate else { return }
+        await decide(coordinate: lastCoordinate)
     }
 
-    func decide() {
-        let result = RecommendationEngine.recommend(from: restaurants, preference: currentPreference())
-        candidates = result.candidates
-        currentPick = result.pick
+    @MainActor
+    func reroll() async {
+        guard let decisionId else { return }
+        apiError = nil
+        do {
+            let response = try await APIClient.reroll(decisionId: decisionId)
+            currentPick = response.recommendation
+            isEmptyResult = response.recommendation == nil
+        } catch let error as APIError {
+            apiError = error
+        } catch {
+            apiError = .transport(error)
+        }
     }
 
-    func reroll() {
-        currentPick = RecommendationEngine.pick(from: candidates, excluding: currentPick)
+    @MainActor
+    func acceptCurrentPick() async {
+        guard let decisionId else { return }
+        _ = try? await APIClient.accept(decisionId: decisionId)
     }
 }

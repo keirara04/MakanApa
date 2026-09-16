@@ -77,7 +77,14 @@ class RecommendationService
             if (! ($restaurant['is_active'] ?? true)) {
                 continue;
             }
-            if (isset($restaurant['price_level']) && $restaurant['price_level'] > $preference['budgetMax']) {
+            // null budgetMax means "Anything lah" — no price filter, not "cheapest only".
+            if (isset($restaurant['price_level']) && $preference['budgetMax'] !== null
+                && $restaurant['price_level'] > $preference['budgetMax']) {
+                continue;
+            }
+            // OPEN / CLOSED / UNKNOWN — only CLOSED excludes. UNKNOWN (no opening-hours data) is
+            // included unpenalized; missing data isn't evidence a restaurant is unavailable.
+            if (($restaurant['open_status'] ?? 'unknown') === 'closed') {
                 continue;
             }
             $distanceKm = self::distanceKm(
@@ -134,6 +141,7 @@ class RecommendationService
         $scored = array_map(fn ($pair) => [
             'restaurant' => $pair['restaurant'],
             'score' => $this->score($pair['restaurant'], $preference, $pair['distanceKm']),
+            'distanceKm' => $pair['distanceKm'],
         ], $eligible);
 
         usort($scored, fn ($a, $b) => $b['score'] <=> $a['score']);

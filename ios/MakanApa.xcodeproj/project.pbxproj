@@ -8,14 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = E823597CCF1CD50A5011EDE9 /* Palette.swift */; };
+		13F26D245255CED8F6F6D8F2 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */; };
 		14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 306B702B8A26340C493D9B9F /* Copy.swift */; };
 		26F420CEA5D465057DA7B27D /* restaurants.json in Resources */ = {isa = PBXBuildFile; fileRef = A98FF18AB7352F2071C01E14 /* restaurants.json */; };
+		3227F61F965FA6369B0BCEA0 /* DebugLocationOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */; };
 		3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */; };
+		4C7D3B0D11FFC89A4A41DC03 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F592DE757E41FF96AA5786 /* LocationService.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
+		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
+		5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651EAF0CDE373FFCEA468C00 /* APIClient.swift */; };
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
 		73F68EC3B71470C16270E723 /* Preference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5BFCC70359130D60E8F3DF /* Preference.swift */; };
-		7D038DE3E50EBE672C450F29 /* MascotLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 519594E113D76C26D0E0937B /* MascotLine.swift */; };
 		7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */; };
 		8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09287437BC53CD13153BE4A7 /* MakanApaApp.swift */; };
 		8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459312E9025F68024DF77A1 /* HomeView.swift */; };
@@ -24,6 +28,8 @@
 		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
 		B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676DDD5174F3FF818051408B /* SoloViewModel.swift */; };
 		BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */; };
+		BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */; };
+		C8FD99C228734AC224823C66 /* MascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729D8427BD8EF410E03874B2 /* MascotView.swift */; };
 		CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */; };
 		D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */; };
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
@@ -50,18 +56,24 @@
 		2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngine.swift; sourceTree = "<group>"; };
 		306B702B8A26340C493D9B9F /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Copy.swift; sourceTree = "<group>"; };
 		37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanPrimaryButton.swift; sourceTree = "<group>"; };
-		519594E113D76C26D0E0937B /* MascotLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotLine.swift; sourceTree = "<group>"; };
+		51BA9571215449F471D390E1 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
 		53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationScore.swift; sourceTree = "<group>"; };
+		651EAF0CDE373FFCEA468C00 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		676DDD5174F3FF818051408B /* SoloViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloViewModel.swift; sourceTree = "<group>"; };
 		683267D9139BFC5DB72D9BEE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
+		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
+		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
 		8F5BFCC70359130D60E8F3DF /* Preference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preference.swift; sourceTree = "<group>"; };
 		A818E3D6E401E821242D61F5 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
 		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
+		AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanChoiceTile.swift; sourceTree = "<group>"; };
 		C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaTopBar.swift; sourceTree = "<group>"; };
+		D7F592DE757E41FF96AA5786 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		E4C2E6778243985350051EB2 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
-		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		E823597CCF1CD50A5011EDE9 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -151,13 +163,23 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		5DE399114775FCFCE1F7E109 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				651EAF0CDE373FFCEA468C00 /* APIClient.swift */,
+				51BA9571215449F471D390E1 /* APIError.swift */,
+				AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
 		5DF9973ADF696EF759A7A0DE /* Components */ = {
 			isa = PBXGroup;
 			children = (
 				C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */,
 				C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */,
 				37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */,
-				519594E113D76C26D0E0937B /* MascotLine.swift */,
+				729D8427BD8EF410E03874B2 /* MascotView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -197,6 +219,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AE4FC7CEE2BE8A2876729C94 /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */,
+				75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */,
+				D7F592DE757E41FF96AA5786 /* LocationService.swift */,
+			);
+			path = Location;
+			sourceTree = "<group>";
+		};
 		BCE64D809F8FF7BE2592776B /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -217,8 +249,10 @@
 		FBC7439E66BE36D77444C27F /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				5DE399114775FCFCE1F7E109 /* API */,
 				4F41E7A8AAE083FF6AABFFF0 /* Data */,
 				493BE46F243EC9877611E727 /* DesignSystem */,
+				AE4FC7CEE2BE8A2876729C94 /* Location */,
 				5D5559575A04323ABEAEBE8E /* Models */,
 				8FBF37F80AF568BBC436A27D /* Recommendation */,
 			);
@@ -272,8 +306,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = F5A59F5F6EB6B79353C6264D /* Build configuration list for PBXProject "MakanApa" */;
 			developmentRegion = en;
@@ -320,15 +352,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */,
+				5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */,
 				D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */,
 				14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */,
+				3227F61F965FA6369B0BCEA0 /* DebugLocationOverride.swift in Sources */,
+				13F26D245255CED8F6F6D8F2 /* Endpoints.swift in Sources */,
 				3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */,
 				8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */,
+				BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */,
+				4C7D3B0D11FFC89A4A41DC03 /* LocationService.swift in Sources */,
 				8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */,
 				657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */,
 				BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */,
 				7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */,
-				7D038DE3E50EBE672C450F29 /* MascotLine.swift in Sources */,
+				C8FD99C228734AC224823C66 /* MascotView.swift in Sources */,
 				0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */,
 				73F68EC3B71470C16270E723 /* Preference.swift in Sources */,
 				B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */,
@@ -357,7 +395,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -365,7 +405,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApa;
+				PRODUCT_BUNDLE_IDENTIFIER = com.keirara.makanapa;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -376,7 +416,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -384,7 +426,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.makanapa.MakanApa;
+				PRODUCT_BUNDLE_IDENTIFIER = com.keirara.makanapa;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

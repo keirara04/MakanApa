@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Spicy</title>
+
+<path d="M303 115C321 92 348 80 374 83C356 99 350 120 352 143" stroke="#4F7A57" stroke-width="18" stroke-linecap="round"/>
+<path d="M169 324C203 250 229 173 319 146C348 137 377 148 389 171C403 198 389 232 354 252C286 291 238 352 190 401C167 424 131 414 126 383C123 364 145 347 169 324Z" fill="#E94B35" stroke="#29201D" stroke-width="18" stroke-linejoin="round"/>
+<path d="M180 327C215 286 252 257 299 234" stroke="#F67A66" stroke-width="14" stroke-linecap="round" opacity=".65"/>
+<path d="M126 183C109 154 117 123 136 101" stroke="#F4B942" stroke-width="14" stroke-linecap="round"/>
+<path d="M98 202L63 184" stroke="#F4B942" stroke-width="14" stroke-linecap="round"/>
+<path d="M117 231L80 244" stroke="#F4B942" stroke-width="14" stroke-linecap="round"/>
+
+</svg>

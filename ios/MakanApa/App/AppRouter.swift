@@ -1,6 +1,7 @@
 import Observation
 
 enum Route: Hashable {
+    case locationPermission
     case soloPreferences
     case soloResult
 }
@@ -11,6 +12,11 @@ final class AppRouter {
 
     func push(_ route: Route) {
         path.append(route)
+    }
+
+    func pop() {
+        guard !path.isEmpty else { return }
+        path.removeLast()
     }
 
     func popToRoot() {

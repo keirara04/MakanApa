@@ -27,6 +27,7 @@ class RecommendationServiceTest extends TestCase
             'price_level' => 1,
             'rating' => 4.0,
             'is_active' => true,
+            'open_status' => 'unknown',
             'cuisines' => [],
             'tags' => [],
         ], $overrides);
@@ -70,6 +71,17 @@ class RecommendationServiceTest extends TestCase
         $this->assertNotContains(2, $ids);
     }
 
+    public function test_null_budget_max_means_no_price_filter(): void
+    {
+        $expensive = $this->makeRestaurant(['id' => 1, 'price_level' => 3]);
+        $preference = $this->makePreference(['budgetMax' => null]);
+
+        $eligible = $this->service->eligibleRestaurants([$expensive], $preference);
+        $ids = array_column(array_column($eligible, 'restaurant'), 'id');
+
+        $this->assertContains(1, $ids);
+    }
+
     public function test_excludes_inactive_restaurant(): void
     {
         $active = $this->makeRestaurant(['id' => 1, 'is_active' => true]);
@@ -81,6 +93,30 @@ class RecommendationServiceTest extends TestCase
 
         $this->assertContains(1, $ids);
         $this->assertNotContains(2, $ids);
+    }
+
+    public function test_excludes_closed_restaurant(): void
+    {
+        $open = $this->makeRestaurant(['id' => 1, 'open_status' => 'open']);
+        $closed = $this->makeRestaurant(['id' => 2, 'open_status' => 'closed']);
+        $preference = $this->makePreference();
+
+        $eligible = $this->service->eligibleRestaurants([$open, $closed], $preference);
+        $ids = array_column(array_column($eligible, 'restaurant'), 'id');
+
+        $this->assertContains(1, $ids);
+        $this->assertNotContains(2, $ids);
+    }
+
+    public function test_includes_unknown_open_status_restaurant(): void
+    {
+        $unknown = $this->makeRestaurant(['id' => 1, 'open_status' => 'unknown']);
+        $preference = $this->makePreference();
+
+        $eligible = $this->service->eligibleRestaurants([$unknown], $preference);
+        $ids = array_column(array_column($eligible, 'restaurant'), 'id');
+
+        $this->assertContains(1, $ids);
     }
 
     public function test_mood_matching_restaurant_scores_higher_than_non_matching(): void

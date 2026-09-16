@@ -14,12 +14,13 @@ targets:
       - path: ../fixtures/restaurants.json
         buildPhase: resources
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.makanapa.MakanApa
+      PRODUCT_BUNDLE_IDENTIFIER: com.keirara.makanapa
       GENERATE_INFOPLIST_FILE: true
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
       INFOPLIST_KEY_UILaunchScreen_Generation: true
       INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
       INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
+      INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "MakanApa uses your location to find food store or restaurant nearby."
       TARGETED_DEVICE_FAMILY: "1,2"
   MakanApaTests:
     type: bundle.unit-test

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Geng Group</title>
+
+<g transform="translate(-14,16)">
+  <circle cx="188" cy="176" r="55" fill="#FFF4DD" stroke="#29201D" stroke-width="18"/>
+  <path d="M101 361C101 286 137 237 188 237C239 237 275 286 275 361" fill="#E94B35" stroke="#29201D" stroke-width="18"/>
+  <circle cx="324" cy="176" r="55" fill="#FFF4DD" stroke="#29201D" stroke-width="18"/>
+  <path d="M237 361C237 286 273 237 324 237C375 237 411 286 411 361" fill="#4F7A57" stroke="#29201D" stroke-width="18"/>
+</g>
+<path d="M191 418C213 439 238 449 256 449C274 449 299 439 321 418" stroke="#F4B942" stroke-width="16" stroke-linecap="round"/>
+
+</svg>

@@ -29,4 +29,9 @@ class Decision extends Model
     {
         return $this->hasMany(DecisionPreference::class);
     }
+
+    public function recommendations(): HasMany
+    {
+        return $this->hasMany(DecisionRecommendation::class);
+    }
 }

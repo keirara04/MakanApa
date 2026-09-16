@@ -18,6 +18,7 @@ class RestaurantSeeder extends Seeder
         foreach ($entries as $entry) {
             $restaurant = Restaurant::create([
                 'name' => $entry['name'],
+                'signature_dish' => $entry['signatureDish'] ?? null,
                 'latitude' => $entry['latitude'],
                 'longitude' => $entry['longitude'],
                 'address' => $entry['address'] ?? null,
