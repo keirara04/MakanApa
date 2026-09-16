@@ -14,4 +14,5 @@ struct Restaurant: Codable, Identifiable, Equatable {
     let openingHours: [String: String]?
     let cuisines: [String]
     let tags: [String]
+    let signatureDish: String?
 }

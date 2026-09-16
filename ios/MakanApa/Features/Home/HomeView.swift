@@ -4,39 +4,60 @@ struct HomeView: View {
     @Environment(AppRouter.self) private var router
 
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
+            HStack {
+                Spacer()
+                Image(systemName: "gearshape.fill")
+                    .foregroundStyle(.secondary)
+                    .opacity(0.4)
+            }
+
             Image("Logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 140, height: 140)
-                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .frame(width: 160, height: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 32))
 
-            Text("Tak tahu nak makan apa?\nMakanApa decides.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+            Text(Copy.homeGreeting)
+                .font(.makanDisplay(28))
+                .foregroundStyle(Color.kicap)
 
             VStack(spacing: 16) {
                 Button {
                     router.push(.soloPreferences)
                 } label: {
-                    Label("SOLO — Just tell me what to eat", systemImage: "person.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                    VStack(spacing: 6) {
+                        Text("👤").font(.system(size: 36))
+                        Text("SOLO").font(.makanDisplay(20))
+                        Text("Pick for me").font(.makanBody(14))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(Color.sambalRed)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
 
-                Button {
-                    // Group mode: not built in Phase 1
-                } label: {
-                    Label("WITH FRIENDS — Settle this for us", systemImage: "person.2.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                VStack(spacing: 6) {
+                    Text("👥").font(.system(size: 36))
+                    Text("GENG").font(.makanDisplay(20))
+                    Text("Settle for us").font(.makanBody(14))
+                    Text("COMING SOON").font(.makanBody(11)).foregroundStyle(.secondary)
                 }
-                .buttonStyle(.bordered)
-                .disabled(true)
+                .foregroundStyle(Color.kicap.opacity(0.5))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .background(Color.kicap.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 24))
             }
             .padding(.horizontal)
+
+            Spacer()
+
+            MascotLine(caption: Copy.homeTagline)
         }
         .padding()
+        .frame(maxHeight: .infinity)
+        .background(Color.nasiCream)
     }
 }

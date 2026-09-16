@@ -1,89 +1,156 @@
 import SwiftUI
+import UIKit
 
 struct PreferenceView: View {
     @Environment(AppRouter.self) private var router
     @Environment(SoloViewModel.self) private var viewModel
 
+    @State private var step: Int = 0
+    @State private var isThinking = false
+
+    private let totalSteps = 3
+
     var body: some View {
-        @Bindable var viewModel = viewModel
+        VStack(spacing: 32) {
+            MakanApaTopBar(trailing: "\(step + 1)/\(totalSteps)")
 
-        Form {
-            Section("Mood (optional)") {
-                chipGrid(options: SoloViewModel.moodOptions, selection: $viewModel.selectedMoodTags)
+            Spacer()
+
+            if isThinking {
+                thinkingView
+            } else {
+                switch step {
+                case 0: moodStep
+                case 1: budgetStep
+                default: distanceStep
+                }
             }
 
-            Section("Cuisine (optional)") {
-                chipGrid(options: SoloViewModel.cuisineOptions, selection: $viewModel.selectedCuisines)
-            }
+            Spacer()
+        }
+        .background(Color.nasiCream)
+        .toolbar(.hidden, for: .navigationBar)
+    }
 
-            Section("Budget") {
-                Picker("Budget", selection: $viewModel.budgetMax) {
-                    ForEach(SoloViewModel.budgetTiers, id: \.self) { tier in
-                        Text(String(repeating: "RM", count: 1) + String(repeating: "$", count: tier)).tag(tier)
+    // MARK: - Step 0: Mood
+
+    private var moodStep: some View {
+        VStack(spacing: 24) {
+            Text(Copy.soloMoodPrompt)
+                .font(.makanDisplay(24))
+                .foregroundStyle(Color.kicap)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                ForEach(SoloViewModel.moodOptions, id: \.tag) { option in
+                    MakanChoiceTile(
+                        emoji: option.emoji,
+                        label: option.label,
+                        isSelected: viewModel.selectedMoodTags.contains(option.tag)
+                    ) {
+                        selectMood(option.tag)
                     }
                 }
-                .pickerStyle(.segmented)
             }
+            .padding(.horizontal)
 
-            Section("How far?") {
-                Picker("Distance", selection: $viewModel.maxDistanceKm) {
-                    ForEach(SoloViewModel.distanceTiers, id: \.self) { tier in
-                        Text("\(tier, specifier: "%.0f") km").tag(tier)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-
-            Section {
-                Button {
-                    viewModel.selectedMoodTags = []
-                    viewModel.selectedCuisines = []
-                    decideAndNavigate()
-                } label: {
-                    Text("🎲 Anything")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            Section {
-                Button {
-                    decideAndNavigate()
-                } label: {
-                    Text("MAKANAPA?")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                viewModel.selectedMoodTags = []
+                viewModel.selectedCuisines = []
+                advance()
+            } label: {
+                Text(Copy.soloAnythingLah)
+                    .font(.makanBody(16))
+                    .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("What's the mood?")
     }
 
-    private func decideAndNavigate() {
-        viewModel.decide()
-        router.push(.soloResult)
+    private func selectMood(_ tag: String) {
+        viewModel.selectedMoodTags = [tag]
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            advance()
+        }
     }
 
-    @ViewBuilder
-    private func chipGrid(options: [String], selection: Binding<Set<String>>) -> some View {
-        let columns = [GridItem(.adaptive(minimum: 100))]
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(options, id: \.self) { option in
-                let isSelected = selection.wrappedValue.contains(option)
-                Text(option.replacingOccurrences(of: "_", with: " "))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(isSelected ? Color.accentColor : Color.secondary.opacity(0.15))
-                    .foregroundStyle(isSelected ? Color.white : Color.primary)
-                    .clipShape(Capsule())
-                    .onTapGesture {
-                        if isSelected {
-                            selection.wrappedValue.remove(option)
-                        } else {
-                            selection.wrappedValue.insert(option)
-                        }
+    // MARK: - Step 1: Budget
+
+    private var budgetStep: some View {
+        VStack(spacing: 24) {
+            Text(Copy.soloBudgetPrompt)
+                .font(.makanDisplay(24))
+                .foregroundStyle(Color.kicap)
+
+            HStack(spacing: 12) {
+                ForEach(SoloViewModel.budgetOptions, id: \.tier) { option in
+                    MakanChoiceTile(
+                        emoji: option.symbol,
+                        label: option.label,
+                        isSelected: viewModel.budgetMax == option.tier
+                    ) {
+                        selectBudget(option.tier)
                     }
+                }
             }
+            .padding(.horizontal)
+        }
+    }
+
+    private func selectBudget(_ tier: Int) {
+        viewModel.budgetMax = tier
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            advance()
+        }
+    }
+
+    // MARK: - Step 2: Distance
+
+    private var distanceStep: some View {
+        VStack(spacing: 24) {
+            Text(Copy.soloDistancePrompt)
+                .font(.makanDisplay(24))
+                .foregroundStyle(Color.kicap)
+
+            HStack(spacing: 12) {
+                ForEach(SoloViewModel.distanceOptions, id: \.km) { option in
+                    MakanChoiceTile(
+                        emoji: option.emoji,
+                        label: option.label,
+                        isSelected: viewModel.maxDistanceKm == option.km
+                    ) {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        viewModel.maxDistanceKm = option.km
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            MakanPrimaryButton(title: Copy.soloCTA) {
+                startThinking()
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    // MARK: - Thinking transition
+
+    private var thinkingView: some View {
+        MascotLine(caption: Copy.thinking)
+    }
+
+    private func startThinking() {
+        isThinking = true
+        viewModel.decide()
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            router.push(.soloResult)
+            isThinking = false
+        }
+    }
+
+    private func advance() {
+        if step < totalSteps - 1 {
+            step += 1
         }
     }
 }

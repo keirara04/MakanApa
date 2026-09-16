@@ -19,7 +19,7 @@ final class RecommendationEngineTests: XCTestCase {
             id: id, name: "R\(id)", latitude: lat, longitude: lng, address: nil,
             priceLevel: priceLevel, rating: rating, isActive: isActive,
             provider: "fixture", providerPlaceId: nil, openingHours: nil,
-            cuisines: cuisines, tags: tags
+            cuisines: cuisines, tags: tags, signatureDish: nil
         )
     }
 
@@ -91,7 +91,7 @@ final class RecommendationEngineTests: XCTestCase {
 
     func testRerollExcludesCurrentPick() {
         let candidates = (1...5).map { i in
-            ScoredRestaurant(restaurant: makeRestaurant(id: i, lat: originLat, lng: originLng), score: Double(100 - i))
+            ScoredRestaurant(restaurant: makeRestaurant(id: i, lat: originLat, lng: originLng), score: Double(100 - i), distanceKm: 0.5)
         }
         let current = candidates[0]
 

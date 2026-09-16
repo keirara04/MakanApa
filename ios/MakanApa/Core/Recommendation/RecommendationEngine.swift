@@ -3,6 +3,7 @@ import Foundation
 struct ScoredRestaurant: Identifiable, Equatable {
     let restaurant: Restaurant
     let score: Double
+    let distanceKm: Double
     var id: Int { restaurant.id }
 }
 
@@ -30,7 +31,8 @@ enum RecommendationEngine {
         let scored = eligible.map { pair in
             ScoredRestaurant(
                 restaurant: pair.restaurant,
-                score: RecommendationScore.score(restaurant: pair.restaurant, preference: preference, distanceKm: pair.distanceKm)
+                score: RecommendationScore.score(restaurant: pair.restaurant, preference: preference, distanceKm: pair.distanceKm),
+                distanceKm: pair.distanceKm
             )
         }
         return scored.sorted { $0.score > $1.score }.prefix(limit).map { $0 }

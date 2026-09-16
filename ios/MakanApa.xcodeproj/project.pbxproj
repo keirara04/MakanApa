@@ -7,21 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = E823597CCF1CD50A5011EDE9 /* Palette.swift */; };
+		14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 306B702B8A26340C493D9B9F /* Copy.swift */; };
 		26F420CEA5D465057DA7B27D /* restaurants.json in Resources */ = {isa = PBXBuildFile; fileRef = A98FF18AB7352F2071C01E14 /* restaurants.json */; };
 		3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
+		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
 		73F68EC3B71470C16270E723 /* Preference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5BFCC70359130D60E8F3DF /* Preference.swift */; };
+		7D038DE3E50EBE672C450F29 /* MascotLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 519594E113D76C26D0E0937B /* MascotLine.swift */; };
+		7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */; };
 		8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09287437BC53CD13153BE4A7 /* MakanApaApp.swift */; };
 		8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459312E9025F68024DF77A1 /* HomeView.swift */; };
 		8B75375487C7968CECECC799 /* Restaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = A818E3D6E401E821242D61F5 /* Restaurant.swift */; };
 		A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */; };
 		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
 		B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676DDD5174F3FF818051408B /* SoloViewModel.swift */; };
+		BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */; };
 		CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */; };
 		D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */; };
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
-		D897C3873BA278F71EAAD0A3 /* RestaurantCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA7647A549007920D02DFDA /* RestaurantCard.swift */; };
+		D9E3298186267729CEC217A0 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C2E6778243985350051EB2 /* Typography.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,7 +48,9 @@
 		217BC4E792F65DECF27B6B66 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
 		2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngineTests.swift; sourceTree = "<group>"; };
 		2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngine.swift; sourceTree = "<group>"; };
-		4CA7647A549007920D02DFDA /* RestaurantCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantCard.swift; sourceTree = "<group>"; };
+		306B702B8A26340C493D9B9F /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Copy.swift; sourceTree = "<group>"; };
+		37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanPrimaryButton.swift; sourceTree = "<group>"; };
+		519594E113D76C26D0E0937B /* MascotLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotLine.swift; sourceTree = "<group>"; };
 		53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationScore.swift; sourceTree = "<group>"; };
 		676DDD5174F3FF818051408B /* SoloViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloViewModel.swift; sourceTree = "<group>"; };
 		683267D9139BFC5DB72D9BEE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -50,8 +58,12 @@
 		A818E3D6E401E821242D61F5 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
 		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
 		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanChoiceTile.swift; sourceTree = "<group>"; };
+		C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaTopBar.swift; sourceTree = "<group>"; };
+		E4C2E6778243985350051EB2 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
+		E823597CCF1CD50A5011EDE9 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -103,6 +115,17 @@
 			path = MakanApa;
 			sourceTree = "<group>";
 		};
+		493BE46F243EC9877611E727 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				306B702B8A26340C493D9B9F /* Copy.swift */,
+				E823597CCF1CD50A5011EDE9 /* Palette.swift */,
+				E4C2E6778243985350051EB2 /* Typography.swift */,
+				5DF9973ADF696EF759A7A0DE /* Components */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		4E27FFC2EABB76DEABAC8AE7 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -126,6 +149,17 @@
 				A818E3D6E401E821242D61F5 /* Restaurant.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		5DF9973ADF696EF759A7A0DE /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */,
+				C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */,
+				37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */,
+				519594E113D76C26D0E0937B /* MascotLine.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 		6470C1D0A2DA506BB2CA3438 /* MakanApaTests */ = {
@@ -175,7 +209,6 @@
 		BFADF2C6ADCB6DE37EB66D0C /* Result */ = {
 			isa = PBXGroup;
 			children = (
-				4CA7647A549007920D02DFDA /* RestaurantCard.swift */,
 				E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */,
 			);
 			path = Result;
@@ -185,6 +218,7 @@
 			isa = PBXGroup;
 			children = (
 				4F41E7A8AAE083FF6AABFFF0 /* Data */,
+				493BE46F243EC9877611E727 /* DesignSystem */,
 				5D5559575A04323ABEAEBE8E /* Models */,
 				8FBF37F80AF568BBC436A27D /* Recommendation */,
 			);
@@ -287,17 +321,23 @@
 			buildActionMask = 2147483647;
 			files = (
 				D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */,
+				14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */,
 				3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */,
 				8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */,
 				8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */,
+				657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */,
+				BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */,
+				7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */,
+				7D038DE3E50EBE672C450F29 /* MascotLine.swift in Sources */,
+				0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */,
 				73F68EC3B71470C16270E723 /* Preference.swift in Sources */,
 				B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */,
 				D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */,
 				A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */,
 				8B75375487C7968CECECC799 /* Restaurant.swift in Sources */,
-				D897C3873BA278F71EAAD0A3 /* RestaurantCard.swift in Sources */,
 				72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */,
 				B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */,
+				D9E3298186267729CEC217A0 /* Typography.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

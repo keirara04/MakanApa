@@ -12,7 +12,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["malay"],
-    "tags": ["cheap", "comfort_food", "solo_friendly", "quick"]
+    "tags": ["cheap", "comfort_food", "solo_friendly", "quick"],
+    "signatureDish": "Nasi Ayam"
   },
   {
     "id": 2,
@@ -27,7 +28,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["thai"],
-    "tags": ["spicy", "group_friendly", "shareable"]
+    "tags": ["spicy", "group_friendly", "shareable"],
+    "signatureDish": "Tom Yum"
   },
   {
     "id": 3,
@@ -57,7 +59,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["korean"],
-    "tags": ["group_friendly", "shareable", "spicy"]
+    "tags": ["group_friendly", "shareable", "spicy"],
+    "signatureDish": "Korean BBQ"
   },
   {
     "id": 5,
@@ -147,7 +150,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["japanese"],
-    "tags": ["comfort_food", "solo_friendly", "quick"]
+    "tags": ["comfort_food", "solo_friendly", "quick"],
+    "signatureDish": "Ramen"
   },
   {
     "id": 11,
@@ -162,7 +166,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["malay"],
-    "tags": ["cheap", "comfort_food", "student_friendly", "quick", "solo_friendly"]
+    "tags": ["cheap", "comfort_food", "student_friendly", "quick", "solo_friendly"],
+    "signatureDish": "Nasi Lemak"
   },
   {
     "id": 12,
@@ -342,7 +347,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["indian"],
-    "tags": ["cheap", "comfort_food", "spicy", "solo_friendly"]
+    "tags": ["cheap", "comfort_food", "spicy", "solo_friendly"],
+    "signatureDish": "Banana Leaf Rice"
   },
   {
     "id": 24,
@@ -417,7 +423,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["malay", "indian"],
-    "tags": ["cheap", "spicy", "late_night", "student_friendly"]
+    "tags": ["cheap", "spicy", "late_night", "student_friendly"],
+    "signatureDish": "Nasi Kandar"
   },
   {
     "id": 29,

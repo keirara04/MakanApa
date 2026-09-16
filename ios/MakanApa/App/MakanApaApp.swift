@@ -20,6 +20,8 @@ struct MakanApaApp: App {
             }
             .environment(router)
             .environment(soloViewModel)
+            .tint(.sambalRed)
+            .preferredColorScheme(.light)
         }
     }
 }

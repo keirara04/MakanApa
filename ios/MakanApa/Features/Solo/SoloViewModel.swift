@@ -18,10 +18,44 @@ final class SoloViewModel {
     private(set) var candidates: [ScoredRestaurant] = []
     private(set) var currentPick: ScoredRestaurant?
 
-    static let moodOptions = ["comfort_food", "spicy", "healthy", "quick", "late_night"]
+    struct MoodOption {
+        let tag: String
+        let emoji: String
+        let label: String
+    }
+
+    struct BudgetOption {
+        let tier: Int
+        let symbol: String
+        let label: String
+    }
+
+    struct DistanceOption {
+        let km: Double
+        let emoji: String
+        let label: String
+    }
+
+    static let moodOptions: [MoodOption] = [
+        MoodOption(tag: "spicy", emoji: "🔥", label: "Spicy"),
+        MoodOption(tag: "comfort_food", emoji: "🍜", label: "Comfort"),
+        MoodOption(tag: "healthy", emoji: "🥗", label: "Light"),
+        MoodOption(tag: "quick", emoji: "⚡", label: "Quick"),
+    ]
+
     static let cuisineOptions = ["malay", "chinese", "japanese", "korean", "thai", "western", "indian"]
-    static let budgetTiers = [1, 2, 3]
-    static let distanceTiers: [Double] = [1.0, 2.0, 5.0]
+
+    static let budgetOptions: [BudgetOption] = [
+        BudgetOption(tier: 1, symbol: "RM", label: "Cheap"),
+        BudgetOption(tier: 2, symbol: "RM RM", label: "Okay"),
+        BudgetOption(tier: 3, symbol: "RM RM RM", label: "Treat"),
+    ]
+
+    static let distanceOptions: [DistanceOption] = [
+        DistanceOption(km: 1.0, emoji: "🚶", label: "5 min"),
+        DistanceOption(km: 2.0, emoji: "🚶‍♂️", label: "10 min"),
+        DistanceOption(km: 5.0, emoji: "🚗", label: "Don't mind"),
+    ]
 
     init() {
         loadFixture()
