@@ -6,24 +6,43 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SoloRecommendationRequest;
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
+use App\Services\Places\GooglePlacesProvider;
+use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
+use App\Support\RecommendationHeadline;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use Throwable;
 
 class RecommendationController extends Controller
 {
     public function __construct(
         private readonly PlacesService $placesService,
         private readonly RecommendationService $recommendationService,
+        private readonly PlaceNormalizer $normalizer,
     ) {}
 
     public function solo(SoloRecommendationRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $restaurants = $this->placesService->nearbyRestaurants(
-            $data['latitude'], $data['longitude'], $data['maxDistanceKm']
-        );
+        try {
+            $restaurants = $this->placesService->nearbyRestaurants(
+                $data['latitude'], $data['longitude'], $data['maxDistanceKm']
+            );
+        } catch (RequestException $e) {
+            Log::error('Places provider request failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Could not reach the places provider. Try again in a bit.'], 502);
+        } catch (Throwable $e) {
+            Log::error('Places lookup failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Could not find nearby places right now.'], 500);
+        }
 
         $preference = [
             'moodTags' => $data['moods'] ?? [],
@@ -40,7 +59,7 @@ class RecommendationController extends Controller
             'mode' => 'solo',
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
-            'budget_max' => $data['budgetMax'],
+            'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $data['maxDistanceKm'],
             'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
         ]);
@@ -60,7 +79,9 @@ class RecommendationController extends Controller
         return response()->json([
             'decisionId' => $decision->id,
             'algorithmVersion' => 'v1',
-            'recommendation' => $result['pick'] ? $this->presentCandidate($result['pick']) : null,
+            'recommendation' => $result['pick']
+                ? $this->presentCandidate($result['pick'], $this->enrichWinner($result['pick']['restaurant']))
+                : null,
         ]);
     }
 
@@ -98,7 +119,9 @@ class RecommendationController extends Controller
         }
 
         return response()->json([
-            'recommendation' => $next ? $this->presentCandidate($next) : null,
+            'recommendation' => $next
+                ? $this->presentCandidate($next, $this->enrichWinner($next['restaurant']))
+                : null,
         ]);
     }
 
@@ -117,14 +140,40 @@ class RecommendationController extends Controller
         return response()->json(['accepted' => (bool) $current]);
     }
 
-    private function presentCandidate(array $candidate): array
+    /**
+     * Winner-only Google Places Details fetch (photos/reviews/closing time) — never called
+     * for the full candidate list, only the one restaurant actually being shown. Transient:
+     * nothing this returns is written to the database.
+     */
+    private function enrichWinner(array $restaurant): array
+    {
+        $empty = ['photos' => [], 'reviews' => [], 'placeGoogleMapsUrl' => null, 'closesAt' => null];
+
+        if (($restaurant['provider'] ?? null) !== 'google' || empty($restaurant['provider_place_id'])) {
+            return $empty;
+        }
+
+        try {
+            $apiKey = Config::get('services.places.google_api_key');
+            $raw = (new GooglePlacesProvider($apiKey))->fetchPresentationDetails($restaurant['provider_place_id']);
+
+            return $this->normalizer->normalizePresentationDetails($raw);
+        } catch (Throwable $e) {
+            Log::warning('Presentation details fetch failed', ['error' => $e->getMessage()]);
+
+            return $empty; // card still works, just without photo/reviews/closing time
+        }
+    }
+
+    private function presentCandidate(array $candidate, array $enrichment): array
     {
         $restaurant = $candidate['restaurant'];
 
         return [
             'id' => $restaurant['id'],
             'name' => $restaurant['name'],
-            'headline' => $this->headlineFor($restaurant),
+            'headline' => RecommendationHeadline::for($restaurant),
+            'foodCategory' => $restaurant['food_category'] ?? null,
             'latitude' => $restaurant['latitude'],
             'longitude' => $restaurant['longitude'],
             'distanceKm' => $candidate['distanceKm'],
@@ -132,15 +181,25 @@ class RecommendationController extends Controller
             'priceLevel' => $restaurant['price_level'],
             'cuisines' => $restaurant['cuisines'],
             'openStatus' => $restaurant['open_status'],
+            'photos' => array_map(fn (array $photo) => $this->presentPhoto($photo), $enrichment['photos']),
+            'reviews' => $enrichment['reviews'],
+            'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
+            'closesAt' => $enrichment['closesAt'],
         ];
     }
 
-    private function headlineFor(array $restaurant): string
+    /**
+     * Converts a photo's transient Google resource name into a signed, short-lived Laravel
+     * URL — the raw name never reaches the client, and the signature stops the endpoint
+     * being usable as an open proxy for arbitrary Google photo names.
+     */
+    private function presentPhoto(array $photo): array
     {
-        if (! empty($restaurant['signature_dish'])) {
-            return strtoupper($restaurant['signature_dish']).'.';
-        }
-
-        return ! empty($restaurant['cuisines'][0]) ? strtoupper($restaurant['cuisines'][0]).'.' : 'MAKAN.';
+        return [
+            'url' => URL::temporarySignedRoute('places.photo', now()->addMinutes(10), ['name' => $photo['name']]),
+            'authorAttributions' => $photo['authorAttributions'],
+            'googleMapsUrl' => $photo['googleMapsUrl'],
+            'flagContentUrl' => $photo['flagContentUrl'],
+        ];
     }
 }

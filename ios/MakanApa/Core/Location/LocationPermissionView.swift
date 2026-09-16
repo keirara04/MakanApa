@@ -27,11 +27,36 @@ struct LocationPermissionView: View {
                 }
                 .padding(.horizontal, 48)
             default:
-                MascotView(mood: .idle, caption: "Where you at?\nMakanApa uses your location to find makan nearby.", size: 88)
+                ZStack {
+                    Image("LocationMap")
+                        .resizable()
+                        .scaledToFit()
+                        .opacity(0.18)
+                        .accessibilityHidden(true)
+                    Image("MascotLocation")
+                        .resizable()
+                        .scaledToFit()
+                        .accessibilityHidden(true)
+                }
+                .frame(width: 130, height: 130)
+
+                Text("Where you at?\nMakanApa uses your location to find makan nearby.")
+                    .font(.makanBody(14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
                 MakanPrimaryButton(title: "Find makan near me") {
                     locationService.requestLocation()
                 }
                 .padding(.horizontal, 48)
+
+                HStack(spacing: 24) {
+                    trustBadge(icon: "shield.checkered", label: Copy.trustBadgeWhileUsing)
+                    trustBadge(icon: "lock.fill", label: Copy.trustBadgePrivacy)
+                    trustBadge(icon: "mappin.circle", label: Copy.trustBadgeNearby)
+                }
+                .padding(.top, 4)
+
                 Text(Copy.locationPrivacyLine)
                     .font(.makanBody(12))
                     .foregroundStyle(.secondary)
@@ -54,5 +79,16 @@ struct LocationPermissionView: View {
                 router.push(.soloPreferences)
             }
         }
+    }
+
+    @ViewBuilder
+    private func trustBadge(icon: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+            Text(label)
+                .font(.makanBody(10))
+        }
+        .foregroundStyle(Color.kicap.opacity(0.6))
     }
 }

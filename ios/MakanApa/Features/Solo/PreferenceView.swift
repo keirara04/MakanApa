@@ -15,31 +15,38 @@ struct PreferenceView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            MakanApaTopBar(
-                trailing: isThinking ? nil : "\(step + 1)/\(totalSteps)",
-                onBack: (!isThinking && step > 0) ? { goBack() } : nil
-            )
-
-            if !isThinking {
-                progressTrack
-                    .padding(.horizontal)
-                    .padding(.top, 10)
+            if isThinking {
+                MakanApaTopBar(trailing: nil)
+            } else {
+                PreferenceProgressHeader(step: step) {
+                    if step == 0 { router.pop() } else { goBack() }
+                }
             }
 
             Group {
                 if isThinking {
                     thinkingView
                 } else {
-                    stepContent
-                        .id(step)
-                        .transition(stepTransition)
+                    ScrollView {
+                        stepContent
+                            .frame(maxWidth: 540)
+                            .frame(maxWidth: .infinity)
+                            .padding(.bottom, 24)
+                    }
+                    .scrollIndicators(.hidden)
+                    .id(step)
+                    .transition(stepTransition)
                 }
             }
-            .padding(.top, 28)
+            .padding(.top, 24)
             .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 0.85), value: step)
             .animation(.easeInOut(duration: 0.2), value: isThinking)
 
-            Spacer()
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if step == 0 && !isThinking {
+                moodContinueButton
+            }
         }
         .background(Color.nasiCream)
         .toolbar(.hidden, for: .navigationBar)
@@ -62,63 +69,61 @@ struct PreferenceView: View {
         )
     }
 
-    private var progressTrack: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.kicap.opacity(0.08))
-                Capsule().fill(Color.sambalRed)
-                    .frame(width: geo.size.width * CGFloat(step + 1) / CGFloat(totalSteps))
-                    .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.8), value: step)
-            }
-        }
-        .frame(height: 4)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Step \(step + 1) of \(totalSteps)")
-    }
-
     // MARK: - Step 0: Mood
 
-    private var moodStep: some View {
-        VStack(spacing: 24) {
-            Text(Copy.soloMoodPrompt)
-                .font(.makanDisplay(24))
-                .foregroundStyle(Color.kicap)
+    @State private var choseAnything = false
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                ForEach(SoloViewModel.moodOptions, id: \.tag) { option in
-                    MakanChoiceTile(
-                        emoji: option.emoji,
-                        label: option.label,
-                        isSelected: viewModel.selectedMoodTags.contains(option.tag)
-                    ) {
-                        selectMood(option.tag)
-                    }
-                }
-            }
-            .padding(.horizontal)
-
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                viewModel.selectedMoodTags = []
-                advance()
-            } label: {
-                Text(Copy.soloAnythingLah)
-                    .font(.makanBody(15))
-                    .foregroundStyle(Color.kicap)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .overlay(
-                        Capsule().strokeBorder(Color.kicap.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                    )
-            }
-        }
+    private var canContinueMood: Bool {
+        choseAnything || !viewModel.selectedMoodTags.isEmpty
     }
 
-    private func selectMood(_ tag: String) {
-        viewModel.selectedMoodTags = [tag]
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            advance()
+    private var moodStep: some View {
+        MoodSelectionView(
+            selectedTags: viewModel.selectedMoodTags,
+            choseAnything: choseAnything,
+            onSelect: { tag in
+                choseAnything = false
+                viewModel.selectedMoodTags = [tag]
+            },
+            onAnything: {
+                choseAnything = true
+                viewModel.selectedMoodTags = []
+            }
+        )
+    }
+
+    private var moodContinueButton: some View {
+        VStack(spacing: 12) {
+            Button(action: advance) {
+                HStack {
+                    Text("Continue")
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .accessibilityHidden(true)
+                }
+                .font(.headline)
+                .foregroundStyle(canContinueMood ? .white : Color.kicap.opacity(0.45))
+                .padding(.horizontal, 22)
+                .frame(minHeight: 56)
+                .background(canContinueMood ? Color.sambalRed : Color.kicap.opacity(0.08),
+                            in: RoundedRectangle(cornerRadius: 18))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canContinueMood)
+            .accessibilityHint("Next, choose your budget")
+
+            Text(canContinueMood ? "Next up, your budget" : "Pick a mood, or leave it to us")
+                .font(.footnote)
+                .foregroundStyle(Color.kicap.opacity(0.65))
         }
+        .sensoryFeedback(.selection, trigger: viewModel.selectedMoodTags)
+        .sensoryFeedback(.selection, trigger: choseAnything)
+        .frame(maxWidth: 492)
+        .padding(.horizontal, 24)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity)
+        .background(Color.nasiCream)
     }
 
     // MARK: - Step 1: Budget
@@ -137,8 +142,9 @@ struct PreferenceView: View {
             HStack(spacing: 12) {
                 ForEach(SoloViewModel.budgetOptions, id: \.tier) { option in
                     MakanChoiceTile(
-                        emoji: option.amount,
-                        label: option.label,
+                        illustration: option.illustration,
+                        label: option.amount,
+                        subtext: option.label,
                         isSelected: viewModel.budgetMax == option.tier
                     ) {
                         selectBudget(option.tier)
@@ -151,14 +157,19 @@ struct PreferenceView: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 selectBudget(nil)
             } label: {
-                Text(Copy.soloAnythingLah)
-                    .font(.makanBody(15))
-                    .foregroundStyle(Color.kicap)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .overlay(
-                        Capsule().strokeBorder(Color.kicap.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                    )
+                VStack(spacing: 2) {
+                    Text(Copy.soloAnythingLah)
+                        .font(.makanBody(15))
+                        .foregroundStyle(Color.kicap)
+                    Text(Copy.budgetAnythingSubtext)
+                        .font(.makanBody(11))
+                        .foregroundStyle(Color.kicap.opacity(0.6))
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .overlay(
+                    Capsule().strokeBorder(Color.kicap.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                )
             }
         }
     }
@@ -174,14 +185,19 @@ struct PreferenceView: View {
 
     private var distanceStep: some View {
         VStack(spacing: 24) {
-            Text(Copy.soloDistancePrompt)
-                .font(.makanDisplay(24))
-                .foregroundStyle(Color.kicap)
+            VStack(spacing: 4) {
+                Text(Copy.soloDistancePrompt)
+                    .font(.makanDisplay(24))
+                    .foregroundStyle(Color.kicap)
+                Text(Copy.soloDistanceSubtext)
+                    .font(.makanBody(13))
+                    .foregroundStyle(.secondary)
+            }
 
             HStack(spacing: 12) {
                 ForEach(SoloViewModel.distanceOptions, id: \.km) { option in
                     MakanChoiceTile(
-                        emoji: option.emoji,
+                        illustration: option.illustration,
                         label: option.label,
                         subtext: option.subtext,
                         isSelected: viewModel.maxDistanceKm == option.km
@@ -205,14 +221,14 @@ struct PreferenceView: View {
     // MARK: - Thinking transition
 
     private var thinkingView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             MascotView(mood: .thinking, caption: Copy.thinking, size: 88)
-            ThinkingDots()
+            ThinkingChecklist()
         }
         .padding(.top, 60)
     }
 
-    private static let minimumThinkingDuration: Duration = .milliseconds(500)
+    private static let minimumThinkingDuration: Duration = .milliseconds(700)
 
     private func startThinking() {
         guard case let .authorized(coordinate) = locationService.state else { return }
@@ -247,24 +263,38 @@ struct PreferenceView: View {
     }
 }
 
-/// Three-dot ellipsis, staggered opacity loop — reads as "deciding," not a network spinner.
-private struct ThinkingDots: View {
+/// Progressive 3-line checklist — reads as "deciding," not a network spinner.
+/// One-shot ladder (0/220/440ms), not a repeating loop: if the real request outlasts
+/// the ladder, all three lines simply stay lit rather than cycling.
+struct ThinkingChecklist: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var animate = false
+    @State private var activeCount = 0
+
+    var lines: [String] = [Copy.thinkingStep1, Copy.thinkingStep2, Copy.thinkingStep3]
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .fill(Color.sambalRed)
-                    .frame(width: 7, height: 7)
-                    .opacity(reduceMotion ? 1 : (animate ? 1 : 0.25))
-                    .animation(
-                        reduceMotion ? nil : .easeInOut(duration: 0.5).repeatForever(autoreverses: true).delay(Double(index) * 0.15),
-                        value: animate
-                    )
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(lines.indices, id: \.self) { index in
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(index < activeCount ? Color.sambalRed : Color.kicap.opacity(0.15))
+                        .frame(width: 8, height: 8)
+                    Text(lines[index])
+                        .font(.makanBody(13))
+                        .foregroundStyle(index < activeCount ? Color.kicap : .secondary)
+                }
             }
         }
-        .onAppear { animate = true }
+        .animation(.easeOut(duration: 0.2), value: activeCount)
+        .task {
+            if reduceMotion {
+                activeCount = lines.count
+                return
+            }
+            for _ in lines {
+                activeCount += 1
+                try? await Task.sleep(for: .milliseconds(220))
+            }
+        }
     }
 }

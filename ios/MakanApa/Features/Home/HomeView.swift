@@ -49,14 +49,26 @@ struct HomeView: View {
                         router.push(.locationPermission)
                     }
                 } label: {
-                    VStack(spacing: 6) {
-                        Text("👤").font(.system(size: 36))
-                        Text("SOLO").font(.makanDisplay(20))
-                        Text("Pick for me").font(.makanBody(14))
+                    HStack(spacing: 16) {
+                        Image("SoloIllustration")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 52, height: 52)
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("SOLO").font(.makanDisplay(20))
+                            Text("Pick for me").font(.makanBody(14))
+                        }
+                        .foregroundStyle(.white)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.white.opacity(0.8))
                     }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 22)
                     .background(Color.sambalRed)
                     .clipShape(RoundedRectangle(cornerRadius: 30))
                     .shadow(color: Color.kicap.opacity(0.12), radius: 8, y: 4)
@@ -66,15 +78,27 @@ struct HomeView: View {
                 Button {
                     showGengComingSoon = true
                 } label: {
-                    VStack(spacing: 6) {
-                        Text("👥").font(.system(size: 36))
-                        Text("GENG").font(.makanDisplay(20))
-                        Text("Settle for us").font(.makanBody(14))
-                        Text("COMING SOON").font(.makanBody(11)).foregroundStyle(.secondary)
+                    HStack(spacing: 16) {
+                        Image("GengIllustration")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 52, height: 52)
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("GENG").font(.makanDisplay(20))
+                            Text("Settle for us").font(.makanBody(14))
+                            Text("COMING SOON").font(.makanBody(11)).foregroundStyle(.secondary)
+                        }
+                        .foregroundStyle(Color.kicap.opacity(0.5))
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.kicap.opacity(0.3))
                     }
-                    .foregroundStyle(Color.kicap.opacity(0.5))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 22)
                     .background(Color.kicap.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 30))
                     .shadow(color: Color.kicap.opacity(0.06), radius: 6, y: 3)
@@ -85,7 +109,12 @@ struct HomeView: View {
 
             Spacer()
 
-            MascotView(mood: .idle, caption: Copy.homeTagline)
+            VStack(spacing: 6) {
+                MascotView(mood: .idle, caption: Copy.homeTagline)
+                Capsule()
+                    .fill(Color.kunyit.opacity(0.5))
+                    .frame(width: 40, height: 3)
+            }
         }
         .padding()
         .frame(maxHeight: .infinity)

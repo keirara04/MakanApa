@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Comfort</title>
+
+<ellipse cx="256" cy="188" rx="122" ry="54" fill="#FFFDF7" stroke="#29201D" stroke-width="18"/>
+<path d="M138 190C154 280 197 341 256 341C315 341 358 280 374 190" fill="#E94B35" stroke="#29201D" stroke-width="18"/>
+<path d="M167 226C211 245 301 245 345 226" stroke="#FFF4DD" stroke-width="12" stroke-linecap="round"/>
+<path d="M195 157C193 119 220 102 218 69" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+<path d="M252 157C250 119 277 102 275 69" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+<path d="M309 157C307 119 334 102 332 69" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+<path d="M307 132L394 102" stroke="#29201D" stroke-width="12" stroke-linecap="round"/>
+<path d="M316 147L402 119" stroke="#29201D" stroke-width="12" stroke-linecap="round"/>
+<circle cx="217" cy="188" r="16" fill="#4F7A57"/>
+<circle cx="286" cy="184" r="14" fill="#F4B942"/>
+
+</svg>

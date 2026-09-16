@@ -1,13 +1,24 @@
 import SwiftUI
 
-/// "Nasi" the mascot. One static illustration, expressive via motion rather than
-/// multiple drawn poses — idle bob, thinking bounce/wiggle, one-shot celebrate pop,
-/// one-shot sad shake. Respects Reduce Motion (falls back to a plain fade-in).
+/// "Nasi" the mascot. Real drawn pose per mood, still expressive via motion on top —
+/// idle bob, thinking bounce/wiggle, one-shot celebrate pop, one-shot sad shake.
+/// Respects Reduce Motion (falls back to a plain fade-in).
 enum MascotMood {
     case idle
     case thinking
     case celebrate
     case sad
+    case geng
+
+    var imageName: String {
+        switch self {
+        case .idle: return "MascotDefault"
+        case .thinking: return "MascotThinking"
+        case .celebrate: return "MascotCelebrate"
+        case .sad: return "MascotSad"
+        case .geng: return "MascotGeng"
+        }
+    }
 }
 
 struct MascotView: View {
@@ -21,7 +32,7 @@ struct MascotView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image("Mascot")
+            Image(mood.imageName)
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)
@@ -55,7 +66,7 @@ struct MascotView: View {
     private var offsetY: CGFloat {
         guard !reduceMotion else { return 0 }
         switch mood {
-        case .idle: return animate ? -6 : 0
+        case .idle, .geng: return animate ? -6 : 0
         case .thinking: return animate ? -10 : 0
         case .celebrate, .sad: return 0
         }
@@ -64,7 +75,7 @@ struct MascotView: View {
     private var rotationDegrees: Double {
         guard !reduceMotion else { return 0 }
         switch mood {
-        case .idle: return 0
+        case .idle, .geng: return 0
         case .thinking: return animate ? 4 : -4
         case .celebrate: return animate ? 0 : -6
         case .sad: return animate ? -6 : 6
@@ -81,7 +92,7 @@ struct MascotView: View {
 
     private var loopAnimation: Animation {
         switch mood {
-        case .idle:
+        case .idle, .geng:
             return .easeInOut(duration: 1.4).repeatForever(autoreverses: true)
         case .thinking:
             return .easeInOut(duration: 0.45).repeatForever(autoreverses: true)

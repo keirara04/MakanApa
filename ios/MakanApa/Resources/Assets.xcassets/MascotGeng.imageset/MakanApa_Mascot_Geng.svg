@@ -1,0 +1,202 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<title>MakanApa Mascot — Geng</title>
+<desc>Three Nasi mascots grouped together for Geng mode.</desc>
+<defs>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#29201D" flood-opacity="0.10"/>
+  </filter>
+</defs>
+<g filter="url(#softShadow)">
+
+<g transform="translate(185 160) scale(.62)">
+
+      <!-- legs -->
+      <path d="M458 748C452 804 436 844 412 880" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <path d="M576 748C584 804 602 844 625 878" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <ellipse cx="394" cy="894" rx="48" ry="23" fill="#29201D"/>
+      <ellipse cx="644" cy="894" rx="48" ry="23" fill="#29201D"/>
+
+      <path d="M375 610C345 628 335 653 340 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+      <path d="M661 610C692 628 703 653 698 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+
+      <!-- rice body -->
+      <path d="M326 580
+      C295 547 303 503 340 482
+      C307 437 330 389 375 380
+      C360 334 396 300 440 308
+      C455 269 503 252 537 281
+      C568 252 616 267 632 306
+      C678 298 714 333 699 379
+      C745 388 768 436 735 481
+      C773 503 781 547 749 580
+      C780 623 759 670 716 682
+      C703 727 661 747 624 730
+      C599 770 550 783 514 754
+      C478 782 428 770 405 731
+      C367 748 325 726 313 682
+      C270 671 250 623 281 580
+      C292 568 307 561 326 580Z"
+      fill="#FFF4DD" stroke="#29201D" stroke-width="24" stroke-linejoin="round"/>
+
+      <!-- rice texture -->
+      <g stroke="#E8D9BC" stroke-width="12" stroke-linecap="round" opacity="0.9">
+        <path d="M404 377C420 361 438 358 453 365"/>
+        <path d="M475 333C491 319 510 318 525 324"/>
+        <path d="M554 330C570 320 588 322 601 331"/>
+        <path d="M623 366C639 359 655 362 669 374"/>
+        <path d="M362 447C378 435 394 436 408 444"/>
+        <path d="M673 448C688 438 704 439 717 449"/>
+      </g>
+
+      <!-- cap -->
+      <path d="M553 301C616 282 681 295 728 334C735 341 732 353 724 358C674 387 613 397 553 387Z"
+            fill="#C83D2D" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M507 314C522 249 592 201 664 219C727 235 761 290 746 347C687 326 623 319 553 327Z"
+            fill="#E94B35" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M677 230C708 257 721 294 713 330" stroke="#B73427" stroke-width="14" stroke-linecap="round"/>
+      <g fill="#FFF4DD" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-weight="700">
+        <text x="622" y="274" font-size="28" transform="rotate(8 622 274)">JOM</text>
+        <text x="622" y="309" font-size="28" transform="rotate(8 622 309)">MAKAN</text>
+      </g>
+
+      
+        <ellipse cx="450" cy="505" rx="18" ry="27" fill="#29201D"/>
+        <path d="M589 502C607 486 625 487 641 502" stroke="#29201D" stroke-width="18" stroke-linecap="round"/>
+        <ellipse cx="392" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <ellipse cx="668" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <path d="M486 547C505 558 529 559 551 547C554 585 540 613 519 613C498 613 483 585 486 547Z"
+              fill="#29201D" stroke="#29201D" stroke-width="10" stroke-linejoin="round"/>
+        <path d="M503 591C515 580 528 580 538 591C530 603 522 607 515 607C510 607 506 601 503 591Z" fill="#E94B35"/>
+        
+      
+    
+</g>
+<g transform="translate(-55 280) scale(.5)">
+
+      <!-- legs -->
+      <path d="M458 748C452 804 436 844 412 880" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <path d="M576 748C584 804 602 844 625 878" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <ellipse cx="394" cy="894" rx="48" ry="23" fill="#29201D"/>
+      <ellipse cx="644" cy="894" rx="48" ry="23" fill="#29201D"/>
+
+      <path d="M375 610C345 628 335 653 340 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+      <path d="M661 610C692 628 703 653 698 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+
+      <!-- rice body -->
+      <path d="M326 580
+      C295 547 303 503 340 482
+      C307 437 330 389 375 380
+      C360 334 396 300 440 308
+      C455 269 503 252 537 281
+      C568 252 616 267 632 306
+      C678 298 714 333 699 379
+      C745 388 768 436 735 481
+      C773 503 781 547 749 580
+      C780 623 759 670 716 682
+      C703 727 661 747 624 730
+      C599 770 550 783 514 754
+      C478 782 428 770 405 731
+      C367 748 325 726 313 682
+      C270 671 250 623 281 580
+      C292 568 307 561 326 580Z"
+      fill="#FFF4DD" stroke="#29201D" stroke-width="24" stroke-linejoin="round"/>
+
+      <!-- rice texture -->
+      <g stroke="#E8D9BC" stroke-width="12" stroke-linecap="round" opacity="0.9">
+        <path d="M404 377C420 361 438 358 453 365"/>
+        <path d="M475 333C491 319 510 318 525 324"/>
+        <path d="M554 330C570 320 588 322 601 331"/>
+        <path d="M623 366C639 359 655 362 669 374"/>
+        <path d="M362 447C378 435 394 436 408 444"/>
+        <path d="M673 448C688 438 704 439 717 449"/>
+      </g>
+
+      <!-- cap -->
+      <path d="M553 301C616 282 681 295 728 334C735 341 732 353 724 358C674 387 613 397 553 387Z"
+            fill="#C83D2D" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M507 314C522 249 592 201 664 219C727 235 761 290 746 347C687 326 623 319 553 327Z"
+            fill="#E94B35" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M677 230C708 257 721 294 713 330" stroke="#B73427" stroke-width="14" stroke-linecap="round"/>
+      <g fill="#FFF4DD" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-weight="700">
+        <text x="622" y="274" font-size="28" transform="rotate(8 622 274)">JOM</text>
+        <text x="622" y="309" font-size="28" transform="rotate(8 622 309)">MAKAN</text>
+      </g>
+
+      
+        <ellipse cx="450" cy="505" rx="18" ry="27" fill="#29201D"/>
+        <path d="M589 502C607 486 625 487 641 502" stroke="#29201D" stroke-width="18" stroke-linecap="round"/>
+        <ellipse cx="392" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <ellipse cx="668" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <path d="M486 547C505 558 529 559 551 547C554 585 540 613 519 613C498 613 483 585 486 547Z"
+              fill="#29201D" stroke="#29201D" stroke-width="10" stroke-linejoin="round"/>
+        <path d="M503 591C515 580 528 580 538 591C530 603 522 607 515 607C510 607 506 601 503 591Z" fill="#E94B35"/>
+        
+      
+    
+</g>
+<g transform="translate(420 300) scale(.48)">
+
+      <!-- legs -->
+      <path d="M458 748C452 804 436 844 412 880" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <path d="M576 748C584 804 602 844 625 878" stroke="#29201D" stroke-width="30" stroke-linecap="round"/>
+      <ellipse cx="394" cy="894" rx="48" ry="23" fill="#29201D"/>
+      <ellipse cx="644" cy="894" rx="48" ry="23" fill="#29201D"/>
+
+      <path d="M375 610C345 628 335 653 340 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+      <path d="M661 610C692 628 703 653 698 684" stroke="#29201D" stroke-width="28" stroke-linecap="round"/>
+
+      <!-- rice body -->
+      <path d="M326 580
+      C295 547 303 503 340 482
+      C307 437 330 389 375 380
+      C360 334 396 300 440 308
+      C455 269 503 252 537 281
+      C568 252 616 267 632 306
+      C678 298 714 333 699 379
+      C745 388 768 436 735 481
+      C773 503 781 547 749 580
+      C780 623 759 670 716 682
+      C703 727 661 747 624 730
+      C599 770 550 783 514 754
+      C478 782 428 770 405 731
+      C367 748 325 726 313 682
+      C270 671 250 623 281 580
+      C292 568 307 561 326 580Z"
+      fill="#FFF4DD" stroke="#29201D" stroke-width="24" stroke-linejoin="round"/>
+
+      <!-- rice texture -->
+      <g stroke="#E8D9BC" stroke-width="12" stroke-linecap="round" opacity="0.9">
+        <path d="M404 377C420 361 438 358 453 365"/>
+        <path d="M475 333C491 319 510 318 525 324"/>
+        <path d="M554 330C570 320 588 322 601 331"/>
+        <path d="M623 366C639 359 655 362 669 374"/>
+        <path d="M362 447C378 435 394 436 408 444"/>
+        <path d="M673 448C688 438 704 439 717 449"/>
+      </g>
+
+      <!-- cap -->
+      <path d="M553 301C616 282 681 295 728 334C735 341 732 353 724 358C674 387 613 397 553 387Z"
+            fill="#C83D2D" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M507 314C522 249 592 201 664 219C727 235 761 290 746 347C687 326 623 319 553 327Z"
+            fill="#E94B35" stroke="#29201D" stroke-width="20" stroke-linejoin="round"/>
+      <path d="M677 230C708 257 721 294 713 330" stroke="#B73427" stroke-width="14" stroke-linecap="round"/>
+      <g fill="#FFF4DD" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-weight="700">
+        <text x="622" y="274" font-size="28" transform="rotate(8 622 274)">JOM</text>
+        <text x="622" y="309" font-size="28" transform="rotate(8 622 309)">MAKAN</text>
+      </g>
+
+      
+        <ellipse cx="450" cy="505" rx="18" ry="27" fill="#29201D"/>
+        <path d="M589 502C607 486 625 487 641 502" stroke="#29201D" stroke-width="18" stroke-linecap="round"/>
+        <ellipse cx="392" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <ellipse cx="668" cy="560" rx="34" ry="24" fill="#F48C73"/>
+        <path d="M486 547C505 558 529 559 551 547C554 585 540 613 519 613C498 613 483 585 486 547Z"
+              fill="#29201D" stroke="#29201D" stroke-width="10" stroke-linejoin="round"/>
+        <path d="M503 591C515 580 528 580 538 591C530 603 522 607 515 607C510 607 506 601 503 591Z" fill="#E94B35"/>
+        
+      
+    
+</g>
+
+</g>
+</svg>

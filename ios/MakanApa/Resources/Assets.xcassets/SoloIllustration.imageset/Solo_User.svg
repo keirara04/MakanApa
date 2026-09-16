@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Solo User</title>
+
+<circle cx="256" cy="161" r="76" fill="#FFF4DD" stroke="#29201D" stroke-width="18"/>
+<path d="M125 410C125 305 178 236 256 236C334 236 387 305 387 410" fill="#E94B35" stroke="#29201D" stroke-width="18"/>
+<path d="M210 174C230 188 280 188 301 174" stroke="#29201D" stroke-width="12" stroke-linecap="round"/>
+<circle cx="222" cy="142" r="8" fill="#29201D"/>
+<circle cx="291" cy="142" r="8" fill="#29201D"/>
+
+</svg>

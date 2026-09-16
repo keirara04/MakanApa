@@ -99,6 +99,7 @@ class PlacesService
                 'rating' => $data['rating'],
                 'is_active' => $data['is_active'],
                 'opening_hours' => $data['opening_hours'],
+                'food_category' => $data['food_category'],
                 'last_synced_at' => now(),
             ]
         );

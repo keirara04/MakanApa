@@ -212,7 +212,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["western"],
-    "tags": ["group_friendly", "comfort_food"]
+    "tags": ["group_friendly", "comfort_food"],
+    "foodCategory": "steak"
   },
   {
     "id": 15,
@@ -317,7 +318,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["western"],
-    "tags": ["cafe", "solo_friendly", "dessert"]
+    "tags": ["cafe", "solo_friendly", "dessert"],
+    "foodCategory": "cafe"
   },
   {
     "id": 22,
@@ -393,7 +395,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["western"],
-    "tags": ["dessert", "cafe", "solo_friendly", "shareable"]
+    "tags": ["dessert", "cafe", "solo_friendly", "shareable"],
+    "foodCategory": "dessert"
   },
   {
     "id": 27,

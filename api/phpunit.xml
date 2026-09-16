@@ -30,6 +30,8 @@
         <env name="DB_USERNAME" value="user"/>
         <env name="DB_PASSWORD" value=""/>
         <env name="DB_URL" value=""/>
+        <!-- Always fixture in tests, regardless of local .env — never hit real Google from the test suite. -->
+        <env name="PLACES_PROVIDER" value="fixture"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

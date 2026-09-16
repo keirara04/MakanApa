@@ -2,7 +2,11 @@ import Foundation
 
 enum APIConfig {
     #if DEBUG
-    static let baseURL = URL(string: "http://127.0.0.1:8000/api/v1")!
+    // Real device can't reach the Mac via 127.0.0.1 (that's the phone itself) — use the
+    // Mac's LAN IP instead. Find it with `ipconfig getifaddr en0`; update if it changes
+    // (different network, DHCP renewal). Simulator works with either since it shares the
+    // host's network namespace.
+    static let baseURL = URL(string: "http://10.121.215.167:8000/api/v1")!
     #else
     static let baseURL = URL(string: "https://api.makanapa.app/api/v1")!
     #endif

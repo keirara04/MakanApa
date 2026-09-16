@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
-    'name', 'signature_dish', 'latitude', 'longitude', 'address', 'price_level', 'rating',
+    'name', 'signature_dish', 'food_category', 'latitude', 'longitude', 'address', 'price_level', 'rating',
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
 ])]
 class Restaurant extends Model
@@ -44,6 +44,7 @@ class Restaurant extends Model
             'id' => $this->id,
             'name' => $this->name,
             'signature_dish' => $this->signature_dish,
+            'food_category' => $this->food_category,
             'latitude' => (float) $this->latitude,
             'longitude' => (float) $this->longitude,
             'price_level' => $this->price_level,
@@ -52,6 +53,8 @@ class Restaurant extends Model
             'open_status' => $this->openStatus(),
             'cuisines' => $this->cuisines->pluck('slug')->all(),
             'tags' => $this->tags->pluck('name')->all(),
+            'provider' => $this->provider,
+            'provider_place_id' => $this->provider_place_id,
         ];
     }
 

@@ -17,41 +17,43 @@ final class SoloViewModel {
 
     struct MoodOption {
         let tag: String
-        let emoji: String
+        let illustration: String
         let label: String
+        let subtext: String
     }
 
     struct BudgetOption {
         /// nil = "Anything lah" — no price filter, not the top tier.
         let tier: Int?
+        let illustration: String
         let amount: String
         let label: String
     }
 
     struct DistanceOption {
         let km: Double
-        let emoji: String
+        let illustration: String
         let label: String
         let subtext: String
     }
 
     static let moodOptions: [MoodOption] = [
-        MoodOption(tag: "spicy", emoji: "🔥", label: "Spicy"),
-        MoodOption(tag: "comfort_food", emoji: "🍜", label: "Comfort"),
-        MoodOption(tag: "healthy", emoji: "🥗", label: "Light"),
-        MoodOption(tag: "quick", emoji: "⚡", label: "Quick"),
+        MoodOption(tag: "spicy", illustration: "MoodSpicy", label: "Spicy", subtext: Copy.moodSpicySubtext),
+        MoodOption(tag: "comfort_food", illustration: "MoodComfort", label: "Comfort", subtext: Copy.moodComfortSubtext),
+        MoodOption(tag: "healthy", illustration: "MoodLight", label: "Light", subtext: Copy.moodLightSubtext),
+        MoodOption(tag: "quick", illustration: "MoodQuick", label: "Quick", subtext: Copy.moodQuickSubtext),
     ]
 
     static let budgetOptions: [BudgetOption] = [
-        BudgetOption(tier: 1, amount: "~RM10", label: "save sikit"),
-        BudgetOption(tier: 2, amount: "~RM20", label: "normal lah"),
-        BudgetOption(tier: 3, amount: "~RM35+", label: "feeling kaya"),
+        BudgetOption(tier: 1, illustration: "BudgetSave", amount: "~RM10", label: "save sikit"),
+        BudgetOption(tier: 2, illustration: "BudgetNormal", amount: "~RM20", label: "normal lah"),
+        BudgetOption(tier: 3, illustration: "BudgetTreat", amount: "~RM35+", label: "feeling kaya"),
     ]
 
     static let distanceOptions: [DistanceOption] = [
-        DistanceOption(km: 1.0, emoji: "🚶", label: "5 min", subtext: "dekat je"),
-        DistanceOption(km: 2.0, emoji: "🚶‍♂️", label: "10 min", subtext: "okay lah"),
-        DistanceOption(km: 5.0, emoji: "🚗", label: "Don't mind", subtext: "janji sedap"),
+        DistanceOption(km: 1.0, illustration: "DistanceNear", label: "5 min", subtext: "dekat je"),
+        DistanceOption(km: 2.0, illustration: "DistanceWalk", label: "10 min", subtext: "okay lah"),
+        DistanceOption(km: 5.0, illustration: "DistanceCar", label: "Don't mind", subtext: "janji sedap"),
     ]
 
     @MainActor

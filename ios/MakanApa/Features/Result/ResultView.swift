@@ -8,10 +8,14 @@ struct ResultView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var showIntro = false
-    @State private var showEmoji = false
+    @State private var showMascot = false
     @State private var showHeadline = false
     @State private var showInfo = false
     @State private var showCTA = false
+    @State private var isRerolling = false
+    @State private var photoPage = 0
+
+    private static let minimumRerollDuration: Duration = .milliseconds(700)
 
     var body: some View {
         VStack(spacing: 20) {
@@ -19,13 +23,14 @@ struct ResultView: View {
 
             Spacer().frame(height: 20)
 
-            if let error = viewModel.apiError {
+            if isRerolling {
+                rerollingContent
+            } else if let error = viewModel.apiError {
                 errorContent(for: error)
             } else if let pick = viewModel.currentPick {
                 resultContent(for: pick)
             } else {
-                MascotView(mood: .sad, caption: Copy.emptyState)
-                    .padding()
+                noResultContent
             }
 
             Spacer()
@@ -34,6 +39,8 @@ struct ResultView: View {
         .background(Color.nasiCream)
         .toolbar(.hidden, for: .navigationBar)
         .task(id: viewModel.currentPick?.id) {
+            guard !isRerolling else { return }
+            photoPage = 0
             await runRevealSequence()
         }
         .onChange(of: viewModel.apiError == nil) { _, hasNoError in
@@ -47,104 +54,450 @@ struct ResultView: View {
 
     @ViewBuilder
     private func resultContent(for pick: RecommendationResponse.Recommendation) -> some View {
-        Text(Copy.resultIntro)
-            .font(.makanBody(15))
-            .foregroundStyle(.secondary)
-            .opacity(showIntro ? 1 : 0)
-            .animation(.easeOut(duration: 0.2), value: showIntro)
+        ScrollView {
+            VStack(spacing: 20) {
+                Text(Copy.resultIntro)
+                    .font(.makanBody(15))
+                    .foregroundStyle(.secondary)
+                    .opacity(showIntro ? 1 : 0)
+                    .animation(.easeOut(duration: 0.2), value: showIntro)
 
-        VStack(spacing: 12) {
-            Text(cuisineEmoji(for: pick))
-                .font(.system(size: 48))
-                .scaleEffect(showEmoji ? 1 : 0.4)
-                .opacity(showEmoji ? 1 : 0)
-                .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.6), value: showEmoji)
+                MascotView(mood: .celebrate, size: 64)
+                    .opacity(showMascot ? 1 : 0)
+                    .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.6), value: showMascot)
 
-            Text(pick.headline)
-                .font(.makanDisplay(36))
-                .foregroundStyle(Color.kicap)
-                .multilineTextAlignment(.center)
-                .scaleEffect(showHeadline ? 1 : 0.85)
-                .opacity(showHeadline ? 1 : 0)
-                .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 0.7), value: showHeadline)
+                VStack(spacing: 8) {
+                    Text(pick.headline)
+                        .font(.makanDisplay(36))
+                        .foregroundStyle(Color.kicap)
+                        .multilineTextAlignment(.center)
+                        .scaleEffect(showHeadline ? 1 : 0.85)
+                        .opacity(showHeadline ? 1 : 0)
+                        .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 0.7), value: showHeadline)
 
-            Text(Copy.resultThatsIt)
-                .font(.makanBody(16))
-                .foregroundStyle(.secondary)
-                .opacity(showHeadline ? 1 : 0)
+                    Text(Copy.resultThatsIt)
+                        .font(.makanBody(16))
+                        .foregroundStyle(.secondary)
+                        .opacity(showHeadline ? 1 : 0)
+                }
+
+                VStack(spacing: 16) {
+                    resultCard(for: pick)
+
+                    nameBlock(for: pick)
+
+                    reasonChips
+
+                    if !pick.reviews.isEmpty {
+                        reviewsSection(for: pick)
+                    }
+
+                    if pick.photos.contains(where: { !$0.authorAttributions.isEmpty }) || !pick.reviews.isEmpty {
+                        Text("Photo & reviews from Google Maps")
+                            .font(.makanBody(10))
+                            .foregroundStyle(Color.kicap.opacity(0.4))
+                    }
+                }
+                .padding(.horizontal, 8)
+                .offset(y: showInfo ? 0 : 12)
+                .opacity(showInfo ? 1 : 0)
+                .animation(.easeOut(duration: 0.25), value: showInfo)
+
+                VStack(spacing: 10) {
+                    MakanPrimaryButton(title: Copy.jomMakan) {
+                        openInMaps(pick)
+                    }
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        startReroll()
+                    } label: {
+                        Text(Copy.pickAgain)
+                            .font(.makanBody(15))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 8)
+                .offset(y: showCTA ? 0 : 16)
+                .opacity(showCTA ? 1 : 0)
+                .animation(.easeOut(duration: 0.25), value: showCTA)
+            }
         }
+    }
 
-        Divider().padding(.horizontal, 40)
+    // MARK: - Photo card
 
-        VStack(spacing: 6) {
+    @ViewBuilder
+    private func resultCard(for pick: RecommendationResponse.Recommendation) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if pick.photos.isEmpty {
+                VStack {
+                    Spacer()
+                    Image(systemName: categoryIcon(for: pick.foodCategory))
+                        .font(.system(size: 56))
+                        .foregroundStyle(Color.kunyit)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
+            } else {
+                TabView(selection: $photoPage) {
+                    ForEach(Array(pick.photos.enumerated()), id: \.offset) { index, photo in
+                        AsyncImage(url: URL(string: photo.url)) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                ZStack {
+                                    Color.kicap.opacity(0.06)
+                                    Image(systemName: categoryIcon(for: pick.foodCategory))
+                                        .font(.system(size: 48))
+                                        .foregroundStyle(Color.kunyit)
+                                }
+                            }
+                        }
+                        .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+
+                if pick.photos.count > 1 {
+                    Text("\(photoPage + 1)/\(pick.photos.count)")
+                        .font(.makanBody(10))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.black.opacity(0.5))
+                        .foregroundStyle(.white)
+                        .clipShape(Capsule())
+                        .padding(10)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                }
+            }
+
+            if let rating = pick.rating {
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(Color.kunyit)
+                    Text("\(rating, specifier: "%.1f")")
+                        .foregroundStyle(Color.kicap)
+                }
+                .font(.makanBody(12))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(.white)
+                .clipShape(Capsule())
+                .padding(12)
+            }
+        }
+        .background(Color.kicap.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: Color.kicap.opacity(0.07), radius: 8, y: 4)
+
+        HStack(spacing: 10) {
+            if let spend = PricePresentation.approximateSpendLabel(for: pick.priceLevel) {
+                detailChip(icon: "dollarsign.circle", text: spend)
+            }
+            detailChip(icon: "figure.walk", text: "~\(walkingMinutes(for: pick.distanceKm)) min (\(String(format: "%.1f", pick.distanceKm)) km)")
+        }
+    }
+
+    private func detailChip(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.makanBody(12))
+        .foregroundStyle(Color.kicap.opacity(0.8))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.kicap.opacity(0.06))
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Name block
+
+    @ViewBuilder
+    private func nameBlock(for pick: RecommendationResponse.Recommendation) -> some View {
+        VStack(spacing: 4) {
             Text(pick.name)
                 .font(.makanBody(16))
                 .foregroundStyle(Color.kicap)
 
-            HStack(spacing: 10) {
-                if let rating = pick.rating {
-                    Text("⭐ \(rating, specifier: "%.1f")")
-                }
-                if let priceLevel = pick.priceLevel {
-                    Text(String(repeating: "RM ", count: priceLevel).trimmingCharacters(in: .whitespaces))
-                }
-                Text("🚶 ~\(walkingMinutes(for: pick.distanceKm)) min")
+            let subtitle = [categorySubtitleLabel(pick.foodCategory), pick.cuisines.first?.capitalized]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
             }
-            .font(.makanBody(13))
-            .foregroundStyle(.secondary)
-        }
-        .offset(y: showInfo ? 0 : 12)
-        .opacity(showInfo ? 1 : 0)
-        .animation(.easeOut(duration: 0.25), value: showInfo)
 
-        MakanPrimaryButton(title: Copy.jomMakan) {
-            openInMaps(pick)
+            openStatusRow(pick.openStatus, closesAt: pick.closesAt)
         }
-        .padding(.horizontal)
-        .padding(.top, 8)
-        .offset(y: showCTA ? 0 : 16)
-        .opacity(showCTA ? 1 : 0)
-        .animation(.easeOut(duration: 0.25), value: showCTA)
-
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            Task { await viewModel.reroll() }
-        } label: {
-            Text(Copy.pickAgain)
-                .font(.makanBody(15))
-                .foregroundStyle(.secondary)
-        }
-        .opacity(showCTA ? 1 : 0)
-
-        MascotView(mood: .celebrate, size: 32)
-            .opacity(showCTA ? 0.7 : 0)
     }
 
+    @ViewBuilder
+    private func openStatusRow(_ status: String, closesAt: String?) -> some View {
+        let (color, text): (Color, String) = switch status {
+        case "open": (Color.pandan, "Open")
+        case "closed": (Color.kicap.opacity(0.4), "Closed")
+        default: (Color.kicap.opacity(0.25), "Hours unknown")
+        }
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            if status == "open", let closesAt {
+                Text("\(text) · Closes \(closesAt)")
+            } else {
+                Text(text)
+            }
+        }
+        .font(.makanBody(12))
+        .foregroundStyle(.secondary)
+    }
+
+    // MARK: - Reason chips
+
+    @ViewBuilder
+    private var reasonChips: some View {
+        let chips = currentReasonChips()
+        if !chips.isEmpty {
+            HStack(spacing: 8) {
+                ForEach(chips, id: \.self) { chip in
+                    Text(chip)
+                        .font(.makanBody(11))
+                        .foregroundStyle(Color.kicap)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.kicap.opacity(0.06))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+    }
+
+    private func currentReasonChips() -> [String] {
+        var chips: [String] = []
+
+        if let tag = viewModel.selectedMoodTags.first,
+           let mood = SoloViewModel.moodOptions.first(where: { $0.tag == tag }) {
+            chips.append(mood.label)
+        }
+
+        if let tier = viewModel.budgetMax,
+           let budget = SoloViewModel.budgetOptions.first(where: { $0.tier == tier }) {
+            chips.append(budget.amount)
+        } else {
+            chips.append(Copy.anythingLabel)
+        }
+
+        if let distance = SoloViewModel.distanceOptions.first(where: { $0.km == viewModel.maxDistanceKm }) {
+            chips.append(distance.label)
+        }
+
+        return chips
+    }
+
+    // MARK: - Reviews
+
+    @ViewBuilder
+    private func reviewsSection(for pick: RecommendationResponse.Recommendation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 4) {
+                Text("Reviews from Google Maps · ordered by relevance")
+                    .font(.makanBody(10))
+                    .foregroundStyle(.secondary)
+                Image(systemName: "info.circle")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+
+            ForEach(Array(pick.reviews.enumerated()), id: \.offset) { _, review in
+                reviewRow(review)
+            }
+
+            if let placeUrl = pick.placeGoogleMapsUrl, let url = URL(string: placeUrl) {
+                Link(destination: url) {
+                    HStack {
+                        Text("View all reviews on Google Maps")
+                            .font(.makanBody(12))
+                            .foregroundStyle(Color.kicap)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.kicap.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    @ViewBuilder
+    private func reviewRow(_ review: RecommendationResponse.Review) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            AsyncImage(url: review.authorPhotoUrl.flatMap(URL.init)) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .foregroundStyle(Color.kicap.opacity(0.3))
+                }
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                if let rating = review.rating {
+                    Text(String(repeating: "★", count: Int(rating.rounded())))
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.kunyit)
+                }
+
+                Text("\"\(truncated(review.text))\"")
+                    .font(.makanBody(13))
+                    .italic()
+                    .foregroundStyle(Color.kicap.opacity(0.85))
+
+                Text("— \(review.authorName)\(review.relativePublishTime.map { " · \($0)" } ?? "")")
+                    .font(.makanBody(11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Menu {
+                if let url = review.googleMapsUrl.flatMap(URL.init) {
+                    Link("View on Google Maps", destination: url)
+                }
+                if let url = review.flagContentUrl.flatMap(URL.init) {
+                    Link("Report", destination: url)
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .foregroundStyle(.secondary)
+                    .padding(6)
+            }
+        }
+    }
+
+    private func truncated(_ text: String, limit: Int = 90) -> String {
+        guard text.count > limit else { return text }
+        return String(text.prefix(limit)).trimmingCharacters(in: .whitespaces) + "…"
+    }
+
+    // MARK: - Category labels
+
+    private func categoryIcon(for foodCategory: String?) -> String {
+        switch foodCategory {
+        case "burger", "chicken", "sandwich", "fast_food": return "takeoutbag.and.cup.and.straw.fill"
+        case "cafe", "breakfast": return "cup.and.saucer.fill"
+        case "dessert", "bakery": return "birthday.cake.fill"
+        case "drinks": return "wineglass.fill"
+        default: return "fork.knife.circle.fill"
+        }
+    }
+
+    /// Singular display label for the name-block subtitle — distinct from the plural
+    /// headline treatment ("BURGERS.") which doesn't fit inline subtitle text.
+    private func categorySubtitleLabel(_ foodCategory: String?) -> String? {
+        switch foodCategory {
+        case "burger": return "Burger"
+        case "chicken": return "Chicken"
+        case "pizza": return "Pizza"
+        case "sandwich": return "Sandwich"
+        case "ramen": return "Ramen"
+        case "sushi": return "Sushi"
+        case "seafood": return "Seafood"
+        case "steak": return "Steak"
+        case "bbq": return "BBQ"
+        case "bakery": return "Bakery"
+        case "dessert": return "Dessert"
+        case "cafe": return "Cafe"
+        case "drinks": return "Drinks"
+        case "breakfast": return "Breakfast"
+        case "fast_food": return "Fast Food"
+        default: return nil
+        }
+    }
+
+    // MARK: - Reveal sequence
+
     private func runRevealSequence() async {
-        showIntro = false; showEmoji = false; showHeadline = false; showInfo = false; showCTA = false
+        showIntro = false; showMascot = false; showHeadline = false; showInfo = false; showCTA = false
         guard viewModel.currentPick != nil else { return }
 
         if reduceMotion {
-            showIntro = true; showEmoji = true; showHeadline = true; showInfo = true; showCTA = true
+            showIntro = true; showMascot = true; showHeadline = true; showInfo = true; showCTA = true
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return
         }
 
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-
         showIntro = true
         try? await Task.sleep(for: .milliseconds(100))
         guard !Task.isCancelled else { return }
-        showEmoji = true
-        try? await Task.sleep(for: .milliseconds(100))
+        showMascot = true
+        try? await Task.sleep(for: .milliseconds(120))
         guard !Task.isCancelled else { return }
         showHeadline = true
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
         try? await Task.sleep(for: .milliseconds(150))
         guard !Task.isCancelled else { return }
         showInfo = true
-        try? await Task.sleep(for: .milliseconds(150))
+        try? await Task.sleep(for: .milliseconds(230))
         guard !Task.isCancelled else { return }
         showCTA = true
+    }
+
+    // MARK: - Reroll
+
+    private var rerollingContent: some View {
+        VStack(spacing: 20) {
+            MascotView(mood: .thinking, caption: Copy.rerollHeadline, size: 80)
+            ThinkingChecklist(lines: [Copy.rerollLine1, Copy.rerollLine2, Copy.rerollLine3])
+        }
+        .padding(.top, 40)
+    }
+
+    private func startReroll() {
+        isRerolling = true
+        Task {
+            let start = ContinuousClock.now
+            await viewModel.reroll()
+            let elapsed = ContinuousClock.now - start
+            if elapsed < Self.minimumRerollDuration {
+                try? await Task.sleep(for: Self.minimumRerollDuration - elapsed)
+            }
+            isRerolling = false
+            await runRevealSequence()
+        }
+    }
+
+    // MARK: - No result
+
+    private var noResultContent: some View {
+        VStack(spacing: 16) {
+            MascotView(mood: .sad, size: 72)
+            VStack(spacing: 8) {
+                Text(Copy.noResultHeadline)
+                    .font(.makanDisplay(24))
+                    .foregroundStyle(Color.kicap)
+                    .multilineTextAlignment(.center)
+                Text(Copy.noResultDetail)
+                    .font(.makanBody(14))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            MakanPrimaryButton(title: Copy.tryAgain) {
+                Task { await viewModel.retry() }
+            }
+            .padding(.horizontal)
+        }
     }
 
     // MARK: - Error
@@ -190,19 +543,6 @@ struct ResultView: View {
     }
 
     // MARK: - Helpers
-
-    private func cuisineEmoji(for recommendation: RecommendationResponse.Recommendation) -> String {
-        switch recommendation.cuisines.first {
-        case "malay": return "🍛"
-        case "chinese": return "🍜"
-        case "japanese": return "🍣"
-        case "korean": return "🍗"
-        case "thai": return "🌶️"
-        case "western": return "🍝"
-        case "indian": return "🍛"
-        default: return "🍽️"
-        }
-    }
 
     private func walkingMinutes(for distanceKm: Double) -> Int {
         max(1, Int((distanceKm * 12).rounded()))
