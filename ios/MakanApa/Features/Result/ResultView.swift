@@ -473,6 +473,11 @@ struct ResultView: View {
             if elapsed < Self.minimumRerollDuration {
                 try? await Task.sleep(for: Self.minimumRerollDuration - elapsed)
             }
+            // .task(id: viewModel.currentPick?.id) already fired while isRerolling was still
+            // true, so its own photoPage reset was skipped — reset here instead, otherwise a
+            // leftover page index from the old restaurant's photo count can point past the
+            // new restaurant's (e.g. "4/1").
+            photoPage = 0
             isRerolling = false
             await runRevealSequence()
         }

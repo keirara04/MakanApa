@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MoodChoiceCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var cardHeight = 158
+    @ScaledMetric(relativeTo: .body) private var cardHeight = 154
 
     let option: SoloViewModel.MoodOption
     let isSelected: Bool
@@ -10,12 +10,12 @@ struct MoodChoiceCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top) {
                     Image(option.illustration)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 56, height: 56)
+                        .frame(width: 48, height: 48)
                         .accessibilityHidden(true)
                     Spacer(minLength: 0)
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -23,7 +23,6 @@ struct MoodChoiceCard: View {
                         .foregroundStyle(isSelected ? Color.sambalRed : Color.kicap.opacity(0.16))
                         .accessibilityHidden(true)
                 }
-                Spacer(minLength: 0)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(option.label)
                         .font(.system(.title3, design: .rounded, weight: .bold))
@@ -31,11 +30,11 @@ struct MoodChoiceCard: View {
                         .font(.footnote)
                         .foregroundStyle(Color.kicap.opacity(0.68))
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(minHeight: 34, alignment: .topLeading)
+                        .frame(minHeight: 32, alignment: .topLeading)
                 }
             }
             .foregroundStyle(Color.kicap)
-            .padding(18)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: cardHeight)
             .background(isSelected ? Color.sambalRed.opacity(0.07) : .white.opacity(0.72),

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MoodSelectionView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = 36
 
     let selectedTags: Set<String>
     let choseAnything: Bool
@@ -15,18 +14,11 @@ struct MoodSelectionView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(Copy.soloMoodPrompt)
-                    .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                    .tracking(-1.2)
-                    .foregroundStyle(Color.kicap)
-                    .accessibilityAddTraits(.isHeader)
-                Text("Ikut selera. What are you craving?")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.kicap.opacity(0.65))
-            }
-            .padding(.top, 4)
+        VStack(alignment: .leading, spacing: 20) {
+            PreferenceStepHeading(
+                title: Copy.soloMoodPrompt,
+                subtitle: "Ikut selera. What are you craving?"
+            )
 
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(SoloViewModel.moodOptions, id: \.tag) { option in

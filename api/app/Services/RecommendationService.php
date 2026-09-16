@@ -160,7 +160,7 @@ class RecommendationService
         $randomSource ??= fn () => mt_rand() / mt_getrandmax();
 
         $pool = $candidates;
-        if ($excluded !== null && count($pool) > 1) {
+        if ($excluded !== null) {
             $pool = array_values(array_filter(
                 $pool,
                 fn ($candidate) => $candidate['restaurant']['id'] !== $excluded['restaurant']['id']

@@ -5,6 +5,12 @@ struct LocationPermissionView: View {
     @Environment(AppRouter.self) private var router
     @Environment(LocationService.self) private var locationService
 
+    // Guards both auto-advance triggers below so they only fire once per authorization —
+    // without it, popping back from Preferences re-triggers onAppear (or a background
+    // location fix changes .authorized's associated coordinate and re-triggers onChange),
+    // immediately re-pushing .soloPreferences and making the back button look dead.
+    @State private var didAutoAdvance = false
+
     var body: some View {
         VStack(spacing: 24) {
             MakanApaTopBar()
@@ -23,6 +29,7 @@ struct LocationPermissionView: View {
             case .unavailable:
                 MascotView(mood: .sad, caption: Copy.genericAPIErrorDetail)
                 MakanPrimaryButton(title: "Try Again") {
+                    didAutoAdvance = false
                     locationService.requestLocation()
                 }
                 .padding(.horizontal, 48)
@@ -46,6 +53,7 @@ struct LocationPermissionView: View {
                     .multilineTextAlignment(.center)
 
                 MakanPrimaryButton(title: "Find makan near me") {
+                    didAutoAdvance = false
                     locationService.requestLocation()
                 }
                 .padding(.horizontal, 48)
@@ -70,14 +78,14 @@ struct LocationPermissionView: View {
         .background(Color.nasiCream)
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: locationService.state) { _, newState in
-            if case .authorized = newState {
-                router.push(.soloPreferences)
-            }
+            guard !didAutoAdvance, case .authorized = newState else { return }
+            didAutoAdvance = true
+            router.push(.soloPreferences)
         }
         .onAppear {
-            if case .authorized = locationService.state {
-                router.push(.soloPreferences)
-            }
+            guard !didAutoAdvance, case .authorized = locationService.state else { return }
+            didAutoAdvance = true
+            router.push(.soloPreferences)
         }
     }
 

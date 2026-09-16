@@ -23,7 +23,11 @@ class AcceptDecisionTest extends TestCase
             'moods' => [],
         ])->json();
 
-        $response = $this->postJson("/api/v1/decisions/{$decision['decisionId']}/accept");
+        $response = $this->postJson(
+            "/api/v1/decisions/{$decision['decisionId']}/accept",
+            [],
+            ['X-Decision-Token' => $decision['clientToken']]
+        );
 
         $response->assertOk()->assertJson(['accepted' => true]);
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'user_id', 'mode', 'latitude', 'longitude', 'budget_max',
+    'user_id', 'client_token', 'mode', 'latitude', 'longitude', 'budget_max',
     'max_distance', 'selected_restaurant_id',
 ])]
 class Decision extends Model

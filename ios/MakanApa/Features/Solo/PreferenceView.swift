@@ -10,14 +10,13 @@ struct PreferenceView: View {
     @State private var step: Int = 0
     @State private var isThinking = false
     @State private var goingForward = true
+    @State private var thinkingTask: Task<Void, Never>?
 
     private let totalSteps = 3
 
     var body: some View {
         VStack(spacing: 0) {
-            if isThinking {
-                MakanApaTopBar(trailing: nil)
-            } else {
+            if !isThinking {
                 PreferenceProgressHeader(step: step) {
                     if step == 0 { router.pop() } else { goBack() }
                 }
@@ -25,7 +24,11 @@ struct PreferenceView: View {
 
             Group {
                 if isThinking {
-                    thinkingView
+                    PreferenceLoadingView(
+                        mood: selectedMoodLabel,
+                        budget: selectedBudgetLabel,
+                        distance: "Within \(viewModel.maxDistanceKm.formatted()) km"
+                    )
                 } else {
                     ScrollView {
                         stepContent
@@ -38,18 +41,34 @@ struct PreferenceView: View {
                     .transition(stepTransition)
                 }
             }
-            .padding(.top, 24)
+            .padding(.top, isThinking ? 0 : 24)
             .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 0.85), value: step)
             .animation(.easeInOut(duration: 0.2), value: isThinking)
 
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if step == 0 && !isThinking {
-                moodContinueButton
+            if !isThinking {
+                PreferenceActionFooter(
+                    title: step == 2 ? "Find my makan" : "Continue",
+                    note: footerNote,
+                    isEnabled: step != 0 || canContinueMood,
+                    action: { if step == 2 { startThinking() } else { advance() } }
+                )
             }
         }
+        .sensoryFeedback(.selection, trigger: viewModel.selectedMoodTags)
+        .sensoryFeedback(.selection, trigger: choseAnything)
+        .sensoryFeedback(.selection, trigger: viewModel.budgetMax)
+        .sensoryFeedback(.selection, trigger: viewModel.maxDistanceKm)
         .background(Color.nasiCream)
         .toolbar(.hidden, for: .navigationBar)
+        .onDisappear {
+            // A swipe-back mid-request doesn't tear down this view's plain `Task {}` on its
+            // own — without cancelling here, a slow Google response resolves after the user
+            // has already navigated away and pushes .soloResult onto whatever screen they're
+            // on next.
+            thinkingTask?.cancel()
+        }
     }
 
     @ViewBuilder
@@ -92,141 +111,84 @@ struct PreferenceView: View {
         )
     }
 
-    private var moodContinueButton: some View {
-        VStack(spacing: 12) {
-            Button(action: advance) {
-                HStack {
-                    Text("Continue")
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .accessibilityHidden(true)
-                }
-                .font(.headline)
-                .foregroundStyle(canContinueMood ? .white : Color.kicap.opacity(0.45))
-                .padding(.horizontal, 22)
-                .frame(minHeight: 56)
-                .background(canContinueMood ? Color.sambalRed : Color.kicap.opacity(0.08),
-                            in: RoundedRectangle(cornerRadius: 18))
-            }
-            .buttonStyle(.plain)
-            .disabled(!canContinueMood)
-            .accessibilityHint("Next, choose your budget")
-
-            Text(canContinueMood ? "Next up, your budget" : "Pick a mood, or leave it to us")
-                .font(.footnote)
-                .foregroundStyle(Color.kicap.opacity(0.65))
+    private var footerNote: String {
+        switch step {
+        case 0: canContinueMood ? "Next up, your budget" : "Pick a mood, or leave it to us"
+        case 1: "One last thing, how far?"
+        default: "We'll take it from here."
         }
-        .sensoryFeedback(.selection, trigger: viewModel.selectedMoodTags)
-        .sensoryFeedback(.selection, trigger: choseAnything)
-        .frame(maxWidth: 492)
-        .padding(.horizontal, 24)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity)
-        .background(Color.nasiCream)
+    }
+
+    private var selectedMoodLabel: String {
+        SoloViewModel.moodOptions.first { viewModel.selectedMoodTags.contains($0.tag) }?.label
+            ?? "Anything lah"
+    }
+
+    private var selectedBudgetLabel: String {
+        SoloViewModel.budgetOptions.first { $0.tier == viewModel.budgetMax }
+            .map { "\($0.amount) per person" } ?? "No budget limit"
     }
 
     // MARK: - Step 1: Budget
 
     private var budgetStep: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 4) {
-                Text(Copy.soloBudgetPrompt)
-                    .font(.makanDisplay(24))
-                    .foregroundStyle(Color.kicap)
-                Text(Copy.soloBudgetSubtext)
-                    .font(.makanBody(13))
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 24) {
+            PreferenceStepHeading(title: "What's the budget?", subtitle: "Per person ya. Good makan at every budget.")
 
-            HStack(spacing: 12) {
+            VStack(spacing: 12) {
                 ForEach(SoloViewModel.budgetOptions, id: \.tier) { option in
-                    MakanChoiceTile(
+                    PreferenceChoiceRow(
                         illustration: option.illustration,
-                        label: option.amount,
-                        subtext: option.label,
+                        title: option.amount,
+                        subtitle: option.label,
                         isSelected: viewModel.budgetMax == option.tier
                     ) {
-                        selectBudget(option.tier)
+                        viewModel.budgetMax = option.tier
                     }
                 }
             }
-            .padding(.horizontal)
 
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                selectBudget(nil)
-            } label: {
-                VStack(spacing: 2) {
-                    Text(Copy.soloAnythingLah)
-                        .font(.makanBody(15))
-                        .foregroundStyle(Color.kicap)
-                    Text(Copy.budgetAnythingSubtext)
-                        .font(.makanBody(11))
-                        .foregroundStyle(Color.kicap.opacity(0.6))
-                }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .overlay(
-                    Capsule().strokeBorder(Color.kicap.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-                )
+            PreferenceChoiceRow(
+                symbol: "dice",
+                title: "Anything lah",
+                subtitle: "No budget limit. Janji sedap.",
+                isSelected: viewModel.budgetMax == nil,
+                isSecondary: true
+            ) {
+                viewModel.budgetMax = nil
             }
         }
-    }
-
-    private func selectBudget(_ tier: Int?) {
-        viewModel.budgetMax = tier
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            advance()
-        }
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Step 2: Distance
 
     private var distanceStep: some View {
-        VStack(spacing: 24) {
-            VStack(spacing: 4) {
-                Text(Copy.soloDistancePrompt)
-                    .font(.makanDisplay(24))
-                    .foregroundStyle(Color.kicap)
-                Text(Copy.soloDistanceSubtext)
-                    .font(.makanBody(13))
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 24) {
+            PreferenceStepHeading(title: "How far to jalan?", subtitle: "Stay nearby or go a little further for good food.")
 
-            HStack(spacing: 12) {
+            VStack(spacing: 12) {
                 ForEach(SoloViewModel.distanceOptions, id: \.km) { option in
-                    MakanChoiceTile(
+                    PreferenceChoiceRow(
                         illustration: option.illustration,
-                        label: option.label,
-                        subtext: option.subtext,
+                        title: "Within \(option.km.formatted()) km",
+                        subtitle: option.subtext,
                         isSelected: viewModel.maxDistanceKm == option.km
                     ) {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         viewModel.maxDistanceKm = option.km
                     }
                 }
             }
-            .padding(.horizontal)
 
-            Spacer().frame(height: 8)
-
-            MakanPrimaryButton(title: Copy.soloCTA) {
-                startThinking()
-            }
-            .padding(.horizontal)
+            Label("Distance from your current location.", systemImage: "location")
+                .font(.footnote)
+                .foregroundStyle(Color.kicap.opacity(0.65))
+                .padding(.horizontal, 4)
         }
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Thinking transition
-
-    private var thinkingView: some View {
-        VStack(spacing: 20) {
-            MascotView(mood: .thinking, caption: Copy.thinking, size: 88)
-            ThinkingChecklist()
-        }
-        .padding(.top, 60)
-    }
 
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
 
@@ -236,13 +198,14 @@ struct PreferenceView: View {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         isThinking = true
 
-        Task {
+        thinkingTask = Task {
             let start = ContinuousClock.now
             await viewModel.decide(coordinate: coordinate)
             let elapsed = ContinuousClock.now - start
             if elapsed < Self.minimumThinkingDuration {
                 try? await Task.sleep(for: Self.minimumThinkingDuration - elapsed)
             }
+            guard !Task.isCancelled else { return }
             router.push(.soloResult)
             isThinking = false
         }
@@ -259,42 +222,6 @@ struct PreferenceView: View {
         if step > 0 {
             goingForward = false
             step -= 1
-        }
-    }
-}
-
-/// Progressive 3-line checklist — reads as "deciding," not a network spinner.
-/// One-shot ladder (0/220/440ms), not a repeating loop: if the real request outlasts
-/// the ladder, all three lines simply stay lit rather than cycling.
-struct ThinkingChecklist: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var activeCount = 0
-
-    var lines: [String] = [Copy.thinkingStep1, Copy.thinkingStep2, Copy.thinkingStep3]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ForEach(lines.indices, id: \.self) { index in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(index < activeCount ? Color.sambalRed : Color.kicap.opacity(0.15))
-                        .frame(width: 8, height: 8)
-                    Text(lines[index])
-                        .font(.makanBody(13))
-                        .foregroundStyle(index < activeCount ? Color.kicap : .secondary)
-                }
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: activeCount)
-        .task {
-            if reduceMotion {
-                activeCount = lines.count
-                return
-            }
-            for _ in lines {
-                activeCount += 1
-                try? await Task.sleep(for: .milliseconds(220))
-            }
         }
     }
 }

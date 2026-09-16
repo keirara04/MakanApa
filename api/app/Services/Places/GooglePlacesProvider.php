@@ -40,7 +40,7 @@ class GooglePlacesProvider implements PlacesProvider
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::FIELD_MASK,
-        ])->post(self::ENDPOINT, [
+        ])->timeout(8)->post(self::ENDPOINT, [
             'includedTypes' => ['restaurant'],
             'maxResultCount' => 20,
             'locationRestriction' => [
@@ -78,7 +78,7 @@ class GooglePlacesProvider implements PlacesProvider
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::DETAILS_FIELD_MASK,
-        ])->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}")->throw();
+        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}")->throw();
 
         return $response->json();
     }

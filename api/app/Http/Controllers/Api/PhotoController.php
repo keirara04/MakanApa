@@ -27,6 +27,7 @@ class PhotoController extends Controller
         abort_if(empty($apiKey), 500, 'Places photo proxy misconfigured.');
 
         $response = Http::withHeaders(['X-Goog-Api-Key' => $apiKey])
+            ->timeout(8)
             ->get("https://places.googleapis.com/v1/{$name}/media", ['maxWidthPx' => 800])
             ->throw();
 

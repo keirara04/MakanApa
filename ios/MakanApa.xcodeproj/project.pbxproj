@@ -8,36 +8,41 @@
 
 /* Begin PBXBuildFile section */
 		0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = E823597CCF1CD50A5011EDE9 /* Palette.swift */; };
+		0649DB4919CFAD5A3CFC1EBA /* MapsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */; };
 		13F26D245255CED8F6F6D8F2 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */; };
 		14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 306B702B8A26340C493D9B9F /* Copy.swift */; };
 		26F420CEA5D465057DA7B27D /* restaurants.json in Resources */ = {isa = PBXBuildFile; fileRef = A98FF18AB7352F2071C01E14 /* restaurants.json */; };
+		2CA2AA66B894F6436BB4695C /* NearbyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E86575C07970BC3E2F3D8E66 /* NearbyViewModel.swift */; };
 		3227F61F965FA6369B0BCEA0 /* DebugLocationOverride.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */; };
-		3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */; };
+		357F55F09E0733E4FC1D715E /* NearbyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */; };
 		4C7D3B0D11FFC89A4A41DC03 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F592DE757E41FF96AA5786 /* LocationService.swift */; };
 		4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */; };
+		568F9AC4F2AC6928C358E7C2 /* PreferenceActionFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
 		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
 		5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651EAF0CDE373FFCEA468C00 /* APIClient.swift */; };
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
+		669A792B87E4F4EFBF608FD5 /* PreferenceChoiceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CF20F8EDDFAED7BBB91B50 /* PreferenceChoiceRow.swift */; };
+		6BD18ED6ACDA339474E3F6CE /* ThinkingChecklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55EE8915F3A78097AD08A9 /* ThinkingChecklist.swift */; };
+		6C5F9C7639CFB53541A3A0D7 /* PreferenceLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFAA607EA690164F6660005 /* PreferenceLoadingView.swift */; };
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
-		73F68EC3B71470C16270E723 /* Preference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F5BFCC70359130D60E8F3DF /* Preference.swift */; };
 		7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */; };
 		7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */; };
 		8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09287437BC53CD13153BE4A7 /* MakanApaApp.swift */; };
 		8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459312E9025F68024DF77A1 /* HomeView.swift */; };
-		8B75375487C7968CECECC799 /* Restaurant.swift in Sources */ = {isa = PBXBuildFile; fileRef = A818E3D6E401E821242D61F5 /* Restaurant.swift */; };
 		9F8FEBCEF0D562AFB788192D /* PreferenceProgressHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */; };
-		A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */; };
 		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
 		B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676DDD5174F3FF818051408B /* SoloViewModel.swift */; };
+		BB1437851B22269710786978 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 2A55BF6BCA7D5A735ED224F9 /* GoogleMaps */; };
 		BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */; };
 		BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */; };
 		C71AFC17F937F6B8C4BB44E8 /* PricePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA943B15A88F864024FFA281 /* PricePresentation.swift */; };
 		C8FD99C228734AC224823C66 /* MascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729D8427BD8EF410E03874B2 /* MascotView.swift */; };
-		CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */; };
-		D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */; };
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
 		D9E3298186267729CEC217A0 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C2E6778243985350051EB2 /* Typography.swift */; };
+		DCB0FD0C5F875D647570297F /* AnimatedMakanMascot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */; };
+		E85AC4C35311E38D93FB589D /* NearbyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD1944D39B475AD84113B38 /* NearbyMapView.swift */; };
+		F43AB480E1DD9CEFBCA5BC8A /* PreferenceStepHeading.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40FD947C8047ACFB42F9C9F /* PreferenceStepHeading.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,17 +57,18 @@
 
 /* Begin PBXFileReference section */
 		011E6031DBB15CA7420E8B83 /* PreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceView.swift; sourceTree = "<group>"; };
-		04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureLoader.swift; sourceTree = "<group>"; };
 		09287437BC53CD13153BE4A7 /* MakanApaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaApp.swift; sourceTree = "<group>"; };
+		0A55EE8915F3A78097AD08A9 /* ThinkingChecklist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinkingChecklist.swift; sourceTree = "<group>"; };
 		1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MakanApaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		217BC4E792F65DECF27B6B66 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
-		2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngineTests.swift; sourceTree = "<group>"; };
-		2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationEngine.swift; sourceTree = "<group>"; };
+		23CF20F8EDDFAED7BBB91B50 /* PreferenceChoiceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceChoiceRow.swift; sourceTree = "<group>"; };
 		306B702B8A26340C493D9B9F /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Copy.swift; sourceTree = "<group>"; };
 		37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanPrimaryButton.swift; sourceTree = "<group>"; };
+		3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceActionFooter.swift; sourceTree = "<group>"; };
+		3DFAA607EA690164F6660005 /* PreferenceLoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceLoadingView.swift; sourceTree = "<group>"; };
 		499DB7140BDB99BFCF6F9979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedMakanMascot.swift; sourceTree = "<group>"; };
 		51BA9571215449F471D390E1 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
-		53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationScore.swift; sourceTree = "<group>"; };
 		5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodChoiceCard.swift; sourceTree = "<group>"; };
 		651EAF0CDE373FFCEA468C00 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		676DDD5174F3FF818051408B /* SoloViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloViewModel.swift; sourceTree = "<group>"; };
@@ -70,9 +76,8 @@
 		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
-		8F5BFCC70359130D60E8F3DF /* Preference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preference.swift; sourceTree = "<group>"; };
-		A818E3D6E401E821242D61F5 /* Restaurant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Restaurant.swift; sourceTree = "<group>"; };
 		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
+		ACD1944D39B475AD84113B38 /* NearbyMapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyMapView.swift; path = Nearby/NearbyMapView.swift; sourceTree = "<group>"; };
 		AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodSelectionView.swift; sourceTree = "<group>"; };
@@ -80,12 +85,27 @@
 		C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaTopBar.swift; sourceTree = "<group>"; };
 		CA943B15A88F864024FFA281 /* PricePresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricePresentation.swift; sourceTree = "<group>"; };
 		D7F592DE757E41FF96AA5786 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MapsConfig.swift; path = Map/MapsConfig.swift; sourceTree = "<group>"; };
+		E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyView.swift; path = Nearby/NearbyView.swift; sourceTree = "<group>"; };
 		E4C2E6778243985350051EB2 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
-		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		E823597CCF1CD50A5011EDE9 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		E86575C07970BC3E2F3D8E66 /* NearbyViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyViewModel.swift; path = Nearby/NearbyViewModel.swift; sourceTree = "<group>"; };
+		F40FD947C8047ACFB42F9C9F /* PreferenceStepHeading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceStepHeading.swift; sourceTree = "<group>"; };
 		FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceProgressHeader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0FEC259F8393AB94C3574A11 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB1437851B22269710786978 /* GoogleMaps in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		06C9463FC641A4C2F3E54F64 /* Features */ = {
@@ -94,6 +114,7 @@
 				0B770F667258CD7D0B04EFC1 /* Home */,
 				BFADF2C6ADCB6DE37EB66D0C /* Result */,
 				9E1A840A9A06159719A2F591 /* Solo */,
+				866D034159FB73D88DCB47FF /* Nearby */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -156,23 +177,6 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		4F41E7A8AAE083FF6AABFFF0 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				04DF80C0A66033B25A7DD257 /* FixtureLoader.swift */,
-			);
-			path = Data;
-			sourceTree = "<group>";
-		};
-		5D5559575A04323ABEAEBE8E /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				8F5BFCC70359130D60E8F3DF /* Preference.swift */,
-				A818E3D6E401E821242D61F5 /* Restaurant.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
 		5DE399114775FCFCE1F7E109 /* API */ = {
 			isa = PBXGroup;
 			children = (
@@ -197,28 +201,34 @@
 		6470C1D0A2DA506BB2CA3438 /* MakanApaTests */ = {
 			isa = PBXGroup;
 			children = (
-				2994967FF065771963CEA1E0 /* RecommendationEngineTests.swift */,
 			);
 			path = MakanApaTests;
 			sourceTree = "<group>";
 		};
-		8FBF37F80AF568BBC436A27D /* Recommendation */ = {
+		866D034159FB73D88DCB47FF /* Nearby */ = {
 			isa = PBXGroup;
 			children = (
-				2CD57126FA15EFED4DA01545 /* RecommendationEngine.swift */,
-				53571AD3AE768DC8AA5C9951 /* RecommendationScore.swift */,
+				E86575C07970BC3E2F3D8E66 /* NearbyViewModel.swift */,
+				ACD1944D39B475AD84113B38 /* NearbyMapView.swift */,
+				E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */,
 			);
-			path = Recommendation;
+			name = Nearby;
 			sourceTree = "<group>";
 		};
 		9E1A840A9A06159719A2F591 /* Solo */ = {
 			isa = PBXGroup;
 			children = (
+				4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */,
 				5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */,
 				C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */,
+				3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */,
+				23CF20F8EDDFAED7BBB91B50 /* PreferenceChoiceRow.swift */,
+				3DFAA607EA690164F6660005 /* PreferenceLoadingView.swift */,
 				FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */,
+				F40FD947C8047ACFB42F9C9F /* PreferenceStepHeading.swift */,
 				011E6031DBB15CA7420E8B83 /* PreferenceView.swift */,
 				676DDD5174F3FF818051408B /* SoloViewModel.swift */,
+				0A55EE8915F3A78097AD08A9 /* ThinkingChecklist.swift */,
 			);
 			path = Solo;
 			sourceTree = "<group>";
@@ -259,6 +269,14 @@
 			path = Result;
 			sourceTree = "<group>";
 		};
+		E656FBA6DD08232D4E4E5A56 /* Map */ = {
+			isa = PBXGroup;
+			children = (
+				D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */,
+			);
+			name = Map;
+			sourceTree = "<group>";
+		};
 		F91936700A78EBC1518427EC /* Presentation */ = {
 			isa = PBXGroup;
 			children = (
@@ -271,12 +289,10 @@
 			isa = PBXGroup;
 			children = (
 				5DE399114775FCFCE1F7E109 /* API */,
-				4F41E7A8AAE083FF6AABFFF0 /* Data */,
 				493BE46F243EC9877611E727 /* DesignSystem */,
 				AE4FC7CEE2BE8A2876729C94 /* Location */,
-				5D5559575A04323ABEAEBE8E /* Models */,
 				F91936700A78EBC1518427EC /* Presentation */,
-				8FBF37F80AF568BBC436A27D /* Recommendation */,
+				E656FBA6DD08232D4E4E5A56 /* Map */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -296,8 +312,6 @@
 				633DA59517E27607EB75A67D /* PBXTargetDependency */,
 			);
 			name = MakanApaTests;
-			packageProductDependencies = (
-			);
 			productName = MakanApaTests;
 			productReference = 1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -308,6 +322,7 @@
 			buildPhases = (
 				E99C9D59EC292950BA4E4E72 /* Sources */,
 				185723508EDECF81A7BD6218 /* Resources */,
+				0FEC259F8393AB94C3574A11 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -315,6 +330,7 @@
 			);
 			name = MakanApa;
 			packageProductDependencies = (
+				2A55BF6BCA7D5A735ED224F9 /* GoogleMaps */,
 			);
 			productName = MakanApa;
 			productReference = E5F436EA902AE1A46B6C8B77 /* MakanApa.app */;
@@ -328,8 +344,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = F5A59F5F6EB6B79353C6264D /* Build configuration list for PBXProject "MakanApa" */;
 			developmentRegion = en;
@@ -340,6 +354,9 @@
 			);
 			mainGroup = 0E30E7A7002E151AEB63935D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				10FFDD2A10D57BDF1BB1FD01 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A0DC9F4EF41803B45CFC6CEA /* Products */;
 			projectDirPath = "";
@@ -368,7 +385,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CDE809FE7A5640BFD4B23F9E /* RecommendationEngineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -378,11 +394,11 @@
 			files = (
 				5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */,
 				5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */,
+				DCB0FD0C5F875D647570297F /* AnimatedMakanMascot.swift in Sources */,
 				D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */,
 				14DAE224B34FB00D070E9E5C /* Copy.swift in Sources */,
 				3227F61F965FA6369B0BCEA0 /* DebugLocationOverride.swift in Sources */,
 				13F26D245255CED8F6F6D8F2 /* Endpoints.swift in Sources */,
-				3ECBB42D7B8EAF64216822A4 /* FixtureLoader.swift in Sources */,
 				8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */,
 				BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */,
 				4C7D3B0D11FFC89A4A41DC03 /* LocationService.swift in Sources */,
@@ -394,16 +410,21 @@
 				4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */,
 				7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */,
 				0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */,
-				73F68EC3B71470C16270E723 /* Preference.swift in Sources */,
+				568F9AC4F2AC6928C358E7C2 /* PreferenceActionFooter.swift in Sources */,
+				669A792B87E4F4EFBF608FD5 /* PreferenceChoiceRow.swift in Sources */,
+				6C5F9C7639CFB53541A3A0D7 /* PreferenceLoadingView.swift in Sources */,
 				9F8FEBCEF0D562AFB788192D /* PreferenceProgressHeader.swift in Sources */,
+				F43AB480E1DD9CEFBCA5BC8A /* PreferenceStepHeading.swift in Sources */,
 				B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */,
 				C71AFC17F937F6B8C4BB44E8 /* PricePresentation.swift in Sources */,
-				D1F61D218ED4012A11DAD9F8 /* RecommendationEngine.swift in Sources */,
-				A1EE68493E9391D744F034A3 /* RecommendationScore.swift in Sources */,
-				8B75375487C7968CECECC799 /* Restaurant.swift in Sources */,
 				72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */,
 				B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */,
+				6BD18ED6ACDA339474E3F6CE /* ThinkingChecklist.swift in Sources */,
 				D9E3298186267729CEC217A0 /* Typography.swift in Sources */,
+				0649DB4919CFAD5A3CFC1EBA /* MapsConfig.swift in Sources */,
+				2CA2AA66B894F6436BB4695C /* NearbyViewModel.swift in Sources */,
+				E85AC4C35311E38D93FB589D /* NearbyMapView.swift in Sources */,
+				357F55F09E0733E4FC1D715E /* NearbyView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +444,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
@@ -444,6 +466,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
@@ -644,6 +667,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		10FFDD2A10D57BDF1BB1FD01 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googlemaps/ios-maps-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2A55BF6BCA7D5A735ED224F9 /* GoogleMaps */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 10FFDD2A10D57BDF1BB1FD01 /* XCRemoteSwiftPackageReference "ios-maps-sdk" */;
+			productName = GoogleMaps;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 14648CA29CBC730A0EF22059 /* Project object */;
 }

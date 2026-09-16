@@ -1,0 +1,252 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Api\Concerns\PresentsRecommendation;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\NearbyPickRequest;
+use App\Http\Requests\NearbyRequest;
+use App\Models\Decision;
+use App\Models\DecisionRecommendation;
+use App\Models\Restaurant;
+use App\Services\Places\PlaceNormalizer;
+use App\Services\PlacesService;
+use App\Services\RecommendationService;
+use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
+
+/**
+ * Nearby: map-first browse. Unlike Decide, candidates aren't preference-scored — the
+ * viewport (and the Open now / Budget / Rating filters) determine eligibility; the map
+ * itself is the "preference." Scoring/picking still goes through the same
+ * RecommendationService as Decide, only for "🍚 Pick one lah" (pick()), never for the
+ * plain marker list (index()).
+ */
+class NearbyController extends Controller
+{
+    use PresentsRecommendation;
+
+    /** Shrinks a viewport by this fraction per side before treating it as the Pick-one-lah candidate pool — markers half hidden under floating search bar/filter chips/the Pick-one-lah button itself can't win. */
+    private const PICK_VIEWPORT_INSET = 0.1;
+
+    public function __construct(
+        private readonly PlacesService $placesService,
+        private readonly RecommendationService $recommendationService,
+        private readonly PlaceNormalizer $normalizer,
+    ) {}
+
+    public function index(NearbyRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        try {
+            $restaurants = $this->restaurantsInViewport($data);
+        } catch (RequestException $e) {
+            Log::error('Places provider request failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Could not reach the places provider. Try again in a bit.'], 502);
+        } catch (Throwable $e) {
+            Log::error('Places lookup failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Could not find nearby places right now.'], 500);
+        }
+
+        return response()->json([
+            'places' => array_map(fn (array $restaurant) => $this->presentMarker($restaurant), $restaurants),
+        ]);
+    }
+
+    public function pick(NearbyPickRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $viewport = $this->insetViewport($data['viewport']);
+
+        try {
+            $authoritative = $this->restaurantsInViewport($viewport + [
+                'openNow' => $data['openNow'] ?? null,
+                'budgetMax' => $data['budgetMax'] ?? null,
+                'minRating' => $data['minRating'] ?? null,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Places lookup failed', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Could not find nearby places right now.'], 500);
+        }
+
+        // Never trust the client's visiblePlaceIds as the full candidate authority — only IDs
+        // the server independently confirms sit inside the (inset) viewport are eligible.
+        $visibleIds = array_flip($data['visiblePlaceIds']);
+        $candidates = array_values(array_filter($authoritative, fn (array $r) => isset($visibleIds[$r['id']])));
+
+        $preference = [
+            'moodTags' => [],
+            'cuisines' => [],
+            'budgetMax' => $data['budgetMax'] ?? null,
+            // Candidates are already scoped by viewport, not by the user's real-world distance —
+            // Nearby lets you browse anywhere, not just around yourself. maxDistanceKm here only
+            // needs to be large enough that eligibleRestaurants()'s hard distance cutoff never
+            // false-excludes a viewport-valid candidate just because the user is browsing a part
+            // of town far from where they're standing.
+            'maxDistanceKm' => $this->maxCornerDistanceKm($viewport, $data['latitude'], $data['longitude']) + 0.01,
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+        ];
+
+        $ranked = $this->recommendationService->topCandidates($candidates, $preference, limit: count($candidates) ?: 1);
+        $winner = $this->recommendationService->pick($ranked);
+
+        // Mirrors RecommendationController::solo(): the Decision row is created either way, so
+        // reroll/accept always have a consistent handle — a "nobody qualified" result isn't
+        // an error, it's a normal (if disappointing) outcome of the filters the user picked.
+        $clientToken = Str::random(40);
+
+        $decision = Decision::create([
+            'mode' => 'nearby',
+            'client_token' => $clientToken,
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'budget_max' => $data['budgetMax'] ?? null,
+            'max_distance' => $preference['maxDistanceKm'],
+            'selected_restaurant_id' => $winner['restaurant']['id'] ?? null,
+        ]);
+
+        foreach ($ranked as $rank => $candidate) {
+            DecisionRecommendation::create([
+                'decision_id' => $decision->id,
+                'restaurant_id' => $candidate['restaurant']['id'],
+                'rank' => $rank + 1,
+                'score' => $candidate['score'],
+                'shown_at' => $winner && $candidate['restaurant']['id'] === $winner['restaurant']['id'] ? now() : null,
+            ]);
+        }
+
+        return response()->json([
+            'decisionId' => $decision->id,
+            'clientToken' => $clientToken,
+            'algorithmVersion' => 'v1',
+            'recommendation' => $winner
+                ? $this->presentCandidate($winner, $this->enrichWinner($winner['restaurant']))
+                : null,
+        ]);
+    }
+
+    /**
+     * Winner-only enrichment (photo/price/reviews), fetched only for the one restaurant the
+     * user tapped — never for the whole marker list. Mirrors `enrichWinner()`'s "only ever
+     * runs for the one chosen restaurant" rule, just triggered by a tap instead of a pick.
+     */
+    public function details(Restaurant $restaurant): JsonResponse
+    {
+        $restaurant->loadMissing('cuisines', 'tags');
+        $data = $restaurant->toRecommendationArray();
+        $enrichment = $this->enrichWinner($data);
+
+        return response()->json([
+            'id' => $data['id'],
+            'name' => $data['name'],
+            'foodCategory' => $data['food_category'],
+            'rating' => $data['rating'],
+            'priceLevel' => $data['price_level'],
+            'cuisines' => $data['cuisines'],
+            'openStatus' => $data['open_status'],
+            'photos' => array_map(fn (array $photo) => $this->presentPhoto($photo), $enrichment['photos']),
+            'reviews' => $enrichment['reviews'],
+            'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
+            'closesAt' => $enrichment['closesAt'],
+        ]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>> normalized restaurant arrays within the given
+     *                                           bounds, honoring the optional openNow/budgetMax/minRating filters.
+     */
+    private function restaurantsInViewport(array $bounds): array
+    {
+        [$centerLat, $centerLon, $radiusKm] = $this->viewportToCircle($bounds);
+
+        $restaurants = $this->placesService->nearbyRestaurants($centerLat, $centerLon, $radiusKm);
+
+        return array_values(array_filter($restaurants, function (array $restaurant) use ($bounds) {
+            if ($restaurant['latitude'] > $bounds['north'] || $restaurant['latitude'] < $bounds['south']
+                || $restaurant['longitude'] > $bounds['east'] || $restaurant['longitude'] < $bounds['west']) {
+                return false;
+            }
+            if (($bounds['openNow'] ?? null) && $restaurant['open_status'] !== 'open') {
+                return false;
+            }
+            if (($bounds['budgetMax'] ?? null) !== null && $restaurant['price_level'] !== null
+                && $restaurant['price_level'] > $bounds['budgetMax']) {
+                return false;
+            }
+            if (($bounds['minRating'] ?? null) !== null
+                && ($restaurant['rating'] === null || $restaurant['rating'] < $bounds['minRating'])) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function presentMarker(array $restaurant): array
+    {
+        return [
+            'id' => $restaurant['id'],
+            'name' => $restaurant['name'],
+            'rating' => $restaurant['rating'],
+            'priceLevel' => $restaurant['price_level'],
+            'latitude' => $restaurant['latitude'],
+            'longitude' => $restaurant['longitude'],
+            'openStatus' => $restaurant['open_status'],
+        ];
+    }
+
+    /** Shrinks a viewport toward its center by PICK_VIEWPORT_INSET on each side. */
+    private function insetViewport(array $viewport): array
+    {
+        $latInset = ($viewport['north'] - $viewport['south']) * self::PICK_VIEWPORT_INSET;
+        $lonInset = ($viewport['east'] - $viewport['west']) * self::PICK_VIEWPORT_INSET;
+
+        return [
+            'north' => $viewport['north'] - $latInset,
+            'south' => $viewport['south'] + $latInset,
+            'east' => $viewport['east'] - $lonInset,
+            'west' => $viewport['west'] + $lonInset,
+        ];
+    }
+
+    /** Center = viewport midpoint; radius = distance to the farthest corner, so the search circle fully contains the box. */
+    private function viewportToCircle(array $bounds): array
+    {
+        $centerLat = ($bounds['north'] + $bounds['south']) / 2;
+        $centerLon = ($bounds['east'] + $bounds['west']) / 2;
+
+        return [$centerLat, $centerLon, $this->cornerRadiusKm($bounds, $centerLat, $centerLon)];
+    }
+
+    private function cornerRadiusKm(array $bounds, ?float $centerLat = null, ?float $centerLon = null): float
+    {
+        $centerLat ??= ($bounds['north'] + $bounds['south']) / 2;
+        $centerLon ??= ($bounds['east'] + $bounds['west']) / 2;
+
+        return RecommendationService::distanceKm($centerLat, $centerLon, $bounds['north'], $bounds['east']);
+    }
+
+    /** Largest distance from an arbitrary external point to any of the viewport's 4 corners. */
+    private function maxCornerDistanceKm(array $bounds, float $lat, float $lon): float
+    {
+        $corners = [
+            [$bounds['north'], $bounds['east']],
+            [$bounds['north'], $bounds['west']],
+            [$bounds['south'], $bounds['east']],
+            [$bounds['south'], $bounds['west']],
+        ];
+
+        return max(array_map(
+            fn (array $corner) => RecommendationService::distanceKm($lat, $lon, $corner[0], $corner[1]),
+            $corners
+        ));
+    }
+}

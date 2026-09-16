@@ -9,6 +9,7 @@ final class SoloViewModel {
     var maxDistanceKm: Double = 2.0
 
     private(set) var decisionId: Int?
+    private var clientToken: String?
     private(set) var currentPick: RecommendationResponse.Recommendation?
     private(set) var apiError: APIError?
     private(set) var isEmptyResult = false
@@ -70,6 +71,7 @@ final class SoloViewModel {
                 moods: Array(selectedMoodTags)
             )
             decisionId = response.decisionId
+            clientToken = response.clientToken
             currentPick = response.recommendation
             isEmptyResult = response.recommendation == nil
         } catch let error as APIError {
@@ -87,10 +89,10 @@ final class SoloViewModel {
 
     @MainActor
     func reroll() async {
-        guard let decisionId else { return }
+        guard let decisionId, let clientToken else { return }
         apiError = nil
         do {
-            let response = try await APIClient.reroll(decisionId: decisionId)
+            let response = try await APIClient.reroll(decisionId: decisionId, clientToken: clientToken)
             currentPick = response.recommendation
             isEmptyResult = response.recommendation == nil
         } catch let error as APIError {
@@ -102,7 +104,25 @@ final class SoloViewModel {
 
     @MainActor
     func acceptCurrentPick() async {
-        guard let decisionId else { return }
-        _ = try? await APIClient.accept(decisionId: decisionId)
+        guard let decisionId, let clientToken else { return }
+        _ = try? await APIClient.accept(decisionId: decisionId, clientToken: clientToken)
+    }
+
+    /// Nearby's "Pick one lah" ends a decision exactly like Decide does, so it hands its result
+    /// off here rather than ResultView (and its reroll/accept flow) growing a second code path.
+    /// Clears mood/budget since Nearby doesn't set them — ResultView's reason chips degrade
+    /// gracefully to just a distance-if-any chip, never a stale Decide preference.
+    @MainActor
+    func adoptExternalPick(
+        decisionId: Int?, clientToken: String?,
+        recommendation: RecommendationResponse.Recommendation?, error: APIError?
+    ) {
+        selectedMoodTags = []
+        budgetMax = nil
+        self.decisionId = decisionId
+        self.clientToken = clientToken
+        currentPick = recommendation
+        apiError = error
+        isEmptyResult = recommendation == nil && error == nil
     }
 }

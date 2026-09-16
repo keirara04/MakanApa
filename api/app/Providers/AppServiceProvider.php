@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Every log line carries the environment so staging noise is easy to filter out of
+        // production logs once both environments exist.
+        Log::shareContext(['environment' => config('app.env')]);
     }
 }

@@ -26,13 +26,22 @@ class RerollDecisionTest extends TestCase
         return $response->json();
     }
 
+    private function reroll(array $decision)
+    {
+        return $this->postJson(
+            "/api/v1/decisions/{$decision['decisionId']}/reroll",
+            [],
+            ['X-Decision-Token' => $decision['clientToken']]
+        );
+    }
+
     public function test_reroll_never_immediately_repeats(): void
     {
         $decision = $this->createDecision();
         $previousId = $decision['recommendation']['id'];
 
         for ($i = 0; $i < 5; $i++) {
-            $response = $this->postJson("/api/v1/decisions/{$decision['decisionId']}/reroll");
+            $response = $this->reroll($decision);
             $response->assertOk();
             $nextId = $response->json('recommendation.id');
 
@@ -48,7 +57,7 @@ class RerollDecisionTest extends TestCase
         $decision = $this->createDecision();
         $originalRestaurantId = $decision['recommendation']['id'];
 
-        $this->postJson("/api/v1/decisions/{$decision['decisionId']}/reroll")->assertOk();
+        $this->reroll($decision)->assertOk();
 
         $originalRow = DecisionRecommendation::where('decision_id', $decision['decisionId'])
             ->where('restaurant_id', $originalRestaurantId)

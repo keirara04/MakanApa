@@ -2,24 +2,27 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\PresentsRecommendation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SoloRecommendationRequest;
 use App\Models\Decision;
+use App\Models\DecisionPreference;
 use App\Models\DecisionRecommendation;
-use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
-use App\Support\RecommendationHeadline;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Config;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Throwable;
 
 class RecommendationController extends Controller
 {
+    use PresentsRecommendation;
+
     public function __construct(
         private readonly PlacesService $placesService,
         private readonly RecommendationService $recommendationService,
@@ -55,14 +58,25 @@ class RecommendationController extends Controller
 
         $result = $this->recommendationService->recommend($restaurants, $preference);
 
+        $clientToken = Str::random(40);
+
         $decision = Decision::create([
             'mode' => 'solo',
+            'client_token' => $clientToken,
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
             'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $data['maxDistanceKm'],
             'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
         ]);
+
+        foreach ($data['moods'] ?? [] as $mood) {
+            DecisionPreference::create([
+                'decision_id' => $decision->id,
+                'preference_type' => 'mood',
+                'value' => $mood,
+            ]);
+        }
 
         foreach ($result['candidates'] as $rank => $candidate) {
             DecisionRecommendation::create([
@@ -78,6 +92,7 @@ class RecommendationController extends Controller
 
         return response()->json([
             'decisionId' => $decision->id,
+            'clientToken' => $clientToken,
             'algorithmVersion' => 'v1',
             'recommendation' => $result['pick']
                 ? $this->presentCandidate($result['pick'], $this->enrichWinner($result['pick']['restaurant']))
@@ -85,38 +100,49 @@ class RecommendationController extends Controller
         ]);
     }
 
-    public function reroll(Decision $decision): JsonResponse
+    public function reroll(Request $request, Decision $decision): JsonResponse
     {
-        $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->get();
+        $this->authorizeDecision($request, $decision);
 
-        $candidates = $rows->map(function (DecisionRecommendation $row) use ($decision) {
-            $restaurantData = $row->restaurant->toRecommendationArray();
+        // lockForUpdate serializes concurrent reroll calls for the same decision — without it,
+        // two near-simultaneous requests can both read the same "current" row, each pick a
+        // different "next" row, and both mark their own pick shown_at, leaving two rows
+        // simultaneously "current" (one permanently orphaned). The Google enrichment call is
+        // deliberately kept outside the transaction so a slow network call doesn't hold the lock.
+        $next = DB::transaction(function () use ($decision) {
+            $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->lockForUpdate()->get();
 
-            return [
-                'restaurant' => $restaurantData,
-                'score' => (float) $row->score,
-                'distanceKm' => RecommendationService::distanceKm(
-                    (float) $decision->latitude, (float) $decision->longitude,
-                    $restaurantData['latitude'], $restaurantData['longitude']
-                ),
-                '_row' => $row,
-            ];
-        })->all();
+            $candidates = $rows->map(function (DecisionRecommendation $row) use ($decision) {
+                $restaurantData = $row->restaurant->toRecommendationArray();
 
-        $currentRow = $rows->first(fn (DecisionRecommendation $row) => $row->shown_at !== null && $row->rejected_at === null && $row->accepted_at === null);
-        $currentCandidate = $currentRow
-            ? collect($candidates)->first(fn ($c) => $c['_row']->id === $currentRow->id)
-            : null;
+                return [
+                    'restaurant' => $restaurantData,
+                    'score' => (float) $row->score,
+                    'distanceKm' => RecommendationService::distanceKm(
+                        (float) $decision->latitude, (float) $decision->longitude,
+                        $restaurantData['latitude'], $restaurantData['longitude']
+                    ),
+                    '_row' => $row,
+                ];
+            })->all();
 
-        $next = $this->recommendationService->pick($candidates, $currentCandidate);
+            $currentRow = $rows->first(fn (DecisionRecommendation $row) => $row->shown_at !== null && $row->rejected_at === null && $row->accepted_at === null);
+            $currentCandidate = $currentRow
+                ? collect($candidates)->first(fn ($c) => $c['_row']->id === $currentRow->id)
+                : null;
 
-        if ($currentRow) {
-            $currentRow->update(['rejected_at' => now()]);
-        }
+            $next = $this->recommendationService->pick($candidates, $currentCandidate);
 
-        if ($next) {
-            $next['_row']->update(['shown_at' => now()]);
-        }
+            if ($currentRow) {
+                $currentRow->update(['rejected_at' => now()]);
+            }
+
+            if ($next) {
+                $next['_row']->update(['shown_at' => now()]);
+            }
+
+            return $next;
+        });
 
         return response()->json([
             'recommendation' => $next
@@ -125,8 +151,10 @@ class RecommendationController extends Controller
         ]);
     }
 
-    public function accept(Decision $decision): JsonResponse
+    public function accept(Request $request, Decision $decision): JsonResponse
     {
+        $this->authorizeDecision($request, $decision);
+
         $current = $decision->recommendations()
             ->whereNotNull('shown_at')
             ->whereNull('rejected_at')
@@ -141,65 +169,17 @@ class RecommendationController extends Controller
     }
 
     /**
-     * Winner-only Google Places Details fetch (photos/reviews/closing time) — never called
-     * for the full candidate list, only the one restaurant actually being shown. Transient:
-     * nothing this returns is written to the database.
+     * The app has no login, so a decision's sequential integer ID is the only handle a client
+     * has — without this check, anyone can enumerate IDs and reroll/accept someone else's
+     * in-progress decision. `client_token` is an opaque secret handed back once, in solo()'s
+     * response, and must be echoed on every subsequent call for that decision.
      */
-    private function enrichWinner(array $restaurant): array
+    private function authorizeDecision(Request $request, Decision $decision): void
     {
-        $empty = ['photos' => [], 'reviews' => [], 'placeGoogleMapsUrl' => null, 'closesAt' => null];
-
-        if (($restaurant['provider'] ?? null) !== 'google' || empty($restaurant['provider_place_id'])) {
-            return $empty;
-        }
-
-        try {
-            $apiKey = Config::get('services.places.google_api_key');
-            $raw = (new GooglePlacesProvider($apiKey))->fetchPresentationDetails($restaurant['provider_place_id']);
-
-            return $this->normalizer->normalizePresentationDetails($raw);
-        } catch (Throwable $e) {
-            Log::warning('Presentation details fetch failed', ['error' => $e->getMessage()]);
-
-            return $empty; // card still works, just without photo/reviews/closing time
-        }
-    }
-
-    private function presentCandidate(array $candidate, array $enrichment): array
-    {
-        $restaurant = $candidate['restaurant'];
-
-        return [
-            'id' => $restaurant['id'],
-            'name' => $restaurant['name'],
-            'headline' => RecommendationHeadline::for($restaurant),
-            'foodCategory' => $restaurant['food_category'] ?? null,
-            'latitude' => $restaurant['latitude'],
-            'longitude' => $restaurant['longitude'],
-            'distanceKm' => $candidate['distanceKm'],
-            'rating' => $restaurant['rating'],
-            'priceLevel' => $restaurant['price_level'],
-            'cuisines' => $restaurant['cuisines'],
-            'openStatus' => $restaurant['open_status'],
-            'photos' => array_map(fn (array $photo) => $this->presentPhoto($photo), $enrichment['photos']),
-            'reviews' => $enrichment['reviews'],
-            'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
-            'closesAt' => $enrichment['closesAt'],
-        ];
-    }
-
-    /**
-     * Converts a photo's transient Google resource name into a signed, short-lived Laravel
-     * URL — the raw name never reaches the client, and the signature stops the endpoint
-     * being usable as an open proxy for arbitrary Google photo names.
-     */
-    private function presentPhoto(array $photo): array
-    {
-        return [
-            'url' => URL::temporarySignedRoute('places.photo', now()->addMinutes(10), ['name' => $photo['name']]),
-            'authorAttributions' => $photo['authorAttributions'],
-            'googleMapsUrl' => $photo['googleMapsUrl'],
-            'flagContentUrl' => $photo['flagContentUrl'],
-        ];
+        $token = $request->header('X-Decision-Token');
+        abort_unless(
+            $decision->client_token !== null && $token !== null && hash_equals($decision->client_token, $token),
+            403
+        );
     }
 }
