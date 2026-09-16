@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
+use App\Models\Restaurant;
 use Database\Seeders\RestaurantSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -99,8 +100,8 @@ class NearbyPlacesTest extends TestCase
 
         // "Distant Lakeside Grill" sits well outside BOX — a client can claim it's visible,
         // but the server must not trust that and must never pick it.
-        $distant = \App\Models\Restaurant::where('name', 'Distant Lakeside Grill')->firstOrFail();
-        $inBox = \App\Models\Restaurant::where('name', 'Nasi Ayam Bangi')->firstOrFail();
+        $distant = Restaurant::where('name', 'Distant Lakeside Grill')->firstOrFail();
+        $inBox = Restaurant::where('name', 'Nasi Ayam Bangi')->firstOrFail();
 
         $response = $this->postJson('/api/v1/places/nearby/pick', [
             'latitude' => 2.9284,
@@ -116,7 +117,7 @@ class NearbyPlacesTest extends TestCase
     public function test_details_returns_restaurant_presentation(): void
     {
         $this->seed(RestaurantSeeder::class);
-        $restaurant = \App\Models\Restaurant::where('name', 'Nasi Ayam Bangi')->firstOrFail();
+        $restaurant = Restaurant::where('name', 'Nasi Ayam Bangi')->firstOrFail();
 
         $response = $this->getJson("/api/v1/restaurants/{$restaurant->id}/details");
 

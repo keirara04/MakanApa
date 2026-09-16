@@ -2,6 +2,7 @@
 
 namespace App\Services\Places;
 
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -155,7 +156,7 @@ class PlaceNormalizer
 
         $offsetMinutes = $raw['utcOffsetMinutes'] ?? 0;
 
-        return \Carbon\Carbon::parse($nextCloseTime)->addMinutes($offsetMinutes)->format('g:i A');
+        return Carbon::parse($nextCloseTime)->addMinutes($offsetMinutes)->format('g:i A');
     }
 
     /**

@@ -17,9 +17,13 @@ namespace App\Services;
 class RecommendationService
 {
     private const MOOD_WEIGHT = 30;
+
     private const CUISINE_WEIGHT = 25;
+
     private const BUDGET_WEIGHT = 15;
+
     private const DISTANCE_WEIGHT = 15;
+
     private const RATING_WEIGHT = 15;
 
     /** Rank weights for weighted-random pick among the top 5 candidates. */

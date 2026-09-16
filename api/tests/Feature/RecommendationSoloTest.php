@@ -12,6 +12,7 @@ class RecommendationSoloTest extends TestCase
     use RefreshDatabase;
 
     private const ORIGIN_LAT = 2.928400;
+
     private const ORIGIN_LNG = 101.780200;
 
     private function validPayload(array $overrides = []): array

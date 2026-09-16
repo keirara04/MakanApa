@@ -161,7 +161,7 @@ class NearbyController extends Controller
 
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays within the given
-     *                                           bounds, honoring the optional openNow/budgetMax/minRating filters.
+     *                                          bounds, honoring the optional openNow/budgetMax/minRating filters.
      */
     private function restaurantsInViewport(array $bounds): array
     {

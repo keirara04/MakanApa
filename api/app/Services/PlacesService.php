@@ -9,7 +9,6 @@ use App\Models\Tag;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use RuntimeException;
 
@@ -20,9 +19,7 @@ use RuntimeException;
  */
 class PlacesService
 {
-    public function __construct(private readonly PlaceNormalizer $normalizer)
-    {
-    }
+    public function __construct(private readonly PlaceNormalizer $normalizer) {}
 
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays, shaped for RecommendationService

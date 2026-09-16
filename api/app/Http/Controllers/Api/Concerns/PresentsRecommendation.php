@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Concerns;
 
 use App\Services\Places\GooglePlacesProvider;
+use App\Support\RecommendationHeadline;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -47,7 +48,7 @@ trait PresentsRecommendation
         return [
             'id' => $restaurant['id'],
             'name' => $restaurant['name'],
-            'headline' => \App\Support\RecommendationHeadline::for($restaurant),
+            'headline' => RecommendationHeadline::for($restaurant),
             'foodCategory' => $restaurant['food_category'] ?? null,
             'latitude' => $restaurant['latitude'],
             'longitude' => $restaurant['longitude'],

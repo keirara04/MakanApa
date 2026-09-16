@@ -14,6 +14,7 @@ use RuntimeException;
 class GooglePlacesProvider implements PlacesProvider
 {
     private const ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
+
     private const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
 
     /** Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers. */
@@ -27,9 +28,7 @@ class GooglePlacesProvider implements PlacesProvider
      */
     private const DETAILS_FIELD_MASK = 'photos,reviews,googleMapsUri,currentOpeningHours,utcOffsetMinutes';
 
-    public function __construct(private readonly ?string $apiKey)
-    {
-    }
+    public function __construct(private readonly ?string $apiKey) {}
 
     public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm): Collection
     {
