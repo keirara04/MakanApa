@@ -4,9 +4,35 @@ import CoreLocation
 
 @Observable
 final class SoloViewModel {
-    var selectedMoodTags: Set<String> = []
+    /// Single source of truth for the craving step — one active choice at a time, never a
+    /// parallel tag/text pair that can drift out of sync. `MoodOption`/`moodOptions` below keep
+    /// their existing name (avoiding view-hierarchy rename churn) even though the vocabulary is
+    /// no longer abstract moods but concrete cravings.
+    enum CravingSelection: Equatable {
+        case tag(String)
+        case custom(String)
+        case anything
+    }
+
+    var cravingSelection: CravingSelection?
     var budgetMax: Int? = 2
     var maxDistanceKm: Double = 2.0
+
+    /// Derives the outgoing request fields from `cravingSelection` — the only place this
+    /// mapping happens, so iOS and the wire format can't fall out of sync.
+    var outgoingMoods: [String] {
+        if case .tag(let tag) = cravingSelection { return [tag] }
+        return []
+    }
+
+    var outgoingCraving: String? {
+        guard case .custom(let text) = cravingSelection else { return nil }
+        let normalized = text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return normalized.isEmpty ? nil : normalized
+    }
 
     private(set) var decisionId: Int?
     private var clientToken: String?
@@ -39,9 +65,15 @@ final class SoloViewModel {
     }
 
     static let moodOptions: [MoodOption] = [
-        MoodOption(tag: "spicy", illustration: "MoodSpicy", label: "Spicy", subtext: Copy.moodSpicySubtext),
-        MoodOption(tag: "comfort_food", illustration: "MoodComfort", label: "Comfort", subtext: Copy.moodComfortSubtext),
-        MoodOption(tag: "healthy", illustration: "MoodLight", label: "Light", subtext: Copy.moodLightSubtext),
+        MoodOption(tag: "nasi_kandar", illustration: "MoodNasiKandar", label: "Nasi Kandar", subtext: Copy.moodNasiKandarSubtext),
+        MoodOption(tag: "ayam_gepuk", illustration: "MoodAyamGepuk", label: "Ayam Gepuk", subtext: Copy.moodAyamGepukSubtext),
+        MoodOption(tag: "nasi_padang", illustration: "MoodNasiPadang", label: "Nasi Padang", subtext: Copy.moodNasiPadangSubtext),
+        MoodOption(tag: "mee_goreng", illustration: "MoodMeeGoreng", label: "Mee Goreng", subtext: Copy.moodMeeGorengSubtext),
+        MoodOption(tag: "nasi_lemak", illustration: "MoodNasiLemak", label: "Nasi Lemak", subtext: Copy.moodNasiLemakSubtext),
+        MoodOption(tag: "char_kuey_teow", illustration: "MoodCharKueyTeow", label: "Char Kuey Teow", subtext: Copy.moodCharKueyTeowSubtext),
+        MoodOption(tag: "banana_leaf_rice", illustration: "MoodBananaLeafRice", label: "Banana Leaf Rice", subtext: Copy.moodBananaLeafRiceSubtext),
+        MoodOption(tag: "dim_sum", illustration: "MoodDimSum", label: "Dim Sum", subtext: Copy.moodDimSumSubtext),
+        MoodOption(tag: "healthy", illustration: "MoodLight", label: "Healthy", subtext: Copy.moodLightSubtext),
         MoodOption(tag: "quick", illustration: "MoodQuick", label: "Quick", subtext: Copy.moodQuickSubtext),
     ]
 
@@ -68,7 +100,8 @@ final class SoloViewModel {
                 longitude: coordinate.longitude,
                 budgetMax: budgetMax,
                 maxDistanceKm: maxDistanceKm,
-                moods: Array(selectedMoodTags)
+                moods: outgoingMoods,
+                craving: outgoingCraving
             )
             decisionId = response.decisionId
             clientToken = response.clientToken
@@ -121,7 +154,7 @@ final class SoloViewModel {
         decisionId: Int?, clientToken: String?,
         recommendation: RecommendationResponse.Recommendation?, error: APIError?
     ) {
-        selectedMoodTags = []
+        cravingSelection = nil
         budgetMax = nil
         self.decisionId = decisionId
         self.clientToken = clientToken

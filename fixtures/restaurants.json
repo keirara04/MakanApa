@@ -105,7 +105,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["chinese"],
-    "tags": ["group_friendly", "shareable", "quick"]
+    "tags": ["group_friendly", "shareable", "quick", "dim_sum"],
+    "signatureDish": "Dim Sum"
   },
   {
     "id": 8,
@@ -166,7 +167,7 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["malay"],
-    "tags": ["cheap", "comfort_food", "student_friendly", "quick", "solo_friendly"],
+    "tags": ["cheap", "comfort_food", "student_friendly", "quick", "solo_friendly", "nasi_lemak"],
     "signatureDish": "Nasi Lemak"
   },
   {
@@ -273,7 +274,8 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["chinese"],
-    "tags": ["cheap", "quick", "comfort_food", "solo_friendly"]
+    "tags": ["cheap", "quick", "comfort_food", "solo_friendly", "char_kuey_teow"],
+    "signatureDish": "Char Kuey Teow"
   },
   {
     "id": 19,
@@ -349,7 +351,7 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["indian"],
-    "tags": ["cheap", "comfort_food", "spicy", "solo_friendly"],
+    "tags": ["cheap", "comfort_food", "spicy", "solo_friendly", "banana_leaf_rice"],
     "signatureDish": "Banana Leaf Rice"
   },
   {
@@ -426,7 +428,7 @@
     "providerPlaceId": null,
     "openingHours": null,
     "cuisines": ["malay", "indian"],
-    "tags": ["cheap", "spicy", "late_night", "student_friendly"],
+    "tags": ["cheap", "spicy", "late_night", "student_friendly", "nasi_kandar"],
     "signatureDish": "Nasi Kandar"
   },
   {
@@ -458,5 +460,53 @@
     "openingHours": null,
     "cuisines": ["western"],
     "tags": ["group_friendly", "shareable"]
+  },
+  {
+    "id": 31,
+    "name": "Ayam Gepuk Pak Gembus Bangi",
+    "latitude": 2.925900,
+    "longitude": 101.787200,
+    "address": "Jalan Reko, Bangi",
+    "priceLevel": 1,
+    "rating": 4.5,
+    "isActive": true,
+    "provider": "fixture",
+    "providerPlaceId": null,
+    "openingHours": null,
+    "cuisines": ["indonesian"],
+    "tags": ["cheap", "spicy", "quick", "ayam_gepuk"],
+    "signatureDish": "Ayam Gepuk"
+  },
+  {
+    "id": 32,
+    "name": "Restoran Nasi Padang Minang Jaya",
+    "latitude": 2.920400,
+    "longitude": 101.785700,
+    "address": "Taman Bangi Indah",
+    "priceLevel": 1,
+    "rating": 4.4,
+    "isActive": true,
+    "provider": "fixture",
+    "providerPlaceId": null,
+    "openingHours": null,
+    "cuisines": ["indonesian"],
+    "tags": ["comfort_food", "group_friendly", "nasi_padang"],
+    "signatureDish": "Nasi Padang"
+  },
+  {
+    "id": 33,
+    "name": "Warung Mee Goreng Mamak Jaya",
+    "latitude": 2.931300,
+    "longitude": 101.775200,
+    "address": "Jalan Medan 4, Bangi",
+    "priceLevel": 1,
+    "rating": 4.2,
+    "isActive": true,
+    "provider": "fixture",
+    "providerPlaceId": null,
+    "openingHours": null,
+    "cuisines": ["malay", "indian"],
+    "tags": ["cheap", "quick", "late_night", "mee_goreng"],
+    "signatureDish": "Mee Goreng"
   }
 ]

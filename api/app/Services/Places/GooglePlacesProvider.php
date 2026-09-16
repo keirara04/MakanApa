@@ -15,6 +15,8 @@ class GooglePlacesProvider implements PlacesProvider
 {
     private const ENDPOINT = 'https://places.googleapis.com/v1/places:searchNearby';
 
+    private const TEXT_SEARCH_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
+
     private const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
 
     /** Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers. */
@@ -50,9 +52,41 @@ class GooglePlacesProvider implements PlacesProvider
             ],
         ])->throw();
 
-        $places = $response->json('places', []);
+        return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+    }
 
-        return collect($places)->map(fn (array $place) => new ProviderPlace(
+    /**
+     * Text Search — used only when a craving resolves to a searchable concept, at most once
+     * per recommendation request (PlacesService enforces the cap). Unlike nearbyRestaurants(),
+     * Google's locationBias here is a soft hint, not a hard filter, so callers must still
+     * distance-filter the results themselves.
+     */
+    public function searchText(string $query, float $latitude, float $longitude, float $radiusKm): Collection
+    {
+        if (empty($this->apiKey)) {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        $response = Http::withHeaders([
+            'X-Goog-Api-Key' => $this->apiKey,
+            'X-Goog-FieldMask' => self::FIELD_MASK,
+        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, [
+            'textQuery' => $query,
+            'includedType' => 'restaurant',
+            'locationBias' => [
+                'circle' => [
+                    'center' => ['latitude' => $latitude, 'longitude' => $longitude],
+                    'radius' => $radiusKm * 1000,
+                ],
+            ],
+        ])->throw();
+
+        return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+    }
+
+    private function mapPlace(array $place): ProviderPlace
+    {
+        return new ProviderPlace(
             providerPlaceId: $place['id'],
             name: $place['displayName']['text'] ?? 'Unknown',
             latitude: $place['location']['latitude'],
@@ -61,7 +95,7 @@ class GooglePlacesProvider implements PlacesProvider
             rating: $place['rating'] ?? null,
             priceLevel: $this->mapPriceLevel($place['priceLevel'] ?? null),
             openNow: $place['currentOpeningHours']['openNow'] ?? null,
-        ));
+        );
     }
 
     /**

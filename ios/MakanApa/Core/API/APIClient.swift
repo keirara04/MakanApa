@@ -18,11 +18,12 @@ enum APIClient {
     private static let encoder = JSONEncoder()
 
     static func recommendSolo(
-        latitude: Double, longitude: Double, budgetMax: Int?, maxDistanceKm: Double, moods: [String]
+        latitude: Double, longitude: Double, budgetMax: Int?, maxDistanceKm: Double,
+        moods: [String], craving: String? = nil
     ) async throws -> RecommendationResponse {
         let body = SoloRecommendationRequestBody(
             latitude: latitude, longitude: longitude, budgetMax: budgetMax,
-            maxDistanceKm: maxDistanceKm, moods: moods
+            maxDistanceKm: maxDistanceKm, moods: moods, craving: craving
         )
         return try await post("recommendations/solo", body: body)
     }

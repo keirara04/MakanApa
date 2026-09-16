@@ -6,6 +6,7 @@ struct SoloRecommendationRequestBody: Encodable {
     let budgetMax: Int?
     let maxDistanceKm: Double
     let moods: [String]
+    let craving: String?
 }
 
 struct RecommendationResponse: Decodable, Equatable {
@@ -51,10 +52,21 @@ struct RecommendationResponse: Decodable, Equatable {
         let closesAt: String?
     }
 
+    /// Whether the typed craving (if any) matched something nearby — decoded but not yet
+    /// surfaced in UI; a future pass can render an honest "couldn't find an exact match" state.
+    struct CravingMatch: Decodable, Equatable {
+        let query: String
+        let matched: Bool
+        let resolvedAs: String?
+        let source: String?
+        let confidence: Double?
+    }
+
     let decisionId: Int
     let clientToken: String
     let algorithmVersion: String
     let recommendation: Recommendation?
+    let craving: CravingMatch?
 }
 
 struct RerollResponse: Decodable {

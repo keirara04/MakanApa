@@ -2,6 +2,7 @@
 
 namespace App\Services\Places;
 
+use App\Support\FoodTaxonomy;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -10,6 +11,12 @@ use Illuminate\Support\Collection;
  * conservative: maps Google place *types* to MakanApa's tag/cuisine
  * vocabulary, never infers from restaurant names. Being uncertain (fewer
  * tags) beats confidently assigning wrong ones.
+ *
+ * One narrow, deliberate exception: FoodTaxonomy's curated Malaysian-dish
+ * aliases ARE matched against the place name (see dishTagsFor()) so specific
+ * dishes like "Nasi Kandar" can be tagged even though Google's types[] has no
+ * dish-level granularity. This does not extend to cuisines/tags/food-category
+ * in general — those still come from types[] only.
  */
 class PlaceNormalizer
 {
@@ -82,6 +89,7 @@ class PlaceNormalizer
         }
 
         $foodCategory = $this->foodCategoryFor($place->types);
+        $tags = array_merge($tags, $this->dishTagsFor($place->name));
 
         return [
             'provider' => 'google',
@@ -175,5 +183,27 @@ class PlaceNormalizer
         }
 
         return null;
+    }
+
+    /**
+     * The one place that infers from a restaurant's name — see class doc for why this is a
+     * deliberate, narrow exception. Returns every dish tag whose alias appears in $name, not
+     * just the first, since a name can plausibly mention more than one dish.
+     *
+     * @return string[]
+     */
+    private function dishTagsFor(string $name): array
+    {
+        $tags = [];
+        foreach (FoodTaxonomy::aliasPatterns() as $tag => $patterns) {
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $name) === 1) {
+                    $tags[] = $tag;
+                    break;
+                }
+            }
+        }
+
+        return $tags;
     }
 }

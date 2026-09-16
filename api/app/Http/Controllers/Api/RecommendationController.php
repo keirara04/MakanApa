@@ -8,6 +8,8 @@ use App\Http\Requests\SoloRecommendationRequest;
 use App\Models\Decision;
 use App\Models\DecisionPreference;
 use App\Models\DecisionRecommendation;
+use App\Services\Craving\CravingIntent;
+use App\Services\Craving\CravingResolver;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
@@ -27,15 +29,21 @@ class RecommendationController extends Controller
         private readonly PlacesService $placesService,
         private readonly RecommendationService $recommendationService,
         private readonly PlaceNormalizer $normalizer,
+        private readonly CravingResolver $cravingResolver,
     ) {}
 
     public function solo(SoloRecommendationRequest $request): JsonResponse
     {
         $data = $request->validated();
 
+        // Resolved once, up front — both retrieval (drives at most one Google Text Search) and
+        // scoring (drives relevance weighting) read the same CravingIntent, so they can't
+        // disagree about what the user asked for.
+        $cravingIntent = ! empty($data['craving']) ? $this->cravingResolver->resolve($data['craving']) : null;
+
         try {
             $restaurants = $this->placesService->nearbyRestaurants(
-                $data['latitude'], $data['longitude'], $data['maxDistanceKm']
+                $data['latitude'], $data['longitude'], $data['maxDistanceKm'], $cravingIntent
             );
         } catch (RequestException $e) {
             Log::error('Places provider request failed', ['error' => $e->getMessage()]);
@@ -50,6 +58,7 @@ class RecommendationController extends Controller
         $preference = [
             'moodTags' => $data['moods'] ?? [],
             'cuisines' => [],
+            'cravingIntent' => $cravingIntent,
             'budgetMax' => $data['budgetMax'] ?? null,
             'maxDistanceKm' => $data['maxDistanceKm'],
             'latitude' => $data['latitude'],
@@ -90,14 +99,21 @@ class RecommendationController extends Controller
             ]);
         }
 
-        return response()->json([
+        $response = [
             'decisionId' => $decision->id,
             'clientToken' => $clientToken,
             'algorithmVersion' => 'v1',
             'recommendation' => $result['pick']
                 ? $this->presentCandidate($result['pick'], $this->enrichWinner($result['pick']['restaurant']))
                 : null,
-        ]);
+            'craving' => $result['craving'],
+        ];
+
+        if (config('recommendation.debug')) {
+            $response['debug'] = $this->debugPayload($cravingIntent, $result, $preference);
+        }
+
+        return response()->json($response);
     }
 
     public function reroll(Request $request, Decision $decision): JsonResponse
@@ -166,6 +182,34 @@ class RecommendationController extends Controller
         }
 
         return response()->json(['accepted' => (bool) $current]);
+    }
+
+    /**
+     * Dev/staging only (RECOMMENDATION_DEBUG) — answers "why did this win" without guessing
+     * from logs. Reuses RecommendationService::scoreBreakdown(), the same computation that
+     * already ran for scoring, so this can never become a second, divergent implementation.
+     */
+    private function debugPayload(?CravingIntent $cravingIntent, array $result, array $preference): array
+    {
+        $debug = [
+            'craving' => $cravingIntent === null ? null : [
+                'normalized' => CravingResolver::normalize($cravingIntent->raw),
+                'source' => $cravingIntent->source,
+                'resolvedAs' => $cravingIntent->concept,
+                'confidence' => $cravingIntent->confidence,
+                'textSearchQuery' => $cravingIntent->primarySearchTerm(),
+            ],
+            'candidateCount' => $this->placesService->lastCandidateCounts(),
+        ];
+
+        if ($result['pick']) {
+            $breakdown = $this->recommendationService->scoreBreakdown(
+                $result['pick']['restaurant'], $preference, $result['pick']['distanceKm']
+            );
+            $debug['pickScoreBreakdown'] = array_merge($breakdown['components'], ['final' => $breakdown['final']]);
+        }
+
+        return $debug;
     }
 
     /**

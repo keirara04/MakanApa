@@ -6,11 +6,15 @@ use App\Models\Cuisine;
 use App\Models\PlaceSyncArea;
 use App\Models\Restaurant;
 use App\Models\Tag;
+use App\Services\Craving\CravingIntent;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Orchestrates provider selection, area-based caching, and persistence.
@@ -21,10 +25,13 @@ class PlacesService
 {
     public function __construct(private readonly PlaceNormalizer $normalizer) {}
 
+    /** Set by nearbyRestaurants() when a craving is present, for RecommendationController's debug payload only. */
+    private array $lastCandidateCounts = [];
+
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays, shaped for RecommendationService
      */
-    public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm): array
+    public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm, ?CravingIntent $craving = null): array
     {
         $provider = Config::get('services.places.provider', 'fixture');
 
@@ -45,7 +52,45 @@ class PlacesService
             $this->syncFromGoogle($latitude, $longitude, $radiusKm, $apiKey);
         }
 
-        return $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm);
+        $nearbyCount = null;
+        $textSearchCount = 0;
+        if ($craving !== null && $craving->primarySearchTerm() !== null) {
+            $nearbyCount = count($this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm));
+
+            // Text Search is an opportunistic boost, not a required part of the response — a
+            // failure here (Google rate limit, transient 5xx, bad query) must never turn an
+            // otherwise-working nearby-search result into a hard failure for the whole request.
+            try {
+                $textSearchCount = $this->syncFromTextSearch($latitude, $longitude, $radiusKm, $apiKey, $craving);
+            } catch (Throwable $e) {
+                Log::warning('Craving text search failed, continuing with nearby-only results', [
+                    'error' => $e->getMessage(),
+                    'query' => $craving->primarySearchTerm(),
+                ]);
+            }
+        }
+
+        $restaurants = $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm);
+
+        $this->lastCandidateCounts = $nearbyCount === null ? [] : [
+            'nearby' => $nearbyCount,
+            'textSearch' => $textSearchCount,
+            'merged' => count($restaurants),
+        ];
+
+        return $restaurants;
+    }
+
+    /**
+     * Debug-only: candidate counts from the most recent nearbyRestaurants() call that included
+     * a craving. Empty when no craving was resolved (i.e. no text search ran). Never used by
+     * scoring — purely for RecommendationController's optional debug payload.
+     *
+     * @return array{nearby: int, textSearch: int, merged: int}|array{}
+     */
+    public function lastCandidateCounts(): array
+    {
+        return $this->lastCandidateCounts;
     }
 
     private function isAreaCovered(float $latitude, float $longitude, float $radiusKm): bool
@@ -82,6 +127,50 @@ class PlacesService
             'radius_km' => $radiusKm,
             'synced_at' => now(),
         ]);
+    }
+
+    /**
+     * At most one Google Text Search call per recommendation request — $craving->primarySearchTerm()
+     * is the single term used, never a loop over every alias. The result set itself is cached
+     * (not just the AI-parsed intent) so a cluster of nearby users searching the same thing in
+     * the same window doesn't multiply Google billing; still upserted on every call — cache hit
+     * or miss — so scoring always reads fresh local data, only the Google call itself is skipped.
+     *
+     * @return int number of places returned by this search (cache hit or miss)
+     */
+    private function syncFromTextSearch(float $latitude, float $longitude, float $radiusKm, string $apiKey, CravingIntent $craving): int
+    {
+        $query = $craving->primarySearchTerm();
+        if ($query === null) {
+            return 0;
+        }
+
+        $normalized = Cache::remember(
+            $this->textSearchCacheKey($latitude, $longitude, $radiusKm, $craving),
+            now()->addMinutes(60),
+            function () use ($apiKey, $query, $latitude, $longitude, $radiusKm) {
+                $providerPlaces = (new GooglePlacesProvider($apiKey))->searchText($query, $latitude, $longitude, $radiusKm);
+
+                return $this->normalizer->normalize($providerPlaces)->all();
+            }
+        );
+
+        foreach ($normalized as $data) {
+            $this->upsertRestaurant($data);
+        }
+
+        return count($normalized);
+    }
+
+    /** Rounded to ~100m/1km buckets so nearby duplicate searches share a cache entry. */
+    private function textSearchCacheKey(float $latitude, float $longitude, float $radiusKm, CravingIntent $craving): string
+    {
+        $concept = $craving->concept ?? strtolower(trim(preg_replace('/\s+/', ' ', $craving->raw) ?? ''));
+
+        return sprintf(
+            'places_text:v1:%s:%s:%d:%s',
+            round($latitude, 3), round($longitude, 3), max(1, (int) round($radiusKm)), $concept
+        );
     }
 
     private function upsertRestaurant(array $data): void

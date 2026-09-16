@@ -14,8 +14,9 @@ struct MoodChoiceCard: View {
                 HStack(alignment: .top) {
                     Image(option.illustration)
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                         .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                         .accessibilityHidden(true)
                     Spacer(minLength: 0)
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")

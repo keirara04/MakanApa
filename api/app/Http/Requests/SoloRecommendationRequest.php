@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SoloRecommendationRequest extends FormRequest
@@ -20,6 +21,25 @@ class SoloRecommendationRequest extends FormRequest
             'maxDistanceKm' => ['required', 'numeric', 'between:0.1,50'],
             'moods' => ['array'],
             'moods.*' => ['string'],
+            'craving' => ['nullable', 'string', 'max:100'],
         ];
+    }
+
+    /**
+     * The iOS single-select UI guarantees a request never has both a curated tag and a custom
+     * craving, but a request isn't required to come from that client — enforce the invariant
+     * server-side too, since RecommendationService's scoring assumes moodTags/craving are
+     * mutually exclusive (it reuses one weight slot for whichever is present).
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $hasMoods = ! empty($this->input('moods', []));
+            $hasCraving = ! empty(trim((string) $this->input('craving', '')));
+
+            if ($hasMoods && $hasCraving) {
+                $validator->errors()->add('craving', 'Send either moods or craving, not both.');
+            }
+        });
     }
 }

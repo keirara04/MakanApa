@@ -17,10 +17,18 @@ enum Copy {
     static let soloDistanceSubtext = "No sweat, we'll find something nice."
     static let soloCTA = "MAKANAPA?"
 
-    static let moodSpicySubtext = "Pedas sikit baru syok"
-    static let moodComfortSubtext = "Warm, familiar, selalu menang"
     static let moodLightSubtext = "Something lighter"
     static let moodQuickSubtext = "Fast & convenient"
+
+    static let moodNasiKandarSubtext = "Kandar power"
+    static let moodAyamGepukSubtext = "Smashed, spicy, sedap"
+    static let moodNasiPadangSubtext = "Rendang, gulai, the works"
+    static let moodMeeGorengSubtext = "Wok hei, always hits"
+    static let moodNasiLemakSubtext = "Anytime, anywhere"
+    static let moodCharKueyTeowSubtext = "Smoky and shiok"
+    static let moodBananaLeafRiceSubtext = "Banjir gravy, no regrets"
+    static let moodDimSumSubtext = "Small plates, big satisfaction"
+    static let moodCustomCravingPlaceholder = "Cakap je nak makan apa..."
 
     static let thinking = "Thinking so you don't have to..."
     static let thinkingStep1 = "Finding nearby spots..."

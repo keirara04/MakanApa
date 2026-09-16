@@ -57,8 +57,7 @@ struct PreferenceView: View {
                 )
             }
         }
-        .sensoryFeedback(.selection, trigger: viewModel.selectedMoodTags)
-        .sensoryFeedback(.selection, trigger: choseAnything)
+        .sensoryFeedback(.selection, trigger: viewModel.cravingSelection)
         .sensoryFeedback(.selection, trigger: viewModel.budgetMax)
         .sensoryFeedback(.selection, trigger: viewModel.maxDistanceKm)
         .background(Color.nasiCream)
@@ -89,25 +88,43 @@ struct PreferenceView: View {
         )
     }
 
-    // MARK: - Step 0: Mood
+    // MARK: - Step 0: Craving
 
-    @State private var choseAnything = false
+    /// Derived directly from `cravingSelection` rather than a parallel `@State` string — typing
+    /// is the *only* path that writes `.custom(...)` (via this binding's setter, which only
+    /// fires on real keystrokes). Tapping a card/Quick/Healthy/"Anything lah" sets
+    /// `cravingSelection` directly; the text field's displayed value then reads back as empty
+    /// automatically (the getter returns "" for any non-`.custom` case) with no separate clear
+    /// step that could race with — and clobber — the tap's own selection.
+    private var customCravingTextBinding: Binding<String> {
+        Binding(
+            get: {
+                if case .custom(let text) = viewModel.cravingSelection { return text }
+                return ""
+            },
+            set: { newValue in
+                viewModel.cravingSelection = newValue.isEmpty ? nil : .custom(newValue)
+            }
+        )
+    }
 
     private var canContinueMood: Bool {
-        choseAnything || !viewModel.selectedMoodTags.isEmpty
+        switch viewModel.cravingSelection {
+        case .tag, .anything: return true
+        case .custom(let text): return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case nil: return false
+        }
     }
 
     private var moodStep: some View {
         MoodSelectionView(
-            selectedTags: viewModel.selectedMoodTags,
-            choseAnything: choseAnything,
-            onSelect: { tag in
-                choseAnything = false
-                viewModel.selectedMoodTags = [tag]
+            cravingSelection: viewModel.cravingSelection,
+            customText: customCravingTextBinding,
+            onSelectTag: { tag in
+                viewModel.cravingSelection = .tag(tag)
             },
             onAnything: {
-                choseAnything = true
-                viewModel.selectedMoodTags = []
+                viewModel.cravingSelection = .anything
             }
         )
     }
@@ -121,8 +138,15 @@ struct PreferenceView: View {
     }
 
     private var selectedMoodLabel: String {
-        SoloViewModel.moodOptions.first { viewModel.selectedMoodTags.contains($0.tag) }?.label
-            ?? "Anything lah"
+        switch viewModel.cravingSelection {
+        case .tag(let tag):
+            return SoloViewModel.moodOptions.first { $0.tag == tag }?.label ?? "Anything lah"
+        case .custom(let text):
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? "Anything lah" : trimmed
+        case .anything, nil:
+            return "Anything lah"
+        }
     }
 
     private var selectedBudgetLabel: String {

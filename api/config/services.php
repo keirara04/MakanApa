@@ -41,4 +41,12 @@ return [
         'cache_hours' => env('PLACES_CACHE_HOURS', 24),
     ],
 
+    'openrouter' => [
+        'api_key' => env('OPENROUTER_API_KEY'),
+        // OpenRouter's free-tier catalog changes frequently — verify this model is still
+        // listed as ":free" at https://openrouter.ai/models before relying on it.
+        'model' => env('OPENROUTER_MODEL', 'cohere/north-mini-code:free'),
+        'daily_limit' => env('OPENROUTER_DAILY_LIMIT', 40),
+    ],
+
 ];

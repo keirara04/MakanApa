@@ -39,6 +39,55 @@ class RecommendationSoloTest extends TestCase
         ]);
     }
 
+    public function test_moods_and_craving_together_returns_422(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+
+        $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload([
+            'moods' => ['nasi_kandar'],
+            'craving' => 'dim sum',
+        ]));
+
+        $response->assertStatus(422)->assertJsonValidationErrors('craving');
+    }
+
+    public function test_matched_craving_sets_matched_true_and_echoes_query(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+
+        $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload([
+            'moods' => [],
+            'craving' => 'nasi kandar',
+        ]));
+
+        $response->assertOk()->assertJson([
+            'craving' => ['query' => 'nasi kandar', 'matched' => true],
+        ]);
+    }
+
+    public function test_unmatched_craving_sets_matched_false_and_echoes_query(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+
+        $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload([
+            'moods' => [],
+            'craving' => 'roti john cheese banjir',
+        ]));
+
+        $response->assertOk()->assertJson([
+            'craving' => ['query' => 'roti john cheese banjir', 'matched' => false],
+        ]);
+    }
+
+    public function test_no_craving_or_moods_omits_craving_match(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+
+        $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload(['moods' => []]));
+
+        $response->assertOk()->assertJson(['craving' => null]);
+    }
+
     public function test_malformed_coordinate_returns_422(): void
     {
         $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload(['latitude' => 999]));

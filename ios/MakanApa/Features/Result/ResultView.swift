@@ -68,7 +68,7 @@ struct ResultView: View {
                     .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.6), value: showMascot)
 
                 VStack(spacing: 8) {
-                    Text(pick.headline)
+                    Text(pick.name)
                         .font(.makanDisplay(36))
                         .foregroundStyle(Color.kicap)
                         .multilineTextAlignment(.center)
@@ -223,10 +223,6 @@ struct ResultView: View {
     @ViewBuilder
     private func nameBlock(for pick: RecommendationResponse.Recommendation) -> some View {
         VStack(spacing: 4) {
-            Text(pick.name)
-                .font(.makanBody(16))
-                .foregroundStyle(Color.kicap)
-
             let subtitle = [categorySubtitleLabel(pick.foodCategory), pick.cuisines.first?.capitalized]
                 .compactMap { $0 }
                 .joined(separator: " · ")
@@ -282,9 +278,16 @@ struct ResultView: View {
     private func currentReasonChips() -> [String] {
         var chips: [String] = []
 
-        if let tag = viewModel.selectedMoodTags.first,
-           let mood = SoloViewModel.moodOptions.first(where: { $0.tag == tag }) {
-            chips.append(mood.label)
+        switch viewModel.cravingSelection {
+        case .tag(let tag):
+            if let mood = SoloViewModel.moodOptions.first(where: { $0.tag == tag }) {
+                chips.append(mood.label)
+            }
+        case .custom(let text):
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { chips.append(trimmed) }
+        case .anything, nil:
+            break
         }
 
         if let tier = viewModel.budgetMax,

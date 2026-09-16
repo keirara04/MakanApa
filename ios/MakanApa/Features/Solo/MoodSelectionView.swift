@@ -3,10 +3,16 @@ import SwiftUI
 struct MoodSelectionView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    let selectedTags: Set<String>
-    let choseAnything: Bool
-    let onSelect: (String) -> Void
+    let cravingSelection: SoloViewModel.CravingSelection?
+    @Binding var customText: String
+    let onSelectTag: (String) -> Void
     let onAnything: () -> Void
+
+    private var choseAnything: Bool { cravingSelection == .anything }
+    private var isCustomActive: Bool {
+        if case .custom = cravingSelection { return true }
+        return false
+    }
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 12),
@@ -24,12 +30,24 @@ struct MoodSelectionView: View {
                 ForEach(SoloViewModel.moodOptions, id: \.tag) { option in
                     MoodChoiceCard(
                         option: option,
-                        isSelected: selectedTags.contains(option.tag)
+                        isSelected: cravingSelection == .tag(option.tag)
                     ) {
-                        onSelect(option.tag)
+                        onSelectTag(option.tag)
                     }
                 }
             }
+
+            TextField(Copy.moodCustomCravingPlaceholder, text: $customText)
+                .textFieldStyle(.plain)
+                .font(.system(.body, design: .rounded))
+                .padding(16)
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 20))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(isCustomActive ? Color.sambalRed : Color.kicap.opacity(0.12),
+                                      lineWidth: isCustomActive ? 1.5 : 1)
+                }
+                .submitLabel(.done)
 
             Button(action: onAnything) {
                 HStack(spacing: 14) {
