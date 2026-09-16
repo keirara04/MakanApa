@@ -6,6 +6,7 @@ struct PreferenceLoadingView: View {
     let mood: String
     let budget: String
     let distance: String
+    let onCancel: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -62,6 +63,12 @@ struct PreferenceLoadingView: View {
                                 .foregroundStyle(Color.kicap.opacity(0.65))
                         }
                         .accessibilityElement(children: .combine)
+
+                        Button(action: onCancel) {
+                            Text("Cancel")
+                                .font(.makanBody(13))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .frame(maxWidth: 420)
                     .padding(.horizontal, 32)
@@ -77,5 +84,5 @@ struct PreferenceLoadingView: View {
 }
 
 #Preview {
-    PreferenceLoadingView(mood: "Comfort", budget: "~RM20 per person", distance: "Within 2 km")
+    PreferenceLoadingView(mood: "Comfort", budget: "~RM20 per person", distance: "Within 2 km", onCancel: {})
 }

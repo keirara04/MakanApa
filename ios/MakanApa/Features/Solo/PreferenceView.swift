@@ -27,7 +27,8 @@ struct PreferenceView: View {
                     PreferenceLoadingView(
                         mood: selectedMoodLabel,
                         budget: selectedBudgetLabel,
-                        distance: "Within \(viewModel.maxDistanceKm.formatted()) km"
+                        distance: "Within \(viewModel.maxDistanceKm.formatted()) km",
+                        onCancel: cancelThinking
                     )
                 } else {
                     ScrollView {
@@ -209,6 +210,12 @@ struct PreferenceView: View {
             router.push(.soloResult)
             isThinking = false
         }
+    }
+
+    private func cancelThinking() {
+        thinkingTask?.cancel()
+        thinkingTask = nil
+        isThinking = false
     }
 
     private func advance() {

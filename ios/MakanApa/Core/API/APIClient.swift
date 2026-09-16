@@ -74,6 +74,7 @@ enum APIClient {
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         let data: Data
@@ -103,6 +104,7 @@ enum APIClient {
     ) async throws -> Response {
         var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let clientToken {

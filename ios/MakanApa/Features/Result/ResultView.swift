@@ -13,6 +13,7 @@ struct ResultView: View {
     @State private var showInfo = false
     @State private var showCTA = false
     @State private var isRerolling = false
+    @State private var rerollTask: Task<Void, Never>?
     @State private var photoPage = 0
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
@@ -460,19 +461,25 @@ struct ResultView: View {
         VStack(spacing: 20) {
             MascotView(mood: .thinking, caption: Copy.rerollHeadline, size: 80)
             ThinkingChecklist(lines: [Copy.rerollLine1, Copy.rerollLine2, Copy.rerollLine3])
+            Button(action: cancelReroll) {
+                Text("Cancel")
+                    .font(.makanBody(13))
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.top, 40)
     }
 
     private func startReroll() {
         isRerolling = true
-        Task {
+        rerollTask = Task {
             let start = ContinuousClock.now
             await viewModel.reroll()
             let elapsed = ContinuousClock.now - start
             if elapsed < Self.minimumRerollDuration {
                 try? await Task.sleep(for: Self.minimumRerollDuration - elapsed)
             }
+            guard !Task.isCancelled else { return }
             // .task(id: viewModel.currentPick?.id) already fired while isRerolling was still
             // true, so its own photoPage reset was skipped — reset here instead, otherwise a
             // leftover page index from the old restaurant's photo count can point past the
@@ -481,6 +488,12 @@ struct ResultView: View {
             isRerolling = false
             await runRevealSequence()
         }
+    }
+
+    private func cancelReroll() {
+        rerollTask?.cancel()
+        rerollTask = nil
+        isRerolling = false
     }
 
     // MARK: - No result

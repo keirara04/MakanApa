@@ -96,6 +96,10 @@ final class SoloViewModel {
             currentPick = response.recommendation
             isEmptyResult = response.recommendation == nil
         } catch let error as APIError {
+            // A user-initiated cancel (tapping "Cancel" mid-reroll) surfaces as a transport
+            // error wrapping CancellationError — that's not a real failure, so don't flash the
+            // error screen over what should just look like returning to the previous pick.
+            if case .transport(let underlying) = error, underlying is CancellationError { return }
             apiError = error
         } catch {
             apiError = .transport(error)

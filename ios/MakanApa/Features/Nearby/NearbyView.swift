@@ -18,6 +18,9 @@ struct NearbyView: View {
 
             VStack(spacing: 10) {
                 filterBar
+                if let apiError = viewModel.apiError {
+                    errorBanner(for: apiError)
+                }
                 if viewModel.isZoomedTooFarOut {
                     zoomPrompt
                 } else if viewModel.showSearchThisArea {
@@ -115,6 +118,36 @@ struct NearbyView: View {
     }
 
     // MARK: - Zoom / search-this-area prompts
+
+    private func errorBanner(for error: APIError) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.exclamationmark")
+            Text(bannerMessage(for: error))
+                .font(.makanBody(13))
+            Spacer()
+            Button {
+                viewModel.apiError = nil
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.sambalRed)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
+    }
+
+    private func bannerMessage(for error: APIError) -> String {
+        switch error {
+        case .transport:
+            return Copy.connectionErrorDetail
+        default:
+            return Copy.genericAPIErrorDetail
+        }
+    }
 
     private var zoomPrompt: some View {
         Text("Zoom in to see makan spots")
