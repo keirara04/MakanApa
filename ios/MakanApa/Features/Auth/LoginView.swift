@@ -12,6 +12,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var shakeTrigger = 0
     @State private var showJoinBeta = false
+    @State private var showPassword = false
     @State private var appeared = false
     @FocusState private var focusedField: Field?
 
@@ -51,9 +52,25 @@ struct LoginView: View {
                 .borderColor(focusedField == .email ? Color.sambalRed : Color.kicap.opacity(0.12))
 
                 fieldCard {
-                    SecureField("Password", text: $password)
+                    HStack {
+                        Group {
+                            if showPassword {
+                                TextField("Password", text: $password)
+                            } else {
+                                SecureField("Password", text: $password)
+                            }
+                        }
                         .textContentType(.password)
                         .focused($focusedField, equals: .password)
+
+                        Button {
+                            showPassword.toggle()
+                        } label: {
+                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                                .foregroundStyle(.secondary)
+                                .font(.system(size: 15))
+                        }
+                    }
                 }
                 .borderColor(focusedField == .password ? Color.sambalRed : Color.kicap.opacity(0.12))
 

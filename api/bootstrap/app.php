@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureSuperadmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->alias([
-            'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+            'superadmin' => EnsureSuperadmin::class,
         ]);
 
         // API-only app — there's no named 'login' route for the web guest-redirect to point
