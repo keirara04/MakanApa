@@ -7,8 +7,6 @@ struct MakanApaApp: App {
     @State private var nearbyRouter = AppRouter()
     @State private var soloViewModel = SoloViewModel()
     @State private var locationService = LocationService()
-    @State private var selectedTab: AppTab = .decide
-    @State private var bottomChrome = BottomChromeCoordinator()
 
     init() {
         GMSServices.provideAPIKey(MapsConfig.apiKey)
@@ -26,59 +24,47 @@ struct MakanApaApp: App {
         }
     }
 
-    private var decideStack: some View {
-        NavigationStack(path: $decideRouter.path) {
-            HomeView()
-                .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .locationPermission:
-                        LocationPermissionView()
-                    case .soloPreferences:
-                        PreferenceView()
-                    case .soloResult:
-                        ResultView()
-                    }
-                }
-        }
-        .environment(decideRouter)
-    }
-
-    private var nearbyStack: some View {
-        NavigationStack(path: $nearbyRouter.path) {
-            NearbyView()
-                .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .soloResult:
-                        ResultView()
-                    default:
-                        EmptyView()
-                    }
-                }
-        }
-        .environment(nearbyRouter)
-    }
-
     var body: some Scene {
         WindowGroup {
-            ZStack(alignment: .bottom) {
-                TabView(selection: $selectedTab) {
-                    decideStack.tag(AppTab.decide)
-                    nearbyStack.tag(AppTab.nearby)
+            TabView {
+                NavigationStack(path: $decideRouter.path) {
+                    HomeView()
+                        .navigationDestination(for: Route.self) { route in
+                            switch route {
+                            case .locationPermission:
+                                LocationPermissionView()
+                            case .soloPreferences:
+                                PreferenceView()
+                                    .toolbar(.hidden, for: .tabBar)
+                            case .soloResult:
+                                ResultView()
+                                    .toolbar(.hidden, for: .tabBar)
+                            }
+                        }
                 }
-                .toolbar(.hidden, for: .tabBar)
+                .environment(decideRouter)
+                .tabItem {
+                    Label("Decide", systemImage: "sparkles")
+                }
 
-                FloatingTabBar(selection: $selectedTab)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
-                    .opacity(bottomChrome.state == .resultPresented ? 0 : (bottomChrome.state == .placeSelected ? 0.72 : 1))
-                    .offset(y: bottomChrome.state == .resultPresented ? 16 : 0)
-                    .scaleEffect(bottomChrome.state == .resultPresented ? 0.96 : 1)
-                    .allowsHitTesting(bottomChrome.state != .resultPresented)
-                    .animation(Motion.standard, value: bottomChrome.state)
+                NavigationStack(path: $nearbyRouter.path) {
+                    NearbyView()
+                        .navigationDestination(for: Route.self) { route in
+                            switch route {
+                            case .soloResult:
+                                ResultView()
+                            default:
+                                EmptyView()
+                            }
+                        }
+                }
+                .environment(nearbyRouter)
+                .tabItem {
+                    Label("Nearby", systemImage: "map")
+                }
             }
             .environment(soloViewModel)
             .environment(locationService)
-            .environment(bottomChrome)
             .tint(.sambalRed)
             .preferredColorScheme(.light)
             .task {
@@ -90,18 +76,6 @@ struct MakanApaApp: App {
                 }
                 warmUpGoogleMaps()
             }
-            .onChange(of: selectedTab) { updateResultFlowPresented() }
-            .onChange(of: decideRouter.path) { updateResultFlowPresented() }
-            .onChange(of: nearbyRouter.path) { updateResultFlowPresented() }
         }
-    }
-
-    /// Single source of truth for "is a pushed route dominating the screen" — computed here since
-    /// this is the one place that knows which router is currently on-screen, avoiding the need for
-    /// per-view writers to guard against clobbering each other's updates.
-    private func updateResultFlowPresented() {
-        bottomChrome.isResultFlowPresented = selectedTab == .decide
-            ? !decideRouter.path.isEmpty
-            : !nearbyRouter.path.isEmpty
     }
 }
