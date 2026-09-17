@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlaceSyncArea;
+use App\Models\Restaurant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -98,7 +100,7 @@ class DiscoveryModeTypeLeakTest extends TestCase
     {
         config(['services.places.provider' => 'google', 'services.places.google_api_key' => 'fake-key']);
 
-        \App\Models\Restaurant::create([
+        Restaurant::create([
             'name' => 'Old Sync Restaurant',
             'latitude' => 2.928,
             'longitude' => 101.780,
@@ -107,7 +109,7 @@ class DiscoveryModeTypeLeakTest extends TestCase
             'provider_place_id' => 'legacy-1',
             'google_types' => null,
         ]);
-        \App\Models\PlaceSyncArea::create([
+        PlaceSyncArea::create([
             'provider' => 'google',
             'latitude' => 2.928,
             'longitude' => 101.780,

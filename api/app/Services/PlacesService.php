@@ -25,8 +25,21 @@ use Throwable;
  */
 class PlacesService
 {
-    /** Nearby-Search types requested for Cafe/Low-key mode — reaches small restaurants, cafés, bakeries, dessert shops alike, not just literal cafés. */
-    private const CAFE_LEANING_TYPES = ['restaurant', 'cafe', 'coffee_shop', 'bakery'];
+    /**
+     * Default Nearby-Search types for every mode — 'restaurant' alone excludes real food places
+     * Google categorizes separately (a takeaway counter, a food court stall, delivery-only
+     * kitchens). Cafe/Low-key mode adds CAFE_EXTRA_TYPES on top of this same base.
+     */
+    private const BASE_TYPES = ['restaurant', 'meal_takeaway', 'meal_delivery', 'food_court'];
+
+    /** The literal extra breadth Cafe/Low-key mode reaches for — also what readGoogleRestaurantsNear() excludes from every other mode, to stop these from leaking in (see its own doc comment). */
+    private const CAFE_EXTRA_TYPES = ['cafe', 'coffee_shop', 'bakery'];
+
+    /** Above this radius, a single Nearby Search's 20-result cap starts leaving real coverage gaps — see syncFromGoogle()'s tiling. */
+    private const TILE_RADIUS_THRESHOLD_KM = 2.5;
+
+    /** Hard cap on tiles per request, regardless of how large radiusKm is — bounds Google API cost from one client request. */
+    private const MAX_TILES = 7;
 
     public function __construct(private readonly PlaceNormalizer $normalizer) {}
 
@@ -57,8 +70,16 @@ class PlacesService
 
         $includedTypes = $this->includedTypesFor($mode);
 
-        if (! $this->isAreaCovered($latitude, $longitude, $radiusKm, $includedTypes)) {
-            $this->syncFromGoogle($latitude, $longitude, $radiusKm, $apiKey, $includedTypes);
+        // Nearby Search (New) caps results at 20 per call with no pagination — for a wide search
+        // (Decide's 5km "Don't mind," a zoomed-out Nearby viewport) one circle silently truncates
+        // real coverage. Splitting into overlapping sub-circles and merging (upsertRestaurant()'s
+        // existing dedupe-by-provider_place_id handles the overlap) surfaces more of what's
+        // actually there. Small/typical searches are untouched — tileCircles() returns a single
+        // tile below TILE_RADIUS_THRESHOLD_KM, identical to pre-tiling behavior.
+        foreach ($this->tileCircles($latitude, $longitude, $radiusKm) as $tile) {
+            if (! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $includedTypes)) {
+                $this->syncFromGoogle($tile['lat'], $tile['lon'], $tile['radius'], $apiKey, $includedTypes);
+            }
         }
 
         $nearbyCount = null;
@@ -129,12 +150,59 @@ class PlacesService
         return $this->lastCandidateCounts;
     }
 
+    /**
+     * Below the threshold: a single tile identical to the original (non-tiled) circle — the
+     * common case (map browsing, "5 min"/"10 min" Decide radii) pays no extra cost. Above it:
+     * one center circle plus a 6-circle hex ring, each at half the original radius — a standard
+     * circle-covering pattern, not pixel-perfect coverage, but enough to pull real results out
+     * from under the 20-per-call cap. Always exactly MAX_TILES (7) when triggered, never a
+     * variable count, so cost per request is predictable.
+     *
+     * @return array<int, array{lat: float, lon: float, radius: float}>
+     */
+    private function tileCircles(float $latitude, float $longitude, float $radiusKm): array
+    {
+        if ($radiusKm <= self::TILE_RADIUS_THRESHOLD_KM) {
+            return [['lat' => $latitude, 'lon' => $longitude, 'radius' => $radiusKm]];
+        }
+
+        $subRadius = $radiusKm / 2;
+        $ringDistance = $subRadius * sqrt(3);
+
+        $tiles = [['lat' => $latitude, 'lon' => $longitude, 'radius' => $subRadius]];
+        for ($i = 0; $i < self::MAX_TILES - 1; $i++) {
+            $bearing = $i * (360 / (self::MAX_TILES - 1));
+            [$tileLat, $tileLon] = self::offsetCoordinate($latitude, $longitude, $ringDistance, $bearing);
+            $tiles[] = ['lat' => $tileLat, 'lon' => $tileLon, 'radius' => $subRadius];
+        }
+
+        return $tiles;
+    }
+
+    /** Great-circle destination point — standard forward geodesic formula, not a flat-earth approximation. */
+    private static function offsetCoordinate(float $latitude, float $longitude, float $distanceKm, float $bearingDegrees): array
+    {
+        $earthRadiusKm = 6371.0;
+        $bearing = deg2rad($bearingDegrees);
+        $lat1 = deg2rad($latitude);
+        $lon1 = deg2rad($longitude);
+        $angularDistance = $distanceKm / $earthRadiusKm;
+
+        $lat2 = asin(sin($lat1) * cos($angularDistance) + cos($lat1) * sin($angularDistance) * cos($bearing));
+        $lon2 = $lon1 + atan2(
+            sin($bearing) * sin($angularDistance) * cos($lat1),
+            cos($angularDistance) - sin($lat1) * sin($lat2)
+        );
+
+        return [rad2deg($lat2), rad2deg($lon2)];
+    }
+
     /** @return string[] */
     private function includedTypesFor(?DiscoveryMode $mode): array
     {
         return match ($mode) {
-            DiscoveryMode::Cafe, DiscoveryMode::LowKey => self::CAFE_LEANING_TYPES,
-            default => ['restaurant'],
+            DiscoveryMode::Cafe, DiscoveryMode::LowKey => [...self::BASE_TYPES, ...self::CAFE_EXTRA_TYPES],
+            default => self::BASE_TYPES,
         };
     }
 
@@ -174,8 +242,12 @@ class PlacesService
 
                 // Covered only if the requested search circle sits fully inside the already-synced
                 // one AND that sync already fetched every type this request needs (a superset)  —
-                // e.g. a Cafe-mode sync covers a later Normal request, but not vice versa.
-                $locationCovered = $distanceToCenter + $radiusKm <= (float) $area->radius_km;
+                // e.g. a Cafe-mode sync covers a later Normal request, but not vice versa. The
+                // 1-meter tolerance absorbs float/decimal(10,7) rounding noise between a freshly
+                // computed tile center (tileCircles()) and the same center round-tripped through
+                // DB storage — without it, an identical repeat request can miss its own cache by
+                // a fraction of a millimeter and needlessly re-sync.
+                $locationCovered = $distanceToCenter + $radiusKm <= (float) $area->radius_km + 0.001;
                 $typesCovered = empty(array_diff($requiredTypes, $area->types ?? []));
 
                 return $locationCovered && $typesCovered;
@@ -284,15 +356,14 @@ class PlacesService
      * almost every legitimately-matched restaurant (this was caught by PlacesServiceCravingTest
      * failing on a plain 'hamburger_restaurant' candidate).
      *
-     * Instead this only excludes what the leak bug actually was: a place typed purely as one of
-     * CAFE_LEANING_TYPES's cafe-specific additions (cafe/coffee_shop/bakery) showing up in a mode
-     * that never asked for those types. A row with no recorded google_types (synced before that
-     * column existed) is always treated as compatible.
+     * Instead this only excludes what the leak bug actually was: a place typed as one of
+     * CAFE_EXTRA_TYPES (cafe/coffee_shop/bakery) showing up in a mode that never asked for those
+     * types. A row with no recorded google_types (synced before that column existed) is always
+     * treated as compatible.
      */
     private function readGoogleRestaurantsNear(float $latitude, float $longitude, float $radiusKm, array $includedTypes): array
     {
-        $cafeOnlyTypes = array_diff(self::CAFE_LEANING_TYPES, ['restaurant']);
-        $modeAllowsCafeLeaning = ! empty(array_intersect($includedTypes, $cafeOnlyTypes));
+        $modeAllowsCafeLeaning = ! empty(array_intersect($includedTypes, self::CAFE_EXTRA_TYPES));
 
         return Restaurant::where('provider', 'google')
             ->where('is_active', true)
@@ -303,7 +374,7 @@ class PlacesService
             ) <= $radiusKm)
             ->filter(fn (Restaurant $restaurant) => $modeAllowsCafeLeaning
                 || empty($restaurant->google_types)
-                || empty(array_intersect($restaurant->google_types, $cafeOnlyTypes)))
+                || empty(array_intersect($restaurant->google_types, self::CAFE_EXTRA_TYPES)))
             ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
             ->values()
             ->all();

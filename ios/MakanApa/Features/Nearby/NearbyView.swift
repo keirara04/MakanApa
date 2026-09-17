@@ -7,11 +7,13 @@ struct NearbyView: View {
     @Environment(AppRouter.self) private var router
     @Environment(SoloViewModel.self) private var soloViewModel
     @Environment(LocationService.self) private var locationService
+    @Environment(BottomChromeCoordinator.self) private var bottomChrome
     @State private var viewModel = NearbyViewModel()
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
     @State private var recenterRequestId = 0
     @State private var heartPop = false
+    @State private var pendingPlaceTask: Task<Void, Never>?
     private var preferences = PlacePreferencesStore.shared
 
     var body: some View {
@@ -50,26 +52,37 @@ struct NearbyView: View {
             .padding(.trailing, 12)
             .padding(.bottom, 90)
 
-            if viewModel.selectedPlace == nil {
-                VStack {
-                    Spacer()
-                    pickOneLahButton
-                        .padding(.bottom, 8)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            VStack {
+                Spacer()
+                pickOneLahButton
+                    .padding(.bottom, 20)
+                    .opacity(showCTA ? 1 : 0)
+                    .offset(y: showCTA ? 0 : 16)
+                    .scaleEffect(showCTA ? 1 : 0.96)
+                    .allowsHitTesting(showCTA)
+                    .animation(Motion.standard, value: showCTA)
             }
         }
-        .animation(Motion.standard, value: viewModel.selectedPlace == nil)
         .sheet(item: $viewModel.selectedPlace) { place in
             placeSheet(for: place)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+        .onChange(of: viewModel.selectedPlace) { _, newValue in
+            bottomChrome.isPlacePresented = newValue != nil
         }
         .onAppear {
             if case .authorized = locationService.state {} else {
                 locationService.requestLocation()
             }
         }
+        .onDisappear {
+            pendingPlaceTask?.cancel()
+        }
+    }
+
+    private var showCTA: Bool {
+        bottomChrome.state == .normal
     }
 
     // MARK: - Map
@@ -87,9 +100,17 @@ struct NearbyView: View {
                 Task { await viewModel.viewportSettled(viewport, zoom: zoom) }
             },
             onMarkerTapped: { place in
-                viewModel.placeDetails = nil
-                viewModel.selectedPlace = place
-                Task { await viewModel.loadDetails(for: place) }
+                pendingPlaceTask?.cancel()
+                bottomChrome.isPlacePresented = true
+                pendingPlaceTask = Task {
+                    try? await Task.sleep(for: .milliseconds(120))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        viewModel.placeDetails = nil
+                        viewModel.selectedPlace = place
+                    }
+                    await viewModel.loadDetails(for: place)
+                }
             }
         )
     }
@@ -341,7 +362,7 @@ struct NearbyView: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             Task { await pickOneLah() }
         } label: {
-            Text(viewModel.isPicking ? "Nasi tengah fikir..." : "🍚 Pick one lah")
+            Text(viewModel.isPicking ? "Nasi tengah fikir..." : "Pick one lah")
                 .font(.makanDisplay(17))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 24)

@@ -47,18 +47,18 @@ class DiscoveryModeGooglePlacesTest extends TestCase
 
         Http::assertSent(function ($request) {
             return str_contains($request->url(), 'searchNearby')
-                && $request['includedTypes'] === ['restaurant', 'cafe', 'coffee_shop', 'bakery'];
+                && $request['includedTypes'] === ['restaurant', 'meal_takeaway', 'meal_delivery', 'food_court', 'cafe', 'coffee_shop', 'bakery'];
         });
     }
 
-    public function test_normal_mode_requests_only_restaurant_type(): void
+    public function test_normal_mode_requests_the_base_food_place_types(): void
     {
         $this->useGoogleProvider();
         Http::fake(['places.googleapis.com/v1/places:searchNearby' => Http::response($this->fakeGooglePlacesResponse())]);
 
         $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX))->assertOk();
 
-        Http::assertSent(fn ($request) => $request['includedTypes'] === ['restaurant']);
+        Http::assertSent(fn ($request) => $request['includedTypes'] === ['restaurant', 'meal_takeaway', 'meal_delivery', 'food_court']);
     }
 
     public function test_normal_mode_sync_does_not_satisfy_a_later_cafe_mode_request(): void

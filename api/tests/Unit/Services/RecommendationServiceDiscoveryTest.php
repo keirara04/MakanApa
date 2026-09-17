@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Services\Craving\CravingResolver;
 use App\Services\RecommendationService;
 use App\Support\DiscoveryMode;
 use PHPUnit\Framework\TestCase;
@@ -60,7 +61,7 @@ class RecommendationServiceDiscoveryTest extends TestCase
         // Regression guard for the "popular burger place outranks the actual ice cream match"
         // failure mode — a huge community/accepted signal must never let a non-matching
         // candidate outrank one that actually matches the recognized craving.
-        $cravingResolver = new \App\Services\Craving\CravingResolver;
+        $cravingResolver = new CravingResolver;
         $iceCreamShop = $this->makeRestaurant(['id' => 1, 'name' => 'Inside Scoop', 'food_category' => 'dessert', 'rating' => 3.0]);
         $popularBurger = $this->makeRestaurant([
             'id' => 2, 'name' => 'Viral Burger Joint', 'rating' => 5.0,

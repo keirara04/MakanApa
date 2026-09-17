@@ -46,6 +46,7 @@
 		BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */; };
 		C71AFC17F937F6B8C4BB44E8 /* PricePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA943B15A88F864024FFA281 /* PricePresentation.swift */; };
 		C8FD99C228734AC224823C66 /* MascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729D8427BD8EF410E03874B2 /* MascotView.swift */; };
+		BD375922D3B7A65EBA6143B6 /* FloatingTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75EAF717A69A937E01AF2C4D /* FloatingTabBar.swift */; };
 		CE0082C2305A8EE0006B8569 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CE0082C1305A8EE0006B8569 /* PrivacyInfo.xcprivacy */; };
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
 		D9E3298186267729CEC217A0 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C2E6778243985350051EB2 /* Typography.swift */; };
@@ -86,6 +87,7 @@
 		683267D9139BFC5DB72D9BEE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7068A6E7F367B07A43EFC336 /* FavoritesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesView.swift; sourceTree = "<group>"; };
 		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
+		75EAF717A69A937E01AF2C4D /* FloatingTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingTabBar.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
 		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
@@ -225,6 +227,7 @@
 				C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */,
 				37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */,
 				729D8427BD8EF410E03874B2 /* MascotView.swift */,
+				75EAF717A69A937E01AF2C4D /* FloatingTabBar.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -466,6 +469,7 @@
 				BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */,
 				7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */,
 				C8FD99C228734AC224823C66 /* MascotView.swift in Sources */,
+				BD375922D3B7A65EBA6143B6 /* FloatingTabBar.swift in Sources */,
 				4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */,
 				7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */,
 				0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */,

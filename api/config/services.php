@@ -38,7 +38,7 @@ return [
     'places' => [
         'provider' => env('PLACES_PROVIDER', 'fixture'),
         'google_api_key' => env('GOOGLE_PLACES_API_KEY'),
-        'cache_hours' => env('PLACES_CACHE_HOURS', 24),
+        'cache_hours' => env('PLACES_CACHE_HOURS', 8),
     ],
 
     'openrouter' => [

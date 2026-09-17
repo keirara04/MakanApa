@@ -44,6 +44,11 @@ class GooglePlacesProvider implements PlacesProvider
         ])->timeout(8)->post(self::ENDPOINT, [
             'includedTypes' => $includedTypes,
             'maxResultCount' => 20,
+            // Nearby Search (New) caps results at 20 regardless of radius and offers no
+            // pagination — DISTANCE ranking means a wide/tiled search's 20-result budget spreads
+            // across the whole circle instead of clustering on whatever's most "popular" near the
+            // center, which is what actually made tiling worthwhile in the first place.
+            'rankPreference' => 'DISTANCE',
             'locationRestriction' => [
                 'circle' => [
                     'center' => ['latitude' => $latitude, 'longitude' => $longitude],

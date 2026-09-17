@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\Craving\CravingResolver;
 use App\Services\PlacesService;
+use App\Support\DiscoveryMode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -74,7 +75,7 @@ class CravingTextSearchTypeTest extends TestCase
 
         app(PlacesService::class)->nearbyRestaurants(
             2.9284, 101.7802, 2.0, craving: null,
-            mode: \App\Support\DiscoveryMode::LowKey
+            mode: DiscoveryMode::LowKey
         );
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'searchText')
