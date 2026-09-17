@@ -144,7 +144,12 @@ class RecommendationController extends Controller
         $next = DB::transaction(function () use ($decision) {
             $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->lockForUpdate()->get();
 
-            $candidates = $rows->map(function (DecisionRecommendation $row) use ($decision) {
+            // Excludes rows already rejected by an earlier reroll — pick()'s own exclusion only
+            // covers the single "current" candidate, so without this filter a restaurant
+            // rejected two rerolls ago stays eligible and can resurface once the pool thins out.
+            $eligibleRows = $rows->reject(fn (DecisionRecommendation $row) => $row->rejected_at !== null);
+
+            $candidates = $eligibleRows->map(function (DecisionRecommendation $row) use ($decision) {
                 $restaurantData = $row->restaurant->toRecommendationArray();
 
                 return [
