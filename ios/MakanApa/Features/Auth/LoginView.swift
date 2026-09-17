@@ -16,125 +16,216 @@ struct LoginView: View {
     @State private var appeared = false
     @FocusState private var focusedField: Field?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .largeTitle) private var headlineSize = 32
+
+    private let accent = Color(red: 0.70, green: 0.18, blue: 0.12)
+    private let paper = Color(red: 0.99, green: 0.98, blue: 0.96)
+
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 40)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    brandHeader
+                        .padding(.bottom, 16)
 
-            VStack(spacing: 10) {
-                Text(Copy.privateBetaEyebrow)
-                    .font(.makanBody(11))
-                    .tracking(1.2)
-                    .foregroundStyle(Color.sambalRed)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.sambalRed.opacity(0.1))
-                    .clipShape(Capsule())
+                    if focusedField == nil {
+                        welcomeHeader(compact: geometry.size.height < 720)
+                            .padding(.bottom, 28)
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
+                    }
 
-                (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))
-                    .font(.makanDisplay(32))
-
-                Text(Copy.loginTagline)
-                    .font(.makanBody(14))
-                    .foregroundStyle(.secondary)
-            }
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 8)
-
-            VStack(spacing: 14) {
-                fieldCard {
-                    TextField("Email", text: $email)
-                        .textContentType(.emailAddress)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .focused($focusedField, equals: .email)
+                    loginForm
                 }
-                .borderColor(focusedField == .email ? Color.sambalRed : Color.kicap.opacity(0.12))
+                .padding(.horizontal, 28)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+                .frame(maxWidth: 440)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geometry.size.height, alignment: .center)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .animation(reduceMotion ? nil : .spring(duration: 0.42, bounce: 0), value: focusedField != nil)
+        }
+        .background(paper.ignoresSafeArea())
+        .preferredColorScheme(.light)
+        .tint(accent)
+        .onAppear {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.5)) {
+                appeared = true
+            }
+        }
+        .sheet(isPresented: $showJoinBeta) { joinBetaSheet }
+    }
 
-                fieldCard {
-                    HStack {
+    private var brandHeader: some View {
+        HStack {
+            Text("MakanApa?")
+                .font(.system(.title3, design: .rounded, weight: .heavy))
+                .tracking(-0.6)
+                .foregroundStyle(accent)
+            Spacer(minLength: 12)
+            HStack(spacing: 6) {
+                Circle().fill(accent).frame(width: 5, height: 5)
+                Text("Campus beta")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+            }
+            .foregroundStyle(Color.kicap.opacity(0.7))
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .background(Color.kicap.opacity(0.045), in: Capsule())
+        }
+        .padding(.bottom, focusedField == nil ? 0 : 12)
+    }
+
+    private func welcomeHeader(compact: Bool) -> some View {
+        VStack(spacing: 12) {
+            LoginMascotView(size: compact ? 128 : 164)
+
+            VStack(spacing: 8) {
+                Text("Less thinking. More makan.")
+                    .font(.system(size: headlineSize, weight: .bold, design: .rounded))
+                    .tracking(-1.1)
+                    .frame(maxWidth: 310)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Good food near campus.\nFor your mood and your budget.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Color.kicap.opacity(0.65))
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .opacity(appeared ? 1 : 0)
+        }
+        .foregroundStyle(Color.kicap)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var loginForm: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Welcome back")
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .accessibilityAddTraits(.isHeader)
+                Text("Sign in. Your next favourite is waiting.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Color.kicap.opacity(0.7))
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 7) {
+                    fieldLabel("Email", isFocused: focusedField == .email)
+                    fieldCard {
+                        Image(systemName: "envelope")
+                            .foregroundStyle(Color.kicap.opacity(0.5))
+                            .accessibilityHidden(true)
+                        TextField("Email", text: $email, prompt: Text("Enter your email").foregroundStyle(Color.kicap.opacity(0.45)))
+                            .textContentType(.username)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focusedField, equals: .email)
+                            .submitLabel(.next)
+                            .onSubmit { focusedField = .password }
+                            .accessibilityLabel("Email")
+                    }
+                    .modifier(LoginFieldStyle(isFocused: focusedField == .email, accent: accent))
+                }
+
+                VStack(alignment: .leading, spacing: 7) {
+                    fieldLabel("Password", isFocused: focusedField == .password)
+                    fieldCard {
+                        Image(systemName: "lock")
+                            .foregroundStyle(Color.kicap.opacity(0.5))
+                            .accessibilityHidden(true)
                         Group {
                             if showPassword {
-                                TextField("Password", text: $password)
+                                TextField("Password", text: $password, prompt: Text("Enter your password").foregroundStyle(Color.kicap.opacity(0.45)))
                             } else {
-                                SecureField("Password", text: $password)
+                                SecureField("Password", text: $password, prompt: Text("Enter your password").foregroundStyle(Color.kicap.opacity(0.45)))
                             }
                         }
                         .textContentType(.password)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                         .focused($focusedField, equals: .password)
+                        .submitLabel(.go)
+                        .onSubmit { submitIfReady() }
+                        .accessibilityLabel("Password")
 
-                        Button {
+                        Button(showPassword ? "Hide password" : "Show password",
+                               systemImage: showPassword ? "eye.slash" : "eye") {
                             showPassword.toggle()
-                        } label: {
-                            Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
-                                .foregroundStyle(.secondary)
-                                .font(.system(size: 15))
+                            focusedField = .password
                         }
+                        .labelStyle(.iconOnly)
+                        .foregroundStyle(Color.kicap.opacity(0.65))
+                        .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                        .frame(minWidth: 44, minHeight: 44)
                     }
+                    .modifier(LoginFieldStyle(isFocused: focusedField == .password, accent: accent))
                 }
-                .borderColor(focusedField == .password ? Color.sambalRed : Color.kicap.opacity(0.12))
 
                 if let errorMessage {
-                    Text(errorMessage)
-                        .font(.makanBody(13))
-                        .foregroundStyle(Color.sambalRed)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Label(errorMessage, systemImage: "exclamationmark.circle.fill")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(accent)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-
-                signInButton
             }
-            .modifier(ShakeEffect(trigger: shakeTrigger))
-            .animation(.linear(duration: 0.4), value: shakeTrigger)
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 10)
+            .disabled(isSubmitting)
+            .modifier(ShakeEffect(trigger: reduceMotion ? 0 : shakeTrigger))
+            .animation(reduceMotion ? nil : .linear(duration: 0.4), value: shakeTrigger)
 
-            VStack(spacing: 4) {
-                Text(Copy.joinBetaPrompt)
-                    .font(.makanBody(13))
-                    .foregroundStyle(.secondary)
-                Button(Copy.joinBetaCTA) {
-                    showJoinBeta = true
-                }
-                .font(.makanBody(13))
-                .foregroundStyle(Color.sambalRed)
+            signInButton
+
+            HStack(spacing: 4) {
+                Text("New here?")
+                    .foregroundStyle(Color.kicap.opacity(0.7))
+                Button("About the beta") { showJoinBeta = true }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(accent)
+                    .frame(minHeight: 44)
             }
-            .opacity(appeared ? 1 : 0)
+            .font(.system(.subheadline, design: .rounded))
+            .frame(maxWidth: .infinity)
+        }
+        .foregroundStyle(Color.kicap)
+        .opacity(appeared ? 1 : 0)
+    }
 
-            Spacer(minLength: 24)
-        }
-        .padding(.horizontal, 24)
-        .frame(maxHeight: .infinity)
-        .background(Color.nasiCream)
-        .onAppear {
-            withAnimation(Motion.standard.delay(0.05)) { appeared = true }
-        }
-        .sheet(isPresented: $showJoinBeta) {
-            joinBetaSheet
-        }
+    private func fieldLabel(_ title: String, isFocused: Bool) -> some View {
+        Text(title)
+            .font(.system(.footnote, design: .rounded, weight: .semibold))
+            .foregroundStyle(isFocused ? accent : Color.kicap.opacity(0.75))
+    }
+
+    private func submitIfReady() {
+        guard !isSubmitting, !email.isEmpty, !password.isEmpty else { return }
+        Task { await submit() }
     }
 
     private var signInButton: some View {
-        Button {
-            Task { await submit() }
-        } label: {
-            ZStack {
-                Text(Copy.signIn)
-                    .opacity(isSubmitting ? 0 : 1)
-                ProgressView()
-                    .tint(.white)
-                    .opacity(isSubmitting ? 1 : 0)
+        Button(action: submitIfReady) {
+            HStack(spacing: 10) {
+                if isSubmitting {
+                    ProgressView().tint(.white)
+                }
+                Text(isSubmitting ? "Signing in…" : Copy.signIn)
+                    .contentTransition(.opacity)
+                if !isSubmitting {
+                    Image(systemName: "arrow.right")
+                        .font(.system(.subheadline, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
             }
-            .font(.makanDisplay(18))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .font(.system(.headline, design: .rounded))
+            .frame(maxWidth: .infinity, minHeight: 56)
         }
-        .background(Color.sambalRed)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .scaleEffect(isSubmitting ? 0.97 : 1.0)
-        .animation(Motion.quick, value: isSubmitting)
+        .buttonStyle(LoginButtonStyle(accent: accent, isLoading: isSubmitting))
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isSubmitting)
         .disabled(isSubmitting || email.isEmpty || password.isEmpty)
-        .opacity((email.isEmpty || password.isEmpty) ? 0.6 : 1)
     }
 
     private var joinBetaSheet: some View {
@@ -175,22 +266,14 @@ struct LoginView: View {
 
     @ViewBuilder
     private func fieldCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .font(.makanBody(16))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+        HStack(spacing: 12, content: content)
+            .font(.system(.body, design: .rounded))
+            .padding(.leading, 16)
+            .padding(.trailing, 8)
+            .padding(.vertical, 4)
+            .frame(minHeight: 56)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-private extension View {
-    func borderColor(_ color: Color) -> some View {
-        overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(color, lineWidth: 1.5)
-        )
-        .animation(.easeOut(duration: 0.17), value: color)
     }
 }
 

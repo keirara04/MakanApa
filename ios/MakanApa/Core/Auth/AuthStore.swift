@@ -30,6 +30,9 @@ final class AuthStore {
     private init() {}
 
     func bootstrap() async {
+        #if DEBUG
+        print("[AuthStore] bootstrap() called")
+        #endif
         guard CredentialStore.shared.token != nil else {
             session = .unauthenticated
             return
@@ -38,6 +41,9 @@ final class AuthStore {
             let response = try await APIClient.me()
             session = .authenticated(response.user)
         } catch {
+            #if DEBUG
+            print("[AuthStore] bootstrap() /me failed: \(error)")
+            #endif
             CredentialStore.shared.token = nil
             session = .unauthenticated
         }
@@ -59,6 +65,9 @@ final class AuthStore {
     /// expired token surfaces as a 401 on the next request, not just at launch, so this is the
     /// one place that reaction is handled rather than every ViewModel re-implementing it.
     func handleUnauthorized() {
+        #if DEBUG
+        print("[AuthStore] handleUnauthorized() called — clearing token, bouncing to login")
+        #endif
         CredentialStore.shared.token = nil
         session = .unauthenticated
     }

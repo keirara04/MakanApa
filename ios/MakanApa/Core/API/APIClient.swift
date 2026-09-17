@@ -177,6 +177,13 @@ enum APIClient {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
+        #if DEBUG
+        let authHeader = request.value(forHTTPHeaderField: "Authorization")
+        print("[APIClient] \(request.httpMethod ?? "?") \(request.url?.path ?? "?") -> \(httpResponse.statusCode) | Authorization sent: \(authHeader != nil ? String(authHeader!.prefix(20)) + "…" : "NONE")")
+        if !(200..<300).contains(httpResponse.statusCode) {
+            print("[APIClient] body: \(String(data: data, encoding: .utf8) ?? "?")")
+        }
+        #endif
         return (data, httpResponse)
     }
 
