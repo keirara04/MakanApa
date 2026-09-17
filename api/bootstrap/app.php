@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         ]);
+
+        // API-only app — there's no named 'login' route for the web guest-redirect to point
+        // at. Without this, an unauthenticated request without an explicit Accept: application/json
+        // header (curl, some HTTP clients) hits Authenticate::redirectTo()'s route('login') call
+        // and 500s with RouteNotFoundException instead of a clean 401.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
