@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['restaurant_id', 'installation_id'])]
+#[Fillable(['restaurant_id', 'installation_id', 'user_id'])]
 class RestaurantSave extends Model
 {
     const UPDATED_AT = null;

@@ -4,10 +4,38 @@ import UIKit
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LocationService.self) private var locationService
+    private var authStore = AuthStore.shared
 
     var body: some View {
         NavigationStack {
             List {
+                if case .authenticated(let user) = authStore.session {
+                    Section("Account") {
+                        HStack {
+                            Text("Email")
+                                .foregroundStyle(Color.kicap)
+                            Spacer()
+                            Text(user.email)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if user.isSuperadmin {
+                        Section("Admin") {
+                            NavigationLink {
+                                AdminUsersView()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "person.2.fill")
+                                        .foregroundStyle(Color.sambalRed)
+                                    Text("Beta Users")
+                                        .foregroundStyle(Color.kicap)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Section {
                     NavigationLink {
                         FavoritesView()
@@ -87,6 +115,14 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { await authStore.logout() }
+                    } label: {
+                        Text("Log out")
                     }
                 }
 

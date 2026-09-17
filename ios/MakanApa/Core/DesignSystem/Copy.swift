@@ -67,4 +67,14 @@ enum Copy {
 
     static let tagline = "Less thinking. More makan."
     static let privacyPolicyURL = "https://dear-papaya-894.notion.site/MakanApa-Privacy-Policy-3dd5ee337d988041840fdc5560b64bf8"
+
+    static let privateBetaEyebrow = "PRIVATE BETA"
+    static let loginTagline = "Makan dulu. Decide later."
+    static let signIn = "Sign in"
+    static let loginInvalidCredentials = "Email or password doesn't match."
+    static let joinBetaPrompt = "Don't have beta access?"
+    static let joinBetaCTA = "Join beta →"
+    static let joinBetaSheetTitle = "Private beta"
+    static let joinBetaSheetBody = "MakanApa is currently being tested with a small group of university students. We're starting around UKM first and opening access gradually as we improve recommendations."
+    static let joinBetaGotIt = "Got it"
 }

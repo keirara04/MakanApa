@@ -79,6 +79,7 @@ class RecommendationController extends Controller
         $clientToken = Str::random(40);
 
         $decision = Decision::create([
+            'user_id' => $request->user()?->id,
             'mode' => 'solo',
             'client_token' => $clientToken,
             'latitude' => $data['latitude'],
@@ -274,8 +275,8 @@ class RecommendationController extends Controller
     }
 
     /**
-     * The app has no login, so a decision's sequential integer ID is the only handle a client
-     * has — without this check, anyone can enumerate IDs and reroll/accept someone else's
+     * A decision's sequential integer ID is otherwise the only handle a client has — without
+     * this check, any logged-in beta user could enumerate IDs and reroll/accept someone else's
      * in-progress decision. `client_token` is an opaque secret handed back once, in solo()'s
      * response, and must be echoed on every subsequent call for that decision.
      */

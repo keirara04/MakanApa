@@ -1,5 +1,49 @@
 import Foundation
 
+struct LoginRequestBody: Encodable {
+    let email: String
+    let password: String
+    let deviceLabel: String
+}
+
+struct LoginResponse: Decodable {
+    let token: String
+    let user: AuthUser
+}
+
+struct MeResponse: Decodable {
+    let user: AuthUser
+}
+
+struct LogoutResponse: Decodable {
+    let loggedOut: Bool
+}
+
+struct AdminUserListResponse: Decodable {
+    let users: [AdminUser]
+}
+
+struct AdminUser: Decodable, Identifiable, Equatable {
+    let id: Int
+    let email: String
+    let role: String
+    let status: String
+    let createdAt: String
+}
+
+struct CreateBetaUserRequestBody: Encodable {
+    let email: String
+}
+
+struct CreateBetaUserResponse: Decodable {
+    let user: AdminUser
+    let temporaryPassword: String
+}
+
+struct RevokeUserResponse: Decodable {
+    let revoked: Bool
+}
+
 struct SoloRecommendationRequestBody: Encodable {
     let latitude: Double
     let longitude: Double

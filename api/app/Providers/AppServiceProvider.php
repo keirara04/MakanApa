@@ -5,8 +5,11 @@ namespace App\Providers;
 use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
 use App\Services\Craving\OpenRouterIntentParser;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -39,5 +42,16 @@ class AppServiceProvider extends ServiceProvider
         // Every log line carries the environment so staging noise is easy to filter out of
         // production logs once both environments exist.
         Log::shareContext(['environment' => config('app.env')]);
+
+        // Keyed on normalized email + IP (tight, per-account) plus a looser IP-wide ceiling,
+        // so shared campus Wi-Fi/NAT can't let one student's bad attempts lock out others.
+        RateLimiter::for('login', function ($request) {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perMinute(5)->by($email.'|'.$request->ip()),
+                Limit::perMinute(30)->by($request->ip()),
+            ];
+        });
     }
 }

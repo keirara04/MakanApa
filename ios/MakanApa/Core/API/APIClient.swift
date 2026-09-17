@@ -82,6 +82,34 @@ enum APIClient {
         try await post("decisions/\(decisionId)/vibe-tag", body: VibeTagRequestBody(vibe: vibe), clientToken: clientToken)
     }
 
+    // MARK: - Auth
+
+    static func login(email: String, password: String, deviceLabel: String) async throws -> LoginResponse {
+        try await post("auth/login", body: LoginRequestBody(email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
+    }
+
+    static func logout() async throws -> LogoutResponse {
+        try await post("auth/logout", body: EmptyBody())
+    }
+
+    static func me() async throws -> MeResponse {
+        try await get("auth/me", query: [])
+    }
+
+    // MARK: - Admin
+
+    static func listBetaUsers() async throws -> AdminUserListResponse {
+        try await get("admin/users", query: [])
+    }
+
+    static func createBetaUser(email: String) async throws -> CreateBetaUserResponse {
+        try await post("admin/users", body: CreateBetaUserRequestBody(email: email))
+    }
+
+    static func revokeBetaUser(id: Int) async throws -> RevokeUserResponse {
+        try await post("admin/users/\(id)/revoke", body: EmptyBody())
+    }
+
     private struct EmptyBody: Encodable {}
 
     private static func get<Response: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> Response {
@@ -93,21 +121,10 @@ enum APIClient {
         request.httpMethod = "GET"
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
 
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            throw APIError.transport(error)
-        }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            throw APIError.server(statusCode: httpResponse.statusCode)
-        }
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
 
         do {
             return try decoder.decode(Response.self, from: data)
@@ -117,7 +134,7 @@ enum APIClient {
     }
 
     private static func post<Body: Encodable, Response: Decodable>(
-        _ path: String, body: Body, clientToken: String? = nil
+        _ path: String, body: Body, clientToken: String? = nil, authenticated: Bool = true
     ) async throws -> Response {
         var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
@@ -127,8 +144,29 @@ enum APIClient {
         if let clientToken {
             request.setValue(clientToken, forHTTPHeaderField: "X-Decision-Token")
         }
+        if authenticated {
+            await attachAuthorization(to: &request)
+        }
         request.httpBody = try encoder.encode(body)
 
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    @MainActor
+    private static func attachAuthorization(to request: inout URLRequest) {
+        if let token = CredentialStore.shared.token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    private static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
         let data: Data
         let response: URLResponse
         do {
@@ -136,18 +174,20 @@ enum APIClient {
         } catch {
             throw APIError.transport(error)
         }
-
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            throw APIError.server(statusCode: httpResponse.statusCode)
-        }
+        return (data, httpResponse)
+    }
 
-        do {
-            return try decoder.decode(Response.self, from: data)
-        } catch {
-            throw APIError.decoding(error)
+    /// Surfaces a 401 as one common error so callers can react in one place (see
+    /// `AuthStore.handleUnauthorized`) instead of every call site checking status codes itself.
+    private static func validate(_ response: HTTPURLResponse) throws {
+        if response.statusCode == 401 {
+            throw APIError.unauthorized
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw APIError.server(statusCode: response.statusCode)
         }
     }
 }

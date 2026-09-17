@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // without trusting it, Laravel thinks every request is HTTP and generates http:// URLs
         // (e.g. signed photo URLs), which iOS App Transport Security then blocks.
         $middleware->trustProxies(at: '*');
+
+        $middleware->alias([
+            'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

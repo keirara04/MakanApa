@@ -10,8 +10,9 @@ use Illuminate\Http\Request;
 
 /**
  * Save/unsave is idempotent by construction — a unique (restaurant_id, installation_id) row,
- * not a counter — so double-taps or client retries can't inflate a "saved_count." No login
- * exists app-wide; installationId is a client-generated anonymous device id.
+ * not a counter — so double-taps or client retries can't inflate a "saved_count." installationId
+ * is a client-generated anonymous device id, kept alongside the now-authenticated user_id so a
+ * beta tester's saves aren't stranded on the device id if they log in from elsewhere later.
  */
 class RestaurantController extends Controller
 {
@@ -22,6 +23,8 @@ class RestaurantController extends Controller
         RestaurantSave::firstOrCreate([
             'restaurant_id' => $restaurant->id,
             'installation_id' => $data['installationId'],
+        ], [
+            'user_id' => $request->user()?->id,
         ]);
 
         return response()->json(['saved' => true]);
