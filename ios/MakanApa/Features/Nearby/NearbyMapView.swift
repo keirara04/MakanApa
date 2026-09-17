@@ -11,6 +11,9 @@ struct NearbyMapView: UIViewRepresentable {
     let isPicking: Bool
     let winnerPlaceId: Int?
     let initialCameraTarget: CLLocationCoordinate2D?
+    /// Bumped by the "recenter on me" button. Coordinator diffs it against the last value it
+    /// handled so a re-render without a new tap doesn't re-animate the camera.
+    let recenterRequestId: Int
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
 
@@ -32,6 +35,11 @@ struct NearbyMapView: UIViewRepresentable {
             context.coordinator.didSetInitialCamera = true
         }
 
+        if recenterRequestId != context.coordinator.lastHandledRecenterId, let target = initialCameraTarget {
+            mapView.animate(to: GMSCameraPosition(target: target, zoom: 15))
+            context.coordinator.lastHandledRecenterId = recenterRequestId
+        }
+
         context.coordinator.sync(places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId, on: mapView)
     }
 
@@ -39,12 +47,19 @@ struct NearbyMapView: UIViewRepresentable {
         Coordinator(onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped)
     }
 
-    final class Coordinator: NSObject, GMSMapViewDelegate {
+    @MainActor
+    final class Coordinator: NSObject, @preconcurrency GMSMapViewDelegate {
         var didSetInitialCamera = false
+        var lastHandledRecenterId = 0
 
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
         private var markersById: [Int: GMSMarker] = [:]
+        /// Kept alongside `markersById` since a `GMSMarker` using `iconView` (instead of the
+        /// static `icon` image) needs a live `UIView` reference to animate — that's what makes
+        /// appear/bounce/removal transforms possible instead of just swapping a bitmap.
+        private var iconViewsById: [Int: UIImageView] = [:]
+        private var lastWinnerId: Int?
         private var pulseTimer: Timer?
         private var pulseDim = false
 
@@ -72,35 +87,105 @@ struct NearbyMapView: UIViewRepresentable {
             let currentIds = Set(places.map(\.id))
 
             for (id, marker) in markersById where !currentIds.contains(id) {
-                marker.map = nil
-                markersById.removeValue(forKey: id)
+                removeMarker(id: id, marker: marker)
             }
 
+            var newIndex = 0
             for place in places {
-                let marker = markersById[place.id] ?? {
-                    let marker = GMSMarker()
-                    marker.map = mapView
-                    markersById[place.id] = marker
-                    return marker
-                }()
-                marker.position = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
-                marker.userData = place
-
-                let isWinner = winnerPlaceId == place.id
-                marker.icon = RatingBubbleRenderer.icon(rating: place.rating, highlighted: isWinner)
-                marker.zIndex = isWinner ? 10 : 0
-                if winnerPlaceId != nil {
-                    marker.opacity = isWinner ? 1.0 : 0.35
+                if let marker = markersById[place.id], let iconView = iconViewsById[place.id] {
+                    marker.position = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+                    marker.userData = place
+                    applyIcon(to: iconView, rating: place.rating, highlighted: winnerPlaceId == place.id)
+                    marker.zIndex = winnerPlaceId == place.id ? 10 : 0
+                    applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
                 } else {
-                    marker.opacity = 1.0
+                    addMarker(for: place, winnerPlaceId: winnerPlaceId, staggerIndex: newIndex, on: mapView)
+                    newIndex += 1
                 }
             }
+
+            if let winnerPlaceId, winnerPlaceId != lastWinnerId, let iconView = iconViewsById[winnerPlaceId] {
+                bounce(iconView)
+            }
+            lastWinnerId = winnerPlaceId
 
             if isPicking {
                 startPulse()
             } else {
                 stopPulse()
             }
+        }
+
+        // MARK: - Marker lifecycle
+
+        private func addMarker(for place: NearbyPlace, winnerPlaceId: Int?, staggerIndex: Int, on mapView: GMSMapView) {
+            let isWinner = winnerPlaceId == place.id
+            let image = RatingBubbleRenderer.icon(rating: place.rating, highlighted: isWinner)
+            let iconView = UIImageView(image: image)
+            iconView.frame = CGRect(origin: .zero, size: image.size)
+            iconView.alpha = 0
+            iconView.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
+
+            let marker = GMSMarker(position: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
+            marker.userData = place
+            marker.iconView = iconView
+            marker.zIndex = isWinner ? 10 : 0
+            marker.map = mapView
+
+            markersById[place.id] = marker
+            iconViewsById[place.id] = iconView
+            applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
+
+            // Several markers can land in the same `sync()` (first load, "search this area") —
+            // a small per-marker delay reads as a stagger instead of everything popping at once.
+            let delay = Double(min(staggerIndex, 8)) * 0.03
+            UIView.animate(
+                withDuration: 0.28, delay: delay, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.4,
+                options: [.allowUserInteraction]
+            ) {
+                iconView.alpha = 1
+                iconView.transform = .identity
+            }
+        }
+
+        private func removeMarker(id: Int, marker: GMSMarker) {
+            markersById.removeValue(forKey: id)
+            guard let iconView = iconViewsById.removeValue(forKey: id) else {
+                marker.map = nil
+                return
+            }
+            UIView.animate(withDuration: 0.18, animations: {
+                iconView.alpha = 0
+                iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
+            }, completion: { _ in
+                marker.map = nil
+            })
+        }
+
+        private func applyIcon(to iconView: UIImageView, rating: Double?, highlighted: Bool) {
+            let image = RatingBubbleRenderer.icon(rating: rating, highlighted: highlighted)
+            iconView.image = image
+            iconView.bounds.size = image.size
+        }
+
+        private func applyOpacity(_ marker: GMSMarker, winnerPlaceId: Int?, placeId: Int) {
+            if winnerPlaceId != nil {
+                marker.opacity = winnerPlaceId == placeId ? 1.0 : 0.35
+            } else {
+                marker.opacity = 1.0
+            }
+        }
+
+        /// One-shot pop, not a loop — the winner should feel like it just got tapped on the
+        /// shoulder, not keep vibrating for as long as the sheet is open.
+        private func bounce(_ iconView: UIView) {
+            UIView.animate(withDuration: 0.14, animations: {
+                iconView.transform = CGAffineTransform(scaleX: 1.16, y: 1.16)
+            }, completion: { _ in
+                UIView.animate(withDuration: 0.16, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.6, options: []) {
+                    iconView.transform = .identity
+                }
+            })
         }
 
         private func startPulse() {
@@ -127,7 +212,7 @@ struct NearbyMapView: UIViewRepresentable {
 
 /// Renders the branded `★4.7` bubble marker as a `UIImage` — small by default, enlarged and
 /// sambal-red when highlighted (the "Pick one lah" winner). Kept a plain UIKit rasterizer
-/// since `GMSMarker.icon` takes a `UIImage`, not a SwiftUI view.
+/// since it's assigned to a `UIImageView` used as the marker's `iconView`.
 enum RatingBubbleRenderer {
     static func icon(rating: Double?, highlighted: Bool) -> UIImage {
         let text = rating.map { String(format: "★%.1f", $0) } ?? "★–"

@@ -10,9 +10,15 @@ struct NearbyView: View {
     @State private var viewModel = NearbyViewModel()
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
+    @State private var recenterRequestId = 0
+    @State private var heartPop = false
+    private var preferences = PlacePreferencesStore.shared
 
     var body: some View {
         ZStack(alignment: .top) {
+            Color.nasiCream
+                .ignoresSafeArea()
+
             mapLayer
                 .ignoresSafeArea(edges: .bottom)
 
@@ -28,14 +34,28 @@ struct NearbyView: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.top, 8)
+            .padding(.top, 16)
 
-            VStack {
+            HStack {
                 Spacer()
-                pickOneLahButton
-                    .padding(.bottom, 8)
+                VStack {
+                    Spacer()
+                    recenterButton
+                }
+            }
+            .padding(.trailing, 12)
+            .padding(.bottom, 90)
+
+            if viewModel.selectedPlace == nil {
+                VStack {
+                    Spacer()
+                    pickOneLahButton
+                        .padding(.bottom, 8)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(Motion.standard, value: viewModel.selectedPlace == nil)
         .sheet(item: $viewModel.selectedPlace) { place in
             placeSheet(for: place)
                 .presentationDetents([.medium])
@@ -56,6 +76,7 @@ struct NearbyView: View {
             isPicking: viewModel.isPicking,
             winnerPlaceId: viewModel.winnerPlaceId,
             initialCameraTarget: userCoordinate,
+            recenterRequestId: recenterRequestId,
             onCameraIdle: { viewport, zoom in
                 currentViewport = viewport
                 currentZoom = zoom
@@ -99,7 +120,7 @@ struct NearbyView: View {
     private func filterChip(label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
         Button(action: {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            action()
+            withAnimation(Motion.quick) { action() }
         }) {
             Text(label)
                 .font(.makanBody(13))
@@ -184,6 +205,27 @@ struct NearbyView: View {
         }
     }
 
+    // MARK: - Recenter
+
+    private var recenterButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if case .authorized = locationService.state {
+                recenterRequestId += 1
+            } else {
+                locationService.requestLocation()
+            }
+        } label: {
+            Image(systemName: "location.fill")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(Color.kicap)
+                .frame(width: 44, height: 44)
+                .background(.white)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.15), radius: 5, y: 2)
+        }
+    }
+
     // MARK: - Pick one lah
 
     private var pickOneLahButton: some View {
@@ -202,6 +244,7 @@ struct NearbyView: View {
         }
         .disabled(viewModel.isPicking || viewModel.places.isEmpty)
         .opacity(viewModel.places.isEmpty ? 0.5 : 1)
+        .buttonStyle(PressCompressStyle())
     }
 
     private func pickOneLah() async {
@@ -219,6 +262,48 @@ struct NearbyView: View {
         router.push(.soloResult)
     }
 
+    // MARK: - Save / Don't suggest
+
+    /// Save stays a plain heart toggle — a soft, reversible signal. "Don't suggest" lives in the
+    /// overflow menu instead of sitting next to Save: it's a harder, less-reversible action and
+    /// shouldn't visually compete for the same amount of attention.
+    @ViewBuilder
+    private func placeSheetActions(for place: NearbyPlace) -> some View {
+        HStack(spacing: 4) {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                preferences.toggleSaved(place)
+                withAnimation(Motion.playful) { heartPop = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    withAnimation(Motion.playful) { heartPop = false }
+                }
+            } label: {
+                Image(systemName: preferences.isSaved(place.id) ? "heart.fill" : "heart")
+                    .foregroundStyle(preferences.isSaved(place.id) ? Color.sambalRed : .secondary)
+                    .font(.system(size: 18))
+                    .scaleEffect(heartPop ? 1.2 : 1.0)
+                    .frame(width: 32, height: 32)
+            }
+
+            Menu {
+                Button(role: .destructive) {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    withAnimation(Motion.standard) {
+                        viewModel.excludePlace(place.id)
+                        viewModel.selectedPlace = nil
+                    }
+                } label: {
+                    Label("Don't suggest", systemImage: "eye.slash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 16))
+                    .frame(width: 32, height: 32)
+            }
+        }
+    }
+
     // MARK: - Marker tap sheet
 
     @ViewBuilder
@@ -227,23 +312,29 @@ struct NearbyView: View {
             VStack(alignment: .leading, spacing: 16) {
                 placePhoto(for: place)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(place.name)
-                        .font(.makanDisplay(20))
-                        .foregroundStyle(Color.kicap)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(place.name)
+                            .font(.makanDisplay(20))
+                            .foregroundStyle(Color.kicap)
 
-                    HStack(spacing: 6) {
-                        if let rating = place.rating {
-                            Label(String(format: "%.1f", rating), systemImage: "star.fill")
-                                .foregroundStyle(Color.kunyit)
+                        HStack(spacing: 6) {
+                            if let rating = place.rating {
+                                Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                                    .foregroundStyle(Color.kunyit)
+                            }
+                            if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel) {
+                                Text("· \(spend)")
+                            }
+                            Text(place.openStatus == "open" ? "· Open" : place.openStatus == "closed" ? "· Closed" : "")
                         }
-                        if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel) {
-                            Text("· \(spend)")
-                        }
-                        Text(place.openStatus == "open" ? "· Open" : place.openStatus == "closed" ? "· Closed" : "")
+                        .font(.makanBody(13))
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.makanBody(13))
-                    .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    placeSheetActions(for: place)
                 }
 
                 Button {

@@ -15,6 +15,9 @@ struct ResultView: View {
     @State private var isRerolling = false
     @State private var rerollTask: Task<Void, Never>?
     @State private var photoPage = 0
+    @State private var exitEdge: Edge = .leading
+    @State private var acceptSettle = false
+    @State private var revealedReasonCount = 0
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
 
@@ -104,19 +107,14 @@ struct ResultView: View {
                 .opacity(showInfo ? 1 : 0)
                 .animation(.easeOut(duration: 0.25), value: showInfo)
 
-                VStack(spacing: 10) {
+                VStack(spacing: 14) {
                     MakanPrimaryButton(title: Copy.jomMakan) {
                         openInMaps(pick)
                     }
+                    .scaleEffect(acceptSettle ? 1.0 : 1.03)
+                    .animation(Motion.playful, value: acceptSettle)
 
-                    Button {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        startReroll()
-                    } label: {
-                        Text(Copy.pickAgain)
-                            .font(.makanBody(15))
-                            .foregroundStyle(.secondary)
-                    }
+                    feedbackRow
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -125,6 +123,48 @@ struct ResultView: View {
                 .animation(.easeOut(duration: 0.25), value: showCTA)
             }
         }
+        .transition(.asymmetric(
+            insertion: .opacity,
+            removal: .move(edge: exitEdge).combined(with: .opacity)
+        ))
+    }
+
+    // MARK: - Accept / reroll / reject
+
+    private var feedbackRow: some View {
+        HStack(spacing: 28) {
+            feedbackButton(emoji: "👍", label: "Works for me") {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                acceptSettle = false
+                withAnimation(Motion.playful) { acceptSettle = true }
+                Task { await viewModel.acceptCurrentPick() }
+            }
+            feedbackButton(emoji: "🔄", label: "Another one") {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                exitEdge = .leading
+                withAnimation(Motion.standard) { startReroll() }
+            }
+            feedbackButton(emoji: "👎", label: "Not this") {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                if let id = viewModel.currentPick?.id {
+                    PlacePreferencesStore.shared.exclude(id)
+                }
+                exitEdge = .bottom
+                withAnimation(Motion.standard) { startReroll() }
+            }
+        }
+    }
+
+    private func feedbackButton(emoji: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(emoji).font(.system(size: 22))
+                Text(label)
+                    .font(.makanBody(11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(PressCompressStyle())
     }
 
     // MARK: - Photo card
@@ -261,17 +301,38 @@ struct ResultView: View {
     private var reasonChips: some View {
         let chips = currentReasonChips()
         if !chips.isEmpty {
-            HStack(spacing: 8) {
-                ForEach(chips, id: \.self) { chip in
-                    Text(chip)
-                        .font(.makanBody(11))
-                        .foregroundStyle(Color.kicap)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.kicap.opacity(0.06))
-                        .clipShape(Capsule())
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Why this?")
+                    .font(.makanBody(11))
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 8) {
+                    ForEach(Array(chips.enumerated()), id: \.offset) { index, chip in
+                        Text(chip)
+                            .font(.makanBody(11))
+                            .foregroundStyle(Color.kicap)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.kicap.opacity(0.06))
+                            .clipShape(Capsule())
+                            .opacity(index < revealedReasonCount ? 1 : 0)
+                            .offset(x: index < revealedReasonCount ? 0 : -6)
+                            .animation(Motion.quick, value: revealedReasonCount)
+                    }
                 }
             }
+        }
+    }
+
+    /// Reveals reason chips one at a time rather than all together — small enough to feel
+    /// intentional (this restaurant was matched, not just returned), not a real delay.
+    private func revealReasonChips() async {
+        revealedReasonCount = 0
+        let count = currentReasonChips().count
+        for index in 0..<count {
+            try? await Task.sleep(for: .milliseconds(90))
+            guard !Task.isCancelled else { return }
+            revealedReasonCount = index + 1
         }
     }
 
@@ -434,10 +495,12 @@ struct ResultView: View {
 
     private func runRevealSequence() async {
         showIntro = false; showMascot = false; showHeadline = false; showInfo = false; showCTA = false
+        revealedReasonCount = 0
         guard viewModel.currentPick != nil else { return }
 
         if reduceMotion {
             showIntro = true; showMascot = true; showHeadline = true; showInfo = true; showCTA = true
+            revealedReasonCount = currentReasonChips().count
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return
         }
@@ -453,7 +516,7 @@ struct ResultView: View {
         try? await Task.sleep(for: .milliseconds(150))
         guard !Task.isCancelled else { return }
         showInfo = true
-        try? await Task.sleep(for: .milliseconds(230))
+        await revealReasonChips()
         guard !Task.isCancelled else { return }
         showCTA = true
     }

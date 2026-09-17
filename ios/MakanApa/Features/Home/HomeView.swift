@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import MapKit
+import CoreLocation
 
 private struct PressableCardStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -14,6 +16,7 @@ struct HomeView: View {
     @Environment(LocationService.self) private var locationService
     @State private var showGengComingSoon = false
     @State private var showSettings = false
+    private var recentStore = RecentDecisionStore.shared
 
     var body: some View {
         VStack(spacing: 24) {
@@ -118,6 +121,11 @@ struct HomeView: View {
             }
             .padding(.horizontal)
 
+            if !recentStore.decisions.isEmpty {
+                recentSection
+                    .padding(.horizontal)
+            }
+
             Spacer()
 
             MascotView(mood: .idle, size: 180)
@@ -130,6 +138,83 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
+        }
+    }
+
+    // MARK: - Recent
+
+    private var recentSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Recent")
+                .font(.makanBody(13))
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 8) {
+                ForEach(recentStore.decisions.prefix(3)) { decision in
+                    recentCard(for: decision)
+                }
+            }
+        }
+    }
+
+    private func recentCard(for decision: RecentDecision) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            pickAgain(decision)
+        } label: {
+            HStack(spacing: 12) {
+                Text(categoryEmoji(for: decision.foodCategory))
+                    .font(.system(size: 22))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(decision.name)
+                        .font(.makanBody(15))
+                        .foregroundStyle(Color.kicap)
+                    Text("\(relativeDay(decision.timestamp)) · \(decision.source == "nearby" ? "Nearby" : "Decide")")
+                        .font(.makanBody(12))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.up.right")
+                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.kicap.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+        }
+        .buttonStyle(PressableCardStyle())
+    }
+
+    private func pickAgain(_ decision: RecentDecision) {
+        let coordinate = CLLocationCoordinate2D(latitude: decision.latitude, longitude: decision.longitude)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = decision.name
+        mapItem.openInMaps()
+    }
+
+    private func relativeDay(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return "Today" }
+        if Calendar.current.isDateInYesterday(date) { return "Yesterday" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.dateTimeStyle = .named
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func categoryEmoji(for foodCategory: String?) -> String {
+        switch foodCategory {
+        case "burger", "sandwich", "fast_food": return "🍔"
+        case "chicken": return "🍗"
+        case "pizza": return "🍕"
+        case "ramen": return "🍜"
+        case "sushi", "seafood": return "🍣"
+        case "cafe", "breakfast", "drinks": return "☕️"
+        case "dessert", "bakery": return "🍰"
+        default: return "🍛"
         }
     }
 }

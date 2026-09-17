@@ -8,6 +8,19 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        FavoritesView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(Color.sambalRed)
+                            Text("Saved")
+                                .foregroundStyle(Color.kicap)
+                        }
+                    }
+                }
+
                 Section("Location") {
                     Button {
                         openSystemSettings()

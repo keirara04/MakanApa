@@ -41,6 +41,7 @@ final class SoloViewModel {
     private(set) var isEmptyResult = false
 
     private var lastCoordinate: CLLocationCoordinate2D?
+    private var pickSource = "solo"
 
     struct MoodOption {
         let tag: String
@@ -91,6 +92,7 @@ final class SoloViewModel {
 
     @MainActor
     func decide(coordinate: CLLocationCoordinate2D) async {
+        pickSource = "solo"
         lastCoordinate = coordinate
         apiError = nil
         isEmptyResult = false
@@ -143,6 +145,14 @@ final class SoloViewModel {
     func acceptCurrentPick() async {
         guard let decisionId, let clientToken else { return }
         _ = try? await APIClient.accept(decisionId: decisionId, clientToken: clientToken)
+
+        if let pick = currentPick {
+            RecentDecisionStore.shared.record(RecentDecision(
+                id: pick.id, name: pick.name, latitude: pick.latitude, longitude: pick.longitude,
+                foodCategory: pick.foodCategory, priceLevel: pick.priceLevel, rating: pick.rating,
+                timestamp: Date(), source: pickSource
+            ))
+        }
     }
 
     /// Nearby's "Pick one lah" ends a decision exactly like Decide does, so it hands its result
@@ -154,6 +164,7 @@ final class SoloViewModel {
         decisionId: Int?, clientToken: String?,
         recommendation: RecommendationResponse.Recommendation?, error: APIError?
     ) {
+        pickSource = "nearby"
         cravingSelection = nil
         budgetMax = nil
         self.decisionId = decisionId

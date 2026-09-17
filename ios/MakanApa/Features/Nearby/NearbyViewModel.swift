@@ -19,9 +19,15 @@ final class NearbyViewModel {
     var isLoadingDetails = false
     var apiError: APIError?
 
-    var openNowFilter = false
-    var budgetMaxFilter: Int?
-    var minRatingFilter: Double?
+    var openNowFilter = false {
+        didSet { persistFilters() }
+    }
+    var budgetMaxFilter: Int? {
+        didSet { persistFilters() }
+    }
+    var minRatingFilter: Double? {
+        didSet { persistFilters() }
+    }
 
     var isZoomedTooFarOut = false
     var showSearchThisArea = false
@@ -33,6 +39,34 @@ final class NearbyViewModel {
     var winnerPlaceId: Int?
 
     private var lastSearchedViewport: MapViewport?
+    private var didLoadFilters = false
+
+    private static let openNowKey = "NearbyViewModel.openNowFilter"
+    private static let budgetMaxKey = "NearbyViewModel.budgetMaxFilter"
+    private static let minRatingKey = "NearbyViewModel.minRatingFilter"
+
+    init() {
+        loadFilters()
+    }
+
+    /// Guarded by `didLoadFilters` so the initial read-back from `UserDefaults` (each filter's
+    /// `didSet` firing during `loadFilters()` itself) doesn't immediately re-write the same
+    /// values it just loaded.
+    private func loadFilters() {
+        let defaults = UserDefaults.standard
+        openNowFilter = defaults.bool(forKey: Self.openNowKey)
+        budgetMaxFilter = defaults.object(forKey: Self.budgetMaxKey) as? Int
+        minRatingFilter = defaults.object(forKey: Self.minRatingKey) as? Double
+        didLoadFilters = true
+    }
+
+    private func persistFilters() {
+        guard didLoadFilters else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(openNowFilter, forKey: Self.openNowKey)
+        defaults.set(budgetMaxFilter, forKey: Self.budgetMaxKey)
+        defaults.set(minRatingFilter, forKey: Self.minRatingKey)
+    }
 
     @MainActor
     func viewportSettled(_ viewport: MapViewport, zoom: Float) async {
@@ -68,6 +102,14 @@ final class NearbyViewModel {
         isLoadingDetails = false
     }
 
+    /// "Don't suggest" needs to drop the place from view immediately, not just on the next
+    /// search — the marker is still on screen and the sheet is still open when the user taps it.
+    @MainActor
+    func excludePlace(_ placeId: Int) {
+        PlacePreferencesStore.shared.exclude(placeId)
+        places.removeAll { $0.id == placeId }
+    }
+
     @MainActor
     private func search(_ viewport: MapViewport) async {
         isLoading = true
@@ -77,7 +119,7 @@ final class NearbyViewModel {
                 viewport: viewport, openNow: openNowFilter ? true : nil,
                 budgetMax: budgetMaxFilter, minRating: minRatingFilter
             )
-            places = response.places
+            places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
             lastSearchedViewport = viewport
             showSearchThisArea = false
         } catch let error as APIError {
