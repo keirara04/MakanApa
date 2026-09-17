@@ -99,6 +99,7 @@ class PlaceNormalizer
             'longitude' => $place->longitude,
             'price_level' => $place->priceLevel,
             'rating' => $place->rating,
+            'user_rating_count' => $place->userRatingCount,
             'is_active' => true,
             // Snapshot of Google's open-now signal at sync time — re-synced whenever the
             // place_sync_areas cache window expires. Not full weekly-hours parsing (Phase 3 scope).
@@ -106,6 +107,10 @@ class PlaceNormalizer
             'cuisines' => array_values(array_unique($cuisines)),
             'tags' => array_values(array_unique($tags)),
             'food_category' => $foodCategory,
+            // Raw Google types, kept alongside the curated cuisines/tags/food_category above —
+            // this is what PlacesService::readGoogleRestaurantsNear() filters by per DiscoveryMode,
+            // since the curated fields are lossy and shouldn't be reverse-engineered for that.
+            'google_types' => $place->types,
         ];
     }
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\RecommendationController;
+use App\Http\Controllers\Api\RestaurantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,5 +26,8 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::post('decisions/{decision}/accept', [RecommendationController::class, 'accept']);
+    Route::post('decisions/{decision}/vibe-tag', [RecommendationController::class, 'vibeTag']);
+    Route::post('restaurants/{restaurant}/save', [RestaurantController::class, 'save']);
+    Route::post('restaurants/{restaurant}/unsave', [RestaurantController::class, 'unsave']);
     Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
 });

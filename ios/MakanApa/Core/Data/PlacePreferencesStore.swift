@@ -44,21 +44,37 @@ final class PlacePreferencesStore {
     func isExcluded(_ placeId: Int) -> Bool { excludedPlaceIds.contains(placeId) }
 
     func toggleSaved(_ place: NearbyPlace) {
+        let nowSaved: Bool
         if savedPlaces.contains(where: { $0.id == place.id }) {
             savedPlaces.removeAll { $0.id == place.id }
+            nowSaved = false
         } else {
             savedPlaces.insert(SavedPlace(
                 id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
                 rating: place.rating, priceLevel: place.priceLevel, openStatus: place.openStatus,
                 savedAt: Date()
             ), at: 0)
+            nowSaved = true
         }
         persistSaved()
+        syncSaveState(nowSaved, placeId: place.id)
     }
 
+    /// Favorites' swipe-to-delete — must go through the same server sync as the heart toggle,
+    /// otherwise the two paths diverge (server keeps thinking it's saved after this removes it
+    /// locally).
     func removeSaved(_ placeId: Int) {
         savedPlaces.removeAll { $0.id == placeId }
         persistSaved()
+        syncSaveState(false, placeId: placeId)
+    }
+
+    /// Fire-and-forget — the local list is the source of truth for this device's UI; the network
+    /// call just also contributes this save/unsave to the shared community signal.
+    private func syncSaveState(_ saved: Bool, placeId: Int) {
+        Task {
+            _ = try? await (saved ? APIClient.saveRestaurant(id: placeId) : APIClient.unsaveRestaurant(id: placeId))
+        }
     }
 
     func exclude(_ placeId: Int) {

@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Support\DiscoveryMode;
+use App\Support\Vibe;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class NearbyPickRequest extends FormRequest
 {
@@ -26,6 +29,9 @@ class NearbyPickRequest extends FormRequest
             'openNow' => ['nullable', 'boolean'],
             'budgetMax' => ['nullable', 'integer', 'between:1,3'],
             'minRating' => ['nullable', 'numeric', 'between:0,5'],
+            'mode' => ['nullable', Rule::enum(DiscoveryMode::class)],
+            'vibe' => ['nullable', Rule::enum(Vibe::class)],
+            'installationId' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

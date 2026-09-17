@@ -12,6 +12,8 @@ use App\Models\Restaurant;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
+use App\Support\DiscoveryMode;
+use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -41,9 +43,11 @@ class NearbyController extends Controller
     public function index(NearbyRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
+        $vibe = Vibe::fromRequest($data['vibe'] ?? null);
 
         try {
-            $restaurants = $this->restaurantsInViewport($data);
+            $restaurants = $this->restaurantsInViewport($data, $mode, $vibe);
         } catch (RequestException $e) {
             Log::error('Places provider request failed', ['error' => $e->getMessage()]);
 
@@ -63,13 +67,15 @@ class NearbyController extends Controller
     {
         $data = $request->validated();
         $viewport = $this->insetViewport($data['viewport']);
+        $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
+        $vibe = Vibe::fromRequest($data['vibe'] ?? null);
 
         try {
             $authoritative = $this->restaurantsInViewport($viewport + [
                 'openNow' => $data['openNow'] ?? null,
                 'budgetMax' => $data['budgetMax'] ?? null,
                 'minRating' => $data['minRating'] ?? null,
-            ]);
+            ], $mode, $vibe);
         } catch (Throwable $e) {
             Log::error('Places lookup failed', ['error' => $e->getMessage()]);
 
@@ -81,7 +87,7 @@ class NearbyController extends Controller
         $visibleIds = array_flip($data['visiblePlaceIds']);
         $candidates = array_values(array_filter($authoritative, fn (array $r) => isset($visibleIds[$r['id']])));
 
-        $preference = [
+        $preference = array_merge([
             'moodTags' => [],
             'cuisines' => [],
             'budgetMax' => $data['budgetMax'] ?? null,
@@ -93,7 +99,7 @@ class NearbyController extends Controller
             'maxDistanceKm' => $this->maxCornerDistanceKm($viewport, $data['latitude'], $data['longitude']) + 0.01,
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
-        ];
+        ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
         $ranked = $this->recommendationService->topCandidates($candidates, $preference, limit: count($candidates) ?: 1);
         $winner = $this->recommendationService->pick($ranked);
@@ -111,6 +117,9 @@ class NearbyController extends Controller
             'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $preference['maxDistanceKm'],
             'selected_restaurant_id' => $winner['restaurant']['id'] ?? null,
+            'discovery_mode' => $mode->value,
+            'vibe' => $vibe?->value,
+            'installation_id' => $data['installationId'] ?? null,
         ]);
 
         foreach ($ranked as $rank => $candidate) {
@@ -121,6 +130,10 @@ class NearbyController extends Controller
                 'score' => $candidate['score'],
                 'shown_at' => $winner && $candidate['restaurant']['id'] === $winner['restaurant']['id'] ? now() : null,
             ]);
+        }
+
+        if ($winner) {
+            Restaurant::whereKey($winner['restaurant']['id'])->increment('impressions_count');
         }
 
         return response()->json([
@@ -163,11 +176,11 @@ class NearbyController extends Controller
      * @return array<int, array<string, mixed>> normalized restaurant arrays within the given
      *                                          bounds, honoring the optional openNow/budgetMax/minRating filters.
      */
-    private function restaurantsInViewport(array $bounds): array
+    private function restaurantsInViewport(array $bounds, ?DiscoveryMode $mode = null, ?Vibe $vibe = null): array
     {
         [$centerLat, $centerLon, $radiusKm] = $this->viewportToCircle($bounds);
 
-        $restaurants = $this->placesService->nearbyRestaurants($centerLat, $centerLon, $radiusKm);
+        $restaurants = $this->placesService->nearbyRestaurants($centerLat, $centerLon, $radiusKm, mode: $mode, vibe: $vibe);
 
         return array_values(array_filter($restaurants, function (array $restaurant) use ($bounds) {
             if ($restaurant['latitude'] > $bounds['north'] || $restaurant['latitude'] < $bounds['south']

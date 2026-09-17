@@ -19,11 +19,12 @@ enum APIClient {
 
     static func recommendSolo(
         latitude: Double, longitude: Double, budgetMax: Int?, maxDistanceKm: Double,
-        moods: [String], craving: String? = nil
+        moods: [String], craving: String? = nil, mode: DiscoveryMode? = nil, vibe: Vibe? = nil
     ) async throws -> RecommendationResponse {
         let body = SoloRecommendationRequestBody(
             latitude: latitude, longitude: longitude, budgetMax: budgetMax,
-            maxDistanceKm: maxDistanceKm, moods: moods, craving: craving
+            maxDistanceKm: maxDistanceKm, moods: moods, craving: craving,
+            mode: mode, vibe: vibe, installationId: InstallationID.current
         )
         return try await post("recommendations/solo", body: body)
     }
@@ -37,7 +38,8 @@ enum APIClient {
     }
 
     static func nearbyPlaces(
-        viewport: MapViewport, openNow: Bool?, budgetMax: Int?, minRating: Double?
+        viewport: MapViewport, openNow: Bool?, budgetMax: Int?, minRating: Double?,
+        mode: DiscoveryMode? = nil, vibe: Vibe? = nil
     ) async throws -> NearbyPlacesResponse {
         var query: [URLQueryItem] = [
             URLQueryItem(name: "north", value: String(viewport.north)),
@@ -48,6 +50,8 @@ enum APIClient {
         if let openNow { query.append(URLQueryItem(name: "openNow", value: openNow ? "1" : "0")) }
         if let budgetMax { query.append(URLQueryItem(name: "budgetMax", value: String(budgetMax))) }
         if let minRating { query.append(URLQueryItem(name: "minRating", value: String(minRating))) }
+        if let mode { query.append(URLQueryItem(name: "mode", value: mode.rawValue)) }
+        if let vibe { query.append(URLQueryItem(name: "vibe", value: vibe.rawValue)) }
         return try await get("places/nearby", query: query)
     }
 
@@ -57,13 +61,26 @@ enum APIClient {
 
     static func pickFromVisible(
         latitude: Double, longitude: Double, viewport: MapViewport, visiblePlaceIds: [Int],
-        openNow: Bool?, budgetMax: Int?, minRating: Double?
+        openNow: Bool?, budgetMax: Int?, minRating: Double?, mode: DiscoveryMode? = nil, vibe: Vibe? = nil
     ) async throws -> NearbyPickResponse {
         let body = NearbyPickRequestBody(
             latitude: latitude, longitude: longitude, viewport: viewport, visiblePlaceIds: visiblePlaceIds,
-            openNow: openNow, budgetMax: budgetMax, minRating: minRating
+            openNow: openNow, budgetMax: budgetMax, minRating: minRating,
+            mode: mode, vibe: vibe, installationId: InstallationID.current
         )
         return try await post("places/nearby/pick", body: body)
+    }
+
+    static func saveRestaurant(id: Int) async throws -> SaveResponse {
+        try await post("restaurants/\(id)/save", body: SaveRequestBody(installationId: InstallationID.current))
+    }
+
+    static func unsaveRestaurant(id: Int) async throws -> SaveResponse {
+        try await post("restaurants/\(id)/unsave", body: SaveRequestBody(installationId: InstallationID.current))
+    }
+
+    static func submitVibeTag(decisionId: Int, clientToken: String, vibe: CommunityTag) async throws -> VibeTagResponse {
+        try await post("decisions/\(decisionId)/vibe-tag", body: VibeTagRequestBody(vibe: vibe), clientToken: clientToken)
     }
 
     private struct EmptyBody: Encodable {}

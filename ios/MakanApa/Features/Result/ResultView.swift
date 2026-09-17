@@ -18,6 +18,7 @@ struct ResultView: View {
     @State private var exitEdge: Edge = .leading
     @State private var acceptSettle = false
     @State private var revealedReasonCount = 0
+    @State private var showVibePrompt = false
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
 
@@ -52,6 +53,63 @@ struct ResultView: View {
                 UINotificationFeedbackGenerator().notificationOccurred(.error)
             }
         }
+        .sheet(isPresented: $showVibePrompt) {
+            vibePromptSheet
+                .presentationDetents([.height(220)])
+        }
+    }
+
+    // MARK: - Vibe prompt
+
+    /// Shown roughly every other accept, not every single time — a quick one-tap "what was
+    /// this place like" rather than a full review ask.
+    private func maybeShowVibePrompt() {
+        let key = "ResultView.acceptCount"
+        let count = UserDefaults.standard.integer(forKey: key) + 1
+        UserDefaults.standard.set(count, forKey: key)
+        if count % 2 == 0 {
+            showVibePrompt = true
+        }
+    }
+
+    private var vibePromptSheet: some View {
+        VStack(spacing: 16) {
+            Text("What vibe was it?")
+                .font(.makanDisplay(18))
+                .foregroundStyle(Color.kicap)
+
+            let columns = [GridItem(.adaptive(minimum: 90))]
+            LazyVGrid(columns: columns, spacing: 10) {
+                vibeTagButton(.chill, label: "☕ Chill")
+                vibeTagButton(.study, label: "📚 Study")
+                vibeTagButton(.studentBudget, label: "💸 Student")
+                vibeTagButton(.lateNight, label: "🌙 Late night")
+                vibeTagButton(.hiddenGem, label: "✨ Hidden gem")
+            }
+
+            Button("Skip") { showVibePrompt = false }
+                .font(.makanBody(13))
+                .foregroundStyle(.secondary)
+        }
+        .padding(20)
+    }
+
+    private func vibeTagButton(_ tag: CommunityTag, label: String) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Task { await viewModel.submitVibeTag(tag) }
+            showVibePrompt = false
+        } label: {
+            Text(label)
+                .font(.makanBody(13))
+                .foregroundStyle(Color.kicap)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.kicap.opacity(0.06))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(PressCompressStyle())
     }
 
     // MARK: - Result
@@ -138,6 +196,7 @@ struct ResultView: View {
                 acceptSettle = false
                 withAnimation(Motion.playful) { acceptSettle = true }
                 Task { await viewModel.acceptCurrentPick() }
+                maybeShowVibePrompt()
             }
             feedbackButton(emoji: "🔄", label: "Another one") {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -636,6 +695,7 @@ struct ResultView: View {
         Task {
             await viewModel.acceptCurrentPick()
         }
+        maybeShowVibePrompt()
         let coordinate = CLLocationCoordinate2D(latitude: recommendation.latitude, longitude: recommendation.longitude)
         let placemark = MKPlacemark(coordinate: coordinate)
         let mapItem = MKMapItem(placemark: placemark)

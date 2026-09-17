@@ -7,6 +7,9 @@ struct SoloRecommendationRequestBody: Encodable {
     let maxDistanceKm: Double
     let moods: [String]
     let craving: String?
+    let mode: DiscoveryMode?
+    let vibe: Vibe?
+    let installationId: String?
 }
 
 struct RecommendationResponse: Decodable, Equatable {
@@ -50,6 +53,10 @@ struct RecommendationResponse: Decodable, Equatable {
         let reviews: [Review]
         let placeGoogleMapsUrl: String?
         let closesAt: String?
+        /// Only present once a restaurant has enough CommunityTag votes to clear the backend's
+        /// confidence threshold (PresentsRecommendation::communityTagBadge()) — absent, not a
+        /// low-confidence guess, below that bar.
+        let communityTag: CommunityTag?
     }
 
     /// Whether the typed craving (if any) matched something nearby — decoded but not yet
@@ -106,6 +113,25 @@ struct NearbyPickRequestBody: Encodable {
     let openNow: Bool?
     let budgetMax: Int?
     let minRating: Double?
+    let mode: DiscoveryMode?
+    let vibe: Vibe?
+    let installationId: String?
+}
+
+struct SaveRequestBody: Encodable {
+    let installationId: String
+}
+
+struct SaveResponse: Decodable {
+    let saved: Bool
+}
+
+struct VibeTagRequestBody: Encodable {
+    let vibe: CommunityTag
+}
+
+struct VibeTagResponse: Decodable {
+    let tagged: Bool
 }
 
 /// Same wire shape as `RecommendationResponse` — Nearby's "Pick one lah" ends a decision

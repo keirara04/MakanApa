@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['provider', 'latitude', 'longitude', 'radius_km', 'synced_at'])]
+#[Fillable(['provider', 'latitude', 'longitude', 'radius_km', 'synced_at', 'types'])]
 class PlaceSyncArea extends Model
 {
     protected function casts(): array
@@ -15,6 +15,7 @@ class PlaceSyncArea extends Model
             'longitude' => 'decimal:7',
             'radius_km' => 'decimal:2',
             'synced_at' => 'datetime',
+            'types' => 'array',
         ];
     }
 }

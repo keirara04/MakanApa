@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'name', 'signature_dish', 'food_category', 'latitude', 'longitude', 'address', 'price_level', 'rating',
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
+    'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count', 'google_types',
 ])]
 class Restaurant extends Model
 {
@@ -19,6 +21,7 @@ class Restaurant extends Model
             'longitude' => 'decimal:7',
             'rating' => 'decimal:1',
             'opening_hours' => 'array',
+            'google_types' => 'array',
             'is_active' => 'boolean',
             'last_synced_at' => 'datetime',
         ];
@@ -32,6 +35,16 @@ class Restaurant extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'restaurant_tags');
+    }
+
+    public function saves(): HasMany
+    {
+        return $this->hasMany(RestaurantSave::class);
+    }
+
+    public function vibeVotes(): HasMany
+    {
+        return $this->hasMany(RestaurantVibeVote::class);
     }
 
     /**
@@ -55,6 +68,11 @@ class Restaurant extends Model
             'tags' => $this->tags->pluck('name')->all(),
             'provider' => $this->provider,
             'provider_place_id' => $this->provider_place_id,
+            'user_rating_count' => $this->user_rating_count,
+            'impressions_count' => $this->impressions_count,
+            'accepted_count' => $this->accepted_count,
+            'rejected_count' => $this->rejected_count,
+            'google_types' => $this->google_types,
         ];
     }
 

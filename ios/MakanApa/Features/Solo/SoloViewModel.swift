@@ -17,6 +17,8 @@ final class SoloViewModel {
     var cravingSelection: CravingSelection?
     var budgetMax: Int? = 2
     var maxDistanceKm: Double = 2.0
+    var discoveryMode: DiscoveryMode = .normal
+    var vibe: Vibe?
 
     /// Derives the outgoing request fields from `cravingSelection` — the only place this
     /// mapping happens, so iOS and the wire format can't fall out of sync.
@@ -103,7 +105,8 @@ final class SoloViewModel {
                 budgetMax: budgetMax,
                 maxDistanceKm: maxDistanceKm,
                 moods: outgoingMoods,
-                craving: outgoingCraving
+                craving: outgoingCraving,
+                mode: discoveryMode, vibe: vibe
             )
             decisionId = response.decisionId
             clientToken = response.clientToken
@@ -153,6 +156,12 @@ final class SoloViewModel {
                 timestamp: Date(), source: pickSource
             ))
         }
+    }
+
+    @MainActor
+    func submitVibeTag(_ tag: CommunityTag) async {
+        guard let decisionId, let clientToken else { return }
+        _ = try? await APIClient.submitVibeTag(decisionId: decisionId, clientToken: clientToken, vibe: tag)
     }
 
     /// Nearby's "Pick one lah" ends a decision exactly like Decide does, so it hands its result

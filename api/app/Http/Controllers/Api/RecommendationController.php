@@ -8,17 +8,23 @@ use App\Http\Requests\SoloRecommendationRequest;
 use App\Models\Decision;
 use App\Models\DecisionPreference;
 use App\Models\DecisionRecommendation;
+use App\Models\Restaurant;
+use App\Models\RestaurantVibeVote;
 use App\Services\Craving\CravingIntent;
 use App\Services\Craving\CravingResolver;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
+use App\Support\CommunityTag;
+use App\Support\DiscoveryMode;
+use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class RecommendationController extends Controller
@@ -41,9 +47,12 @@ class RecommendationController extends Controller
         // disagree about what the user asked for.
         $cravingIntent = ! empty($data['craving']) ? $this->cravingResolver->resolve($data['craving']) : null;
 
+        $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
+        $vibe = Vibe::fromRequest($data['vibe'] ?? null);
+
         try {
             $restaurants = $this->placesService->nearbyRestaurants(
-                $data['latitude'], $data['longitude'], $data['maxDistanceKm'], $cravingIntent
+                $data['latitude'], $data['longitude'], $data['maxDistanceKm'], $cravingIntent, $mode, $vibe
             );
         } catch (RequestException $e) {
             Log::error('Places provider request failed', ['error' => $e->getMessage()]);
@@ -55,7 +64,7 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Could not find nearby places right now.'], 500);
         }
 
-        $preference = [
+        $preference = array_merge([
             'moodTags' => $data['moods'] ?? [],
             'cuisines' => [],
             'cravingIntent' => $cravingIntent,
@@ -63,7 +72,7 @@ class RecommendationController extends Controller
             'maxDistanceKm' => $data['maxDistanceKm'],
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
-        ];
+        ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
         $result = $this->recommendationService->recommend($restaurants, $preference);
 
@@ -77,6 +86,9 @@ class RecommendationController extends Controller
             'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $data['maxDistanceKm'],
             'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
+            'discovery_mode' => $mode->value,
+            'vibe' => $vibe?->value,
+            'installation_id' => $data['installationId'] ?? null,
         ]);
 
         foreach ($data['moods'] ?? [] as $mood) {
@@ -88,15 +100,18 @@ class RecommendationController extends Controller
         }
 
         foreach ($result['candidates'] as $rank => $candidate) {
+            $isWinner = $result['pick'] && $candidate['restaurant']['id'] === $result['pick']['restaurant']['id'];
             DecisionRecommendation::create([
                 'decision_id' => $decision->id,
                 'restaurant_id' => $candidate['restaurant']['id'],
                 'rank' => $rank + 1,
                 'score' => $candidate['score'],
-                'shown_at' => $result['pick'] && $candidate['restaurant']['id'] === $result['pick']['restaurant']['id']
-                    ? now()
-                    : null,
+                'shown_at' => $isWinner ? now() : null,
             ]);
+        }
+
+        if ($result['pick']) {
+            Restaurant::whereKey($result['pick']['restaurant']['id'])->increment('impressions_count');
         }
 
         $response = [
@@ -151,10 +166,12 @@ class RecommendationController extends Controller
 
             if ($currentRow) {
                 $currentRow->update(['rejected_at' => now()]);
+                Restaurant::whereKey($currentRow->restaurant_id)->increment('rejected_count');
             }
 
             if ($next) {
                 $next['_row']->update(['shown_at' => now()]);
+                Restaurant::whereKey($next['restaurant']['id'])->increment('impressions_count');
             }
 
             return $next;
@@ -171,17 +188,58 @@ class RecommendationController extends Controller
     {
         $this->authorizeDecision($request, $decision);
 
-        $current = $decision->recommendations()
+        // lockForUpdate + a re-check inside the transaction makes this idempotent — a retried
+        // accept call (network timeout, client retry) finds accepted_at already non-null and
+        // does nothing a second time, so accepted_count can't drift from decision_recommendations.
+        $accepted = DB::transaction(function () use ($decision) {
+            $current = $decision->recommendations()
+                ->whereNotNull('shown_at')
+                ->whereNull('rejected_at')
+                ->whereNull('accepted_at')
+                ->lockForUpdate()
+                ->first();
+
+            if ($current) {
+                $current->update(['accepted_at' => now()]);
+                Restaurant::whereKey($current->restaurant_id)->increment('accepted_count');
+            }
+
+            return $current;
+        });
+
+        return response()->json(['accepted' => (bool) $accepted]);
+    }
+
+    /**
+     * Event-sourced, not a JSON counter — five vibes today will likely grow, and rows stay
+     * auditable/re-aggregatable where a JSON blob wouldn't. Decision-token-authorized like
+     * accept/reroll, and only for the restaurant this decision actually accepted (or the current
+     * shown candidate, if the client fires this before/without an explicit accept).
+     */
+    public function vibeTag(Request $request, Decision $decision): JsonResponse
+    {
+        $this->authorizeDecision($request, $decision);
+
+        $data = $request->validate([
+            'vibe' => ['required', Rule::enum(CommunityTag::class)],
+        ]);
+
+        $target = $decision->recommendations()
             ->whereNotNull('shown_at')
-            ->whereNull('rejected_at')
-            ->whereNull('accepted_at')
+            ->latest('shown_at')
             ->first();
 
-        if ($current) {
-            $current->update(['accepted_at' => now()]);
+        if (! $target) {
+            return response()->json(['message' => 'No shown recommendation to tag for this decision.'], 422);
         }
 
-        return response()->json(['accepted' => (bool) $current]);
+        RestaurantVibeVote::create([
+            'restaurant_id' => $target->restaurant_id,
+            'decision_id' => $decision->id,
+            'vibe' => $data['vibe'],
+        ]);
+
+        return response()->json(['tagged' => true]);
     }
 
     /**
@@ -206,7 +264,10 @@ class RecommendationController extends Controller
             $breakdown = $this->recommendationService->scoreBreakdown(
                 $result['pick']['restaurant'], $preference, $result['pick']['distanceKm']
             );
-            $debug['pickScoreBreakdown'] = array_merge($breakdown['components'], ['final' => $breakdown['final']]);
+            $debug['pickScoreBreakdown'] = array_merge($breakdown['components'], [
+                'final' => $breakdown['final'],
+                'relevanceTier' => $breakdown['relevanceTier'],
+            ]);
         }
 
         return $debug;

@@ -2,8 +2,13 @@
 
 namespace App\Http\Controllers\Api\Concerns;
 
+use App\Models\DecisionRecommendation;
+use App\Models\RestaurantVibeVote;
 use App\Services\Places\GooglePlacesProvider;
+use App\Support\CommunityTag;
+use App\Support\DiscoveryMode;
 use App\Support\RecommendationHeadline;
+use App\Support\Vibe;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -61,6 +66,87 @@ trait PresentsRecommendation
             'reviews' => $enrichment['reviews'],
             'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
             'closesAt' => $enrichment['closesAt'],
+            'communityTag' => $this->communityTagBadge($restaurant['id'])?->value,
+        ];
+    }
+
+    /**
+     * Presentation-only confidence gate — entirely separate from vibeRelevanceComponent's
+     * scoring role. One tap ("Study" tagged once) shouldn't be enough to print a confident-
+     * sounding "Popular for studying" badge; requires real evidence, both in absolute vote
+     * count and as a real majority share of that restaurant's votes.
+     */
+    private function communityTagBadge(int $restaurantId): ?CommunityTag
+    {
+        $counts = RestaurantVibeVote::where('restaurant_id', $restaurantId)
+            ->selectRaw('vibe, count(*) as votes')
+            ->groupBy('vibe')
+            ->orderByDesc('votes')
+            ->get();
+
+        $total = (int) $counts->sum('votes');
+        if ($total === 0) {
+            return null;
+        }
+
+        $top = $counts->first();
+        $minVotes = (int) Config::get('recommendation.vibe_badge.min_votes', 5);
+        $minShare = (float) Config::get('recommendation.vibe_badge.min_share', 0.4);
+
+        if ($top->votes < $minVotes || ($top->votes / $total) < $minShare) {
+            return null;
+        }
+
+        return $top->vibe;
+    }
+
+    /**
+     * The extra preference keys RecommendationService::scoreBreakdown() reads when a request
+     * opts into DiscoveryMode — kept out of scoreBreakdown() itself so it stays framework-
+     * independent (no config()/DB calls), and out of each controller so mode/vibe/personal-fit
+     * resolution can't drift between Decide and Nearby.
+     *
+     * @return array{discoveryMode: DiscoveryMode, vibe: ?Vibe, communityPrior: array, knownChains: array, installationHistory: ?array}
+     */
+    private function discoveryPreferenceExtras(?string $mode, ?string $vibeValue, ?string $installationId): array
+    {
+        return [
+            'discoveryMode' => DiscoveryMode::fromRequest($mode),
+            'vibe' => Vibe::fromRequest($vibeValue),
+            'communityPrior' => Config::get('recommendation.community_prior', ['success_rate' => 0.5, 'weight' => 10]),
+            'knownChains' => Config::get('recommendation.known_chains', []),
+            'installationHistory' => $this->resolveInstallationHistory($installationId),
+        ];
+    }
+
+    /**
+     * Null (not an empty array) below the minimum accept count — scoreBreakdown() treats an
+     * empty/missing installationHistory as "no personal signal yet," so personalFit is simply
+     * absent from that candidate's active weights rather than computed as a weak/zero score.
+     */
+    private function resolveInstallationHistory(?string $installationId): ?array
+    {
+        if ($installationId === null) {
+            return null;
+        }
+
+        $minAccepts = (int) Config::get('recommendation.personal_fit_min_accepts', 3);
+
+        $accepted = DecisionRecommendation::query()
+            ->whereNotNull('accepted_at')
+            ->whereHas('decision', fn ($query) => $query->where('installation_id', $installationId))
+            ->with('restaurant')
+            ->latest('accepted_at')
+            ->limit(20)
+            ->get();
+
+        if ($accepted->count() < $minAccepts) {
+            return null;
+        }
+
+        return [
+            'price_levels' => $accepted->pluck('restaurant.price_level')->filter()->values()->all(),
+            'food_categories' => $accepted->pluck('restaurant.food_category')->filter()->values()->all(),
         ];
     }
 

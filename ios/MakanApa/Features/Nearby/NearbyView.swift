@@ -24,6 +24,10 @@ struct NearbyView: View {
 
             VStack(spacing: 10) {
                 filterBar
+                discoveryModeBar
+                if viewModel.discoveryMode != .normal {
+                    vibeBar
+                }
                 if let apiError = viewModel.apiError {
                     errorBanner(for: apiError)
                 }
@@ -136,6 +140,110 @@ struct NearbyView: View {
     private func rerunSearch() {
         guard let currentViewport else { return }
         Task { await viewModel.searchThisAreaTapped(currentViewport) }
+    }
+
+    // MARK: - Discovery mode / Vibe
+
+    /// Kept small on purpose — "For you"/"Low-key"/"Cafe" cover the common cases as always-
+    /// visible chips; the rarer Popular/Cheap eats/Late night live behind "More" so the filter
+    /// bar doesn't turn into a six-chip control panel.
+    private var discoveryModeBar: some View {
+        HStack(spacing: 8) {
+            modeChip(.normal, label: "For you")
+            modeChip(.lowKey, label: "Low-key")
+            modeChip(.cafe, label: "Cafe")
+
+            Menu {
+                Button("Popular") { setMode(.popular) }
+                Button("Cheap eats") { setMode(.cheapEats) }
+                Button("Late night") { setMode(.lateNight) }
+            } label: {
+                Text(moreLabel)
+                    .font(.makanBody(13))
+                    .foregroundStyle(isMoreModeActive ? .white : Color.kicap)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(isMoreModeActive ? Color.sambalRed : Color.white)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+            }
+
+            Spacer()
+        }
+    }
+
+    private var isMoreModeActive: Bool {
+        [.popular, .cheapEats, .lateNight].contains(viewModel.discoveryMode)
+    }
+
+    private var moreLabel: String {
+        switch viewModel.discoveryMode {
+        case .popular: return "Popular"
+        case .cheapEats: return "Cheap eats"
+        case .lateNight: return "Late night"
+        default: return "More"
+        }
+    }
+
+    private func modeChip(_ mode: DiscoveryMode, label: String) -> some View {
+        let isOn = viewModel.discoveryMode == mode
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(Motion.quick) { setMode(mode) }
+        } label: {
+            Text(label)
+                .font(.makanBody(13))
+                .foregroundStyle(isOn ? .white : Color.kicap)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isOn ? Color.sambalRed : Color.white)
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        }
+    }
+
+    private func setMode(_ mode: DiscoveryMode) {
+        viewModel.discoveryMode = mode
+        rerunSearch()
+    }
+
+    private var vibeBar: some View {
+        HStack(spacing: 8) {
+            ForEach([Vibe.chill, .study, .coffee, .dessert, .brunch, .lateNight], id: \.self) { option in
+                vibeChip(option)
+            }
+            Spacer()
+        }
+    }
+
+    private func vibeChip(_ option: Vibe) -> some View {
+        let isOn = viewModel.vibe == option
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(Motion.quick) {
+                viewModel.vibe = isOn ? nil : option
+                rerunSearch()
+            }
+        } label: {
+            Text(vibeLabel(option))
+                .font(.makanBody(12))
+                .foregroundStyle(isOn ? .white : Color.kicap.opacity(0.8))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isOn ? Color.kunyit : Color.white.opacity(0.7))
+                .clipShape(Capsule())
+        }
+    }
+
+    private func vibeLabel(_ vibe: Vibe) -> String {
+        switch vibe {
+        case .chill: return "☕ Chill"
+        case .study: return "📚 Study"
+        case .dessert: return "🍰 Dessert"
+        case .coffee: return "☕ Coffee"
+        case .brunch: return "🥐 Brunch"
+        case .lateNight: return "🌙 Late night"
+        }
     }
 
     // MARK: - Zoom / search-this-area prompts

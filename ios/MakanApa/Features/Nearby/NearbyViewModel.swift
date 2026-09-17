@@ -28,6 +28,18 @@ final class NearbyViewModel {
     var minRatingFilter: Double? {
         didSet { persistFilters() }
     }
+    var discoveryMode: DiscoveryMode = .normal {
+        didSet {
+            // Enforced here, not in the view — holds regardless of which UI surface changes the
+            // mode. A vibe selected under Low-key/Cafe shouldn't silently keep skewing "For you"
+            // results after switching back, with no visible indicator that it's still active.
+            if discoveryMode == .normal { vibe = nil }
+            persistFilters()
+        }
+    }
+    var vibe: Vibe? {
+        didSet { persistFilters() }
+    }
 
     var isZoomedTooFarOut = false
     var showSearchThisArea = false
@@ -44,6 +56,8 @@ final class NearbyViewModel {
     private static let openNowKey = "NearbyViewModel.openNowFilter"
     private static let budgetMaxKey = "NearbyViewModel.budgetMaxFilter"
     private static let minRatingKey = "NearbyViewModel.minRatingFilter"
+    private static let discoveryModeKey = "NearbyViewModel.discoveryMode"
+    private static let vibeKey = "NearbyViewModel.vibe"
 
     init() {
         loadFilters()
@@ -57,6 +71,11 @@ final class NearbyViewModel {
         openNowFilter = defaults.bool(forKey: Self.openNowKey)
         budgetMaxFilter = defaults.object(forKey: Self.budgetMaxKey) as? Int
         minRatingFilter = defaults.object(forKey: Self.minRatingKey) as? Double
+        discoveryMode = (defaults.string(forKey: Self.discoveryModeKey)).flatMap(DiscoveryMode.init) ?? .normal
+        vibe = (defaults.string(forKey: Self.vibeKey)).flatMap(Vibe.init)
+        // Self-heals a persisted state from before this invariant existed (mode=normal with a
+        // leftover vibe) instead of carrying it forward indefinitely.
+        if discoveryMode == .normal { vibe = nil }
         didLoadFilters = true
     }
 
@@ -66,6 +85,8 @@ final class NearbyViewModel {
         defaults.set(openNowFilter, forKey: Self.openNowKey)
         defaults.set(budgetMaxFilter, forKey: Self.budgetMaxKey)
         defaults.set(minRatingFilter, forKey: Self.minRatingKey)
+        defaults.set(discoveryMode.rawValue, forKey: Self.discoveryModeKey)
+        defaults.set(vibe?.rawValue, forKey: Self.vibeKey)
     }
 
     @MainActor
@@ -117,7 +138,8 @@ final class NearbyViewModel {
         do {
             let response = try await APIClient.nearbyPlaces(
                 viewport: viewport, openNow: openNowFilter ? true : nil,
-                budgetMax: budgetMaxFilter, minRating: minRatingFilter
+                budgetMax: budgetMaxFilter, minRating: minRatingFilter,
+                mode: discoveryMode, vibe: vibe
             )
             places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
             lastSearchedViewport = viewport
@@ -154,7 +176,8 @@ final class NearbyViewModel {
             let response = try await APIClient.pickFromVisible(
                 latitude: userLocation.latitude, longitude: userLocation.longitude,
                 viewport: viewport, visiblePlaceIds: visibleIds,
-                openNow: openNowFilter ? true : nil, budgetMax: budgetMaxFilter, minRating: minRatingFilter
+                openNow: openNowFilter ? true : nil, budgetMax: budgetMaxFilter, minRating: minRatingFilter,
+                mode: discoveryMode, vibe: vibe
             )
 
             let elapsed = ContinuousClock.now - start

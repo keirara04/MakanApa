@@ -27,6 +27,8 @@
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		669A792B87E4F4EFBF608FD5 /* PreferenceChoiceRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CF20F8EDDFAED7BBB91B50 /* PreferenceChoiceRow.swift */; };
 		6A95C0097A867A225E31EDF5 /* Motion.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8FA63B189F8F7327E20578 /* Motion.swift */; };
+		BBB916717547DDA1668C4BBA /* DiscoveryMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */; };
+		57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */; };
 		6BD18ED6ACDA339474E3F6CE /* ThinkingChecklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55EE8915F3A78097AD08A9 /* ThinkingChecklist.swift */; };
 		6C5F9C7639CFB53541A3A0D7 /* PreferenceLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFAA607EA690164F6660005 /* PreferenceLoadingView.swift */; };
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
@@ -108,6 +110,8 @@
 		F40FD947C8047ACFB42F9C9F /* PreferenceStepHeading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceStepHeading.swift; sourceTree = "<group>"; };
 		FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceProgressHeader.swift; sourceTree = "<group>"; };
 		FF8FA63B189F8F7327E20578 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
+		D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveryMode.swift; sourceTree = "<group>"; };
+		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -209,6 +213,7 @@
 				651EAF0CDE373FFCEA468C00 /* APIClient.swift */,
 				51BA9571215449F471D390E1 /* APIError.swift */,
 				AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */,
+				D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -317,6 +322,7 @@
 			children = (
 				2D9E55980CA468D6922E9311 /* PlacePreferencesStore.swift */,
 				001E9DD4DCD505BDCC84A55D /* RecentDecisionStore.swift */,
+				7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -441,6 +447,8 @@
 			files = (
 				6A95C0097A867A225E31EDF5 /* Motion.swift in Sources */,
 				04A68DD56BB569C4B41E8075 /* FavoritesView.swift in Sources */,
+				BBB916717547DDA1668C4BBA /* DiscoveryMode.swift in Sources */,
+				57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */,
 				BCB3A5AD491B585C4FECB2C6 /* PlacePreferencesStore.swift in Sources */,
 				857D33720AF5D1C5D3D14575 /* RecentDecisionStore.swift in Sources */,
 				5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */,

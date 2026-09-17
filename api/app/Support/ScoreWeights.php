@@ -9,6 +9,40 @@ namespace App\Support;
  */
 final class ScoreWeights
 {
+    /**
+     * Additive DiscoveryMode weights — merged into the same active-weights pool as mood/craving/
+     * budget/distance/rating, not a replacement table. Deliberately small per mode (first cut):
+     * only the signals actually needed to make that mode feel distinct, not every conceivable one.
+     * `nonChain` ships at weight 0 everywhere — see RecommendationService::nonChainBonusComponent()
+     * doc comment for why.
+     */
+    public static function discoveryOverlay(DiscoveryMode $mode): array
+    {
+        return match ($mode) {
+            DiscoveryMode::LowKey => ['reviewVolumeBonus' => 15, 'community' => 15, 'nonChain' => 0],
+            DiscoveryMode::Cafe => ['cafeRelevance' => 20, 'community' => 15, 'nonChain' => 0],
+            DiscoveryMode::Popular => ['popularityBonus' => 20, 'community' => 10],
+            DiscoveryMode::CheapEats => ['cheapEatsFit' => 20],
+            DiscoveryMode::LateNight => ['lateNightFit' => 20],
+            DiscoveryMode::Normal => ['community' => 10],
+        };
+    }
+
+    /** Type/tag-based match only — CommunityTag evidence informs UI copy, not ranking weight. */
+    public static function vibeOverlay(Vibe $vibe): array
+    {
+        return ['vibeRelevance' => 10];
+    }
+
+    /**
+     * Not mode-gated: layered on top of whichever discoveryOverlay() applies, whenever
+     * personalFitComponent is actually present (installation has enough accept history).
+     */
+    public static function personalFitOverlay(): array
+    {
+        return ['personalFit' => 15];
+    }
+
     /** Curated grid tags (Nasi Kandar/Quick/Healthy/... chips) — unchanged from the original scoring model. */
     public static function forMoodTags(): array
     {

@@ -20,7 +20,7 @@ class GooglePlacesProvider implements PlacesProvider
     private const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
 
     /** Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers. */
-    private const FIELD_MASK = 'places.id,places.displayName,places.location,places.types,places.rating,places.priceLevel,places.currentOpeningHours.openNow';
+    private const FIELD_MASK = 'places.id,places.displayName,places.location,places.types,places.rating,places.priceLevel,places.currentOpeningHours.openNow,places.userRatingCount';
 
     /**
      * Winner-only presentation fields (photos/reviews), fetched fresh per request —
@@ -32,7 +32,7 @@ class GooglePlacesProvider implements PlacesProvider
 
     public function __construct(private readonly ?string $apiKey) {}
 
-    public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm): Collection
+    public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm, array $includedTypes = ['restaurant']): Collection
     {
         if (empty($this->apiKey)) {
             throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
@@ -42,7 +42,7 @@ class GooglePlacesProvider implements PlacesProvider
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::FIELD_MASK,
         ])->timeout(8)->post(self::ENDPOINT, [
-            'includedTypes' => ['restaurant'],
+            'includedTypes' => $includedTypes,
             'maxResultCount' => 20,
             'locationRestriction' => [
                 'circle' => [
@@ -56,30 +56,40 @@ class GooglePlacesProvider implements PlacesProvider
     }
 
     /**
-     * Text Search — used only when a craving resolves to a searchable concept, at most once
-     * per recommendation request (PlacesService enforces the cap). Unlike nearbyRestaurants(),
-     * Google's locationBias here is a soft hint, not a hard filter, so callers must still
-     * distance-filter the results themselves.
+     * Text Search — used for both craving lookups and discovery (Low-key/Cafe/Vibe) lanes, at
+     * most once per query per recommendation request. Unlike nearbyRestaurants(), Google's
+     * locationBias here is a soft hint, not a hard filter, so callers must still distance-filter
+     * the results themselves.
+     *
+     * $includedType is a single Google type (Text Search doesn't accept an array like Nearby
+     * Search does) or null for unrestricted. Callers decide it — a craving with a known
+     * FoodTaxonomy placeType passes that (e.g. `ice_cream_shop`), a craving without one falls
+     * back to `restaurant`, and a discovery lane meant to catch cafe-or-coffee_shop-or-bakery
+     * passes null since no single type covers all three.
      */
-    public function searchText(string $query, float $latitude, float $longitude, float $radiusKm): Collection
+    public function searchText(string $query, float $latitude, float $longitude, float $radiusKm, ?string $includedType = 'restaurant'): Collection
     {
         if (empty($this->apiKey)) {
             throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
         }
 
-        $response = Http::withHeaders([
-            'X-Goog-Api-Key' => $this->apiKey,
-            'X-Goog-FieldMask' => self::FIELD_MASK,
-        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, [
+        $payload = [
             'textQuery' => $query,
-            'includedType' => 'restaurant',
             'locationBias' => [
                 'circle' => [
                     'center' => ['latitude' => $latitude, 'longitude' => $longitude],
                     'radius' => $radiusKm * 1000,
                 ],
             ],
-        ])->throw();
+        ];
+        if ($includedType !== null) {
+            $payload['includedType'] = $includedType;
+        }
+
+        $response = Http::withHeaders([
+            'X-Goog-Api-Key' => $this->apiKey,
+            'X-Goog-FieldMask' => self::FIELD_MASK,
+        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, $payload)->throw();
 
         return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
     }
@@ -95,6 +105,7 @@ class GooglePlacesProvider implements PlacesProvider
             rating: $place['rating'] ?? null,
             priceLevel: $this->mapPriceLevel($place['priceLevel'] ?? null),
             openNow: $place['currentOpeningHours']['openNow'] ?? null,
+            userRatingCount: $place['userRatingCount'] ?? null,
         );
     }
 

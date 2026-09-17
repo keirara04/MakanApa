@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Support\DiscoveryMode;
+use App\Support\Vibe;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SoloRecommendationRequest extends FormRequest
 {
@@ -22,6 +25,9 @@ class SoloRecommendationRequest extends FormRequest
             'moods' => ['array'],
             'moods.*' => ['string'],
             'craving' => ['nullable', 'string', 'max:100'],
+            'mode' => ['nullable', Rule::enum(DiscoveryMode::class)],
+            'vibe' => ['nullable', Rule::enum(Vibe::class)],
+            'installationId' => ['nullable', 'string', 'max:100'],
         ];
     }
 

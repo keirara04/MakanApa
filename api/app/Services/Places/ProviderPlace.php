@@ -17,5 +17,6 @@ final class ProviderPlace
         public readonly ?float $rating,
         public readonly ?int $priceLevel,
         public readonly ?bool $openNow,
+        public readonly ?int $userRatingCount = null,
     ) {}
 }
