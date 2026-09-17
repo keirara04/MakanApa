@@ -27,7 +27,7 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
-        $token = $user->createToken($data['device_label'], expiresAt: now()->addDays(90));
+        $token = $user->createToken($data['deviceLabel'], expiresAt: now()->addDays(90));
 
         return response()->json([
             'token' => $token->plainTextToken,
