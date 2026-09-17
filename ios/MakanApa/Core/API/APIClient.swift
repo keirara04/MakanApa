@@ -1,11 +1,10 @@
 import Foundation
 
 enum APIConfig {
-    #if DEBUG
+    // api.makanapa.app isn't provisioned yet (DNS doesn't resolve) — Release/TestFlight
+    // builds point at the dev server too until production is live, so beta testers aren't
+    // hitting a dead host.
     static let baseURL = URL(string: "https://api-dev.hakeemiridza.com/api/v1")!
-    #else
-    static let baseURL = URL(string: "https://api.makanapa.app/api/v1")!
-    #endif
 }
 
 enum APIClient {
