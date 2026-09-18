@@ -73,6 +73,7 @@ struct AdminUsersView: View {
         if let index = users.firstIndex(where: { $0.id == userId }) {
             users[index] = AdminUser(id: users[index].id, email: users[index].email, role: users[index].role, status: "revoked", createdAt: users[index].createdAt)
         }
+        BetaCredentialStore.shared.clear(id: userId)
     }
 
     @MainActor
@@ -122,6 +123,12 @@ private struct AdminUserDetailView: View {
                     Text("Created")
                     Spacer()
                     Text(user.createdAt).foregroundStyle(.secondary)
+                }
+            }
+
+            if let credential = BetaCredentialStore.shared.credential(for: user.id) {
+                Section("Temporary credentials") {
+                    BetaCredentialsSection(email: credential.email, password: credential.password)
                 }
             }
 
@@ -186,11 +193,7 @@ private struct CreateBetaUserSheet: View {
             Form {
                 if let createdCredentials {
                     Section("Temporary credentials") {
-                        LabeledContent("Email", value: createdCredentials.email)
-                        LabeledContent("Password", value: createdCredentials.password)
-                        Button("Copy credentials") {
-                            UIPasteboard.general.string = "Email: \(createdCredentials.email)\nTemporary password: \(createdCredentials.password)"
-                        }
+                        BetaCredentialsSection(email: createdCredentials.email, password: createdCredentials.password)
                     }
                 } else {
                     Section {
@@ -234,11 +237,35 @@ private struct CreateBetaUserSheet: View {
         do {
             let response = try await APIClient.createBetaUser(email: email)
             createdCredentials = (response.user.email, response.temporaryPassword)
+            BetaCredentialStore.shared.save(id: response.user.id, email: response.user.email, password: response.temporaryPassword)
             onCreated(response.user)
         } catch APIError.unauthorized {
             AuthStore.shared.handleUnauthorized()
         } catch {
             errorMessage = "Couldn't create account. Check the email and try again."
+        }
+    }
+}
+
+private struct BetaCredentialsSection: View {
+    let email: String
+    let password: String
+
+    var body: some View {
+        LabeledContent("Email") {
+            Text(email).textSelection(.enabled)
+        }
+        LabeledContent("Password") {
+            Text(password).textSelection(.enabled)
+        }
+        Button("Copy email") {
+            UIPasteboard.general.string = email
+        }
+        Button("Copy password") {
+            UIPasteboard.general.string = password
+        }
+        Button("Copy both") {
+            UIPasteboard.general.string = "Email: \(email)\nTemporary password: \(password)"
         }
     }
 }

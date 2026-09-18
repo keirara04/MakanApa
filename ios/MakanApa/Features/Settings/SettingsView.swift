@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LocationService.self) private var locationService
     private var authStore = AuthStore.shared
+    @State private var showingAboutInfo = false
 
     var body: some View {
         NavigationStack {
@@ -92,10 +93,17 @@ struct SettingsView: View {
                 #endif
 
                 Section("About") {
-                    HStack {
-                        Text("MakanApa?")
-                            .foregroundStyle(Color.kicap)
-                        Spacer()
+                    Button {
+                        showingAboutInfo = true
+                    } label: {
+                        HStack {
+                            Text("MakanApa?")
+                                .foregroundStyle(Color.kicap)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     HStack {
                         Text("Version")
@@ -140,6 +148,10 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("MakanApa?", isPresented: $showingAboutInfo) {
+            } message: {
+                Text(Copy.aboutDescription)
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

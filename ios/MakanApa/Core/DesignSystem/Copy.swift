@@ -66,6 +66,7 @@ enum Copy {
     static let locationPrivacyLine = "We only use your location while you're using MakanApa."
 
     static let tagline = "Less thinking. More makan."
+    static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more makan."
     static let privacyPolicyURL = "https://dear-papaya-894.notion.site/MakanApa-Privacy-Policy-3dd5ee337d988041840fdc5560b64bf8"
 
     static let privateBetaEyebrow = "PRIVATE BETA"
