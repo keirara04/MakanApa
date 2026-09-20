@@ -109,7 +109,7 @@ class Restaurant extends Model
      * card needs and pure ranking/join data (toRecommendationArray() doesn't know about) doesn't.
      *
      * @param  'canonical'|'community'  $provenance  never 'google_fallback' here — this model is
-     *                                                only ever a row already in `restaurants`.
+     *                                               only ever a row already in `restaurants`.
      */
     public function toSearchResultArray(string $provenance, ?float $distanceKm = null): array
     {
