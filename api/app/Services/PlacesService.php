@@ -56,7 +56,10 @@ class PlacesService
         $provider = Config::get('services.places.provider', 'fixture');
 
         if ($provider === 'fixture') {
-            return (new FixturePlacesProvider)->nearbyRestaurants($latitude, $longitude, $radiusKm)->all();
+            return array_merge(
+                (new FixturePlacesProvider)->nearbyRestaurants($latitude, $longitude, $radiusKm)->all(),
+                $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
+            );
         }
 
         if ($provider !== 'google') {
@@ -127,7 +130,10 @@ class PlacesService
             }
         }
 
-        $restaurants = $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes);
+        $restaurants = array_merge(
+            $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes),
+            $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
+        );
 
         $this->lastCandidateCounts = $nearbyCount === null ? [] : [
             'nearby' => $nearbyCount,
@@ -375,6 +381,25 @@ class PlacesService
             ->filter(fn (Restaurant $restaurant) => $modeAllowsCafeLeaning
                 || empty($restaurant->google_types)
                 || empty(array_intersect($restaurant->google_types, self::CAFE_EXTRA_TYPES)))
+            ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Community-submitted restaurants (admin-approved only — pending/rejected submissions never
+     * reach `restaurants` at all, see Admin\RestaurantSubmissionController). No Google-types
+     * cafe-leaning filter here — that's Google-type-specific and meaningless for these rows.
+     */
+    private function readUserSubmittedRestaurantsNear(float $latitude, float $longitude, float $radiusKm): array
+    {
+        return Restaurant::where('provider', 'user_submitted')
+            ->where('is_active', true)
+            ->with(['cuisines', 'tags'])
+            ->get()
+            ->filter(fn (Restaurant $restaurant) => RecommendationService::distanceKm(
+                $latitude, $longitude, (float) $restaurant->latitude, (float) $restaurant->longitude
+            ) <= $radiusKm)
             ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
             ->values()
             ->all();

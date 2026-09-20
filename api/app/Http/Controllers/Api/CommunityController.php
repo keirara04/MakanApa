@@ -99,7 +99,9 @@ class CommunityController extends Controller
         }
 
         $restaurantIds = $aggregates->pluck('restaurant_id')->all();
-        $restaurants = Restaurant::whereIn('id', $restaurantIds)->with('cuisines')->get()->keyBy('id');
+        // is_active filter: a closure-approved (soft-deleted) restaurant must drop out of the
+        // live feed even though its historical decisions/vibe votes stay untouched for analytics.
+        $restaurants = Restaurant::whereIn('id', $restaurantIds)->where('is_active', true)->with('cuisines')->get()->keyBy('id');
         $trendingVibes = $this->trendingVibes($restaurantIds, $isUniversity, $user->universityId());
 
         $trending = $aggregates

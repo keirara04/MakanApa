@@ -33,6 +33,16 @@ struct SettingsView: View {
                                         .foregroundStyle(Color.kicap)
                                 }
                             }
+                            NavigationLink {
+                                CommunityPlacesView()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .foregroundStyle(Color.sambalRed)
+                                    Text("Community Places")
+                                        .foregroundStyle(Color.kicap)
+                                }
+                            }
                         }
                     }
                 }

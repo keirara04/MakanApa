@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'signature_dish', 'food_category', 'latitude', 'longitude', 'address', 'price_level', 'rating',
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
     'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count', 'google_types',
+    'source_submission_id',
 ])]
 class Restaurant extends Model
 {
@@ -45,6 +47,12 @@ class Restaurant extends Model
     public function vibeVotes(): HasMany
     {
         return $this->hasMany(RestaurantVibeVote::class);
+    }
+
+    /** Pure provenance ("submitted by the community") — never ownership/edit-rights. */
+    public function sourceSubmission(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantSubmission::class, 'source_submission_id');
     }
 
     /**

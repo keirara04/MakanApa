@@ -7,6 +7,8 @@ struct CommunityView: View {
     @State private var viewModel = CommunityViewModel()
     @State private var selectedItem: CommunityFeedItem?
     @State private var headerAppeared = false
+    @State private var showingAddPlace = false
+    @State private var showingMyPlaces = false
 
     var body: some View {
         Group {
@@ -66,6 +68,14 @@ struct CommunityView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showingAddPlace) {
+            AddPlaceFlow()
+        }
+        .sheet(isPresented: $showingMyPlaces) {
+            NavigationStack {
+                MySubmissionsView()
+            }
+        }
     }
 
     // MARK: - Header
@@ -80,6 +90,22 @@ struct CommunityView: View {
                 Spacer()
                 if let community = viewModel.feed?.community {
                     CommunityBadge(affiliationType: community.type, university: community.university)
+                }
+                Menu {
+                    Button {
+                        showingAddPlace = true
+                    } label: {
+                        Label(Copy.communityAddPlaceMenuItem, systemImage: "plus")
+                    }
+                    Button {
+                        showingMyPlaces = true
+                    } label: {
+                        Label(Copy.communityMyPlacesMenuItem, systemImage: "list.bullet")
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Color.sambalRed)
                 }
             }
             Text(headline)
@@ -135,6 +161,9 @@ struct CommunityView: View {
                 .font(.makanBody(13))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            Button(Copy.communityAddPlaceCTA) { showingAddPlace = true }
+                .font(.makanBody(14))
+                .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 40)

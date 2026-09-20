@@ -53,6 +53,10 @@
 		BCB3A5AD491B585C4FECB2C6 /* PlacePreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9E55980CA468D6922E9311 /* PlacePreferencesStore.swift */; };
 		BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */; };
 		C4A1E72079F74FF8C1029208 /* AdminUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */; };
+		4A71EC8E18AC411685F3D2C7 /* AddPlaceFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BC629126DE45C9890BE705 /* AddPlaceFlow.swift */; };
+		9D519BDB0E0C46DAA439E5B5 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */; };
+		32413B0699CC445EBE1668DE /* MySubmissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4EAEC1DF3E04B0780656E78 /* MySubmissionsView.swift */; };
+		2A6DAB89BD404DB69681B6E2 /* CommunityPlacesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D565FC4B451F45749B37391F /* CommunityPlacesView.swift */; };
 		4CCF77D9D3124FCCA9EC57C0 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */; };
 		8251F985672848778F55D49C /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */; };
 		A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */; };
@@ -126,6 +130,10 @@
 		CE0082C1305A8EE0006B8569 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveryMode.swift; sourceTree = "<group>"; };
 		D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminUsersView.swift; sourceTree = "<group>"; };
+		68BC629126DE45C9890BE705 /* AddPlaceFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AddPlaceFlow.swift; sourceTree = "<group>"; };
+		EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapPinPickerView.swift; sourceTree = "<group>"; };
+		E4EAEC1DF3E04B0780656E78 /* MySubmissionsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MySubmissionsView.swift; sourceTree = "<group>"; };
+		D565FC4B451F45749B37391F /* CommunityPlacesView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityPlacesView.swift; sourceTree = "<group>"; };
 		8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
 		336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
 		65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityTrendingCard.swift; sourceTree = "<group>"; };
@@ -215,6 +223,7 @@
 			isa = PBXGroup;
 			children = (
 				D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */,
+				D565FC4B451F45749B37391F /* CommunityPlacesView.swift */,
 			);
 			name = Admin;
 			path = Admin;
@@ -227,6 +236,9 @@
 				336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */,
 				65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */,
 				30279874B3E648C7AB7F1E79 /* CommunityRestaurantDetailSheet.swift */,
+				68BC629126DE45C9890BE705 /* AddPlaceFlow.swift */,
+				EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */,
+				E4EAEC1DF3E04B0780656E78 /* MySubmissionsView.swift */,
 			);
 			name = Community;
 			path = Community;
@@ -576,6 +588,10 @@
 				227BA366486C58701198AD4F /* LoginMascotPose.swift in Sources */,
 				577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */,
 				C4A1E72079F74FF8C1029208 /* AdminUsersView.swift in Sources */,
+				4A71EC8E18AC411685F3D2C7 /* AddPlaceFlow.swift in Sources */,
+				9D519BDB0E0C46DAA439E5B5 /* MapPinPickerView.swift in Sources */,
+				32413B0699CC445EBE1668DE /* MySubmissionsView.swift in Sources */,
+				2A6DAB89BD404DB69681B6E2 /* CommunityPlacesView.swift in Sources */,
 				4CCF77D9D3124FCCA9EC57C0 /* CommunityView.swift in Sources */,
 				8251F985672848778F55D49C /* CommunityViewModel.swift in Sources */,
 				A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */,

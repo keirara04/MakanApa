@@ -86,6 +86,162 @@ struct CommunityFeedResponse: Decodable, Equatable {
     let trending: [CommunityFeedItem]
 }
 
+// MARK: - Community places (submissions)
+
+struct ExistingPlaceResult: Decodable, Identifiable, Equatable {
+    let id: Int
+    let name: String
+    let address: String?
+    let foodCategory: String?
+    let priceLevel: Int?
+    let distanceKm: Double?
+}
+
+struct GooglePlaceCandidate: Decodable, Identifiable, Equatable {
+    let googlePlaceId: String
+    let name: String
+    let foodCategory: String?
+    let priceLevel: Int?
+    let rating: Double?
+    let latitude: Double
+    let longitude: Double
+
+    var id: String { googlePlaceId }
+}
+
+struct PlaceSearchResponse: Decodable {
+    let existing: [ExistingPlaceResult]
+    let google: [GooglePlaceCandidate]
+}
+
+/// What kind of change this submission proposes.
+enum SubmissionType: String, Codable {
+    case newPlace = "new_place"
+    case editPlace = "edit_place"
+    case closure
+}
+
+enum SubmissionSourceType: String, Codable {
+    case google
+    case manual
+}
+
+enum SubmissionLocationSource: String, Codable {
+    case google
+    case currentLocation = "current_location"
+    case mapPin = "map_pin"
+}
+
+struct CreateSubmissionRequestBody: Encodable {
+    let submissionType: SubmissionType
+    let sourceType: SubmissionSourceType
+    let googlePlaceId: String?
+    let restaurantId: Int?
+    let name: String
+    let address: String?
+    let foodCategory: String?
+    let priceLevel: Int?
+    let latitude: Double
+    let longitude: Double
+    let locationSource: SubmissionLocationSource
+    let notes: String?
+}
+
+struct UpdateSubmissionRequestBody: Encodable {
+    let name: String
+    let address: String?
+    let foodCategory: String?
+    let priceLevel: Int?
+    let notes: String?
+}
+
+struct SubmissionResponse: Decodable {
+    let submission: MySubmission
+}
+
+struct MySubmission: Decodable, Identifiable, Equatable {
+    let id: Int
+    let restaurantId: Int?
+    let submissionType: SubmissionType
+    let sourceType: SubmissionSourceType
+    let name: String
+    let address: String?
+    let foodCategory: String?
+    let priceLevel: Int?
+    let status: String
+    let reviewNote: String?
+    let createdAt: String
+}
+
+struct MySubmissionsResponse: Decodable {
+    let submissions: [MySubmission]
+}
+
+struct CancelSubmissionResponse: Decodable {
+    let cancelled: Bool
+}
+
+// MARK: - Admin: community places moderation
+
+struct AdminSubmissionSubmitter: Decodable, Equatable {
+    let email: String?
+    let affiliationType: String?
+    let university: String?
+}
+
+struct PossibleDuplicate: Decodable, Equatable {
+    let id: Int
+    let name: String
+    let distanceMeters: Int
+}
+
+struct AdminSubmission: Decodable, Identifiable, Equatable {
+    let id: Int
+    let submissionType: SubmissionType
+    let sourceType: SubmissionSourceType
+    let name: String
+    let address: String?
+    let foodCategory: String?
+    let priceLevel: Int?
+    let latitude: Double
+    let longitude: Double
+    let notes: String?
+    let status: String
+    let restaurantId: Int?
+    let submitter: AdminSubmissionSubmitter
+    let possibleDuplicate: PossibleDuplicate?
+    let createdAt: String
+}
+
+struct AdminSubmissionListResponse: Decodable {
+    let submissions: [AdminSubmission]
+}
+
+struct AdminApproveResponse: Decodable {
+    let approved: Bool
+    let restaurantId: Int
+}
+
+struct LinkSubmissionRequestBody: Encodable {
+    let restaurantId: Int
+}
+
+struct AdminLinkResponse: Decodable {
+    let linked: Bool
+}
+
+struct ReviewNoteRequestBody: Encodable {
+    let reviewNote: String
+}
+
+struct AdminRejectResponse: Decodable {
+    let rejected: Bool
+}
+
+struct AdminRequestChangesResponse: Decodable {
+    let changesRequested: Bool
+}
+
 struct SoloRecommendationRequestBody: Encodable {
     let latitude: Double
     let longitude: Double

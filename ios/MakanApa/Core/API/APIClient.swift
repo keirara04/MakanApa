@@ -121,7 +121,90 @@ enum APIClient {
         return try await get("community/feed", query: query)
     }
 
+    // MARK: - Community places (submissions)
+
+    static func searchCommunityPlaces(query: String, latitude: Double?, longitude: Double?) async throws -> PlaceSearchResponse {
+        var items: [URLQueryItem] = [URLQueryItem(name: "query", value: query)]
+        if let latitude { items.append(URLQueryItem(name: "latitude", value: String(latitude))) }
+        if let longitude { items.append(URLQueryItem(name: "longitude", value: String(longitude))) }
+        return try await get("community/places/search", query: items)
+    }
+
+    static func createSubmission(_ body: CreateSubmissionRequestBody) async throws -> SubmissionResponse {
+        try await post("community/submissions", body: body)
+    }
+
+    static func mySubmissions() async throws -> MySubmissionsResponse {
+        try await get("community/submissions/mine", query: [])
+    }
+
+    static func updateSubmission(id: Int, _ body: UpdateSubmissionRequestBody) async throws -> SubmissionResponse {
+        try await patch("community/submissions/\(id)", body: body)
+    }
+
+    static func cancelSubmission(id: Int) async throws -> CancelSubmissionResponse {
+        try await delete("community/submissions/\(id)")
+    }
+
+    // MARK: - Admin: community places moderation
+
+    static func adminListSubmissions(status: String) async throws -> AdminSubmissionListResponse {
+        try await get("admin/community/submissions", query: [URLQueryItem(name: "status", value: status)])
+    }
+
+    static func adminApproveSubmission(id: Int) async throws -> AdminApproveResponse {
+        try await post("admin/community/submissions/\(id)/approve", body: EmptyBody())
+    }
+
+    static func adminLinkSubmission(id: Int, restaurantId: Int) async throws -> AdminLinkResponse {
+        try await post("admin/community/submissions/\(id)/link", body: LinkSubmissionRequestBody(restaurantId: restaurantId))
+    }
+
+    static func adminRejectSubmission(id: Int, reviewNote: String) async throws -> AdminRejectResponse {
+        try await post("admin/community/submissions/\(id)/reject", body: ReviewNoteRequestBody(reviewNote: reviewNote))
+    }
+
+    static func adminRequestChanges(id: Int, reviewNote: String) async throws -> AdminRequestChangesResponse {
+        try await post("admin/community/submissions/\(id)/request-changes", body: ReviewNoteRequestBody(reviewNote: reviewNote))
+    }
+
     private struct EmptyBody: Encodable {}
+
+    private static func patch<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {
+        var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
+        request.httpMethod = "PATCH"
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
+        request.httpBody = try encoder.encode(body)
+
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    private static func delete<Response: Decodable>(_ path: String) async throws -> Response {
+        var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
+
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
 
     private static func get<Response: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> Response {
         var components = URLComponents(url: APIConfig.baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)

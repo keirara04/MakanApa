@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\RestaurantSubmissionController as AdminRestaurantSubmissionController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\RestaurantController;
+use App\Http\Controllers\Api\RestaurantSubmissionController;
 use App\Http\Controllers\Api\UniversityController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +40,7 @@ Route::prefix('v1')->group(function () {
             Route::get('places/nearby', [NearbyController::class, 'index']);
             Route::post('places/nearby/pick', [NearbyController::class, 'pick']);
             Route::get('restaurants/{restaurant}/details', [NearbyController::class, 'details']);
+            Route::get('community/places/search', [RestaurantSubmissionController::class, 'search']);
         });
 
         Route::post('decisions/{decision}/accept', [RecommendationController::class, 'accept']);
@@ -46,10 +49,24 @@ Route::prefix('v1')->group(function () {
         Route::post('restaurants/{restaurant}/unsave', [RestaurantController::class, 'unsave']);
         Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
 
+        Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine']);
+        Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update']);
+        Route::delete('community/submissions/{submission}', [RestaurantSubmissionController::class, 'destroy']);
+        // Adding a place is normally a once-or-twice-a-session action, not repeatable — a
+        // tighter limit than the general local-DB throttle above since this writes new data
+        // that auto-publishes with no review step until an admin acts on it.
+        Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1');
+
         Route::prefix('admin')->middleware('superadmin')->group(function () {
             Route::get('users', [AdminUserController::class, 'index']);
             Route::post('users', [AdminUserController::class, 'store']);
             Route::post('users/{user}/revoke', [AdminUserController::class, 'revoke']);
+
+            Route::get('community/submissions', [AdminRestaurantSubmissionController::class, 'index']);
+            Route::post('community/submissions/{submission}/approve', [AdminRestaurantSubmissionController::class, 'approve']);
+            Route::post('community/submissions/{submission}/link', [AdminRestaurantSubmissionController::class, 'link']);
+            Route::post('community/submissions/{submission}/reject', [AdminRestaurantSubmissionController::class, 'reject']);
+            Route::post('community/submissions/{submission}/request-changes', [AdminRestaurantSubmissionController::class, 'requestChanges']);
         });
     });
 });
