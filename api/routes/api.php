@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\PhotoController;
+use App\Http\Controllers\Api\PlaceSearchController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\RestaurantController;
 use App\Http\Controllers\Api\RestaurantSubmissionController;
@@ -48,6 +49,16 @@ Route::prefix('v1')->group(function () {
             Route::post('places/nearby/pick', [NearbyController::class, 'pick']);
             Route::get('restaurants/{restaurant}/details', [NearbyController::class, 'details']);
             Route::get('community/places/search', [RestaurantSubmissionController::class, 'search']);
+            // Resolving a google_fallback result does one live Google Place Details call, same
+            // cost class as the rest of this group — not the cheap local-DB lane below.
+            Route::post('places/resolve', [PlaceSearchController::class, 'resolve']);
+        });
+
+        // Nearby's search box: local-DB `LIKE`/`whereHas` queries, cheap enough for typeahead —
+        // Google is only called from inside searchPlaces() when local results are thin, and that
+        // internal call is what the throttle above actually protects, not this endpoint itself.
+        Route::middleware('throttle:90,1')->group(function () {
+            Route::get('places/search', [PlaceSearchController::class, 'search']);
         });
 
         Route::post('decisions/{decision}/accept', [RecommendationController::class, 'accept']);

@@ -50,6 +50,32 @@ final class NearbyViewModel {
     var isPicking = false
     var winnerPlaceId: Int?
 
+    /// Single source of truth for "where is Nearby currently looking" — used both for the next
+    /// `places/nearby` fetch and for search, so typing a query after panning + "Search this
+    /// area" searches around the new area instead of silently snapping back to GPS.
+    private(set) var browseCenter: CLLocationCoordinate2D?
+
+    // MARK: - Search capsule
+
+    /// Setting this doesn't itself trigger a search — the view calls `scheduleSearch()` on
+    /// change (via `.onChange`), since a synchronous `didSet` can't call an actor-isolated method
+    /// under Swift 6 strict concurrency.
+    var searchQuery: String = ""
+    var searchResults: [PlaceSearchResult] = []
+    var isSearching = false
+    /// A `.googleFallback` result's coordinate, shown as a temporary pin before it resolves.
+    var temporarySearchCoordinate: CLLocationCoordinate2D?
+    /// The selected search result's canonical place id, once known — kept separate from
+    /// `winnerPlaceId` (see `NearbyMapView`).
+    var highlightedSearchPlaceId: Int?
+    /// The selected search result's coordinate — drives the map's one-off "focus" recenter.
+    var focusCoordinate: CLLocationCoordinate2D?
+    var focusRequestId = 0
+
+    private var searchTask: Task<Void, Never>?
+    private static let searchDebounce: Duration = .milliseconds(350)
+    private static let minSearchQueryLength = 2
+
     private var lastSearchedViewport: MapViewport?
     private var didLoadFilters = false
 
@@ -143,6 +169,7 @@ final class NearbyViewModel {
             )
             places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
             lastSearchedViewport = viewport
+            browseCenter = Self.center(of: viewport)
             showSearchThisArea = false
         } catch let error as APIError {
             apiError = error
@@ -150,6 +177,93 @@ final class NearbyViewModel {
             apiError = .transport(error)
         }
         isLoading = false
+    }
+
+    private static func center(of viewport: MapViewport) -> CLLocationCoordinate2D {
+        CLLocationCoordinate2D(
+            latitude: (viewport.north + viewport.south) / 2,
+            longitude: (viewport.east + viewport.west) / 2
+        )
+    }
+
+    // MARK: - Search capsule
+
+    /// Cancels any in-flight debounce/request before scheduling a new one — only the latest
+    /// keystroke's search should ever land. Called by the view on `searchQuery` change.
+    @MainActor
+    func scheduleSearch() {
+        searchTask?.cancel()
+        let query = searchQuery.trimmingCharacters(in: .whitespaces)
+        guard query.count >= Self.minSearchQueryLength else {
+            searchResults = []
+            isSearching = false
+            return
+        }
+        searchTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.searchDebounce)
+            guard let self, !Task.isCancelled else { return }
+            await self.performSearch(query: query)
+        }
+    }
+
+    @MainActor
+    private func performSearch(query: String) async {
+        guard let center = browseCenter else { return }
+        isSearching = true
+        do {
+            let response = try await APIClient.searchPlaces(
+                query: query, latitude: center.latitude, longitude: center.longitude
+            )
+            guard !Task.isCancelled else { return }
+            searchResults = response.results
+        } catch let error as APIError {
+            if !Task.isCancelled { apiError = error }
+        } catch {
+            if !Task.isCancelled { apiError = .transport(error) }
+        }
+        isSearching = false
+    }
+
+    /// Resolves a `.googleFallback` result to a canonical restaurant before opening its detail
+    /// sheet — canonical/community results already have a `restaurantId` and skip straight
+    /// through. Returns nil (and sets `apiError`) if resolution fails.
+    @MainActor
+    func selectSearchResult(_ result: PlaceSearchResult) async -> NearbyPlace? {
+        focusCoordinate = CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude)
+        focusRequestId += 1
+
+        if result.provenance == .googleFallback, let googlePlaceId = result.googlePlaceId {
+            temporarySearchCoordinate = focusCoordinate
+            do {
+                let response = try await APIClient.resolvePlace(googlePlaceId: googlePlaceId)
+                temporarySearchCoordinate = nil
+                highlightedSearchPlaceId = response.restaurant.id
+                return response.restaurant
+            } catch let error as APIError {
+                apiError = error
+                return nil
+            } catch {
+                apiError = .transport(error)
+                return nil
+            }
+        }
+
+        guard let restaurantId = result.restaurantId else { return nil }
+        highlightedSearchPlaceId = restaurantId
+        return NearbyPlace(
+            id: restaurantId, name: result.name, rating: result.rating, priceLevel: result.priceLevel,
+            latitude: result.latitude, longitude: result.longitude, openStatus: result.openStatus ?? "unknown"
+        )
+    }
+
+    @MainActor
+    func clearSearch() {
+        searchTask?.cancel()
+        searchQuery = ""
+        searchResults = []
+        isSearching = false
+        temporarySearchCoordinate = nil
+        highlightedSearchPlaceId = nil
     }
 
     /// Runs the "🍚 Pick one lah" sequence: pulses the currently visible candidates while the

@@ -58,6 +58,19 @@ enum APIClient {
         try await get("restaurants/\(restaurantId)/details", query: [])
     }
 
+    static func searchPlaces(query: String, latitude: Double, longitude: Double) async throws -> PlaceSearchResponseV2 {
+        let items: [URLQueryItem] = [
+            URLQueryItem(name: "query", value: query),
+            URLQueryItem(name: "latitude", value: String(latitude)),
+            URLQueryItem(name: "longitude", value: String(longitude)),
+        ]
+        return try await get("places/search", query: items)
+    }
+
+    static func resolvePlace(googlePlaceId: String) async throws -> ResolvePlaceResponse {
+        try await post("places/resolve", body: ResolvePlaceRequestBody(googlePlaceId: googlePlaceId))
+    }
+
     static func pickFromVisible(
         latitude: Double, longitude: Double, viewport: MapViewport, visiblePlaceIds: [Int],
         openNow: Bool?, budgetMax: Int?, minRating: Double?, mode: DiscoveryMode? = nil, vibe: Vibe? = nil

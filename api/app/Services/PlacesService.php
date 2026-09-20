@@ -11,6 +11,7 @@ use App\Services\Craving\CravingIntent;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
+use App\Services\Places\ProviderPlace;
 use App\Support\DiscoveryMode;
 use App\Support\Vibe;
 use Illuminate\Support\Arr;
@@ -42,6 +43,12 @@ class PlacesService
 
     /** Hard cap on tiles per request, regardless of how large radiusKm is — bounds Google API cost from one client request. */
     private const MAX_TILES = 7;
+
+    /** searchPlaces()'s radius around the caller's Nearby browse center — a fixed, generous "somewhere in the area" scope, not the viewport-derived radius nearbyRestaurants() uses. */
+    private const SEARCH_RADIUS_KM = 6.0;
+
+    /** Below this many local matches, searchPlaces() also asks Google — keeps MakanApa's own data first-class by construction (it's always searched, always returned first) rather than by rank-boosting alone, while still calling Google on every keystroke when our own data already has enough to show. */
+    private const GOOGLE_FALLBACK_MIN_LOCAL_RESULTS = 8;
 
     public function __construct(private readonly PlaceNormalizer $normalizer) {}
 
@@ -144,6 +151,209 @@ class PlacesService
         ];
 
         return $restaurants;
+    }
+
+    /**
+     * Restaurant name/food/category/cuisine/dish search, scoped to the caller's current Nearby
+     * browse center. MakanApa's own DB is searched first and always included; Google Text Search
+     * is only called as a supplemental fallback when local results are thin — not on every
+     * keystroke — so the common case (our own data already covers the query) never pays for a
+     * Google call at all.
+     *
+     * Ranking is match-quality first (exact/prefix/contains name, then dish, then menu item, then
+     * category/cuisine, then distance), with provenance only breaking ties — a strong Google match
+     * must never lose to a weak community one just because community rows are "ours."
+     *
+     * @return array<int, array<string, mixed>> each tagged 'provenance': canonical|community|google_fallback
+     */
+    public function searchPlaces(string $query, float $latitude, float $longitude): array
+    {
+        $local = $this->searchLocalRestaurants($query, $latitude, $longitude);
+
+        $results = $local;
+        // Same PLACES_PROVIDER gate nearbyRestaurants() uses — fixture-mode environments (tests,
+        // local dev without a Google key configured) must never place a live API call just
+        // because search happens to also read GOOGLE_PLACES_API_KEY from the environment.
+        $usesGoogle = Config::get('services.places.provider', 'fixture') === 'google';
+        if ($usesGoogle && count($local) < self::GOOGLE_FALLBACK_MIN_LOCAL_RESULTS) {
+            $apiKey = Config::get('services.places.google_api_key');
+            if (! empty($apiKey)) {
+                try {
+                    $results = array_merge($results, $this->searchGoogleFallback($query, $latitude, $longitude, $apiKey));
+                } catch (Throwable $e) {
+                    Log::warning('Places search: Google text search fallback failed, returning local results only', [
+                        'error' => $e->getMessage(),
+                        'query' => $query,
+                    ]);
+                }
+            }
+        }
+
+        return $this->rankSearchResults($results, $query);
+    }
+
+    /**
+     * Turns a google_fallback search result (no restaurant_id yet) into a canonical `restaurants`
+     * row, the one path every search result eventually converges on before its detail sheet opens
+     * — Google is a provider, `restaurants` is MakanApa's canonical restaurant graph.
+     */
+    public function resolveGooglePlace(string $googlePlaceId): array
+    {
+        if (Config::get('services.places.provider', 'fixture') !== 'google') {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        $apiKey = Config::get('services.places.google_api_key');
+        if (empty($apiKey)) {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $googlePlaceId)->first();
+        if ($existing) {
+            $existing->load(['cuisines', 'tags']);
+
+            return $existing->toSearchResultArray('canonical');
+        }
+
+        $place = (new GooglePlacesProvider($apiKey))->fetchPlace($googlePlaceId);
+        $data = $this->normalizer->normalize(collect([$place]))->first();
+        $restaurant = $this->upsertRestaurant($data);
+        $restaurant->load(['cuisines', 'tags']);
+
+        return $restaurant->toSearchResultArray('canonical');
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function searchLocalRestaurants(string $query, float $latitude, float $longitude): array
+    {
+        $pattern = '%'.$this->escapeLike($query).'%';
+
+        return Restaurant::query()
+            ->where('is_active', true)
+            ->where(function ($q) use ($pattern) {
+                $q->where('name', 'ilike', $pattern)
+                    ->orWhere('food_category', 'ilike', $pattern)
+                    ->orWhere('signature_dish', 'ilike', $pattern)
+                    // whereHas()/EXISTS, not a join — a restaurant with several matching cuisines
+                    // or menu items must still count once, not fan out into duplicate rows.
+                    ->orWhereHas('cuisines', fn ($c) => $c->where('slug', 'ilike', $pattern)->orWhere('name', 'ilike', $pattern))
+                    ->orWhereHas('menuItems', fn ($m) => $m->where('name', 'ilike', $pattern));
+            })
+            ->with(['cuisines', 'tags', 'menuItems'])
+            ->get()
+            ->map(fn (Restaurant $r) => [$r, RecommendationService::distanceKm($latitude, $longitude, (float) $r->latitude, (float) $r->longitude)])
+            ->filter(fn (array $pair) => $pair[1] <= self::SEARCH_RADIUS_KM)
+            ->map(fn (array $pair) => [
+                ...$pair[0]->toSearchResultArray(
+                    $pair[0]->provider === 'user_submitted' ? 'community' : 'canonical',
+                    $pair[1]
+                ),
+                // Ranking-only signal (matchTier()) — not part of the restaurant's general shape,
+                // so it lives here rather than on toSearchResultArray() itself.
+                'menu_item_names' => $pair[0]->menuItems->pluck('name')->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function searchGoogleFallback(string $query, float $latitude, float $longitude, string $apiKey): array
+    {
+        $existingPlaceIds = Restaurant::where('provider', 'google')->pluck('provider_place_id')->all();
+
+        $places = (new GooglePlacesProvider($apiKey))->searchText($query, $latitude, $longitude, self::SEARCH_RADIUS_KM, null);
+
+        return $places
+            ->reject(fn (ProviderPlace $place) => in_array($place->providerPlaceId, $existingPlaceIds, true))
+            ->map(fn (ProviderPlace $place) => [
+                'id' => null,
+                'google_place_id' => $place->providerPlaceId,
+                'name' => $place->name,
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+                'price_level' => $place->priceLevel,
+                'rating' => $place->rating,
+                'food_category' => null,
+                'signature_dish' => null,
+                'cuisines' => [],
+                'tags' => [],
+                'provenance' => 'google_fallback',
+                'is_community_find' => false,
+                'distance_km' => RecommendationService::distanceKm($latitude, $longitude, $place->latitude, $place->longitude),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Match-quality tier, ascending = better: exact name, name prefix, name contains, signature
+     * dish, menu item, category/cuisine, no direct text match (reachable when a row only matched
+     * via a join clause the tiering below doesn't independently re-check). Deliberately ignores
+     * provenance — a canonical/Google exact match must always beat a community category-only
+     * match, never the other way around just because community rows are "ours."
+     */
+    private function matchTier(array $result, string $normalizedQuery): int
+    {
+        $name = mb_strtolower((string) ($result['name'] ?? ''));
+
+        if ($name === $normalizedQuery) {
+            return 0;
+        }
+        if (str_starts_with($name, $normalizedQuery)) {
+            return 1;
+        }
+        if (str_contains($name, $normalizedQuery)) {
+            return 2;
+        }
+        if (str_contains(mb_strtolower((string) ($result['signature_dish'] ?? '')), $normalizedQuery)) {
+            return 3;
+        }
+        if (collect($result['menu_item_names'] ?? [])->contains(fn ($n) => str_contains(mb_strtolower($n), $normalizedQuery))) {
+            return 4;
+        }
+        $categoryish = mb_strtolower((string) ($result['food_category'] ?? ''));
+        $cuisineHit = collect($result['cuisines'] ?? [])->contains(fn ($c) => str_contains(mb_strtolower($c), $normalizedQuery));
+        if (str_contains($categoryish, $normalizedQuery) || $cuisineHit) {
+            return 5;
+        }
+
+        return 6;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $results
+     * @return array<int, array<string, mixed>>
+     */
+    private function rankSearchResults(array $results, string $query): array
+    {
+        $normalizedQuery = mb_strtolower(trim($query));
+
+        $ranked = collect($results)
+            ->map(function (array $result) use ($normalizedQuery) {
+                $result['_tier'] = $this->matchTier($result, $normalizedQuery);
+                $result['_provenanceBoost'] = $result['provenance'] === 'google_fallback' ? 1 : 0;
+
+                return $result;
+            })
+            ->sortBy([
+                ['_tier', 'asc'],
+                ['_provenanceBoost', 'asc'],
+                ['distance_km', 'asc'],
+            ])
+            ->values()
+            ->map(fn (array $result) => Arr::except($result, ['_tier', '_provenanceBoost', 'menu_item_names']))
+            ->all();
+
+        return $ranked;
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($value));
     }
 
     /**
@@ -331,7 +541,7 @@ class PlacesService
      * sync for this provider_place_id) have no overrides yet, so this is a no-op for genuinely
      * new places.
      */
-    private function upsertRestaurant(array $data): void
+    private function upsertRestaurant(array $data): Restaurant
     {
         $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $data['provider_place_id'])->first();
 
@@ -368,6 +578,8 @@ class PlacesService
             fn (string $name) => Tag::firstOrCreate(['name' => $name])->id
         );
         $restaurant->tags()->sync($tagIds);
+
+        return $restaurant;
     }
 
     /**

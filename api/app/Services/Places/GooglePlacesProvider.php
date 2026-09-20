@@ -30,6 +30,9 @@ class GooglePlacesProvider implements PlacesProvider
      */
     private const DETAILS_FIELD_MASK = 'photos,reviews,googleMapsUri,currentOpeningHours,utcOffsetMinutes';
 
+    /** Same fields as FIELD_MASK, but the single-place GET endpoint (fetchPlace()) doesn't use the `places.` list-response prefix. */
+    private const SINGLE_PLACE_FIELD_MASK = 'id,displayName,location,types,rating,priceLevel,currentOpeningHours.openNow,userRatingCount';
+
     public function __construct(private readonly ?string $apiKey) {}
 
     public function nearbyRestaurants(float $latitude, float $longitude, float $radiusKm, array $includedTypes = ['restaurant']): Collection
@@ -112,6 +115,26 @@ class GooglePlacesProvider implements PlacesProvider
             openNow: $place['currentOpeningHours']['openNow'] ?? null,
             userRatingCount: $place['userRatingCount'] ?? null,
         );
+    }
+
+    /**
+     * Single place by its provider ID, in the same shape nearbyRestaurants()/searchText() return
+     * (candidate fields only, via FIELD_MASK) — used to resolve a google_fallback search result
+     * into a normalizable place once the user actually picks it, not for the pricier
+     * photos/reviews tier (that's fetchPresentationDetails() below).
+     */
+    public function fetchPlace(string $providerPlaceId): ProviderPlace
+    {
+        if (empty($this->apiKey)) {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        $response = Http::withHeaders([
+            'X-Goog-Api-Key' => $this->apiKey,
+            'X-Goog-FieldMask' => self::SINGLE_PLACE_FIELD_MASK,
+        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}")->throw();
+
+        return $this->mapPlace($response->json());
     }
 
     /**

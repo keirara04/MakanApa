@@ -7,12 +7,18 @@ struct NearbyView: View {
     @Environment(AppRouter.self) private var router
     @Environment(SoloViewModel.self) private var soloViewModel
     @Environment(LocationService.self) private var locationService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = NearbyViewModel()
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
     @State private var recenterRequestId = 0
     @State private var heartPop = false
+    @State private var isSearchActive = false
+    @State private var searchPlaceholderExample = NearbyView.searchPlaceholderExamples[0]
+    @FocusState private var searchFieldFocused: Bool
     private var preferences = PlacePreferencesStore.shared
+
+    private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -24,10 +30,19 @@ struct NearbyView: View {
                 .zIndex(0)
 
             VStack(spacing: 10) {
-                filterBar
-                discoveryModeBar
-                if viewModel.discoveryMode != .normal {
-                    vibeBar
+                if isSearchActive {
+                    searchCapsule
+                    if viewModel.isSearching || !viewModel.searchResults.isEmpty {
+                        searchResultsList
+                    }
+                } else {
+                    HStack(alignment: .top, spacing: 8) {
+                        primaryRibbon
+                        searchIconButton
+                    }
+                    if viewModel.discoveryMode != .normal {
+                        vibeRail
+                    }
                 }
                 if let apiError = viewModel.apiError {
                     errorBanner(for: apiError)
@@ -38,6 +53,8 @@ struct NearbyView: View {
                     searchThisAreaPill
                 }
             }
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: isSearchActive)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: viewModel.discoveryMode)
             .padding(.horizontal, 12)
             .padding(.top, 16)
             .zIndex(1)
@@ -85,6 +102,10 @@ struct NearbyView: View {
             winnerPlaceId: viewModel.winnerPlaceId,
             initialCameraTarget: userCoordinate,
             recenterRequestId: recenterRequestId,
+            focusTarget: viewModel.focusCoordinate,
+            focusRequestId: viewModel.focusRequestId,
+            highlightedSearchPlaceId: viewModel.highlightedSearchPlaceId,
+            temporarySearchCoordinate: viewModel.temporarySearchCoordinate,
             onCameraIdle: { viewport, zoom in
                 currentViewport = viewport
                 currentZoom = zoom
@@ -105,75 +126,59 @@ struct NearbyView: View {
         return nil
     }
 
-    // MARK: - Filter bar
+    // MARK: - Filter + discovery mode ribbon
+    //
+    // One scrollable rail instead of two stacked rows: quick filters and discovery modes are
+    // different semantics (hard filter vs. result-shaping mode) so they keep a thin divider
+    // between them, but sharing one row halves the vertical space the overlay takes over the map.
 
-    private var filterBar: some View {
-        HStack(spacing: 8) {
-            filterChip(label: "Open now", isOn: viewModel.openNowFilter) {
-                viewModel.openNowFilter.toggle()
-                rerunSearch()
+    private var primaryRibbon: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(label: "Open now", isOn: viewModel.openNowFilter) {
+                    viewModel.openNowFilter.toggle()
+                    rerunSearch()
+                }
+                filterChip(label: "≤ RM20", isOn: viewModel.budgetMaxFilter == 2) {
+                    viewModel.budgetMaxFilter = viewModel.budgetMaxFilter == 2 ? nil : 2
+                    rerunSearch()
+                }
+                filterChip(label: "4.5+ ★", isOn: viewModel.minRatingFilter == 4.5) {
+                    viewModel.minRatingFilter = viewModel.minRatingFilter == 4.5 ? nil : 4.5
+                    rerunSearch()
+                }
+
+                Rectangle()
+                    .fill(Color.kicap.opacity(0.15))
+                    .frame(width: 1, height: 20)
+
+                modeChip(.normal, label: "For you")
+                modeChip(.lowKey, label: "Low-key")
+                modeChip(.cafe, label: "Cafe")
+                moreModeMenu
             }
-            filterChip(label: "≤ RM20", isOn: viewModel.budgetMaxFilter == 2) {
-                viewModel.budgetMaxFilter = viewModel.budgetMaxFilter == 2 ? nil : 2
-                rerunSearch()
-            }
-            filterChip(label: "4.5+ ★", isOn: viewModel.minRatingFilter == 4.5) {
-                viewModel.minRatingFilter = viewModel.minRatingFilter == 4.5 ? nil : 4.5
-                rerunSearch()
-            }
-            Spacer()
+            .padding(.vertical, 3)
         }
+        .edgeFade()
     }
 
-    private func filterChip(label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(Motion.quick) { action() }
-        }) {
-            Text(label)
+    private var moreModeMenu: some View {
+        Menu {
+            Button("Popular") { setMode(.popular) }
+            Button("Cheap eats") { setMode(.cheapEats) }
+            Button("Late night") { setMode(.lateNight) }
+        } label: {
+            Text(moreLabel)
                 .font(.makanBody(13))
-                .foregroundStyle(isOn ? .white : Color.kicap)
+                .lineLimit(1)
+                .foregroundStyle(isMoreModeActive ? .white : Color.kicap)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(isOn ? Color.sambalRed : Color.white)
+                .background(isMoreModeActive ? Color.sambalRed : Color.white)
                 .clipShape(Capsule())
                 .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         }
-    }
-
-    private func rerunSearch() {
-        guard let currentViewport else { return }
-        Task { await viewModel.searchThisAreaTapped(currentViewport) }
-    }
-
-    // MARK: - Discovery mode / Vibe
-
-    /// Kept small on purpose — "For you"/"Low-key"/"Cafe" cover the common cases as always-
-    /// visible chips; the rarer Popular/Cheap eats/Late night live behind "More" so the filter
-    /// bar doesn't turn into a six-chip control panel.
-    private var discoveryModeBar: some View {
-        HStack(spacing: 8) {
-            modeChip(.normal, label: "For you")
-            modeChip(.lowKey, label: "Low-key")
-            modeChip(.cafe, label: "Cafe")
-
-            Menu {
-                Button("Popular") { setMode(.popular) }
-                Button("Cheap eats") { setMode(.cheapEats) }
-                Button("Late night") { setMode(.lateNight) }
-            } label: {
-                Text(moreLabel)
-                    .font(.makanBody(13))
-                    .foregroundStyle(isMoreModeActive ? .white : Color.kicap)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(isMoreModeActive ? Color.sambalRed : Color.white)
-                    .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
-            }
-
-            Spacer()
-        }
+        .accessibilityLabel(Text(isMoreModeActive ? "\(moreLabel), selected" : moreLabel))
     }
 
     private var isMoreModeActive: Bool {
@@ -189,14 +194,16 @@ struct NearbyView: View {
         }
     }
 
-    private func modeChip(_ mode: DiscoveryMode, label: String) -> some View {
-        let isOn = viewModel.discoveryMode == mode
-        return Button {
+    /// Shared by every filter/mode chip so press-scale, timing, and Reduce Motion behavior stay
+    /// consistent instead of being re-implemented per chip.
+    private func chip(_ label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(Motion.quick) { setMode(mode) }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.1) : Motion.quick) { action() }
         } label: {
             Text(label)
                 .font(.makanBody(13))
+                .lineLimit(1)
                 .foregroundStyle(isOn ? .white : Color.kicap)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -204,6 +211,22 @@ struct NearbyView: View {
                 .clipShape(Capsule())
                 .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
         }
+        .buttonStyle(MakanApaChipButtonStyle())
+        .accessibilityLabel(Text(isOn ? "\(label), selected" : label))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+
+    private func filterChip(label: String, isOn: Bool, action: @escaping () -> Void) -> some View {
+        chip(label, isOn: isOn, action: action)
+    }
+
+    private func modeChip(_ mode: DiscoveryMode, label: String) -> some View {
+        chip(label, isOn: viewModel.discoveryMode == mode) { setMode(mode) }
+    }
+
+    private func rerunSearch() {
+        guard let currentViewport else { return }
+        Task { await viewModel.searchThisAreaTapped(currentViewport) }
     }
 
     private func setMode(_ mode: DiscoveryMode) {
@@ -211,32 +234,45 @@ struct NearbyView: View {
         rerunSearch()
     }
 
-    private var vibeBar: some View {
-        HStack(spacing: 8) {
-            ForEach([Vibe.chill, .study, .coffee, .dessert, .brunch, .lateNight], id: \.self) { option in
-                vibeChip(option)
+    // MARK: - Vibe rail
+
+    /// Lighter weight than `primaryRibbon` on purpose — no big white capsule container, since
+    /// this is a contextual refinement of an already-active discovery mode, not a primary control.
+    private var vibeRail: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach([Vibe.chill, .study, .coffee, .dessert, .brunch, .lateNight], id: \.self) { option in
+                    vibeChip(option)
+                }
             }
-            Spacer()
+            .padding(.vertical, 3)
         }
+        .edgeFade()
+        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
     }
 
     private func vibeChip(_ option: Vibe) -> some View {
         let isOn = viewModel.vibe == option
+        let label = vibeLabel(option)
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(Motion.quick) {
+            withAnimation(reduceMotion ? .easeOut(duration: 0.1) : Motion.quick) {
                 viewModel.vibe = isOn ? nil : option
                 rerunSearch()
             }
         } label: {
-            Text(vibeLabel(option))
+            Text(label)
                 .font(.makanBody(12))
+                .lineLimit(1)
                 .foregroundStyle(isOn ? .white : Color.kicap.opacity(0.8))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(isOn ? Color.kunyit : Color.white.opacity(0.7))
                 .clipShape(Capsule())
         }
+        .buttonStyle(MakanApaChipButtonStyle())
+        .accessibilityLabel(Text(isOn ? "\(label), selected" : label))
+        .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
     private func vibeLabel(_ vibe: Vibe) -> String {
@@ -248,6 +284,141 @@ struct NearbyView: View {
         case .brunch: return "🥐 Brunch"
         case .lateNight: return "🌙 Late night"
         }
+    }
+
+    // MARK: - Search
+
+    private var searchIconButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            searchPlaceholderExample = Self.searchPlaceholderExamples.randomElement() ?? Self.searchPlaceholderExamples[0]
+            isSearchActive = true
+            searchFieldFocused = true
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.kicap)
+                .frame(width: 40, height: 40)
+                .background(.white)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        }
+        .accessibilityLabel("Search places, food, or cuisine")
+    }
+
+    /// The search icon morphs in place into this capsule (both live in the same `VStack` slot,
+    /// swapped by `isSearchActive`) rather than appearing as a second layer over the ribbon.
+    private var searchCapsule: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField(
+                "Search \"\(searchPlaceholderExample)\"",
+                text: Binding(get: { viewModel.searchQuery }, set: { viewModel.searchQuery = $0 })
+            )
+            .focused($searchFieldFocused)
+            .font(.makanBody(14))
+            .submitLabel(.search)
+            .autocorrectionDisabled()
+            .onChange(of: viewModel.searchQuery) { _, _ in viewModel.scheduleSearch() }
+
+            if viewModel.isSearching {
+                ProgressView().controlSize(.small)
+            }
+
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                closeSearch()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("Close search")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.white)
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.1), radius: 6, y: 2)
+    }
+
+    private func closeSearch() {
+        searchFieldFocused = false
+        viewModel.clearSearch()
+        isSearchActive = false
+    }
+
+    private var searchResultsList: some View {
+        ScrollView {
+            VStack(spacing: 8) {
+                ForEach(viewModel.searchResults) { result in
+                    searchResultRow(result)
+                }
+            }
+        }
+        .frame(maxHeight: 280)
+        .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.quick, value: viewModel.searchResults)
+    }
+
+    private func searchResultRow(_ result: PlaceSearchResult) -> some View {
+        Button {
+            Task { await selectSearchResult(result) }
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(result.name)
+                        .font(.makanBody(15))
+                        .foregroundStyle(Color.kicap)
+
+                    HStack(spacing: 4) {
+                        if let descriptor = result.cuisine ?? result.category {
+                            Text(descriptor)
+                        }
+                        if let spend = PricePresentation.approximateSpendLabel(for: result.priceLevel) {
+                            Text("· \(spend)")
+                        }
+                        if let distanceKm = result.distanceKm {
+                            Text(String(format: "· %.1f km", distanceKm))
+                        }
+                    }
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
+
+                    if result.provenance == .community {
+                        Text("◇ Community find")
+                            .font(.makanBody(11))
+                            .foregroundStyle(Color.pandan)
+                    }
+                }
+
+                Spacer()
+
+                if let rating = result.rating {
+                    Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                        .font(.makanBody(12))
+                        .foregroundStyle(Color.kunyit)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+        }
+        .buttonStyle(SearchResultRowButtonStyle(reduceMotion: reduceMotion))
+        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+    }
+
+    /// Resolves `.googleFallback` results to a canonical restaurant (see
+    /// `NearbyViewModel.selectSearchResult`) before opening the normal detail sheet — the same
+    /// sheet every other marker tap uses, never a separate Google-only view.
+    private func selectSearchResult(_ result: PlaceSearchResult) async {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        guard let place = await viewModel.selectSearchResult(result) else { return }
+        closeSearch()
+        viewModel.placeDetails = nil
+        viewModel.selectedPlace = place
+        await viewModel.loadDetails(for: place)
     }
 
     // MARK: - Zoom / search-this-area prompts
@@ -540,4 +711,48 @@ struct NearbyView: View {
         mapItem.name = place.name
         mapItem.openInMaps()
     }
+}
+
+/// Press-scale (0.96) + `Motion.quick` shared by every filter/mode/vibe chip, so the three chip
+/// builders only own content and selected-state, not duplicated press-animation code.
+private struct MakanApaChipButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1.0)
+            .animation(Motion.quick, value: configuration.isPressed)
+    }
+}
+
+private struct SearchResultRowButtonStyle: ButtonStyle {
+    let reduceMotion: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1.0)
+            .animation(Motion.quick, value: configuration.isPressed)
+    }
+}
+
+/// Fades the leading/trailing few percent of a horizontally-scrolling rail to transparent, so a
+/// partially-visible chip reads as "swipe for more" instead of looking clipped.
+private struct EdgeFadeModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content.mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.04),
+                    .init(color: .black, location: 0.96),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .leading, endPoint: .trailing
+            )
+        )
+    }
+}
+
+private extension View {
+    func edgeFade() -> some View { modifier(EdgeFadeModifier()) }
 }

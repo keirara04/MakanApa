@@ -103,6 +103,25 @@ class Restaurant extends Model
         ];
     }
 
+    /**
+     * Search-result shape for PlacesService::searchPlaces()/resolveGooglePlace() — builds on
+     * toRecommendationArray() rather than duplicating its fields, adding only what a search result
+     * card needs and pure ranking/join data (toRecommendationArray() doesn't know about) doesn't.
+     *
+     * @param  'canonical'|'community'  $provenance  never 'google_fallback' here — this model is
+     *                                                only ever a row already in `restaurants`.
+     */
+    public function toSearchResultArray(string $provenance, ?float $distanceKm = null): array
+    {
+        return [
+            ...$this->toRecommendationArray(),
+            'provenance' => $provenance,
+            'is_community_find' => $provenance === 'community',
+            'distance_km' => $distanceKm,
+            'google_place_id' => null,
+        ];
+    }
+
     /** OPEN / CLOSED / UNKNOWN — never a nullable boolean, so "we don't know" can't collapse into true/false. */
     public function openStatus(): string
     {

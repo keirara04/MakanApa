@@ -14,6 +14,18 @@ struct NearbyMapView: UIViewRepresentable {
     /// Bumped by the "recenter on me" button. Coordinator diffs it against the last value it
     /// handled so a re-render without a new tap doesn't re-animate the camera.
     let recenterRequestId: Int
+    /// A search result's coordinate to center on — distinct from `initialCameraTarget`/
+    /// `recenterRequestId` (which only ever recenter to the user's own location).
+    var focusTarget: CLLocationCoordinate2D? = nil
+    /// Bumped whenever a new search result is selected, same diffing pattern as `recenterRequestId`.
+    var focusRequestId: Int = 0
+    /// A user-selected search result's marker, scaled up with **no dimming of the rest** — kept
+    /// separate from `winnerPlaceId` since that means "MakanApa picked this for you," not
+    /// "the user tapped a search result."
+    var highlightedSearchPlaceId: Int? = nil
+    /// A `.googleFallback` search result's coordinate before it resolves to a canonical
+    /// restaurant/marker — rendered as a lightweight standalone pin.
+    var temporarySearchCoordinate: CLLocationCoordinate2D? = nil
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
 
@@ -40,7 +52,16 @@ struct NearbyMapView: UIViewRepresentable {
             context.coordinator.lastHandledRecenterId = recenterRequestId
         }
 
-        context.coordinator.sync(places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId, on: mapView)
+        if focusRequestId != context.coordinator.lastHandledFocusId, let target = focusTarget {
+            mapView.animate(to: GMSCameraPosition(target: target, zoom: max(mapView.camera.zoom, 16)))
+            context.coordinator.lastHandledFocusId = focusRequestId
+        }
+
+        context.coordinator.sync(
+            places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId,
+            highlightedSearchPlaceId: highlightedSearchPlaceId, on: mapView
+        )
+        context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -51,6 +72,7 @@ struct NearbyMapView: UIViewRepresentable {
     final class Coordinator: NSObject, @preconcurrency GMSMapViewDelegate {
         var didSetInitialCamera = false
         var lastHandledRecenterId = 0
+        var lastHandledFocusId = 0
 
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
@@ -60,8 +82,10 @@ struct NearbyMapView: UIViewRepresentable {
         /// appear/bounce/removal transforms possible instead of just swapping a bitmap.
         private var iconViewsById: [Int: UIImageView] = [:]
         private var lastWinnerId: Int?
+        private var lastHighlightedSearchId: Int?
         private var pulseTimer: Timer?
         private var pulseDim = false
+        private var temporarySearchMarker: GMSMarker?
 
         init(onCameraIdle: @escaping (MapViewport, Float) -> Void, onMarkerTapped: @escaping (NearbyPlace) -> Void) {
             self.onCameraIdle = onCameraIdle
@@ -83,7 +107,10 @@ struct NearbyMapView: UIViewRepresentable {
             return true
         }
 
-        func sync(places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?, on mapView: GMSMapView) {
+        func sync(
+            places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?,
+            highlightedSearchPlaceId: Int?, on mapView: GMSMapView
+        ) {
             let currentIds = Set(places.map(\.id))
 
             for (id, marker) in markersById where !currentIds.contains(id) {
@@ -113,6 +140,47 @@ struct NearbyMapView: UIViewRepresentable {
                 startPulse()
             } else {
                 stopPulse()
+            }
+
+            syncSearchHighlight(highlightedSearchPlaceId)
+        }
+
+        /// Scales the selected search result's pin up (1.10×) and back down on change — no
+        /// opacity dimming of the rest, unlike `winnerPlaceId`. A user picking a search result
+        /// shouldn't read as "MakanApa recommends this one."
+        private func syncSearchHighlight(_ highlightedSearchPlaceId: Int?) {
+            guard highlightedSearchPlaceId != lastHighlightedSearchId else { return }
+
+            if let previousId = lastHighlightedSearchId, let iconView = iconViewsById[previousId] {
+                UIView.animate(withDuration: 0.16) { iconView.transform = .identity }
+            }
+            if let newId = highlightedSearchPlaceId, let iconView = iconViewsById[newId] {
+                UIView.animate(
+                    withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.4, options: []
+                ) {
+                    iconView.transform = CGAffineTransform(scaleX: 1.10, y: 1.10)
+                }
+            }
+            lastHighlightedSearchId = highlightedSearchPlaceId
+        }
+
+        /// A `.googleFallback` search result isn't in `places` yet (no `restaurant_id`), so it
+        /// gets its own lightweight marker at the result's coordinate until `resolvePlace`
+        /// returns a canonical restaurant and the normal marker path takes over.
+        func syncTemporaryMarker(coordinate: CLLocationCoordinate2D?, on mapView: GMSMapView) {
+            guard let coordinate else {
+                temporarySearchMarker?.map = nil
+                temporarySearchMarker = nil
+                return
+            }
+            if let marker = temporarySearchMarker {
+                marker.position = coordinate
+            } else {
+                let marker = GMSMarker(position: coordinate)
+                marker.icon = RatingBubbleRenderer.icon(rating: nil, highlighted: true)
+                marker.zIndex = 20
+                marker.map = mapView
+                temporarySearchMarker = marker
             }
         }
 

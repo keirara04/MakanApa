@@ -407,6 +407,47 @@ struct NearbyPlacesResponse: Decodable {
     let places: [NearbyPlace]
 }
 
+// MARK: - Place search (Nearby search capsule)
+
+/// Where a search result came from — drives ranking display (`◇ Community find`) and whether
+/// selecting it needs a `resolvePlace` round-trip before a canonical `restaurantId` exists.
+enum PlaceSearchProvenance: String, Decodable {
+    case canonical
+    case community
+    case googleFallback = "google_fallback"
+}
+
+struct PlaceSearchResult: Decodable, Identifiable, Equatable {
+    let provenance: PlaceSearchProvenance
+    /// Present for `.canonical`/`.community`; nil for `.googleFallback` until resolved.
+    let restaurantId: Int?
+    /// Present only for `.googleFallback`.
+    let googlePlaceId: String?
+    let name: String
+    let category: String?
+    let cuisine: String?
+    let distanceKm: Double?
+    let priceLevel: Int?
+    let rating: Double?
+    let openStatus: String?
+    let latitude: Double
+    let longitude: Double
+
+    var id: String { restaurantId.map(String.init) ?? googlePlaceId ?? name }
+}
+
+struct PlaceSearchResponseV2: Decodable {
+    let results: [PlaceSearchResult]
+}
+
+struct ResolvePlaceRequestBody: Encodable {
+    let googlePlaceId: String
+}
+
+struct ResolvePlaceResponse: Decodable {
+    let restaurant: NearbyPlace
+}
+
 struct NearbyPickRequestBody: Encodable {
     let latitude: Double
     let longitude: Double
