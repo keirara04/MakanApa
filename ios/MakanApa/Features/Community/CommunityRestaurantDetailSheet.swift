@@ -109,14 +109,10 @@ struct CommunityRestaurantDetailSheet: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(urls, id: \.self) { urlString in
-                        AsyncImage(url: URL(string: urlString)) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            default:
-                                Color.kicap.opacity(0.06)
-                            }
+                        RemoteImage(url: URL(string: urlString)) {
+                            Color.kicap.opacity(0.06)
                         }
+                        .aspectRatio(contentMode: .fill)
                         .frame(width: 140, height: 140)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .transition(.opacity)

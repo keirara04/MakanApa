@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\UpdateMyAffiliationRequest;
+use App\Models\University;
 use App\Models\User;
+use App\Models\UserAffiliation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -47,6 +50,35 @@ class AuthController extends Controller
         return response()->json(['user' => $this->presentUser($request->user())]);
     }
 
+    /**
+     * Self-service counterpart to admin `UserController::store()`'s affiliation write. Always
+     * overwrites every verification column together (not just `type`/`university_id`) so a
+     * user changing away from an admin-verified affiliation can't keep riding on that old
+     * `verified` status — every self-picked value, including Public, lands as explicitly
+     * self_reported with no verified_at, distinct from "no affiliation row yet".
+     */
+    public function updateAffiliation(UpdateMyAffiliationRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $university = isset($data['university']) ? University::where('short_name', $data['university'])->first() : null;
+
+        UserAffiliation::updateOrCreate(
+            ['user_id' => $request->user()->id],
+            [
+                'type' => $university ? 'university' : 'public',
+                'university_id' => $university?->id,
+                'verification_status' => 'self_reported',
+                'verification_method' => 'self_reported',
+                'verified_at' => null,
+            ]
+        );
+
+        $request->user()->unsetRelation('affiliation');
+
+        return response()->json(['user' => $this->presentUser($request->user())]);
+    }
+
     private function presentUser(User $user): array
     {
         $user->loadMissing('affiliation.university');
@@ -58,6 +90,7 @@ class AuthController extends Controller
             'status' => $user->status,
             'affiliationType' => $user->affiliation?->type,
             'university' => $user->universityShortName(),
+            'affiliationVerificationStatus' => $user->affiliation?->verification_status,
         ];
     }
 }

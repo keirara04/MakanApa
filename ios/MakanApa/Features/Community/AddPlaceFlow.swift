@@ -40,6 +40,12 @@ struct AddPlaceFlow: View {
     @State private var menuItems: [MenuItem] = []
     @State private var notes = ""
 
+    // Details step progressive disclosure
+    @State private var showingMoreDetails = false
+    @State private var showingMenuSection = false
+    @State private var showingAddMenuItem = false
+    @State private var showSpendError = false
+
     // Original values, snapshotted at selection time, diffed at submit time to build changedFields
     @State private var originalName = ""
     @State private var originalFoodCategory = ""
@@ -89,6 +95,7 @@ struct AddPlaceFlow: View {
                 .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .trailing)))
             }
             .padding(16)
+            .background(Color.nasiCream.ignoresSafeArea())
             .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2), value: step)
             .navigationTitle(step == .success ? "" : Copy.communitySearchTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -105,12 +112,17 @@ struct AddPlaceFlow: View {
     // MARK: - Step indicator
 
     private var stepIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(Array(visibleSteps.enumerated()), id: \.offset) { index, s in
-                Capsule()
-                    .fill(index <= currentVisibleIndex ? Color.sambalRed : Color.kicap.opacity(0.15))
-                    .frame(height: 4)
-                    .animation(.easeOut(duration: 0.18), value: step)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(String(format: Copy.communityStepFormat, currentVisibleIndex + 1, stepTitle))
+                .font(.makanBody(12))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                ForEach(Array(visibleSteps.enumerated()), id: \.offset) { index, s in
+                    Capsule()
+                        .fill(index <= currentVisibleIndex ? Color.sambalRed : Color.kicap.opacity(0.15))
+                        .frame(height: 4)
+                        .animation(.easeOut(duration: 0.18), value: step)
+                }
             }
         }
     }
@@ -121,6 +133,15 @@ struct AddPlaceFlow: View {
 
     private var currentVisibleIndex: Int {
         visibleSteps.firstIndex(of: step) ?? 0
+    }
+
+    private var stepTitle: String {
+        switch step {
+        case .details: return "Details"
+        case .location: return "Location"
+        case .review: return "Review"
+        default: return ""
+        }
     }
 
     // MARK: - Search step
@@ -363,54 +384,135 @@ struct AddPlaceFlow: View {
     // MARK: - Details step
 
     private var detailsStep: some View {
-        Form {
-            Section("Essential") {
-                TextField("Place name", text: $name)
-                TextField("Category (e.g. Mamak)", text: $foodCategory)
-                TextField("Average RM to spend per person", text: $averageSpend)
-                    .keyboardType(.decimalPad)
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(Copy.communityDetailsHeadline)
+                    .font(.makanDisplay(19))
+                    .foregroundStyle(Color.kicap)
 
-            Section {
-                TextField("Address (optional)", text: $address)
-                TextField("Phone (optional)", text: $phone).keyboardType(.phonePad)
-                TextField("Instagram handle (optional)", text: $instagramHandle).textInputAutocapitalization(.never)
-                TextField("TikTok handle (optional)", text: $tiktokHandle).textInputAutocapitalization(.never)
-                TextField("Website (optional)", text: $websiteUrl).keyboardType(.URL).textInputAutocapitalization(.never)
-            } header: {
-                Text("Optional")
-            } footer: {
-                Text("You can leave these blank — the community can help complete them later.")
-            }
+                VStack(alignment: .leading, spacing: 16) {
+                    LabeledTextField(label: "Place name", text: $name)
+                    LabeledTextField(label: "Category", text: $foodCategory, placeholder: "e.g. Mamak")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("EXPECTED SPEND / PERSON")
+                            .font(.makanBody(11)).foregroundStyle(.secondary).tracking(0.5)
+                        HStack(spacing: 6) {
+                            Text("RM").font(.makanBody(16)).foregroundStyle(.secondary)
+                            TextField("", text: $averageSpend)
+                                .keyboardType(.decimalPad)
+                                .font(.makanBody(16))
+                                .onChange(of: averageSpend) { _, _ in showSpendError = false }
+                        }
+                        Divider()
+                        Text(showSpendError ? Copy.communitySpendErrorInline : Copy.communitySpendFooter)
+                            .font(.makanBody(12))
+                            .foregroundStyle(showSpendError ? Color.sambalRed : .secondary)
+                    }
+                }
 
-            Section("Menu (optional)") {
-                ForEach(menuItems) { item in
-                    HStack {
-                        Text(item.name)
-                        Spacer()
-                        if let price = item.price {
-                            Text("RM\(price, specifier: "%.2f")").foregroundStyle(.secondary)
+                disclosureRow(
+                    isExpanded: $showingMoreDetails, title: Copy.communityAddMoreDetailsTitle, subtitle: Copy.communityAddMoreDetailsSubtitle
+                ) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        LabeledTextField(label: "Address", text: $address)
+                        LabeledTextField(label: "Phone", text: $phone).keyboardType(.phonePad)
+                        LabeledTextField(label: "Instagram handle", text: $instagramHandle).textInputAutocapitalization(.never)
+                        LabeledTextField(label: "TikTok handle", text: $tiktokHandle).textInputAutocapitalization(.never)
+                        LabeledTextField(label: "Website", text: $websiteUrl).keyboardType(.URL).textInputAutocapitalization(.never)
+                        Text(Copy.communityBlankIsFine)
+                            .font(.makanBody(12))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                disclosureRow(
+                    isExpanded: $showingMenuSection, title: Copy.communityAddMenuTitle, subtitle: Copy.communityAddMenuSubtitle
+                ) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(menuItems) { item in
+                            HStack {
+                                Text(item.name).font(.makanBody(14))
+                                Spacer()
+                                if let price = item.price {
+                                    Text("RM\(price, specifier: "%.2f")").font(.makanBody(13)).foregroundStyle(.secondary)
+                                }
+                                Button {
+                                    withAnimation(.easeOut(duration: 0.18)) {
+                                        menuItems.removeAll { $0.id == item.id }
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                                }
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+
+                        if showingAddMenuItem {
+                            AddMenuItemRow { newItem in
+                                withAnimation(.easeOut(duration: 0.18)) {
+                                    menuItems.append(newItem)
+                                    showingAddMenuItem = false
+                                }
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        } else {
+                            Button("+ \(Copy.communityAddMenuItemCTA)") {
+                                withAnimation(.easeOut(duration: 0.18)) { showingAddMenuItem = true }
+                            }
+                            .font(.makanBody(14))
                         }
                     }
                 }
-                .onDelete { indices in
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        menuItems.remove(atOffsets: indices)
-                    }
-                }
-                AddMenuItemRow { newItem in
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        menuItems.append(newItem)
-                    }
-                }
+
+                LabeledTextField(label: "Notes", text: $notes, placeholder: "Anything else worth knowing?")
             }
-
-            TextField("Notes (optional)", text: $notes)
-
-            Button("Next") {
+            .padding(.bottom, 8)
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button("Continue") {
+                if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                    return
+                }
+                if !averageSpend.isEmpty && Double(averageSpend) == nil {
+                    withAnimation { showSpendError = true }
+                    return
+                }
                 withAnimation { step = .location }
             }
+            .font(.makanBody(15))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.sambalRed.opacity(0.4) : Color.sambalRed)
+            .clipShape(Capsule())
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            .padding(.top, 8)
+            .background(Color.nasiCream)
+        }
+    }
+
+    private func disclosureRow(isExpanded: Binding<Bool>, title: String, subtitle: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: isExpanded.wrappedValue ? "minus.circle.fill" : "plus.circle.fill")
+                        .foregroundStyle(Color.sambalRed)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.makanBody(15)).foregroundStyle(Color.kicap)
+                        Text(subtitle).font(.makanBody(12)).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                }
+            }
+
+            if isExpanded.wrappedValue {
+                content()
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 
@@ -746,6 +848,27 @@ private struct UploadedPhotoState: Identifiable {
     var thumbnail: UIImage
     var isUploading: Bool
     var uploadedId: Int?
+}
+
+/// Label stays visible above the value instead of disappearing once the field has content —
+/// the earlier draft relied on placeholder text alone, so a filled-in value (e.g. a bare "20")
+/// lost all context about what it represented.
+private struct LabeledTextField: View {
+    let label: String
+    @Binding var text: String
+    var placeholder: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label.uppercased())
+                .font(.makanBody(11))
+                .foregroundStyle(.secondary)
+                .tracking(0.5)
+            TextField(placeholder, text: $text)
+                .font(.makanBody(16))
+            Divider()
+        }
+    }
 }
 
 private struct AddMenuItemRow: View {

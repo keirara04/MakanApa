@@ -47,7 +47,7 @@ class RestaurantSubmissionController extends Controller
             'photos' => $photos->map(fn (RestaurantPhoto $photo) => [
                 'id' => $photo->id,
                 'photoType' => $photo->photo_type,
-                'url' => URL::temporarySignedRoute('admin.submission-photos.show', now()->addMinutes(10), ['photo' => $photo->id]),
+                'url' => URL::temporarySignedRoute('admin.submission-photos.show', now()->addMinutes(30), ['photo' => $photo->id]),
             ]),
         ]);
     }

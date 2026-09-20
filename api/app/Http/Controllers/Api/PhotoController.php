@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;
@@ -26,10 +28,17 @@ class PhotoController extends Controller
         $apiKey = Config::get('services.places.google_api_key');
         abort_if(empty($apiKey), 500, 'Places photo proxy misconfigured.');
 
-        $response = Http::withHeaders(['X-Goog-Api-Key' => $apiKey])
-            ->timeout(8)
-            ->get("https://places.googleapis.com/v1/{$name}/media", ['maxWidthPx' => 800])
-            ->throw();
+        try {
+            $response = Http::withHeaders(['X-Goog-Api-Key' => $apiKey])
+                ->timeout(8)
+                ->get("https://places.googleapis.com/v1/{$name}/media", ['maxWidthPx' => 800])
+                ->throw();
+        } catch (ConnectionException|RequestException $exception) {
+            // Google rate-limited, the photo resource expired, or the request timed out —
+            // a fast, clean 502 lets the client's retry affordance kick in immediately
+            // instead of the client waiting on a slow unhandled-exception response.
+            abort(502, 'Could not fetch photo.');
+        }
 
         return response($response->body(), 200, [
             'Content-Type' => $response->header('Content-Type', 'image/jpeg'),

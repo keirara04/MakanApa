@@ -96,6 +96,10 @@ enum APIClient {
         try await get("auth/me", query: [])
     }
 
+    static func updateMyCommunity(university: String?) async throws -> MeResponse {
+        try await patch("me/community", body: UpdateMyCommunityRequestBody(university: university))
+    }
+
     // MARK: - Admin
 
     static func listBetaUsers() async throws -> AdminUserListResponse {

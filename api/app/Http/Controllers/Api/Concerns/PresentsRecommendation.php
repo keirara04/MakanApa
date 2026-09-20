@@ -192,7 +192,7 @@ trait PresentsRecommendation
     private function presentPhoto(array $photo): array
     {
         return [
-            'url' => URL::temporarySignedRoute('places.photo', now()->addMinutes(10), ['name' => $photo['name']]),
+            'url' => URL::temporarySignedRoute('places.photo', now()->addMinutes(30), ['name' => $photo['name']]),
             'authorAttributions' => $photo['authorAttributions'],
             'googleMapsUrl' => $photo['googleMapsUrl'],
             'flagContentUrl' => $photo['flagContentUrl'],

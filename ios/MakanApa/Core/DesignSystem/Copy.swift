@@ -92,6 +92,14 @@ enum Copy {
     static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."
     static let communityLocationOpenSettings = "Open Settings"
 
+    static let communityChooseCommunityTitle = "Choose your community"
+    static let communityChooseCommunitySubtitle = "This helps MakanApa show what's popular around people in your community."
+    static let communityChooseCommunityFooter = "University verification will be available later."
+    static let communityChooseCommunitySave = "Save community"
+    static let communityChangeCommunityCTA = "Change ›"
+    static let communityAssignCommunityCTA = "Choose ›"
+    static let communityUniversitiesSectionHeader = "UNIVERSITIES"
+
     static let communityAddPlaceMenuItem = "Add a place"
     static let communityAddPlaceCTA = "Know a good spot? Add it →"
     static let communityMyPlacesMenuItem = "My places"
@@ -123,4 +131,15 @@ enum Copy {
     static let communityStatusCancelled = "Cancelled"
     static let communityUpdateSubmission = "Update submission"
     static let communityCancelSubmission = "Cancel submission"
+
+    static let communityStepFormat = "Step %d of 3 · %@"
+    static let communityDetailsHeadline = "Tell us about this place"
+    static let communitySpendFooter = "Usually around how much per person?"
+    static let communitySpendErrorInline = "Enter an estimated spend per person."
+    static let communityAddMoreDetailsTitle = "Add more details"
+    static let communityAddMoreDetailsSubtitle = "Address, phone & socials"
+    static let communityAddMenuTitle = "Add menu"
+    static let communityAddMenuSubtitle = "Help people know what's good here."
+    static let communityBlankIsFine = "You can leave these blank — the community can help complete them later."
+    static let communityAddMenuItemCTA = "Add another item"
 }

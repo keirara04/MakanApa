@@ -482,14 +482,10 @@ struct NearbyView: View {
 
         ZStack {
             if let photoURL {
-                AsyncImage(url: photoURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        placePhotoPlaceholder
-                    }
+                RemoteImage(url: photoURL) {
+                    placePhotoPlaceholder
                 }
+                .aspectRatio(contentMode: .fill)
             } else {
                 placePhotoPlaceholder
             }

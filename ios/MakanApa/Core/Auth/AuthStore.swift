@@ -8,6 +8,10 @@ struct AuthUser: Codable, Equatable {
     let status: String
     let affiliationType: String?
     let university: String?
+    /// "verified" (admin-assigned) | "self_reported" (picked in-app) | nil (no affiliation row
+    /// yet). Not rendered anywhere yet — carried through now so a future "UKM ✓" verified badge
+    /// doesn't need another auth-response shape change.
+    let affiliationVerificationStatus: String?
 
     var isSuperadmin: Bool { role == "superadmin" }
 }
@@ -54,6 +58,13 @@ final class AuthStore {
     func login(email: String, password: String) async throws {
         let response = try await APIClient.login(email: email, password: password, deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
+        session = .authenticated(response.user)
+    }
+
+    /// `university` nil means an explicit Public selection, not "leave unchanged" — there is
+    /// no partial-update variant of this call.
+    func updateCommunity(university: String?) async throws {
+        let response = try await APIClient.updateMyCommunity(university: university)
         session = .authenticated(response.user)
     }
 

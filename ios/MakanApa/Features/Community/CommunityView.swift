@@ -9,6 +9,7 @@ struct CommunityView: View {
     @State private var headerAppeared = false
     @State private var showingAddPlace = false
     @State private var showingMyPlaces = false
+    @State private var showingCommunityAssignment = false
 
     var body: some View {
         Group {
@@ -76,6 +77,11 @@ struct CommunityView: View {
                 MySubmissionsView()
             }
         }
+        .sheet(isPresented: $showingCommunityAssignment) {
+            CommunityAssignmentSheet(currentUniversity: currentUniversity) {
+                await attemptLoad()
+            }
+        }
     }
 
     // MARK: - Header
@@ -88,9 +94,17 @@ struct CommunityView: View {
                     .foregroundStyle(.secondary)
                     .tracking(1)
                 Spacer()
-                if let community = viewModel.feed?.community {
-                    CommunityBadge(affiliationType: community.type, university: community.university)
+                Button {
+                    showingCommunityAssignment = true
+                } label: {
+                    HStack(spacing: 4) {
+                        CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity)
+                        Text(currentAffiliationType == nil ? Copy.communityAssignCommunityCTA : Copy.communityChangeCommunityCTA)
+                            .font(.makanBody(11))
+                            .foregroundStyle(Color.sambalRed)
+                    }
                 }
+                .buttonStyle(.plain)
                 Menu {
                     Button {
                         showingAddPlace = true
@@ -124,15 +138,28 @@ struct CommunityView: View {
         }
     }
 
+    /// Sourced from the session (`AuthStore`), not `viewModel.feed?.community` — a user's
+    /// affiliation is known the moment they're logged in, so the badge/headline shouldn't wait
+    /// on the trending feed to finish loading (or flicker away during a loading/error state).
+    private var currentAffiliationType: String? {
+        if case .authenticated(let user) = AuthStore.shared.session { return user.affiliationType }
+        return nil
+    }
+
+    private var currentUniversity: String? {
+        if case .authenticated(let user) = AuthStore.shared.session { return user.university }
+        return nil
+    }
+
     private var headline: String {
-        if let community = viewModel.feed?.community, community.type == "university", let university = community.university {
+        if currentAffiliationType == "university", let university = currentUniversity {
             return String(format: Copy.communityHeadlineUniversityFormat, university)
         }
         return Copy.communityHeadlinePublic
     }
 
     private var subtitle: String {
-        if let community = viewModel.feed?.community, community.type == "university", let university = community.university {
+        if currentAffiliationType == "university", let university = currentUniversity {
             return String(format: Copy.communitySubtitleUniversityFormat, university)
         }
         return Copy.communitySubtitlePublic

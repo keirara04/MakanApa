@@ -33,6 +33,12 @@ Route::prefix('v1')->group(function () {
             Route::get('community/feed', [CommunityController::class, 'feed']);
         });
 
+        // Identity state, not a feed read — nobody legitimately changes university dozens of
+        // times a minute, so this gets a much tighter limit than community/feed above.
+        Route::middleware('throttle:10,1')->group(function () {
+            Route::patch('me/community', [AuthController::class, 'updateAffiliation']);
+        });
+
         // Google Places-backed endpoints are rate limited per client/IP so a runaway client
         // can't turn this into a Google Places billing incident during the beta.
         Route::middleware('throttle:30,1')->group(function () {

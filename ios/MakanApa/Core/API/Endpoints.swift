@@ -50,6 +50,10 @@ struct RevokeUserResponse: Decodable {
     let revoked: Bool
 }
 
+struct UpdateMyCommunityRequestBody: Encodable {
+    let university: String?
+}
+
 struct UniversityOption: Decodable, Identifiable, Equatable {
     let shortName: String
     let name: String
