@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRestaurantSubmissionRequest;
 use App\Models\Restaurant;
+use App\Models\RestaurantPhoto;
 use App\Models\RestaurantSubmission;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\RecommendationService;
+use App\Services\RestaurantPhotoUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -19,9 +21,16 @@ use Throwable;
  * User-facing half of Community Places: search-before-you-add, create/edit/cancel a
  * *submission* (never the canonical restaurant directly — see Admin\RestaurantSubmissionController
  * for the only path that turns a submission into/onto a live `restaurants` row).
+ *
+ * Editable states are `draft` and `changes_requested` only — a submission created via store()
+ * starts as `draft` (invisible to the admin queue) specifically so photo uploads can attach to a
+ * real submission ID before the admin ever sees it; `submit()` is what actually puts it in the
+ * queue (draft -> pending). Once `pending`, it's locked from self-edits until an admin acts.
  */
 class RestaurantSubmissionController extends Controller
 {
+    private const EDITABLE_STATUSES = ['draft', 'changes_requested'];
+
     /**
      * Two parallel lookups so iOS can render "Already on MakanApa" vs "Found on Google" vs,
      * if neither matches, the manual-add path. Google failures degrade to an empty `google`
@@ -102,14 +111,31 @@ class RestaurantSubmissionController extends Controller
             'address' => $data['address'] ?? null,
             'food_category' => $data['foodCategory'] ?? null,
             'price_level' => $data['priceLevel'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'instagram_handle' => $data['instagramHandle'] ?? null,
+            'tiktok_handle' => $data['tiktokHandle'] ?? null,
+            'website_url' => $data['websiteUrl'] ?? null,
+            'menu_items' => $data['menuItems'] ?? null,
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
             'location_source' => $data['locationSource'],
             'notes' => $data['notes'] ?? null,
-            'status' => 'pending',
+            'changed_fields' => $data['changedFields'] ?? [],
+            'status' => 'draft',
         ]);
 
         return response()->json(['submission' => $this->present($submission)], 201);
+    }
+
+    /** draft -> pending. This is what "Submit for review" actually calls, after any optional photos are attached. */
+    public function submit(Request $request, RestaurantSubmission $submission): JsonResponse
+    {
+        abort_if($submission->user_id !== $request->user()->id, 403, 'You can only submit your own submissions.');
+        abort_if($submission->status !== 'draft', 422, 'This submission has already been submitted.');
+
+        $submission->update(['status' => 'pending']);
+
+        return response()->json(['submission' => $this->present($submission)]);
     }
 
     public function mine(Request $request): JsonResponse
@@ -124,27 +150,37 @@ class RestaurantSubmissionController extends Controller
     public function update(Request $request, RestaurantSubmission $submission): JsonResponse
     {
         abort_if($submission->user_id !== $request->user()->id, 403, 'You can only edit your own submissions.');
-        abort_if(
-            ! in_array($submission->status, ['pending', 'changes_requested'], true),
-            422,
-            'This submission can no longer be edited.'
-        );
+        abort_if(! in_array($submission->status, self::EDITABLE_STATUSES, true), 422, 'This submission can no longer be edited.');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'address' => ['nullable', 'string', 'max:255'],
             'foodCategory' => ['nullable', 'string', 'max:80'],
             'priceLevel' => ['nullable', 'integer', 'between:1,3'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'instagramHandle' => ['nullable', 'string', 'max:60'],
+            'tiktokHandle' => ['nullable', 'string', 'max:60'],
+            'websiteUrl' => ['nullable', 'string', 'max:255', 'url'],
+            'menuItems' => ['nullable', 'array', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'changedFields' => ['nullable', 'array'],
         ]);
+
+        $wasChangesRequested = $submission->status === 'changes_requested';
 
         $submission->update([
             'name' => trim($data['name']),
             'address' => isset($data['address']) ? trim($data['address']) : null,
             'food_category' => isset($data['foodCategory']) ? trim($data['foodCategory']) : null,
             'price_level' => $data['priceLevel'] ?? null,
+            'phone' => isset($data['phone']) ? trim($data['phone']) : null,
+            'instagram_handle' => isset($data['instagramHandle']) ? trim($data['instagramHandle']) : null,
+            'tiktok_handle' => isset($data['tiktokHandle']) ? trim($data['tiktokHandle']) : null,
+            'website_url' => isset($data['websiteUrl']) ? trim($data['websiteUrl']) : null,
+            'menu_items' => $data['menuItems'] ?? null,
             'notes' => isset($data['notes']) ? trim($data['notes']) : null,
-            'status' => 'pending',
+            'changed_fields' => $data['changedFields'] ?? $submission->changed_fields,
+            'status' => $wasChangesRequested ? 'pending' : $submission->status,
         ]);
 
         return response()->json(['submission' => $this->present($submission)]);
@@ -153,15 +189,29 @@ class RestaurantSubmissionController extends Controller
     public function destroy(Request $request, RestaurantSubmission $submission): JsonResponse
     {
         abort_if($submission->user_id !== $request->user()->id, 403, 'You can only cancel your own submissions.');
-        abort_if(
-            ! in_array($submission->status, ['pending', 'changes_requested'], true),
-            422,
-            'This submission can no longer be cancelled.'
-        );
+        abort_if(! in_array($submission->status, self::EDITABLE_STATUSES, true), 422, 'This submission can no longer be cancelled.');
 
         $submission->update(['status' => 'cancelled']);
 
         return response()->json(['cancelled' => true]);
+    }
+
+    public function uploadPhoto(Request $request, RestaurantSubmission $submission, RestaurantPhotoUploadService $uploader): JsonResponse
+    {
+        abort_if($submission->user_id !== $request->user()->id, 403, 'You can only add photos to your own submissions.');
+        abort_if(! in_array($submission->status, self::EDITABLE_STATUSES, true), 422, 'Photos can no longer be added to this submission.');
+
+        $existingCount = RestaurantPhoto::where('restaurant_submission_id', $submission->id)->count();
+        abort_if($existingCount >= Config::get('restaurant_photos.max_per_submission'), 422, 'Maximum photos reached for this submission.');
+
+        $data = $request->validate([
+            'photo' => ['required', 'image', 'max:'.Config::get('restaurant_photos.max_size_kb')],
+            'photoType' => ['nullable', 'in:storefront,food,menu,other'],
+        ]);
+
+        $photo = $uploader->storePending($submission, $request->file('photo'), $data['photoType'] ?? 'other', $request->user()->id);
+
+        return response()->json(['photo' => ['id' => $photo->id, 'photoType' => $photo->photo_type]], 201);
     }
 
     private function present(RestaurantSubmission $submission): array
@@ -175,6 +225,11 @@ class RestaurantSubmissionController extends Controller
             'address' => $submission->address,
             'foodCategory' => $submission->food_category,
             'priceLevel' => $submission->price_level,
+            'phone' => $submission->phone,
+            'instagramHandle' => $submission->instagram_handle,
+            'tiktokHandle' => $submission->tiktok_handle,
+            'websiteUrl' => $submission->website_url,
+            'menuItems' => $submission->menu_items,
             'status' => $submission->status,
             'reviewNote' => $submission->review_note,
             'createdAt' => $submission->created_at?->toIso8601String(),

@@ -109,7 +109,7 @@ struct GooglePlaceCandidate: Decodable, Identifiable, Equatable {
     var id: String { googlePlaceId }
 }
 
-struct PlaceSearchResponse: Decodable {
+struct PlaceSearchResponse: Decodable, Equatable {
     let existing: [ExistingPlaceResult]
     let google: [GooglePlaceCandidate]
 }
@@ -119,6 +119,16 @@ enum SubmissionType: String, Codable {
     case newPlace = "new_place"
     case editPlace = "edit_place"
     case closure
+    case reopen
+}
+
+struct MenuItem: Codable, Equatable, Identifiable {
+    var name: String
+    var description: String? = nil
+    var price: Double? = nil
+    var category: String? = nil
+
+    var id: String { name }
 }
 
 enum SubmissionSourceType: String, Codable {
@@ -141,10 +151,16 @@ struct CreateSubmissionRequestBody: Encodable {
     let address: String?
     let foodCategory: String?
     let priceLevel: Int?
+    let phone: String?
+    let instagramHandle: String?
+    let tiktokHandle: String?
+    let websiteUrl: String?
+    let menuItems: [MenuItem]?
     let latitude: Double
     let longitude: Double
     let locationSource: SubmissionLocationSource
     let notes: String?
+    let changedFields: [String]
 }
 
 struct UpdateSubmissionRequestBody: Encodable {
@@ -152,7 +168,13 @@ struct UpdateSubmissionRequestBody: Encodable {
     let address: String?
     let foodCategory: String?
     let priceLevel: Int?
+    let phone: String?
+    let instagramHandle: String?
+    let tiktokHandle: String?
+    let websiteUrl: String?
+    let menuItems: [MenuItem]?
     let notes: String?
+    let changedFields: [String]
 }
 
 struct SubmissionResponse: Decodable {
@@ -168,6 +190,11 @@ struct MySubmission: Decodable, Identifiable, Equatable {
     let address: String?
     let foodCategory: String?
     let priceLevel: Int?
+    let phone: String?
+    let instagramHandle: String?
+    let tiktokHandle: String?
+    let websiteUrl: String?
+    let menuItems: [MenuItem]?
     let status: String
     let reviewNote: String?
     let createdAt: String
@@ -179,6 +206,15 @@ struct MySubmissionsResponse: Decodable {
 
 struct CancelSubmissionResponse: Decodable {
     let cancelled: Bool
+}
+
+struct SubmitSubmissionResponse: Decodable {
+    let submission: MySubmission
+}
+
+struct UploadPhotoResponse: Decodable {
+    struct Photo: Decodable { let id: Int; let photoType: String }
+    let photo: Photo
 }
 
 // MARK: - Admin: community places moderation
@@ -203,6 +239,12 @@ struct AdminSubmission: Decodable, Identifiable, Equatable {
     let address: String?
     let foodCategory: String?
     let priceLevel: Int?
+    let phone: String?
+    let instagramHandle: String?
+    let tiktokHandle: String?
+    let websiteUrl: String?
+    let menuItems: [MenuItem]?
+    let changedFields: [String]
     let latitude: Double
     let longitude: Double
     let notes: String?
@@ -215,6 +257,20 @@ struct AdminSubmission: Decodable, Identifiable, Equatable {
 
 struct AdminSubmissionListResponse: Decodable {
     let submissions: [AdminSubmission]
+}
+
+struct AdminSubmissionPhoto: Decodable, Identifiable, Equatable {
+    let id: Int
+    let photoType: String
+    let url: String
+}
+
+struct AdminSubmissionPhotosResponse: Decodable {
+    let photos: [AdminSubmissionPhoto]
+}
+
+struct ReleaseFieldOverrideResponse: Decodable {
+    let released: Bool
 }
 
 struct AdminApproveResponse: Decodable {
@@ -395,4 +451,10 @@ struct PlaceDetails: Decodable, Equatable {
     let reviews: [RecommendationResponse.Review]
     let placeGoogleMapsUrl: String?
     let closesAt: String?
+    let phone: String?
+    let instagramHandle: String?
+    let tiktokHandle: String?
+    let websiteUrl: String?
+    let menuItems: [MenuItem]
+    let communityPhotos: [String]
 }

@@ -1,4 +1,5 @@
 import CoreLocation
+import PhotosUI
 import SwiftUI
 
 private enum AddPlaceStep: Int, CaseIterable {
@@ -25,17 +26,45 @@ struct AddPlaceFlow: View {
     @State private var restaurantId: Int?
     @State private var locationSource: SubmissionLocationSource = .currentLocation
 
-    // Details
+    // Essential details
     @State private var name = ""
     @State private var foodCategory = ""
-    @State private var priceLevel: Int?
+    @State private var averageSpend = ""
     @State private var address = ""
+
+    // Optional details — leaving these blank is fine and expected
+    @State private var phone = ""
+    @State private var instagramHandle = ""
+    @State private var tiktokHandle = ""
+    @State private var websiteUrl = ""
+    @State private var menuItems: [MenuItem] = []
     @State private var notes = ""
+
+    // Original values, snapshotted at selection time, diffed at submit time to build changedFields
+    @State private var originalName = ""
+    @State private var originalFoodCategory = ""
+    @State private var originalAverageSpend = ""
+    @State private var originalAddress = ""
+    @State private var originalPhone = ""
+    @State private var originalInstagramHandle = ""
+    @State private var originalTiktokHandle = ""
+    @State private var originalWebsiteUrl = ""
+    @State private var originalMenuItems: [MenuItem] = []
 
     // Location
     @State private var latitude: Double?
     @State private var longitude: Double?
     @State private var showingMapPicker = false
+
+    // Draft submission (created at the top of Review, so photos have a real ID to attach to
+    // before "Submit for review" — see the draft->pending lifecycle change)
+    @State private var draftSubmissionId: Int?
+    @State private var isCreatingDraft = false
+    @State private var draftError: String?
+
+    // Photos
+    @State private var photoPickerItems: [PhotosPickerItem] = []
+    @State private var uploadedPhotos: [UploadedPhotoState] = []
 
     // Submit
     @State private var isSubmitting = false
@@ -81,6 +110,7 @@ struct AddPlaceFlow: View {
                 Capsule()
                     .fill(index <= currentVisibleIndex ? Color.sambalRed : Color.kicap.opacity(0.15))
                     .frame(height: 4)
+                    .animation(.easeOut(duration: 0.18), value: step)
             }
         }
     }
@@ -122,25 +152,28 @@ struct AddPlaceFlow: View {
                     Text(searchError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
                 }
 
-                if let results = searchResults {
-                    if !results.existing.isEmpty {
-                        sectionLabel(Copy.communitySearchExistingLabel)
-                        ForEach(results.existing) { place in
-                            existingResultRow(place)
+                Group {
+                    if let results = searchResults {
+                        if !results.existing.isEmpty {
+                            sectionLabel(Copy.communitySearchExistingLabel)
+                            ForEach(results.existing) { place in
+                                existingResultRow(place)
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
-                    }
-                    if !results.google.isEmpty {
-                        sectionLabel(Copy.communitySearchGoogleLabel)
-                        ForEach(results.google) { candidate in
-                            googleResultRow(candidate)
+                        if !results.google.isEmpty {
+                            sectionLabel(Copy.communitySearchGoogleLabel)
+                            ForEach(results.google) { candidate in
+                                googleResultRow(candidate)
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                     }
                 }
+                .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.18), value: searchResults)
 
                 cantFindCard
             }
-            .opacity(1)
-            .transition(.opacity)
         }
     }
 
@@ -172,7 +205,9 @@ struct AddPlaceFlow: View {
     private func googleResultRow(_ candidate: GooglePlaceCandidate) -> some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            selectGoogleCandidate(candidate)
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
+                selectGoogleCandidate(candidate)
+            }
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 Text(candidate.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
@@ -226,10 +261,11 @@ struct AddPlaceFlow: View {
         submissionType = .editPlace
         sourceType = .manual
         restaurantId = place.id
-        name = place.name
-        foodCategory = place.foodCategory ?? ""
-        priceLevel = place.priceLevel
-        address = ""
+        setFields(
+            name: place.name, foodCategory: place.foodCategory ?? "", averageSpend: spendString(for: place.priceLevel),
+            address: place.address ?? "", phone: "", instagram: "", tiktok: "", website: "", menu: []
+        )
+        snapshotOriginals()
         locationSource = .currentLocation
         latitude = nil
         longitude = nil
@@ -241,10 +277,11 @@ struct AddPlaceFlow: View {
         sourceType = .google
         googlePlaceId = candidate.googlePlaceId
         restaurantId = nil
-        name = candidate.name
-        foodCategory = candidate.foodCategory ?? ""
-        priceLevel = candidate.priceLevel
-        address = ""
+        setFields(
+            name: candidate.name, foodCategory: candidate.foodCategory ?? "", averageSpend: spendString(for: candidate.priceLevel),
+            address: "", phone: "", instagram: "", tiktok: "", website: "", menu: []
+        )
+        snapshotOriginals()
         locationSource = .google
         latitude = candidate.latitude
         longitude = candidate.longitude
@@ -256,39 +293,125 @@ struct AddPlaceFlow: View {
         sourceType = .manual
         googlePlaceId = nil
         restaurantId = nil
-        name = ""
-        foodCategory = ""
-        priceLevel = nil
-        address = ""
+        setFields(name: "", foodCategory: "", averageSpend: "", address: "", phone: "", instagram: "", tiktok: "", website: "", menu: [])
+        snapshotOriginals()
         locationSource = .currentLocation
         latitude = nil
         longitude = nil
         withAnimation { step = .details }
     }
 
+    private func setFields(name: String, foodCategory: String, averageSpend: String, address: String, phone: String, instagram: String, tiktok: String, website: String, menu: [MenuItem]) {
+        self.name = name
+        self.foodCategory = foodCategory
+        self.averageSpend = averageSpend
+        self.address = address
+        self.phone = phone
+        self.instagramHandle = instagram
+        self.tiktokHandle = tiktok
+        self.websiteUrl = website
+        self.menuItems = menu
+        self.notes = ""
+    }
+
+    private func snapshotOriginals() {
+        originalName = name
+        originalFoodCategory = foodCategory
+        originalAverageSpend = averageSpend
+        originalAddress = address
+        originalPhone = phone
+        originalInstagramHandle = instagramHandle
+        originalTiktokHandle = tiktokHandle
+        originalWebsiteUrl = websiteUrl
+        originalMenuItems = menuItems
+    }
+
+    private func computeChangedFields() -> [String] {
+        var changed: [String] = []
+        if name != originalName { changed.append("name") }
+        if address != originalAddress { changed.append("address") }
+        if foodCategory != originalFoodCategory { changed.append("food_category") }
+        if averageSpend != originalAverageSpend { changed.append("price_level") }
+        if phone != originalPhone { changed.append("phone") }
+        if instagramHandle != originalInstagramHandle { changed.append("instagram_handle") }
+        if tiktokHandle != originalTiktokHandle { changed.append("tiktok_handle") }
+        if websiteUrl != originalWebsiteUrl { changed.append("website_url") }
+        if menuItems != originalMenuItems { changed.append("menu_items") }
+        return changed
+    }
+
+    /// Bucketed for the API (`priceLevel` 1-3), asked as a plain "how much do you spend" number
+    /// instead — nobody thinks of a warung in RM/RM²/RM³ tiers, they think in ringgit.
+    private var derivedPriceLevel: Int? {
+        guard let value = Double(averageSpend), value > 0 else { return nil }
+        switch value {
+        case ..<15: return 1
+        case ..<30: return 2
+        default: return 3
+        }
+    }
+
+    private func spendString(for priceLevel: Int?) -> String {
+        switch priceLevel {
+        case 1: return "10"
+        case 2: return "20"
+        case 3: return "35"
+        default: return ""
+        }
+    }
+
     // MARK: - Details step
 
     private var detailsStep: some View {
         Form {
-            Section {
+            Section("Essential") {
                 TextField("Place name", text: $name)
                 TextField("Category (e.g. Mamak)", text: $foodCategory)
-                Picker("Price", selection: $priceLevel) {
-                    Text("RM").tag(1 as Int?)
-                    Text("RM²").tag(2 as Int?)
-                    Text("RM³").tag(3 as Int?)
-                }
-                .pickerStyle(.segmented)
-                TextField("Address (optional)", text: $address)
-                TextField("Notes (optional)", text: $notes)
+                TextField("Average RM to spend per person", text: $averageSpend)
+                    .keyboardType(.decimalPad)
             }
+
+            Section {
+                TextField("Address (optional)", text: $address)
+                TextField("Phone (optional)", text: $phone).keyboardType(.phonePad)
+                TextField("Instagram handle (optional)", text: $instagramHandle).textInputAutocapitalization(.never)
+                TextField("TikTok handle (optional)", text: $tiktokHandle).textInputAutocapitalization(.never)
+                TextField("Website (optional)", text: $websiteUrl).keyboardType(.URL).textInputAutocapitalization(.never)
+            } header: {
+                Text("Optional")
+            } footer: {
+                Text("You can leave these blank — the community can help complete them later.")
+            }
+
+            Section("Menu (optional)") {
+                ForEach(menuItems) { item in
+                    HStack {
+                        Text(item.name)
+                        Spacer()
+                        if let price = item.price {
+                            Text("RM\(price, specifier: "%.2f")").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .onDelete { indices in
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        menuItems.remove(atOffsets: indices)
+                    }
+                }
+                AddMenuItemRow { newItem in
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        menuItems.append(newItem)
+                    }
+                }
+            }
+
+            TextField("Notes (optional)", text: $notes)
 
             Button("Next") {
                 withAnimation { step = .location }
             }
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        .frame(maxHeight: 420)
     }
 
     // MARK: - Location step
@@ -296,7 +419,7 @@ struct AddPlaceFlow: View {
     private var locationStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             switch submissionType {
-            case .editPlace, .closure:
+            case .editPlace, .closure, .reopen:
                 locationCard(
                     icon: "mappin.circle.fill",
                     title: "📍 Location",
@@ -393,69 +516,189 @@ struct AddPlaceFlow: View {
     // MARK: - Review step
 
     private var reviewStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(name).font(.makanDisplay(18)).foregroundStyle(Color.kicap)
-                HStack(spacing: 8) {
-                    if !foodCategory.isEmpty { Text(foodCategory) }
-                    if let spend = PricePresentation.approximateSpendLabel(for: priceLevel) { Text(spend) }
-                }
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
-                if !address.isEmpty {
-                    Text(address).font(.makanBody(13)).foregroundStyle(.secondary)
-                }
-                Text(sourceType == .google ? "Found on Google" : "Added manually")
-                    .font(.makanBody(12))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(name).font(.makanDisplay(18)).foregroundStyle(Color.kicap)
+                    HStack(spacing: 8) {
+                        if !foodCategory.isEmpty { Text(foodCategory) }
+                        if !averageSpend.isEmpty { Text("≈ RM\(averageSpend)/person") }
+                    }
+                    .font(.makanBody(13))
                     .foregroundStyle(.secondary)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    if !address.isEmpty {
+                        Text(address).font(.makanBody(13)).foregroundStyle(.secondary)
+                    }
+                    Text(sourceType == .google ? "Found on Google" : "Added manually")
+                        .font(.makanBody(12))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            if let submitError {
-                Text(submitError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
-            }
+                if let draftError {
+                    Text(draftError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
+                }
 
-            Button {
-                Task { await submit() }
-            } label: {
-                if isSubmitting {
-                    ProgressView()
-                } else {
-                    Text(Copy.communitySubmitForReview)
+                if isCreatingDraft {
+                    HStack {
+                        ProgressView()
+                        Text("Preparing…").foregroundStyle(.secondary)
+                    }
+                } else if draftSubmissionId != nil {
+                    photosSection
+                }
+
+                if let submitError {
+                    Text(submitError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
+                }
+
+                Button {
+                    Task { await submitForReview() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView()
+                    } else {
+                        Text(Copy.communitySubmitForReview)
+                    }
+                }
+                .font(.makanBody(15))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.sambalRed)
+                .clipShape(Capsule())
+                .disabled(isSubmitting || draftSubmissionId == nil || latitude == nil || longitude == nil)
+            }
+        }
+        .task {
+            if draftSubmissionId == nil {
+                await createDraft()
+            }
+        }
+    }
+
+    private var photosSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Photos (optional)").font(.makanBody(13)).foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(uploadedPhotos) { photo in
+                        ZStack {
+                            Image(uiImage: photo.thumbnail)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 72, height: 72)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            if photo.isUploading {
+                                ProgressView().tint(.white)
+                            } else {
+                                VStack {
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundStyle(Color.pandan)
+                                            .background(Circle().fill(.white))
+                                    }
+                                    Spacer()
+                                }
+                                .padding(4)
+                            }
+                        }
+                        .frame(width: 72, height: 72)
+                        .transition(.opacity)
+                    }
+
+                    if uploadedPhotos.count < 5 {
+                        PhotosPicker(selection: $photoPickerItems, maxSelectionCount: 5 - uploadedPhotos.count, matching: .images) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 72, height: 72)
+                                .background(Color.kicap.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
                 }
             }
-            .font(.makanBody(15))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.sambalRed)
-            .clipShape(Capsule())
-            .disabled(isSubmitting || latitude == nil || longitude == nil)
-
-            Spacer()
+        }
+        .onChange(of: photoPickerItems) { _, newItems in
+            Task { await handlePickedPhotos(newItems) }
         }
     }
 
     @MainActor
-    private func submit() async {
+    private func handlePickedPhotos(_ items: [PhotosPickerItem]) async {
+        guard let submissionId = draftSubmissionId, !items.isEmpty else { return }
+        photoPickerItems = []
+
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else { continue }
+            // Re-encoded to JPEG client-side (resizing if oversized) so HEIC never reaches the
+            // backend — the server still independently decodes/re-encodes on receipt regardless.
+            let resized = image.resizedIfNeeded(maxDimension: 1600)
+            guard let jpegData = resized.jpegData(compressionQuality: 0.85) else { continue }
+
+            var state = UploadedPhotoState(thumbnail: resized, isUploading: true, uploadedId: nil)
+            let stateId = state.id
+            uploadedPhotos.append(state)
+
+            do {
+                let response = try await APIClient.uploadSubmissionPhoto(submissionId: submissionId, jpegData: jpegData, photoType: "other")
+                if let index = uploadedPhotos.firstIndex(where: { $0.id == stateId }) {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        uploadedPhotos[index].isUploading = false
+                        uploadedPhotos[index].uploadedId = response.photo.id
+                    }
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            } catch {
+                uploadedPhotos.removeAll { $0.id == stateId }
+            }
+        }
+    }
+
+    @MainActor
+    private func createDraft() async {
         guard let latitude, let longitude else { return }
-        isSubmitting = true
-        submitError = nil
-        defer { isSubmitting = false }
+        isCreatingDraft = true
+        draftError = nil
+        defer { isCreatingDraft = false }
 
         let body = CreateSubmissionRequestBody(
             submissionType: submissionType, sourceType: sourceType, googlePlaceId: googlePlaceId,
             restaurantId: restaurantId, name: name.trimmingCharacters(in: .whitespaces),
             address: address.isEmpty ? nil : address, foodCategory: foodCategory.isEmpty ? nil : foodCategory,
-            priceLevel: priceLevel, latitude: latitude, longitude: longitude, locationSource: locationSource,
-            notes: notes.isEmpty ? nil : notes
+            priceLevel: derivedPriceLevel, phone: phone.isEmpty ? nil : phone,
+            instagramHandle: instagramHandle.isEmpty ? nil : instagramHandle,
+            tiktokHandle: tiktokHandle.isEmpty ? nil : tiktokHandle,
+            websiteUrl: websiteUrl.isEmpty ? nil : websiteUrl,
+            menuItems: menuItems.isEmpty ? nil : menuItems,
+            latitude: latitude, longitude: longitude, locationSource: locationSource,
+            notes: notes.isEmpty ? nil : notes, changedFields: computeChangedFields()
         )
 
         do {
             let response = try await APIClient.createSubmission(body)
+            draftSubmissionId = response.submission.id
+        } catch APIError.unauthorized {
+            AuthStore.shared.handleUnauthorized()
+        } catch {
+            draftError = "Couldn't prepare this submission. Try again in a bit."
+        }
+    }
+
+    @MainActor
+    private func submitForReview() async {
+        guard let submissionId = draftSubmissionId else { return }
+        isSubmitting = true
+        submitError = nil
+        defer { isSubmitting = false }
+
+        do {
+            let response = try await APIClient.submitSubmission(id: submissionId)
             createdSubmission = response.submission
             withAnimation { step = .success }
         } catch APIError.unauthorized {
@@ -495,5 +738,47 @@ struct AddPlaceFlow: View {
                 .clipShape(Capsule())
         }
         .padding(.horizontal, 16)
+    }
+}
+
+private struct UploadedPhotoState: Identifiable {
+    let id = UUID()
+    var thumbnail: UIImage
+    var isUploading: Bool
+    var uploadedId: Int?
+}
+
+private struct AddMenuItemRow: View {
+    let onAdd: (MenuItem) -> Void
+
+    @State private var name = ""
+    @State private var price = ""
+
+    var body: some View {
+        HStack {
+            TextField("Dish name", text: $name)
+            TextField("RM", text: $price)
+                .keyboardType(.decimalPad)
+                .frame(width: 60)
+            Button {
+                onAdd(MenuItem(name: name, price: Double(price)))
+                name = ""
+                price = ""
+            } label: {
+                Image(systemName: "plus.circle.fill")
+            }
+            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+    }
+}
+
+private extension UIImage {
+    func resizedIfNeeded(maxDimension: CGFloat) -> UIImage {
+        let scale = min(1.0, maxDimension / max(size.width, size.height))
+        guard scale < 1.0 else { return self }
+
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in draw(in: CGRect(origin: .zero, size: newSize)) }
     }
 }

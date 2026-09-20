@@ -1,16 +1,12 @@
 {
   "images" : [
     {
-      "filename" : "MakanApa_Mascot_Sad.svg",
+      "filename" : "MakanApaMascot.png",
       "idiom" : "universal"
     }
   ],
   "info" : {
     "author" : "xcode",
     "version" : 1
-  },
-  "properties" : {
-    "preserves-vector-representation" : true,
-    "template-rendering-intent" : "original"
   }
 }

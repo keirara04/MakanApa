@@ -146,6 +146,18 @@ enum APIClient {
         try await delete("community/submissions/\(id)")
     }
 
+    static func submitSubmission(id: Int) async throws -> SubmitSubmissionResponse {
+        try await post("community/submissions/\(id)/submit", body: EmptyBody())
+    }
+
+    static func uploadSubmissionPhoto(submissionId: Int, jpegData: Data, photoType: String) async throws -> UploadPhotoResponse {
+        try await uploadMultipart(
+            "community/submissions/\(submissionId)/photos",
+            fileFieldName: "photo", fileName: "photo.jpg", mimeType: "image/jpeg", fileData: jpegData,
+            fields: ["photoType": photoType]
+        )
+    }
+
     // MARK: - Admin: community places moderation
 
     static func adminListSubmissions(status: String) async throws -> AdminSubmissionListResponse {
@@ -166,6 +178,14 @@ enum APIClient {
 
     static func adminRequestChanges(id: Int, reviewNote: String) async throws -> AdminRequestChangesResponse {
         try await post("admin/community/submissions/\(id)/request-changes", body: ReviewNoteRequestBody(reviewNote: reviewNote))
+    }
+
+    static func adminSubmissionPhotos(id: Int) async throws -> AdminSubmissionPhotosResponse {
+        try await get("admin/community/submissions/\(id)/photos", query: [])
+    }
+
+    static func adminReleaseFieldOverride(restaurantId: Int, field: String) async throws -> ReleaseFieldOverrideResponse {
+        try await delete("admin/community/restaurants/\(restaurantId)/field-overrides/\(field)")
     }
 
     private struct EmptyBody: Encodable {}
@@ -242,6 +262,40 @@ enum APIClient {
             await attachAuthorization(to: &request)
         }
         request.httpBody = try encoder.encode(body)
+
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    private static func uploadMultipart<Response: Decodable>(
+        _ path: String, fileFieldName: String, fileName: String, mimeType: String, fileData: Data, fields: [String: String]
+    ) async throws -> Response {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 30
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
+
+        var body = Data()
+        for (key, value) in fields {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"\(fileFieldName)\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
 
         let (data, httpResponse) = try await send(request)
         try validate(httpResponse)

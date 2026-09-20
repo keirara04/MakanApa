@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Concerns;
 
 use App\Models\DecisionRecommendation;
+use App\Models\RestaurantMenuItem;
+use App\Models\RestaurantPhoto;
 use App\Models\RestaurantVibeVote;
 use App\Services\Places\GooglePlacesProvider;
 use App\Support\CommunityTag;
@@ -67,6 +69,38 @@ trait PresentsRecommendation
             'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
             'closesAt' => $enrichment['closesAt'],
             'communityTag' => $this->communityTagBadge($restaurant['id'])?->value,
+            'phone' => $restaurant['phone'] ?? null,
+            'instagramHandle' => $restaurant['instagram_handle'] ?? null,
+            'tiktokHandle' => $restaurant['tiktok_handle'] ?? null,
+            'websiteUrl' => $restaurant['website_url'] ?? null,
+            ...$this->presentDiscoveryExtras($restaurant['id']),
+        ];
+    }
+
+    /**
+     * Community-contributed menu + photos — detail-level only (never in a list response), same
+     * "lists stay light, detail loads richer" precedent as everything else in Community.
+     */
+    private function presentDiscoveryExtras(int $restaurantId): array
+    {
+        return [
+            'menuItems' => RestaurantMenuItem::where('restaurant_id', $restaurantId)
+                ->orderBy('sort_order')
+                ->get()
+                ->map(fn (RestaurantMenuItem $item) => [
+                    'name' => $item->name,
+                    'description' => $item->description,
+                    'price' => $item->price !== null ? (float) $item->price : null,
+                    'category' => $item->category,
+                ])
+                ->all(),
+            'communityPhotos' => RestaurantPhoto::where('restaurant_id', $restaurantId)
+                ->where('is_active', true)
+                ->get()
+                ->map(fn (RestaurantPhoto $photo) => $photo->publicUrl())
+                ->filter()
+                ->values()
+                ->all(),
         ];
     }
 

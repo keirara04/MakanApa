@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Cuisine;
 use App\Models\PlaceSyncArea;
 use App\Models\Restaurant;
+use App\Models\RestaurantFieldOverride;
 use App\Models\Tag;
+use Illuminate\Support\Arr;
 use App\Services\Craving\CravingIntent;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
@@ -322,23 +324,39 @@ class PlacesService
         );
     }
 
+    /**
+     * Respects `restaurant_field_overrides`: an admin-verified correction on an existing
+     * restaurant is excluded from this update payload entirely — Google's fresh data for that
+     * field is simply discarded for this sync, not just ignored at read time. New rows (first
+     * sync for this provider_place_id) have no overrides yet, so this is a no-op for genuinely
+     * new places.
+     */
     private function upsertRestaurant(array $data): void
     {
+        $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $data['provider_place_id'])->first();
+
+        $payload = [
+            'name' => $data['name'],
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'price_level' => $data['price_level'],
+            'rating' => $data['rating'],
+            'user_rating_count' => $data['user_rating_count'] ?? null,
+            'google_types' => $data['google_types'] ?? [],
+            'is_active' => $data['is_active'],
+            'opening_hours' => $data['opening_hours'],
+            'food_category' => $data['food_category'],
+            'last_synced_at' => now(),
+        ];
+
+        if ($existing) {
+            $overriddenFields = RestaurantFieldOverride::where('restaurant_id', $existing->id)->pluck('field')->all();
+            $payload = Arr::except($payload, $overriddenFields);
+        }
+
         $restaurant = Restaurant::updateOrCreate(
             ['provider' => 'google', 'provider_place_id' => $data['provider_place_id']],
-            [
-                'name' => $data['name'],
-                'latitude' => $data['latitude'],
-                'longitude' => $data['longitude'],
-                'price_level' => $data['price_level'],
-                'rating' => $data['rating'],
-                'user_rating_count' => $data['user_rating_count'] ?? null,
-                'google_types' => $data['google_types'] ?? [],
-                'is_active' => $data['is_active'],
-                'opening_hours' => $data['opening_hours'],
-                'food_category' => $data['food_category'],
-                'last_synced_at' => now(),
-            ]
+            $payload
         );
 
         $cuisineIds = collect($data['cuisines'])->map(

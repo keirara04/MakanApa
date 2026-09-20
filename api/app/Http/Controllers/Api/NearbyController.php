@@ -169,6 +169,11 @@ class NearbyController extends Controller
             'reviews' => $enrichment['reviews'],
             'placeGoogleMapsUrl' => $enrichment['placeGoogleMapsUrl'],
             'closesAt' => $enrichment['closesAt'],
+            'phone' => $data['phone'],
+            'instagramHandle' => $data['instagram_handle'],
+            'tiktokHandle' => $data['tiktok_handle'],
+            'websiteUrl' => $data['website_url'],
+            ...$this->presentDiscoveryExtras($data['id']),
         ]);
     }
 

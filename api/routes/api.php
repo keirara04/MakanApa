@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\RestaurantSubmissionController as AdminRestaurantSubmissionController;
+use App\Http\Controllers\Api\Admin\SubmissionPhotoController as AdminSubmissionPhotoController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
@@ -52,10 +53,12 @@ Route::prefix('v1')->group(function () {
         Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine']);
         Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update']);
         Route::delete('community/submissions/{submission}', [RestaurantSubmissionController::class, 'destroy']);
+        Route::post('community/submissions/{submission}/submit', [RestaurantSubmissionController::class, 'submit']);
         // Adding a place is normally a once-or-twice-a-session action, not repeatable — a
         // tighter limit than the general local-DB throttle above since this writes new data
         // that auto-publishes with no review step until an admin acts on it.
         Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1');
+        Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:5,1');
 
         Route::prefix('admin')->middleware('superadmin')->group(function () {
             Route::get('users', [AdminUserController::class, 'index']);
@@ -63,10 +66,14 @@ Route::prefix('v1')->group(function () {
             Route::post('users/{user}/revoke', [AdminUserController::class, 'revoke']);
 
             Route::get('community/submissions', [AdminRestaurantSubmissionController::class, 'index']);
+            Route::get('community/submissions/{submission}/photos', [AdminRestaurantSubmissionController::class, 'photos']);
             Route::post('community/submissions/{submission}/approve', [AdminRestaurantSubmissionController::class, 'approve']);
             Route::post('community/submissions/{submission}/link', [AdminRestaurantSubmissionController::class, 'link']);
             Route::post('community/submissions/{submission}/reject', [AdminRestaurantSubmissionController::class, 'reject']);
             Route::post('community/submissions/{submission}/request-changes', [AdminRestaurantSubmissionController::class, 'requestChanges']);
+            Route::delete('community/restaurants/{restaurant}/field-overrides/{field}', [AdminRestaurantSubmissionController::class, 'releaseFieldOverride']);
+            Route::get('submission-photos/{photo}', AdminSubmissionPhotoController::class)
+                ->name('admin.submission-photos.show')->middleware('signed');
         });
     });
 });

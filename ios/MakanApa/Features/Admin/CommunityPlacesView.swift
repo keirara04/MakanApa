@@ -81,17 +81,55 @@ private struct SubmissionReviewView: View {
     @State private var showingChangesSheet = false
     @State private var reviewNote = ""
     @State private var errorMessage: String?
+    @State private var pendingPhotos: [AdminSubmissionPhoto] = []
 
     var body: some View {
         List {
             Section {
                 HStack { Text("Name"); Spacer(); Text(submission.name).foregroundStyle(.secondary) }
-                HStack { Text("Category"); Spacer(); Text(submission.foodCategory ?? "—").foregroundStyle(.secondary) }
-                HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "—").foregroundStyle(.secondary) }
-                if let address = submission.address {
-                    HStack { Text("Address"); Spacer(); Text(address).foregroundStyle(.secondary) }
-                }
                 HStack { Text("Source"); Spacer(); Text(submission.sourceType == .google ? "Google" : "Manual").foregroundStyle(.secondary) }
+            }
+
+            // Only fields the submitter actually flagged as changed — the full snapshot is
+            // moderation context, not what gets applied on approve, so the diff shown here only
+            // covers what materializeFields()/approveEdit() will actually touch.
+            if submission.submissionType == .editPlace && !submission.changedFields.isEmpty {
+                Section("Proposed changes") {
+                    ForEach(submission.changedFields, id: \.self) { field in
+                        HStack {
+                            Text(fieldLabel(field))
+                            Spacer()
+                            Text(fieldValue(field)).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } else if submission.submissionType == .newPlace {
+                Section("Details") {
+                    HStack { Text("Category"); Spacer(); Text(submission.foodCategory ?? "—").foregroundStyle(.secondary) }
+                    HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "—").foregroundStyle(.secondary) }
+                    if let address = submission.address {
+                        HStack { Text("Address"); Spacer(); Text(address).foregroundStyle(.secondary) }
+                    }
+                }
+            }
+
+            if !pendingPhotos.isEmpty {
+                Section("Photos") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(pendingPhotos) { photo in
+                                AsyncImage(url: URL(string: photo.url)) { phase in
+                                    switch phase {
+                                    case .success(let image): image.resizable().scaledToFill()
+                                    default: Color.kicap.opacity(0.06)
+                                    }
+                                }
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                    }
+                }
             }
 
             if let notes = submission.notes {
@@ -153,6 +191,39 @@ private struct SubmissionReviewView: View {
         .sheet(isPresented: $showingChangesSheet) {
             reviewNoteSheet(title: "Request changes", action: requestChanges)
         }
+        .task { await loadPhotos() }
+    }
+
+    private func fieldLabel(_ field: String) -> String {
+        switch field {
+        case "food_category": return "Category"
+        case "price_level": return "Price"
+        case "instagram_handle": return "Instagram"
+        case "tiktok_handle": return "TikTok"
+        case "website_url": return "Website"
+        case "menu_items": return "Menu"
+        default: return field.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+
+    private func fieldValue(_ field: String) -> String {
+        switch field {
+        case "name": return submission.name
+        case "address": return submission.address ?? "—"
+        case "food_category": return submission.foodCategory ?? "—"
+        case "price_level": return PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "—"
+        case "phone": return submission.phone ?? "—"
+        case "instagram_handle": return submission.instagramHandle ?? "—"
+        case "tiktok_handle": return submission.tiktokHandle ?? "—"
+        case "website_url": return submission.websiteUrl ?? "—"
+        case "menu_items": return "\(submission.menuItems?.count ?? 0) item(s)"
+        default: return "—"
+        }
+    }
+
+    @MainActor
+    private func loadPhotos() async {
+        pendingPhotos = (try? await APIClient.adminSubmissionPhotos(id: submission.id).photos) ?? []
     }
 
     private func reviewNoteSheet(title: String, action: @escaping () async -> Void) -> some View {

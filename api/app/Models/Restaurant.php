@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'signature_dish', 'food_category', 'latitude', 'longitude', 'address', 'price_level', 'rating',
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
     'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count', 'google_types',
-    'source_submission_id',
+    'source_submission_id', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
 ])]
 class Restaurant extends Model
 {
@@ -55,6 +55,21 @@ class Restaurant extends Model
         return $this->belongsTo(RestaurantSubmission::class, 'source_submission_id');
     }
 
+    public function menuItems(): HasMany
+    {
+        return $this->hasMany(RestaurantMenuItem::class)->orderBy('sort_order');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(RestaurantPhoto::class);
+    }
+
+    public function fieldOverrides(): HasMany
+    {
+        return $this->hasMany(RestaurantFieldOverride::class);
+    }
+
     /**
      * Normalized shape RecommendationService expects. Load cuisines/tags first
      * (eager-load to avoid N+1) — this assumes the relations are already loaded.
@@ -81,6 +96,10 @@ class Restaurant extends Model
             'accepted_count' => $this->accepted_count,
             'rejected_count' => $this->rejected_count,
             'google_types' => $this->google_types,
+            'phone' => $this->phone,
+            'instagram_handle' => $this->instagram_handle,
+            'tiktok_handle' => $this->tiktok_handle,
+            'website_url' => $this->website_url,
         ];
     }
 
