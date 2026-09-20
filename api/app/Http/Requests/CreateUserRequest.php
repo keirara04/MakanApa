@@ -15,6 +15,7 @@ class CreateUserRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email', 'unique:users,email'],
+            'university' => ['nullable', 'string', 'exists:universities,short_name'],
         ];
     }
 }

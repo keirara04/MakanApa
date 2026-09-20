@@ -93,6 +93,13 @@ struct MakanApaApp: App {
             .tabItem {
                 Label("Nearby", systemImage: "map")
             }
+
+            NavigationStack {
+                CommunityView()
+            }
+            .tabItem {
+                Label("Community", systemImage: "person.3.fill")
+            }
         }
         .environment(soloViewModel)
         .environment(locationService)

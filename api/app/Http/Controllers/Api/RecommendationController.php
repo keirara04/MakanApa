@@ -80,6 +80,7 @@ class RecommendationController extends Controller
 
         $decision = Decision::create([
             'user_id' => $request->user()?->id,
+            'university_id' => $request->user()?->universityId(),
             'mode' => 'solo',
             'client_token' => $clientToken,
             'latitude' => $data['latitude'],
@@ -242,6 +243,7 @@ class RecommendationController extends Controller
         RestaurantVibeVote::create([
             'restaurant_id' => $target->restaurant_id,
             'decision_id' => $decision->id,
+            'university_id' => $request->user()?->universityId(),
             'vibe' => $data['vibe'],
         ]);
 

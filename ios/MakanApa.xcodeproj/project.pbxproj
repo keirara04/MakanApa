@@ -53,8 +53,14 @@
 		BCB3A5AD491B585C4FECB2C6 /* PlacePreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D9E55980CA468D6922E9311 /* PlacePreferencesStore.swift */; };
 		BDE5AC420B525AEC087FC3C6 /* LocationPermissionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */; };
 		C4A1E72079F74FF8C1029208 /* AdminUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */; };
+		4CCF77D9D3124FCCA9EC57C0 /* CommunityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */; };
+		8251F985672848778F55D49C /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */; };
+		A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */; };
+		C1A5EE44D376431CAF829C96 /* CommunityRestaurantDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30279874B3E648C7AB7F1E79 /* CommunityRestaurantDetailSheet.swift */; };
+		720BFAF300CA420E84414909 /* VibeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */; };
 		C71AFC17F937F6B8C4BB44E8 /* PricePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA943B15A88F864024FFA281 /* PricePresentation.swift */; };
 		C8FD99C228734AC224823C66 /* MascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 729D8427BD8EF410E03874B2 /* MascotView.swift */; };
+		6E7C3EB8DBB54321B1B78BCA /* CommunityBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */; };
 		CE0082C2305A8EE0006B8569 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CE0082C1305A8EE0006B8569 /* PrivacyInfo.xcprivacy */; };
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
 		D9E3298186267729CEC217A0 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C2E6778243985350051EB2 /* Typography.swift */; };
@@ -102,6 +108,7 @@
 		7068A6E7F367B07A43EFC336 /* FavoritesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesView.swift; sourceTree = "<group>"; };
 		71EA539C4A8192A886E0B977 /* LoginView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
+		F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityBadge.swift; sourceTree = "<group>"; };
 		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -119,6 +126,11 @@
 		CE0082C1305A8EE0006B8569 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveryMode.swift; sourceTree = "<group>"; };
 		D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminUsersView.swift; sourceTree = "<group>"; };
+		8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
+		336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
+		65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityTrendingCard.swift; sourceTree = "<group>"; };
+		30279874B3E648C7AB7F1E79 /* CommunityRestaurantDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityRestaurantDetailSheet.swift; sourceTree = "<group>"; };
+		87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VibeBadge.swift; sourceTree = "<group>"; };
 		D7F592DE757E41FF96AA5786 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MapsConfig.swift; path = Map/MapsConfig.swift; sourceTree = "<group>"; };
 		E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyView.swift; path = Nearby/NearbyView.swift; sourceTree = "<group>"; };
@@ -155,6 +167,7 @@
 				D9584167465565F39308FAEA /* Favorites */,
 				E21B18AF05D38E529BCC4C64 /* Auth */,
 				2601E14E8DA35E4CC488500B /* Admin */,
+				D44C0FE71741420C9D8ABA54 /* Community */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -207,6 +220,18 @@
 			path = Admin;
 			sourceTree = "<group>";
 		};
+		D44C0FE71741420C9D8ABA54 /* Community */ = {
+			isa = PBXGroup;
+			children = (
+				8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */,
+				336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */,
+				65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */,
+				30279874B3E648C7AB7F1E79 /* CommunityRestaurantDetailSheet.swift */,
+			);
+			name = Community;
+			path = Community;
+			sourceTree = "<group>";
+		};
 		3053A0CD247958DDA81C0907 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -254,6 +279,8 @@
 				C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */,
 				37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */,
 				729D8427BD8EF410E03874B2 /* MascotView.swift */,
+				F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */,
+				87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -520,6 +547,7 @@
 				BC94D94A231B1FF96C8005DF /* MakanChoiceTile.swift in Sources */,
 				7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */,
 				C8FD99C228734AC224823C66 /* MascotView.swift in Sources */,
+				6E7C3EB8DBB54321B1B78BCA /* CommunityBadge.swift in Sources */,
 				4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */,
 				7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */,
 				0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */,
@@ -548,6 +576,11 @@
 				227BA366486C58701198AD4F /* LoginMascotPose.swift in Sources */,
 				577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */,
 				C4A1E72079F74FF8C1029208 /* AdminUsersView.swift in Sources */,
+				4CCF77D9D3124FCCA9EC57C0 /* CommunityView.swift in Sources */,
+				8251F985672848778F55D49C /* CommunityViewModel.swift in Sources */,
+				A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */,
+				C1A5EE44D376431CAF829C96 /* CommunityRestaurantDetailSheet.swift in Sources */,
+				720BFAF300CA420E84414909 /* VibeBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -46,4 +46,14 @@ return [
         'min_votes' => 5,
         'min_share' => 0.4,
     ],
+
+    // Community tab's trending feed — how far back to look, how many distinct pickers before
+    // a restaurant counts as "trending" (avoids single-user noise), how many to return, and
+    // the Public-branch (no university) search radius. See CommunityController.
+    'community_feed' => [
+        'window_days' => 30,
+        'min_pickers' => 2,
+        'limit' => 20,
+        'public_radius_km' => 10,
+    ],
 ];

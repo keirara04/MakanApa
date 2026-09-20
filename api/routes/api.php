@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\RestaurantController;
+use App\Http\Controllers\Api\UniversityController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
@@ -20,6 +22,13 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
+        Route::get('universities', [UniversityController::class, 'index']);
+
+        // Local-DB-only aggregate queries, not Google-Places-backed — gets its own more
+        // generous limit than the Places-protecting throttle:30,1 group below, not none at all.
+        Route::middleware('throttle:120,1')->group(function () {
+            Route::get('community/feed', [CommunityController::class, 'feed']);
+        });
 
         // Google Places-backed endpoints are rate limited per client/IP so a runaway client
         // can't turn this into a Google Places billing incident during the beta.

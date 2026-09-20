@@ -49,11 +49,15 @@ class AuthController extends Controller
 
     private function presentUser(User $user): array
     {
+        $user->loadMissing('affiliation.university');
+
         return [
             'id' => $user->id,
             'email' => $user->email,
             'role' => $user->role,
             'status' => $user->status,
+            'affiliationType' => $user->affiliation?->type,
+            'university' => $user->universityShortName(),
         ];
     }
 }

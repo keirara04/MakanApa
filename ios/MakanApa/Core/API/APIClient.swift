@@ -102,12 +102,23 @@ enum APIClient {
         try await get("admin/users", query: [])
     }
 
-    static func createBetaUser(email: String) async throws -> CreateBetaUserResponse {
-        try await post("admin/users", body: CreateBetaUserRequestBody(email: email))
+    static func createBetaUser(email: String, university: String?) async throws -> CreateBetaUserResponse {
+        try await post("admin/users", body: CreateBetaUserRequestBody(email: email, university: university))
     }
 
     static func revokeBetaUser(id: Int) async throws -> RevokeUserResponse {
         try await post("admin/users/\(id)/revoke", body: EmptyBody())
+    }
+
+    static func listUniversities() async throws -> UniversitiesResponse {
+        try await get("universities", query: [])
+    }
+
+    static func communityFeed(latitude: Double?, longitude: Double?) async throws -> CommunityFeedResponse {
+        var query: [URLQueryItem] = []
+        if let latitude { query.append(URLQueryItem(name: "latitude", value: String(latitude))) }
+        if let longitude { query.append(URLQueryItem(name: "longitude", value: String(longitude))) }
+        return try await get("community/feed", query: query)
     }
 
     private struct EmptyBody: Encodable {}

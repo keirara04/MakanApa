@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateUserRequest;
+use App\Models\University;
 use App\Models\User;
+use App\Models\UserAffiliation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -22,15 +24,10 @@ class UserController extends Controller
     public function index(): JsonResponse
     {
         $users = User::query()
+            ->with('affiliation.university')
             ->orderByDesc('created_at')
             ->get(['id', 'email', 'role', 'status', 'created_at'])
-            ->map(fn (User $user) => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role,
-                'status' => $user->status,
-                'createdAt' => $user->created_at?->toIso8601String(),
-            ]);
+            ->map(fn (User $user) => $this->presentUser($user));
 
         return response()->json(['users' => $users]);
     }
@@ -49,16 +46,36 @@ class UserController extends Controller
             'status' => 'active',
         ]);
 
+        $university = isset($data['university']) ? University::where('short_name', $data['university'])->first() : null;
+
+        UserAffiliation::create([
+            'user_id' => $user->id,
+            'type' => $university ? 'university' : 'public',
+            'university_id' => $university?->id,
+            'verification_status' => 'verified',
+            'verification_method' => 'admin_created',
+            'verified_at' => now(),
+        ]);
+
+        $user->load('affiliation.university');
+
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role,
-                'status' => $user->status,
-                'createdAt' => $user->created_at?->toIso8601String(),
-            ],
+            'user' => $this->presentUser($user),
             'temporaryPassword' => $temporaryPassword,
         ], 201);
+    }
+
+    private function presentUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'status' => $user->status,
+            'createdAt' => $user->created_at?->toIso8601String(),
+            'affiliationType' => $user->affiliation?->type,
+            'university' => $user->universityShortName(),
+        ];
     }
 
     public function revoke(Request $request, User $user): JsonResponse

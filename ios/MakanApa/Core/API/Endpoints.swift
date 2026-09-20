@@ -29,10 +29,16 @@ struct AdminUser: Decodable, Identifiable, Equatable {
     let role: String
     let status: String
     let createdAt: String
+    /// "university" | "public" | nil (legacy account created before affiliation existed).
+    /// Kept distinct from `university` being nil so Public and "no affiliation row" never collapse
+    /// into the same on-screen blank state.
+    let affiliationType: String?
+    let university: String?
 }
 
 struct CreateBetaUserRequestBody: Encodable {
     let email: String
+    let university: String?
 }
 
 struct CreateBetaUserResponse: Decodable {
@@ -42,6 +48,42 @@ struct CreateBetaUserResponse: Decodable {
 
 struct RevokeUserResponse: Decodable {
     let revoked: Bool
+}
+
+struct UniversityOption: Decodable, Identifiable, Equatable {
+    let shortName: String
+    let name: String
+
+    var id: String { shortName }
+}
+
+struct UniversitiesResponse: Decodable {
+    let universities: [UniversityOption]
+}
+
+struct CommunityInfo: Decodable, Equatable {
+    let type: String
+    let university: String?
+    let label: String
+}
+
+struct CommunityFeedItem: Decodable, Identifiable, Equatable {
+    let id: Int
+    let name: String
+    let foodCategory: String?
+    let rating: Double?
+    let priceLevel: Int?
+    let cuisines: [String]
+    let openStatus: String
+    let pickCount: Int
+    let pickerCount: Int
+    let distanceKm: Double?
+    let trendingVibe: String?
+}
+
+struct CommunityFeedResponse: Decodable, Equatable {
+    let community: CommunityInfo
+    let trending: [CommunityFeedItem]
 }
 
 struct SoloRecommendationRequestBody: Encodable {

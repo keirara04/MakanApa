@@ -6,6 +6,8 @@ struct AuthUser: Codable, Equatable {
     let email: String
     let role: String
     let status: String
+    let affiliationType: String?
+    let university: String?
 
     var isSuperadmin: Bool { role == "superadmin" }
 }

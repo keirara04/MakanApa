@@ -78,4 +78,17 @@ enum Copy {
     static let joinBetaSheetTitle = "Private beta"
     static let joinBetaSheetBody = "MakanApa is currently being tested with a small group of university students. We're starting around UKM first and opening access gradually as we improve recommendations."
     static let joinBetaGotIt = "Got it"
+
+    static let communityHeadlineUniversityFormat = "%@ tengah makan apa? 👀"
+    static let communitySubtitleUniversityFormat = "Popular around %@"
+    static let communityHeadlinePublic = "What's trending near you"
+    static let communitySubtitlePublic = "Trending picks nearby"
+    static let communityEmptyHeadline = "Nothing trending yet 👀"
+    static let communityEmptyDetail = "Every recommendation your community picks helps build this page."
+    static let communityLocationPromptHeadline = "See what's trending around you"
+    static let communityLocationPromptDetail = "MakanApa uses your location to find popular picks nearby."
+    static let communityLocationEnable = "Enable Location"
+    static let communityLocationDeniedHeadline = "Location is off"
+    static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."
+    static let communityLocationOpenSettings = "Open Settings"
 }
