@@ -8,6 +8,7 @@ struct MakanApaApp: App {
     @State private var nearbyRouter = AppRouter()
     @State private var soloViewModel = SoloViewModel()
     @State private var locationService = LocationService()
+    @State private var onboardingState = OnboardingState.shared
     private var authStore = AuthStore.shared
 
     init() {
@@ -29,18 +30,25 @@ struct MakanApaApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                switch authStore.session {
-                case .loading:
-                    splashView
-                case .unauthenticated:
-                    LoginView()
+                if !onboardingState.hasCompletedOnboarding {
+                    OnboardingView(onFinished: {})
+                        .environment(locationService)
                         .transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .authenticated:
-                    appShell
-                        .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                } else {
+                    switch authStore.session {
+                    case .loading:
+                        splashView
+                    case .unauthenticated:
+                        LoginView()
+                            .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                    case .authenticated:
+                        appShell
+                            .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                    }
                 }
             }
             .animation(Motion.standard, value: authStore.session)
+            .animation(Motion.standard, value: onboardingState.hasCompletedOnboarding)
             .task {
                 await authStore.bootstrap()
             }
