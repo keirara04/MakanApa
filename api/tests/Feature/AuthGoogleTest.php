@@ -87,4 +87,29 @@ class AuthGoogleTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    /**
+     * Regression: a soft-deleted user still occupies the unique email/google_sub index in
+     * Postgres. Before withTrashed() was added to resolveSocialLogin()'s lookups, this hit a
+     * 500 (unique constraint violation on User::create()) instead of a clean response.
+     */
+    public function test_soft_deleted_user_with_matching_google_sub_gets_clean_response_not_a_crash(): void
+    {
+        $user = User::factory()->create(['google_sub' => 'google-sub-abc123', 'email' => 'newuser@example.com']);
+        $user->delete();
+
+        $response = $this->postJson('/api/v1/auth/google', $this->payload());
+
+        $response->assertStatus(410);
+    }
+
+    public function test_soft_deleted_user_with_matching_email_but_different_sub_gets_clean_response_not_a_crash(): void
+    {
+        $user = User::factory()->create(['google_sub' => 'some-other-sub', 'email' => 'newuser@example.com']);
+        $user->delete();
+
+        $response = $this->postJson('/api/v1/auth/google', $this->payload());
+
+        $response->assertStatus(410);
+    }
 }

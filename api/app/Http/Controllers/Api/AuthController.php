@@ -191,7 +191,15 @@ class AuthController extends Controller
     ): JsonResponse {
         $subColumn = $provider.'_sub';
 
-        $user = User::where($subColumn, $sub)->first();
+        // withTrashed(): a soft-deleted row still occupies the unique email/{provider}_sub
+        // index in Postgres, so a plain (non-trashed) lookup here would miss it and fall
+        // through to User::create() below — which then dies on the unique-constraint
+        // violation instead of a clean response. Must see trashed rows to react to them.
+        $user = User::withTrashed()->where($subColumn, $sub)->first();
+
+        if ($user && $user->trashed()) {
+            return response()->json(['message' => 'This account was deleted.'], 410);
+        }
 
         if ($user) {
             if ($provider === 'apple' && $providerRefreshToken) {
@@ -202,7 +210,11 @@ class AuthController extends Controller
         }
 
         if ($email) {
-            $existing = User::where('email', $email)->first();
+            $existing = User::withTrashed()->where('email', $email)->first();
+
+            if ($existing && $existing->trashed()) {
+                return response()->json(['message' => 'This account was deleted.'], 410);
+            }
 
             if ($existing) {
                 $rawToken = Str::random(64);
