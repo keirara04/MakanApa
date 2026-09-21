@@ -76,6 +76,7 @@ Route::prefix('v1')->group(function () {
         // that auto-publishes with no review step until an admin acts on it.
         Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1');
         Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:5,1');
+        Route::post('restaurants/{restaurant}/photos/quick-add', [RestaurantSubmissionController::class, 'quickAddPhoto'])->middleware('throttle:5,1');
 
         Route::prefix('admin')->middleware('superadmin')->group(function () {
             Route::get('users', [AdminUserController::class, 'index']);

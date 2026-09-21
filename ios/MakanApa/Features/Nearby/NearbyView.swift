@@ -114,6 +114,9 @@ struct NearbyView: View {
             onMarkerTapped: { place in
                 viewModel.placeDetails = nil
                 viewModel.selectedPlace = place
+                // A leftover "Pick one lah" winner highlight has nothing to do with a place the
+                // user is now tapping directly — clear it so only the just-tapped pin stays red.
+                viewModel.winnerPlaceId = nil
                 Task { await viewModel.loadDetails(for: place) }
             }
         )
@@ -418,6 +421,7 @@ struct NearbyView: View {
         closeSearch()
         viewModel.placeDetails = nil
         viewModel.selectedPlace = place
+        viewModel.winnerPlaceId = nil
         await viewModel.loadDetails(for: place)
     }
 
@@ -639,8 +643,25 @@ struct NearbyView: View {
                         Spacer()
                     }
                     .padding(.top, 8)
-                } else if let details = viewModel.placeDetails, !details.reviews.isEmpty {
-                    reviewsSection(for: details)
+                } else if let details = viewModel.placeDetails {
+                    // Google's hero already consumed photos.first — the remaining community
+                    // strip only drops that same photo when there was no Google hero to
+                    // begin with (i.e. a community photo took its place instead).
+                    let remainingCommunityPhotos = details.photos.isEmpty
+                        ? Array(details.communityPhotos.dropFirst())
+                        : details.communityPhotos
+                    if !remainingCommunityPhotos.isEmpty {
+                        PlaceCommunityPhotoStrip(urls: remainingCommunityPhotos)
+                    }
+                    if !details.menuItems.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("MENU").font(.makanBody(11)).foregroundStyle(.secondary).tracking(0.5)
+                            PlaceMenuSection(items: details.menuItems)
+                        }
+                    }
+                    if !details.reviews.isEmpty {
+                        reviewsSection(for: details)
+                    }
                 }
             }
             .padding(20)
@@ -649,16 +670,22 @@ struct NearbyView: View {
 
     @ViewBuilder
     private func placePhoto(for place: NearbyPlace) -> some View {
-        let photoURL = viewModel.placeDetails?.photos.first.flatMap { URL(string: $0.url) }
+        // Google photo first (real, free coverage where it exists); a community-contributed
+        // photo stands in as the hero for places Google never photographed, instead of always
+        // falling straight to the placeholder — see MakanApa#nearby-photo-fallback.
+        let heroURL = viewModel.placeDetails?.photos.first.flatMap { URL(string: $0.url) }
+            ?? viewModel.placeDetails?.communityPhotos.first.flatMap { URL(string: $0) }
 
         ZStack {
-            if let photoURL {
-                RemoteImage(url: photoURL) {
+            if let heroURL {
+                RemoteImage(url: heroURL) {
                     placePhotoPlaceholder
                 }
                 .aspectRatio(contentMode: .fill)
-            } else {
+            } else if viewModel.isLoadingDetails {
                 placePhotoPlaceholder
+            } else {
+                QuickAddPhotoTile(restaurantId: place.id)
             }
         }
         .frame(height: 160)

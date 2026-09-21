@@ -29,6 +29,7 @@
 		568F9AC4F2AC6928C358E7C2 /* PreferenceActionFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */; };
 		577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */; };
 		57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */; };
+		3483C2898725482B91573FDC /* UIImage+Resize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
 		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
 		5B4DF37EA249496E90AE92F6 /* CravingSelectionSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6E0FE06AFF4354B5BF52F6 /* CravingSelectionSerializationTests.swift */; };
@@ -41,6 +42,7 @@
 		6BD18ED6ACDA339474E3F6CE /* ThinkingChecklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55EE8915F3A78097AD08A9 /* ThinkingChecklist.swift */; };
 		6C5F9C7639CFB53541A3A0D7 /* PreferenceLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DFAA607EA690164F6660005 /* PreferenceLoadingView.swift */; };
 		6E7C3EB8DBB54321B1B78BCA /* CommunityBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */; };
+		C04DC331EF72428DB163D9F0 /* RestaurantDetailSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B3EF0FD9646425BAFF2D990 /* RestaurantDetailSections.swift */; };
 		720BFAF300CA420E84414909 /* VibeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */; };
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
 		7553C5B190407AF2DC05FEE8 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA539C4A8192A886E0B977 /* LoginView.swift */; };
@@ -116,6 +118,7 @@
 		71EA539C4A8192A886E0B977 /* LoginView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
 		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
+		3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Resize.swift"; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
 		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
@@ -151,6 +154,7 @@
 		F32808D1CB6615EAE682CC84 /* LoginMascotPose.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginMascotPose.swift; sourceTree = "<group>"; };
 		F40FD947C8047ACFB42F9C9F /* PreferenceStepHeading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceStepHeading.swift; sourceTree = "<group>"; };
 		F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityBadge.swift; sourceTree = "<group>"; };
+		3B3EF0FD9646425BAFF2D990 /* RestaurantDetailSections.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RestaurantDetailSections.swift; sourceTree = "<group>"; };
 		FAB3284A147544F68D5E08AB /* BetaCredentialStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BetaCredentialStore.swift; sourceTree = "<group>"; };
 		FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceProgressHeader.swift; sourceTree = "<group>"; };
 		FF8FA63B189F8F7327E20578 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
@@ -280,6 +284,7 @@
 				37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */,
 				729D8427BD8EF410E03874B2 /* MascotView.swift */,
 				F6D973EB867E45C08F9DCA5D /* CommunityBadge.swift */,
+				3B3EF0FD9646425BAFF2D990 /* RestaurantDetailSections.swift */,
 				7C3FFF8EE7DE42989C5853CF /* RemoteImage.swift */,
 				87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */,
 			);
@@ -417,6 +422,7 @@
 				2D9E55980CA468D6922E9311 /* PlacePreferencesStore.swift */,
 				001E9DD4DCD505BDCC84A55D /* RecentDecisionStore.swift */,
 				7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */,
+				3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -544,6 +550,7 @@
 				04A68DD56BB569C4B41E8075 /* FavoritesView.swift in Sources */,
 				BBB916717547DDA1668C4BBA /* DiscoveryMode.swift in Sources */,
 				57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */,
+				3483C2898725482B91573FDC /* UIImage+Resize.swift in Sources */,
 				BCB3A5AD491B585C4FECB2C6 /* PlacePreferencesStore.swift in Sources */,
 				857D33720AF5D1C5D3D14575 /* RecentDecisionStore.swift in Sources */,
 				5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */,
@@ -562,6 +569,7 @@
 				7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */,
 				C8FD99C228734AC224823C66 /* MascotView.swift in Sources */,
 				6E7C3EB8DBB54321B1B78BCA /* CommunityBadge.swift in Sources */,
+				C04DC331EF72428DB163D9F0 /* RestaurantDetailSections.swift in Sources */,
 				D7DD8BE39EEE4A6C87AC7E9C /* RemoteImage.swift in Sources */,
 				4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */,
 				7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */,

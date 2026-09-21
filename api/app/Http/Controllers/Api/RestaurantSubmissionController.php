@@ -214,6 +214,42 @@ class RestaurantSubmissionController extends Controller
         return response()->json(['photo' => ['id' => $photo->id, 'photoType' => $photo->photo_type]], 201);
     }
 
+    /**
+     * One-tap "add a photo" for a restaurant that has no Google photo and no community photo
+     * yet — the gap Google's Places API leaves on places it just doesn't have licensed photos
+     * for. Skips the full "suggest an edit" form: an edit_place submission is created and
+     * immediately submitted server-side (name/location snapshotted straight from the
+     * restaurant, nothing the client needs to already know), carrying only this one photo.
+     * Still goes through the same admin approval as every other community photo — this closes
+     * the UX gap, not the moderation gate.
+     */
+    public function quickAddPhoto(Request $request, Restaurant $restaurant, RestaurantPhotoUploadService $uploader): JsonResponse
+    {
+        $data = $request->validate([
+            'photo' => ['required', 'image', 'max:'.Config::get('restaurant_photos.max_size_kb')],
+            'photoType' => ['nullable', 'in:storefront,food,menu,other'],
+        ]);
+
+        $submission = RestaurantSubmission::create([
+            'user_id' => $request->user()->id,
+            'restaurant_id' => $restaurant->id,
+            'submission_type' => 'edit_place',
+            'source_type' => 'manual',
+            'name' => $restaurant->name,
+            'latitude' => $restaurant->latitude,
+            'longitude' => $restaurant->longitude,
+            'location_source' => 'current_location',
+            'changed_fields' => [],
+            'status' => 'draft',
+        ]);
+
+        $photo = $uploader->storePending($submission, $request->file('photo'), $data['photoType'] ?? 'other', $request->user()->id);
+
+        $submission->update(['status' => 'pending']);
+
+        return response()->json(['photo' => ['id' => $photo->id, 'photoType' => $photo->photo_type]], 201);
+    }
+
     private function present(RestaurantSubmission $submission): array
     {
         return [

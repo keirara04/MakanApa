@@ -175,6 +175,14 @@ enum APIClient {
         )
     }
 
+    static func quickAddRestaurantPhoto(restaurantId: Int, jpegData: Data, photoType: String) async throws -> UploadPhotoResponse {
+        try await uploadMultipart(
+            "restaurants/\(restaurantId)/photos/quick-add",
+            fileFieldName: "photo", fileName: "photo.jpg", mimeType: "image/jpeg", fileData: jpegData,
+            fields: ["photoType": photoType]
+        )
+    }
+
     // MARK: - Admin: community places moderation
 
     static func adminListSubmissions(status: String) async throws -> AdminSubmissionListResponse {

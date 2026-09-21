@@ -18,13 +18,21 @@ struct CommunityRestaurantDetailSheet: View {
                 header
                 actionRow
                 if let details, !details.communityPhotos.isEmpty {
-                    photosSection(details.communityPhotos)
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("PHOTOS")
+                        PlaceCommunityPhotoStrip(urls: details.communityPhotos)
+                    }
+                } else if let details, details.photos.isEmpty, !isLoading {
+                    QuickAddPhotoRow(restaurantId: item.id)
                 }
                 if let details {
                     aboutSection(details)
                 }
                 if let details, !details.menuItems.isEmpty {
-                    menuSection(details.menuItems)
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionHeader("MENU")
+                        PlaceMenuSection(items: details.menuItems)
+                    }
                 }
                 if isLoading {
                     HStack {
@@ -103,28 +111,6 @@ struct CommunityRestaurantDetailSheet: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private func photosSection(_ urls: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("PHOTOS")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(urls, id: \.self) { urlString in
-                        RemoteImage(url: URL(string: urlString)) {
-                            Color.kicap.opacity(0.06)
-                        }
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 140, height: 140)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .transition(.opacity)
-                    }
-                }
-            }
-            Text("Shared by the MakanApa community")
-                .font(.makanBody(11))
-                .foregroundStyle(.secondary)
-        }
-    }
-
     private func aboutSection(_ details: PlaceDetails) -> some View {
         let rows: [(String, String)] = [
             details.closesAt.map { ("🕐", "Open until \($0)") },
@@ -141,21 +127,6 @@ struct CommunityRestaurantDetailSheet: View {
                             Text(emoji)
                             Text(text).font(.makanBody(13)).foregroundStyle(Color.kicap.opacity(0.85))
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    private func menuSection(_ items: [MenuItem]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("MENU")
-            ForEach(items) { item in
-                HStack {
-                    Text(item.name).font(.makanBody(14)).foregroundStyle(Color.kicap)
-                    Spacer()
-                    if let price = item.price {
-                        Text("RM\(price, specifier: "%.2f")").font(.makanBody(13)).foregroundStyle(.secondary)
                     }
                 }
             }
