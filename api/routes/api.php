@@ -90,6 +90,7 @@ Route::prefix('v1')->group(function () {
             Route::post('community/submissions/{submission}/reject', [AdminRestaurantSubmissionController::class, 'reject']);
             Route::post('community/submissions/{submission}/request-changes', [AdminRestaurantSubmissionController::class, 'requestChanges']);
             Route::delete('community/restaurants/{restaurant}/field-overrides/{field}', [AdminRestaurantSubmissionController::class, 'releaseFieldOverride']);
+            Route::post('community/restaurants/{restaurant}/remove', [AdminRestaurantSubmissionController::class, 'remove']);
             Route::get('submission-photos/{photo}', AdminSubmissionPhotoController::class)
                 ->name('admin.submission-photos.show')->middleware('signed');
         });

@@ -141,9 +141,14 @@ class CommunityController extends Controller
     }
 
     /**
-     * Recently-approved community submissions (provider = user_submitted), independent of the
-     * trending aggregate above — a brand-new place has zero decisions/picks and would never
-     * clear min_pickers, but the person who just got it approved should still see it here.
+     * Recently-approved community submissions, independent of the trending aggregate above — a
+     * brand-new place has zero decisions/picks and would never clear min_pickers, but the person
+     * who just got it approved should still see it here. Filtered on `source_submission_id`, not
+     * `provider = user_submitted` — RestaurantSubmissionController::approveNewPlace() sets
+     * `provider = 'google'` when the submitter found the place via Google search (the common
+     * path through AddPlaceFlow), so provider alone can't distinguish "came through community
+     * moderation" from "background Google sync"; source_submission_id is set by both approval
+     * branches and left null by the background sync in PlacesService.
      * Scoped the same way as the trending branch: university via the source submission's
      * university_id snapshot, Public via lat/lon radius.
      *
@@ -156,7 +161,7 @@ class CommunityController extends Controller
 
         $query = Restaurant::query()
             ->where('is_active', true)
-            ->where('provider', 'user_submitted')
+            ->whereNotNull('source_submission_id')
             ->where('created_at', '>=', $since)
             ->with('cuisines');
 

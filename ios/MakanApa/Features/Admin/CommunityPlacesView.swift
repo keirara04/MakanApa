@@ -79,6 +79,7 @@ private struct SubmissionReviewView: View {
     @State private var isProcessing = false
     @State private var showingRejectSheet = false
     @State private var showingChangesSheet = false
+    @State private var showingRemoveConfirm = false
     @State private var reviewNote = ""
     @State private var errorMessage: String?
     @State private var pendingPhotos: [AdminSubmissionPhoto] = []
@@ -174,13 +175,30 @@ private struct SubmissionReviewView: View {
                 Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
             }
 
-            Section("Decision") {
-                Button("Approve") { Task { await approve() } }
-                    .disabled(isProcessing)
-                Button("Request changes") { showingChangesSheet = true }
-                    .disabled(isProcessing)
-                Button("Reject", role: .destructive) { showingRejectSheet = true }
-                    .disabled(isProcessing)
+            if submission.status == "approved", let restaurantId = submission.restaurantId {
+                Section("Decision") {
+                    Button("Remove from community", role: .destructive) { showingRemoveConfirm = true }
+                        .disabled(isProcessing)
+                }
+                .confirmationDialog(
+                    "Remove \(submission.name) from Community?",
+                    isPresented: $showingRemoveConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Remove", role: .destructive) { Task { await remove(restaurantId: restaurantId) } }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("It stops showing up in Nearby and Community. This doesn't delete its history, and it can come back through the normal reopen flow.")
+                }
+            } else {
+                Section("Decision") {
+                    Button("Approve") { Task { await approve() } }
+                        .disabled(isProcessing)
+                    Button("Request changes") { showingChangesSheet = true }
+                        .disabled(isProcessing)
+                    Button("Reject", role: .destructive) { showingRejectSheet = true }
+                        .disabled(isProcessing)
+                }
             }
         }
         .navigationTitle("Review")
@@ -254,6 +272,19 @@ private struct SubmissionReviewView: View {
             dismiss()
         } catch {
             errorMessage = "Couldn't approve. Try again."
+        }
+    }
+
+    @MainActor
+    private func remove(restaurantId: Int) async {
+        isProcessing = true
+        defer { isProcessing = false }
+        do {
+            _ = try await APIClient.adminRemoveRestaurant(restaurantId: restaurantId)
+            onHandled()
+            dismiss()
+        } catch {
+            errorMessage = "Couldn't remove. Try again."
         }
     }
 

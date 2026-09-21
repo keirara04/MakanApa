@@ -9,7 +9,10 @@ enum NearbyPanelState: CaseIterable {
 
     func height(screenHeight: CGFloat) -> CGFloat {
         switch self {
-        case .collapsed: return 64
+        // Deliberately not tall enough to fit a full-width button underneath the summary row —
+        // that would recreate the "too much bottom chrome" problem this panel replaced. The
+        // Pick-one-lah CTA stays compact and inline at this height instead.
+        case .collapsed: return 100
         case .medium: return 320
         case .large: return screenHeight * 0.82
         }
@@ -38,6 +41,9 @@ struct NearbyAreaPanel: View {
     let places: [NearbyPlace]
     let browseCenter: CLLocationCoordinate2D?
     let onSelectPlace: (NearbyPlace) -> Void
+    let onPickOneLah: () -> Void
+    let isPicking: Bool
+    let hasPlaces: Bool
 
     @Binding var state: NearbyPanelState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -61,17 +67,17 @@ struct NearbyAreaPanel: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: currentHeight, alignment: .top)
-        .background(Color.nasiCream)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 12, y: -2)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 16, y: -2)
         .gesture(dragGesture)
         .animation(reduceMotion ? .easeOut(duration: 0.12) : .interactiveSpring(response: 0.35, dampingFraction: 0.85), value: state)
     }
 
     private var grabber: some View {
         Capsule()
-            .fill(Color.kicap.opacity(0.15))
-            .frame(width: 36, height: 4)
+            .fill(Color.kicap.opacity(0.12))
+            .frame(width: 28, height: 3)
             .padding(.vertical, 8)
     }
 
@@ -79,22 +85,37 @@ struct NearbyAreaPanel: View {
     private var content: some View {
         switch state {
         case .collapsed:
-            collapsedRow
+            collapsedRow.transition(.opacity)
         case .medium:
-            mediumContent
+            mediumContent.transition(.opacity)
         case .large:
-            largeContent
+            largeContent.transition(.opacity)
         }
     }
 
+    // One row: two-line "Around here / N places nearby" on the left, a compact inline CTA on
+    // the right — never a full-width button underneath, which would force this state to grow
+    // past ~100pt and start eating map space again.
     private var collapsedRow: some View {
-        HStack {
-            Text(collapsedLabel)
-                .font(.makanBody(14))
-                .foregroundStyle(Color.kicap)
-            Spacer()
-            Image(systemName: "chevron.up")
-                .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Around here")
+                    .font(.makanBody(15))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.kicap)
+                HStack(spacing: 4) {
+                    Text(collapsedSubtitle)
+                        .font(.makanBody(12))
+                        .foregroundStyle(.secondary)
+                    // Deliberately small/secondary — a big chevron would compete with the CTA
+                    // for attention right next to it.
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary.opacity(0.7))
+                }
+            }
+            Spacer(minLength: 8)
+            pickOneLahButton(compact: true)
         }
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
@@ -102,9 +123,33 @@ struct NearbyAreaPanel: View {
 
     // "Around here", never "Around <university>" — affiliation answers who your community is,
     // not where the map is currently pointed (plan correction 4).
-    private var collapsedLabel: String {
-        guard let summary else { return "Around here" }
-        return "Around here · \(summary.placeCount) places"
+    private var collapsedSubtitle: String {
+        guard let summary else { return "" }
+        return "\(summary.placeCount) places nearby"
+    }
+
+    /// One button, two sizes — `compact` for the collapsed row's inline CTA, full-width
+    /// otherwise. The transition between them (collapsed → medium) is a crossfade via each
+    /// state's `.transition(.opacity)` above, not a simultaneous-full-opacity swap.
+    @ViewBuilder
+    private func pickOneLahButton(compact: Bool) -> some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            onPickOneLah()
+        } label: {
+            Text(isPicking ? "Nasi tengah fikir..." : "Pick one lah")
+                .font(compact ? .makanBody(14) : .makanDisplay(16))
+                .foregroundStyle(.white)
+                .padding(.horizontal, compact ? 16 : 20)
+                .padding(.vertical, compact ? 10 : 13)
+                .frame(maxWidth: compact ? nil : .infinity)
+                .background(Color.sambalRed)
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
+        }
+        .disabled(isPicking || !hasPlaces)
+        .opacity(hasPlaces ? 1 : 0.5)
+        .buttonStyle(PressCompressStyle())
     }
 
     // MARK: - Medium
@@ -124,6 +169,8 @@ struct NearbyAreaPanel: View {
                     if !summary.communityFinds.isEmpty {
                         communityFindsSection(summary.communityFinds)
                     }
+                    pickOneLahButton(compact: false)
+                        .padding(.top, 4)
                 } else {
                     emptyState
                 }
@@ -232,10 +279,16 @@ struct NearbyAreaPanel: View {
 
     // MARK: - Large: full sortable list (this is Nearby's "map/list toggle" — plan correction 12)
 
+    // The CTA sits *outside* the ScrollView (a sibling, not part of the LazyVStack of rows) so
+    // it stays visible while the list scrolls — a user 40 rows deep must not lose the primary
+    // action (plan: "sticky", not appended after the whole list).
     private var largeContent: some View {
         VStack(spacing: 0) {
             sortRow
             listBody
+            pickOneLahButton(compact: false)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
         }
     }
 

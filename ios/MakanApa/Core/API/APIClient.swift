@@ -213,6 +213,10 @@ enum APIClient {
         try await delete("admin/community/restaurants/\(restaurantId)/field-overrides/\(field)")
     }
 
+    static func adminRemoveRestaurant(restaurantId: Int) async throws -> AdminRemoveResponse {
+        try await post("admin/community/restaurants/\(restaurantId)/remove", body: EmptyBody())
+    }
+
     private struct EmptyBody: Encodable {}
 
     private static func patch<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {

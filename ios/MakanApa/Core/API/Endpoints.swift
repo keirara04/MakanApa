@@ -281,6 +281,10 @@ struct ReleaseFieldOverrideResponse: Decodable {
     let released: Bool
 }
 
+struct AdminRemoveResponse: Decodable {
+    let removed: Bool
+}
+
 struct AdminApproveResponse: Decodable {
     let approved: Bool
     let restaurantId: Int

@@ -74,6 +74,30 @@ class CommunityNewInAreaTest extends TestCase
         $response->assertJsonCount(0, 'newInArea');
     }
 
+    public function test_community_submission_sourced_from_google_still_counts_as_new_in_area(): void
+    {
+        // approveNewPlace() sets provider='google' when the submitter found the place via
+        // Google search — the common AddPlaceFlow path. This must still surface here; only
+        // provider='google' rows with NO source_submission_id (background sync) are excluded.
+        $this->actingAsPublicUser();
+        $submission = $this->approvedSubmission(['source_type' => 'google', 'google_place_id' => 'ChIJ-community']);
+
+        Restaurant::create([
+            'name' => 'Warung Test',
+            'latitude' => 2.928400,
+            'longitude' => 101.780200,
+            'is_active' => true,
+            'provider' => 'google',
+            'provider_place_id' => 'ChIJ-community',
+            'source_submission_id' => $submission->id,
+        ]);
+
+        $response = $this->getJson('/api/v1/community/feed?latitude=2.9284&longitude=101.7802')->assertOk();
+
+        $response->assertJsonCount(1, 'newInArea');
+        $response->assertJsonPath('newInArea.0.name', 'Warung Test');
+    }
+
     public function test_stale_community_place_drops_out_of_new_in_area(): void
     {
         $this->actingAsPublicUser();

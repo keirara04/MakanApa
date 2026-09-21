@@ -143,6 +143,34 @@ class RestaurantSubmissionController extends Controller
     }
 
     /**
+     * Direct admin takedown of an already-approved place — no submission involved, unlike
+     * approveClosure() (that one is the user-facing "this place is closed" report going through
+     * the normal moderation queue). Reuses the same is_active=false + field-override mechanism so
+     * a `provider = 'google'` restaurant can't get silently reactivated by the next background
+     * sync. Not a hard delete: historical decisions/vibe votes/reviews stay untouched, and the
+     * place can come back the normal way (a user-submitted "reopen" report) if that's ever wrong.
+     */
+    public function remove(Request $request, Restaurant $restaurant): JsonResponse
+    {
+        $restaurant->update(['is_active' => false]);
+
+        if ($restaurant->provider === 'google') {
+            RestaurantFieldOverride::updateOrCreate(
+                ['restaurant_id' => $restaurant->id, 'field' => 'is_active'],
+                [
+                    'restaurant_submission_id' => null,
+                    'value' => false,
+                    'authority' => 'admin',
+                    'verified_by' => $request->user()->id,
+                    'verified_at' => now(),
+                ]
+            );
+        }
+
+        return response()->json(['removed' => true]);
+    }
+
+    /**
      * `new_place`/`manual` creates a fresh community restaurant — no baseline exists, no override
      * bookkeeping needed (nothing else will ever sync over it). `new_place`/`google` re-checks
      * for a sync race first — the background Google sync may have already pulled this exact

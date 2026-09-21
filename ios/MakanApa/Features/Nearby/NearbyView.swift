@@ -72,19 +72,20 @@ struct NearbyView: View {
             .zIndex(1)
 
             if viewModel.selectedPlace == nil {
-                VStack(spacing: 8) {
+                VStack {
                     Spacer()
-                    if panelState == .collapsed {
-                        pickOneLahButton
-                    }
                     NearbyAreaPanel(
                         summary: viewModel.areaSummary,
                         places: viewModel.places,
                         browseCenter: viewModel.browseCenter,
                         onSelectPlace: { selectPlace($0) },
+                        onPickOneLah: { Task { await pickOneLah() } },
+                        isPicking: viewModel.isPicking,
+                        hasPlaces: !viewModel.places.isEmpty,
                         state: $panelState
                     )
                 }
+                .padding(.bottom, 6)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)
             }
@@ -530,25 +531,6 @@ struct NearbyView: View {
     }
 
     // MARK: - Pick one lah
-
-    private var pickOneLahButton: some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            Task { await pickOneLah() }
-        } label: {
-            Text(viewModel.isPicking ? "Nasi tengah fikir..." : "Pick one lah")
-                .font(.makanDisplay(17))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .background(Color.sambalRed)
-                .clipShape(Capsule())
-                .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
-        }
-        .disabled(viewModel.isPicking || viewModel.places.isEmpty)
-        .opacity(viewModel.places.isEmpty ? 0.5 : 1)
-        .buttonStyle(PressCompressStyle())
-    }
 
     private func pickOneLah() async {
         guard let coordinate = userCoordinate, let viewport = currentViewport else { return }
