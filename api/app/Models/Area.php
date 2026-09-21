@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'short_name', 'active'])]
 class Area extends Model
@@ -13,5 +14,10 @@ class Area extends Model
         return [
             'active' => 'boolean',
         ];
+    }
+
+    public function decisions(): HasMany
+    {
+        return $this->hasMany(Decision::class);
     }
 }

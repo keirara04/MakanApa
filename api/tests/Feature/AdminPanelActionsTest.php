@@ -11,6 +11,7 @@ use App\Models\RestaurantSubmission;
 use App\Models\University;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -90,5 +91,42 @@ class AdminPanelActionsTest extends TestCase
 
         $this->assertSame('active', $onlySuperadmin->fresh()->status, 'guard must block suspending the last active superadmin');
         $this->assertSame(0, AdminAuditLog::where('action', 'user.suspend')->count());
+    }
+
+    public function test_edit_user_form_changes_password_revokes_sessions_and_audits(): void
+    {
+        $admin = $this->superadmin();
+        $target = User::factory()->create(['role' => 'user', 'status' => 'active', 'password' => Hash::make('old-password')]);
+        $target->createToken('device-a');
+        $oldHash = $target->password;
+
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->fillForm(['password' => 'brand-new-password'])
+            ->call('save');
+
+        $target->refresh();
+        $this->assertNotSame($oldHash, $target->password);
+        $this->assertTrue(Hash::check('brand-new-password', $target->password));
+        $this->assertSame(0, $target->tokens()->count());
+        $this->assertSame(1, AdminAuditLog::where('action', 'user.change_password')->count());
+    }
+
+    public function test_edit_user_form_without_password_field_leaves_password_untouched(): void
+    {
+        $admin = $this->superadmin();
+        $target = User::factory()->create(['role' => 'user', 'status' => 'active', 'password' => Hash::make('old-password')]);
+        $oldHash = $target->password;
+
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->fillForm(['name' => 'Updated Name'])
+            ->call('save');
+
+        $target->refresh();
+        $this->assertSame($oldHash, $target->password);
+        $this->assertSame(0, AdminAuditLog::where('action', 'user.change_password')->count());
     }
 }
