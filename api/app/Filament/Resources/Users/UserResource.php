@@ -12,8 +12,13 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-/** No create page — accounts come from sign-up, not admin hand-creation. No delete — suspend instead. */
+/**
+ * No create page — accounts come from sign-up, not admin hand-creation. Delete is a soft
+ * delete via UserActions::delete() (AdminUserService), never Filament's hard-delete.
+ */
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
@@ -25,6 +30,13 @@ class UserResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return UserForm::configure($schema);
+    }
+
+    // Required for TrashedFilter/restore to work at all — otherwise the global SoftDeletes
+    // scope hides deleted rows from the table query and 404s their edit page entirely.
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
     }
 
     public static function table(Table $table): Table

@@ -60,6 +60,32 @@ class AdminUserService
         });
     }
 
+    /**
+     * Soft delete, not a hard delete — the row (and its saved places, submissions, etc. via
+     * their existing cascades) stays recoverable via restore() until a superadmin explicitly
+     * force-deletes it. Distinct from suspend(): suspension is reversible-by-design routine
+     * moderation; this is for "this account shouldn't exist" (spam, abuse, a mistaken signup).
+     */
+    public function delete(User $target, string $reason, User $admin): void
+    {
+        $this->guardNotSelf($target, $admin, 'delete');
+        $this->guardNotLastActiveSuperadmin($target);
+
+        DB::transaction(function () use ($target, $reason, $admin) {
+            $target->tokens()->delete();
+            $target->delete();
+            $this->auditLogger->log($admin, 'user.delete', $target, reason: $reason);
+        });
+    }
+
+    public function restore(User $target, User $admin): void
+    {
+        DB::transaction(function () use ($target, $admin) {
+            $target->restore();
+            $this->auditLogger->log($admin, 'user.restore', $target);
+        });
+    }
+
     private function guardNotSelf(User $target, User $admin, string $verb): void
     {
         if ($target->id === $admin->id) {

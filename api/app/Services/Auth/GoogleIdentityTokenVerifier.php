@@ -2,6 +2,8 @@
 
 namespace App\Services\Auth;
 
+use Illuminate\Support\Facades\Log;
+
 class GoogleIdentityTokenVerifier
 {
     private const JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
@@ -20,12 +22,23 @@ class GoogleIdentityTokenVerifier
         $claims = $this->jwks->decode($idToken);
 
         if (! in_array($claims->iss ?? null, self::VALID_ISSUERS, true)) {
+            Log::warning('google_identity_token.unexpected_issuer', ['iss' => $claims->iss ?? null]);
+
             throw new InvalidIdentityTokenException('unexpected_issuer');
         }
 
         // Checked against the Web/server OAuth client ID, not an iOS client ID — see
         // config/services.php's `google.server_client_id` doc comment for why.
-        if (($claims->aud ?? null) !== config('services.google.server_client_id')) {
+        $expectedAudience = config('services.google.server_client_id');
+        if (($claims->aud ?? null) !== $expectedAudience) {
+            // Deliberately logs both sides, not just a boolean — this is the only way to tell
+            // "GOOGLE_SERVER_CLIENT_ID is unset/wrong on this deploy" apart from "someone sent
+            // a token for a different app" after the fact, without a debugger attached.
+            Log::warning('google_identity_token.unexpected_audience', [
+                'token_aud' => $claims->aud ?? null,
+                'expected_aud' => $expectedAudience,
+            ]);
+
             throw new InvalidIdentityTokenException('unexpected_audience');
         }
 

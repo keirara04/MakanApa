@@ -68,6 +68,39 @@ class UserActions
             ->action(fn (User $record) => app(AdminUserService::class)->revokeSessions($record, auth()->user()));
     }
 
+    /**
+     * Soft delete — distinct from suspend(). Suspension is routine, reversible moderation;
+     * this is for accounts that shouldn't exist at all (spam, abuse, a mistaken signup), while
+     * still leaving a trail and a restore path rather than an irreversible hard delete.
+     */
+    public static function delete(): Action
+    {
+        return Action::make('delete')
+            ->label('Delete')
+            ->color('danger')
+            ->icon('heroicon-o-trash')
+            ->visible(fn (User $record) => ! $record->trashed())
+            ->schema([
+                Textarea::make('reason')->required()->maxLength(500),
+            ])
+            ->requiresConfirmation()
+            ->modalDescription('This removes the account from every list and signs it out everywhere. It can be restored later if needed.')
+            ->action(function (User $record, array $data) {
+                self::guarded(fn () => app(AdminUserService::class)->delete($record, $data['reason'], auth()->user()));
+            });
+    }
+
+    public static function restore(): Action
+    {
+        return Action::make('restore')
+            ->label('Restore')
+            ->color('success')
+            ->icon('heroicon-o-arrow-uturn-left')
+            ->visible(fn (User $record) => $record->trashed())
+            ->requiresConfirmation()
+            ->action(fn (User $record) => app(AdminUserService::class)->restore($record, auth()->user()));
+    }
+
     /** AdminUserService's guards throw RuntimeException (last superadmin / self-action) — surface as a notification, not a 500. */
     private static function guarded(\Closure $callback): void
     {

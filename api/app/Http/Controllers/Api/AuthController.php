@@ -302,7 +302,11 @@ class AuthController extends Controller
         AccountDeletion::create(['user_id' => $user->id, 'email' => $user->email]);
 
         $user->tokens()->delete();
-        $user->delete();
+        // forceDelete(), not delete() — the User model gained SoftDeletes for the admin panel's
+        // reversible moderation delete, but self-service deletion is a genuine, permanent
+        // removal (matches what the privacy policy promises). AccountDeletion above is the only
+        // trace meant to survive this.
+        $user->forceDelete();
 
         return response()->json(['deleted' => true]);
     }

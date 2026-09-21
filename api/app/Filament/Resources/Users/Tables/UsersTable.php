@@ -6,6 +6,7 @@ use App\Filament\Resources\Users\UserActions;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
 class UsersTable
@@ -23,6 +24,7 @@ class UsersTable
             ->filters([
                 SelectFilter::make('role')->options(['user' => 'User', 'superadmin' => 'Superadmin']),
                 SelectFilter::make('status')->options(['active' => 'Active', 'suspended' => 'Suspended']),
+                TrashedFilter::make(),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -30,6 +32,8 @@ class UsersTable
                 UserActions::reactivate(),
                 UserActions::changeRole(),
                 UserActions::revokeSessions(),
+                UserActions::delete(),
+                UserActions::restore(),
             ]);
     }
 }

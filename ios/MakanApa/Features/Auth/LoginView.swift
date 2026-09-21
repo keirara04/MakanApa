@@ -193,16 +193,7 @@ struct LoginView: View {
 
             signInButton
 
-            HStack(spacing: 4) {
-                Text("New here?")
-                    .foregroundStyle(Color.kicap.opacity(0.7))
-                Button("Sign up") { showSignUp = true }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(accent)
-                    .frame(minHeight: 44)
-            }
-            .font(.system(.subheadline, design: .rounded))
-            .frame(maxWidth: .infinity)
+            signUpButton
         }
         .foregroundStyle(Color.kicap)
         .opacity(appeared ? 1 : 0)
@@ -239,6 +230,26 @@ struct LoginView: View {
         .buttonStyle(LoginButtonStyle(accent: accent, isLoading: isSubmitting))
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isSubmitting)
         .disabled(isSubmitting || email.isEmpty || password.isEmpty)
+    }
+
+    // A real secondary button, not a small text link — a quick "New here? Sign up" line was
+    // easy to miss below the primary sign-in button, so this gives new-account creation equal
+    // visual weight to signing in instead of reading as fine print.
+    private var signUpButton: some View {
+        Button {
+            showSignUp = true
+        } label: {
+            Text("Create an account")
+                .font(.system(.headline, design: .rounded, weight: .semibold))
+                .frame(maxWidth: .infinity, minHeight: 56)
+        }
+        .foregroundStyle(accent)
+        .background(Color.clear, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(accent, lineWidth: 1.5)
+        }
+        .disabled(isSubmitting)
     }
 
     @MainActor

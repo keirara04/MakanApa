@@ -10,7 +10,8 @@ class EditUser extends EditRecord
 {
     protected static string $resource = UserResource::class;
 
-    // No DeleteAction — accounts are suspended, never hard-deleted, from the admin panel.
+    // Soft delete only — UserActions::delete()/restore(), never Filament's own DeleteAction
+    // (that would hard-delete, bypassing AdminUserService's guards and audit log entirely).
     protected function getHeaderActions(): array
     {
         return [
@@ -18,6 +19,8 @@ class EditUser extends EditRecord
             UserActions::reactivate(),
             UserActions::changeRole(),
             UserActions::revokeSessions(),
+            UserActions::delete(),
+            UserActions::restore(),
         ];
     }
 }

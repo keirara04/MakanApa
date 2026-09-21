@@ -61,4 +61,49 @@ class AdminUserServiceTest extends TestCase
 
         $this->assertSame(0, $target->tokens()->count());
     }
+
+    public function test_delete_soft_deletes_and_revokes_tokens(): void
+    {
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        $target = User::factory()->create(['role' => 'user', 'status' => 'active']);
+        $target->createToken('test-token');
+
+        app(AdminUserService::class)->delete($target, 'spam account', $admin);
+
+        $this->assertSoftDeleted($target);
+        $this->assertSame(0, $target->tokens()->count());
+        // Still physically present — a soft delete, not gone.
+        $this->assertDatabaseHas('users', ['id' => $target->id]);
+    }
+
+    public function test_admin_cannot_delete_themselves(): void
+    {
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+
+        $this->expectException(RuntimeException::class);
+        app(AdminUserService::class)->delete($admin, 'test', $admin);
+    }
+
+    public function test_cannot_delete_the_last_active_superadmin(): void
+    {
+        $onlySuperadmin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        $actingAsSomeoneElse = User::factory()->create(['role' => 'user', 'status' => 'active']);
+
+        $this->expectException(RuntimeException::class);
+        app(AdminUserService::class)->delete($onlySuperadmin, 'test', $actingAsSomeoneElse);
+    }
+
+    public function test_restore_brings_a_deleted_user_back(): void
+    {
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        $target = User::factory()->create(['role' => 'user', 'status' => 'active']);
+
+        app(AdminUserService::class)->delete($target, 'mistake', $admin);
+        $this->assertSoftDeleted($target);
+
+        app(AdminUserService::class)->restore($target, $admin);
+
+        $this->assertDatabaseHas('users', ['id' => $target->id, 'deleted_at' => null]);
+    }
 }
