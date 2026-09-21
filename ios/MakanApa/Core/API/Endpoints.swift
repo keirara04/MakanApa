@@ -673,3 +673,15 @@ struct PlaceDetails: Decodable, Equatable {
     let menuItems: [MenuItem]
     let communityPhotos: [String]
 }
+
+struct AppSessionStartRequestBody: Encodable {
+    let installationId: String?
+}
+
+struct AppSessionStartResponse: Decodable {
+    let sessionId: Int
+}
+
+struct AppSessionEndResponse: Decodable {
+    let ended: Bool
+}

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\RestaurantSubmissionController as AdminRestau
 use App\Http\Controllers\Api\Admin\SubmissionPhotoController as AdminSubmissionPhotoController;
 use App\Http\Controllers\Api\Admin\UniversityController as AdminUniversityController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\AppSessionController;
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
@@ -38,6 +39,12 @@ Route::prefix('v1')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('universities', [UniversityController::class, 'index']);
         Route::get('areas', [AreaController::class, 'index']);
+
+        // App open/close tracking — one pair of calls per scenePhase transition, never a hot path.
+        Route::middleware('throttle:60,1')->group(function () {
+            Route::post('app-sessions/start', [AppSessionController::class, 'start']);
+            Route::post('app-sessions/{session}/end', [AppSessionController::class, 'end']);
+        });
 
         // Local-DB-only aggregate queries, not Google-Places-backed — gets its own more
         // generous limit than the Places-protecting throttle:30,1 group below, not none at all.

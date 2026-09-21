@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\AccountDeletions\Pages\ListAccountDeletions;
 use App\Filament\Resources\AdminAuditLogs\Pages\ListAdminAuditLogs;
 use App\Filament\Resources\Areas\Pages\ManageAreas;
 use App\Filament\Resources\CommunityRequests\Pages\ListCommunityRequests;
 use App\Filament\Resources\Cuisines\Pages\ManageCuisines;
+use App\Filament\Resources\PlaceSyncAreas\Pages\ListPlaceSyncAreas;
+use App\Filament\Resources\RestaurantPhotos\Pages\ListRestaurantPhotos;
 use App\Filament\Resources\Restaurants\Pages\EditRestaurant;
 use App\Filament\Resources\Restaurants\Pages\ListRestaurants;
 use App\Filament\Resources\RestaurantSubmissions\Pages\ListRestaurantSubmissions;
@@ -105,5 +108,8 @@ class AdminPanelSmokeTest extends TestCase
         Livewire::test(ListCommunityRequests::class)->assertOk();
         Livewire::test(ListUserAffiliations::class)->assertOk();
         Livewire::test(ListAdminAuditLogs::class)->assertOk();
+        Livewire::test(ListRestaurantPhotos::class)->assertOk();
+        Livewire::test(ListPlaceSyncAreas::class)->assertOk();
+        Livewire::test(ListAccountDeletions::class)->assertOk();
     }
 }

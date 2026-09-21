@@ -10,6 +10,7 @@ struct MakanApaApp: App {
     @State private var locationService = LocationService()
     @State private var onboardingState = OnboardingState.shared
     private var authStore = AuthStore.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         GMSServices.provideAPIKey(MapsConfig.apiKey)
@@ -57,6 +58,29 @@ struct MakanApaApp: App {
                 // reversed-client-id URL scheme registered in Info.plist — the SDK needs this
                 // callback to resolve the in-flight sign-in Task, otherwise it hangs forever.
                 GIDSignIn.sharedInstance.handle(url)
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                // Only tracked once actually signed in — a logged-out person opening/closing
+                // the app has no user_id for the admin dashboard's "App opens" chart to attach
+                // to. .background specifically, not .inactive, so a transient system alert or
+                // the app switcher swipe-up preview doesn't register as a close.
+                guard case .authenticated = authStore.session else { return }
+
+                switch newPhase {
+                case .active:
+                    AppSessionTracker.shared.start()
+                case .background:
+                    AppSessionTracker.shared.end()
+                default:
+                    break
+                }
+            }
+            .onChange(of: authStore.session) { _, newSession in
+                // Covers the cold-launch case above: scenePhase is already .active by the time
+                // bootstrap()/login resolves to .authenticated, so the scenePhase-only handler
+                // above never fires for that very first session of the app run.
+                guard case .authenticated = newSession, scenePhase == .active else { return }
+                AppSessionTracker.shared.start()
             }
         }
     }

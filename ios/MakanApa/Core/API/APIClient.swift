@@ -127,6 +127,14 @@ enum APIClient {
         try await post("auth/logout", body: EmptyBody())
     }
 
+    static func startAppSession() async throws -> AppSessionStartResponse {
+        try await post("app-sessions/start", body: AppSessionStartRequestBody(installationId: InstallationID.current))
+    }
+
+    static func endAppSession(sessionId: Int) async throws -> AppSessionEndResponse {
+        try await post("app-sessions/\(sessionId)/end", body: EmptyBody())
+    }
+
     static func deleteAccount(password: String?) async throws -> DeleteAccountResponse {
         try await delete("auth/me", body: DeleteAccountRequestBody(password: password))
     }

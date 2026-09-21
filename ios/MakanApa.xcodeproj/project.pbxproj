@@ -36,6 +36,7 @@
 		568F9AC4F2AC6928C358E7C2 /* PreferenceActionFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */; };
 		577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */; };
 		57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */; };
+		7A4F3D47E3714E03A9BB734C /* AppSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
 		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
 		5B4DF37EA249496E90AE92F6 /* CravingSelectionSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6E0FE06AFF4354B5BF52F6 /* CravingSelectionSerializationTests.swift */; };
@@ -125,6 +126,7 @@
 		499DB7140BDB99BFCF6F9979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedMakanMascot.swift; sourceTree = "<group>"; };
 		51BA9571215449F471D390E1 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
+		ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionTracker.swift; sourceTree = "<group>"; };
 		5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodChoiceCard.swift; sourceTree = "<group>"; };
 		58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginButtonStyle.swift; sourceTree = "<group>"; };
 		651EAF0CDE373FFCEA468C00 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -307,6 +309,7 @@
 				51BA9571215449F471D390E1 /* APIError.swift */,
 				AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */,
 				D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */,
+				ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */,
 			);
 			path = API;
 			sourceTree = "<group>";
@@ -595,6 +598,7 @@
 				04A68DD56BB569C4B41E8075 /* FavoritesView.swift in Sources */,
 				BBB916717547DDA1668C4BBA /* DiscoveryMode.swift in Sources */,
 				57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */,
+				7A4F3D47E3714E03A9BB734C /* AppSessionTracker.swift in Sources */,
 				3483C2898725482B91573FDC /* UIImage+Resize.swift in Sources */,
 				BCB3A5AD491B585C4FECB2C6 /* PlacePreferencesStore.swift in Sources */,
 				857D33720AF5D1C5D3D14575 /* RecentDecisionStore.swift in Sources */,

@@ -113,4 +113,13 @@ class AuthAccountDeletionTest extends TestCase
         $response->assertOk()->assertJsonPath('deleted', true);
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
+
+    public function test_deletion_leaves_a_trace_in_account_deletions_log(): void
+    {
+        $user = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-1', 'email' => 'gone@example.com']);
+
+        $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertOk();
+
+        $this->assertDatabaseHas('account_deletions', ['user_id' => $user->id, 'email' => 'gone@example.com']);
+    }
 }

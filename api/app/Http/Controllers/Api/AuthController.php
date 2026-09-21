@@ -10,6 +10,7 @@ use App\Http\Requests\LinkAccountRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateMyAffiliationRequest;
+use App\Models\AccountDeletion;
 use App\Models\Area;
 use App\Models\PendingProviderLink;
 use App\Models\University;
@@ -294,6 +295,11 @@ class AuthController extends Controller
         if ($user->apple_refresh_token) {
             $exchange->revoke($user->apple_refresh_token);
         }
+
+        // Deletion is instant and self-service — there's no admin-reviewed queue for this.
+        // This is the only trace left afterward, so admins have some visibility (support,
+        // abuse patterns, compliance) once the row itself is gone.
+        AccountDeletion::create(['user_id' => $user->id, 'email' => $user->email]);
 
         $user->tokens()->delete();
         $user->delete();

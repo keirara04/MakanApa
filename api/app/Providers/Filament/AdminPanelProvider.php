@@ -2,8 +2,13 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AppSessionsChartWidget;
 use App\Filament\Widgets\NeedsAttentionWidget;
 use App\Filament\Widgets\OverviewStatsWidget;
+use App\Filament\Widgets\RecommendationRatesChartWidget;
+use App\Filament\Widgets\SavesTrendChartWidget;
+use App\Filament\Widgets\UsersOverTimeChartWidget;
+use Filament\Auth\MultiFactor\Email\EmailAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -35,7 +40,14 @@ class AdminPanelProvider extends PanelProvider
             ->domain($domain ?: null)
             ->path($domain ? '' : 'admin')
             ->login()
+            ->profile()
             ->authGuard('web')
+            // Optional, not required — enforcing this immediately would risk locking out the
+            // one existing admin before anyone has gone through profile > set up email code.
+            // Revisit ->requiresMultiFactorAuthentication() once every admin has opted in.
+            ->multiFactorAuthentication([
+                EmailAuthentication::make(),
+            ])
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -57,6 +69,10 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
                 NeedsAttentionWidget::class,
                 OverviewStatsWidget::class,
+                UsersOverTimeChartWidget::class,
+                AppSessionsChartWidget::class,
+                RecommendationRatesChartWidget::class,
+                SavesTrendChartWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
