@@ -158,9 +158,7 @@ private struct OnboardingLocationPage: View {
             guard didRequest else { return }
             switch newState {
             case .authorized:
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                withAnimation(Motion.playful) { showConfirmation = true }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onContinue() }
+                confirmAndContinue()
             case .denied, .unavailable:
                 onContinue()
             default:
@@ -171,7 +169,24 @@ private struct OnboardingLocationPage: View {
 
     private func requestLocation() {
         didRequest = true
+
+        // Already authorized from an earlier session — LocationService fetches on init, so the
+        // state may already be .authorized before this page even appears. Re-requesting yields
+        // the same coordinate, and onChange never fires for a value that hasn't actually
+        // changed, which otherwise leaves this screen stuck forever. Advance immediately instead
+        // of waiting for a delegate callback that has nothing new to report.
+        if case .authorized = locationService.state {
+            confirmAndContinue()
+            return
+        }
+
         locationService.requestLocation()
+    }
+
+    private func confirmAndContinue() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(Motion.playful) { showConfirmation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onContinue() }
     }
 }
 
