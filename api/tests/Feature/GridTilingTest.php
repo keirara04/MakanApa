@@ -55,7 +55,7 @@ class GridTilingTest extends TestCase
     {
         Http::fake(['*searchNearby*' => Http::response(['places' => [$this->place('p1', 'Corner Diner')]])]);
 
-        app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 2.5);
+        app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 1.0);
 
         $this->assertSame(1, $this->nearbyCallCount());
     }

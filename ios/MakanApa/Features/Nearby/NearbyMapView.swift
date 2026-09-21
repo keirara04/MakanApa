@@ -10,10 +10,6 @@ struct NearbyMapView: UIViewRepresentable {
     let places: [NearbyPlace]
     let isPicking: Bool
     let winnerPlaceId: Int?
-    /// Sourced from `NearbyViewModel.topRatedIds` — refreshed only on camera-idle, never
-    /// recomputed mid-drag. Precedence when rendering is `winner > topRated > normal`; a place
-    /// with no rating is always a plain dot regardless of any of this.
-    var topRatedIds: Set<Int> = []
     let initialCameraTarget: CLLocationCoordinate2D?
     /// Bumped by the "recenter on me" button. Coordinator diffs it against the last value it
     /// handled so a re-render without a new tap doesn't re-animate the camera.
@@ -62,7 +58,7 @@ struct NearbyMapView: UIViewRepresentable {
         }
 
         context.coordinator.sync(
-            places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId, topRatedIds: topRatedIds,
+            places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId,
             highlightedSearchPlaceId: highlightedSearchPlaceId, on: mapView
         )
         context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
@@ -112,7 +108,7 @@ struct NearbyMapView: UIViewRepresentable {
         }
 
         func sync(
-            places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?, topRatedIds: Set<Int>,
+            places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?,
             highlightedSearchPlaceId: Int?, on mapView: GMSMapView
         ) {
             let currentIds = Set(places.map(\.id))
@@ -127,11 +123,11 @@ struct NearbyMapView: UIViewRepresentable {
                 if let marker = markersById[place.id], let iconView = iconViewsById[place.id] {
                     marker.position = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
                     marker.userData = place
-                    applyIcon(to: iconView, rating: place.rating, isWinner: isWinner, isTopRated: topRatedIds.contains(place.id))
+                    applyIcon(to: iconView, rating: place.rating, isWinner: isWinner)
                     marker.zIndex = isWinner ? 10 : 0
                     applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
                 } else {
-                    addMarker(for: place, winnerPlaceId: winnerPlaceId, isTopRated: topRatedIds.contains(place.id), staggerIndex: newIndex, on: mapView)
+                    addMarker(for: place, winnerPlaceId: winnerPlaceId, staggerIndex: newIndex, on: mapView)
                     newIndex += 1
                 }
             }
@@ -194,9 +190,9 @@ struct NearbyMapView: UIViewRepresentable {
 
         // MARK: - Marker lifecycle
 
-        private func addMarker(for place: NearbyPlace, winnerPlaceId: Int?, isTopRated: Bool, staggerIndex: Int, on mapView: GMSMapView) {
+        private func addMarker(for place: NearbyPlace, winnerPlaceId: Int?, staggerIndex: Int, on mapView: GMSMapView) {
             let isWinner = winnerPlaceId == place.id
-            let image = RatingBubbleRenderer.icon(rating: place.rating, isWinner: isWinner, isTopRated: isTopRated)
+            let image = RatingBubbleRenderer.icon(rating: place.rating, isWinner: isWinner)
             let iconView = UIImageView(image: image)
             iconView.frame = CGRect(origin: .zero, size: image.size)
             iconView.alpha = 0
@@ -238,8 +234,8 @@ struct NearbyMapView: UIViewRepresentable {
             })
         }
 
-        private func applyIcon(to iconView: UIImageView, rating: Double?, isWinner: Bool, isTopRated: Bool) {
-            let image = RatingBubbleRenderer.icon(rating: rating, isWinner: isWinner, isTopRated: isTopRated)
+        private func applyIcon(to iconView: UIImageView, rating: Double?, isWinner: Bool) {
+            let image = RatingBubbleRenderer.icon(rating: rating, isWinner: isWinner)
             iconView.image = image
             iconView.bounds.size = image.size
         }
@@ -287,20 +283,18 @@ struct NearbyMapView: UIViewRepresentable {
 }
 
 /// Renders a marker icon as a `UIImage` — plain UIKit rasterizer since it's assigned to a
-/// `UIImageView` used as the marker's `iconView`. Three visual tiers, in strict precedence
-/// (a place can only ever render as one): **winner** (sambal-red `★4.7` pill, "Pick one lah"
-/// result) > **top rated** (white `★4.7` pill) > **normal** (small plain dot). A place with no
-/// rating is always a plain dot regardless of winner/top-rated status — there is no meaningful
-/// "★–" state to show, so don't show one.
+/// `UIImageView` used as the marker's `iconView`. Two visual tiers: **winner** (sambal-red
+/// `★4.7` pill, "Pick one lah" result) > **any rated place** (white `★4.7` pill). A place with
+/// no rating at all is a plain (invisible) dot — there's no meaningful "★–" state to show.
 enum RatingBubbleRenderer {
-    /// Invisible, not just small — a normal place gets no visible mark on the map at all now
-    /// (still tappable: Google Maps' own base-layer POI icon is what a user actually taps for
-    /// these). Kept as a real (if invisible) icon rather than omitting the marker entirely, so
-    /// tap-to-select still works for every place, not only winner/top-rated ones.
+    /// Invisible, not just small — an unrated place gets no visible mark on the map (still
+    /// tappable: Google Maps' own base-layer POI icon is what a user actually taps for these).
+    /// Kept as a real (if invisible) icon rather than omitting the marker entirely, so
+    /// tap-to-select still works even for places with no rating.
     private static let invisibleMarkerDiameter: CGFloat = 24
 
-    static func icon(rating: Double?, isWinner: Bool, isTopRated: Bool) -> UIImage {
-        guard let rating, isWinner || isTopRated else {
+    static func icon(rating: Double?, isWinner: Bool) -> UIImage {
+        guard let rating else {
             return invisibleIcon()
         }
         return pillIcon(rating: rating, highlighted: isWinner)

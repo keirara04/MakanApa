@@ -71,7 +71,6 @@ struct NearbyAreaPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 16, y: -2)
         .gesture(dragGesture)
-        .animation(reduceMotion ? .easeOut(duration: 0.12) : .interactiveSpring(response: 0.35, dampingFraction: 0.85), value: state)
     }
 
     private var grabber: some View {
@@ -386,9 +385,10 @@ struct NearbyAreaPanel: View {
                 dragTranslation = -value.translation.height
             }
             .onEnded { value in
-                let wasArbitrated = state == .large && !listIsAtTop
-                dragTranslation = 0
-                guard !wasArbitrated else { return }
+                guard !(state == .large && !listIsAtTop) else {
+                    dragTranslation = 0
+                    return
+                }
 
                 let velocity = value.predictedEndTranslation.height - value.translation.height
                 let projectedDelta = -value.translation.height - velocity * 0.2
@@ -396,6 +396,10 @@ struct NearbyAreaPanel: View {
             }
     }
 
+    /// Resets `dragTranslation` in the SAME animated transaction as the `state` change, not
+    /// before it — resetting it first (unanimated) would snap the panel instantly back to the
+    /// old state's exact height for one frame before the spring even starts, a visible jump/
+    /// glitch on every release.
     private func snapToNearestState(afterDragging delta: CGFloat) {
         let candidateHeight = state.height(screenHeight: screenHeight) + delta
         let closest = NearbyPanelState.allCases.min { a, b in
@@ -404,6 +408,7 @@ struct NearbyAreaPanel: View {
 
         withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
             state = closest
+            dragTranslation = 0
         }
     }
 }

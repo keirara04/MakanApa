@@ -76,7 +76,9 @@ class DiscoveryModeGooglePlacesTest extends TestCase
         // as "covered" by the Normal-mode sync, since it needs cafe/coffee_shop/bakery too.
         $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX + ['mode' => 'cafe']))->assertOk();
 
-        $this->assertSame(2, $this->countRequestsTo('searchNearby'));
+        // BOX's radius (~2.07km) is above TILE_RADIUS_THRESHOLD_KM, so each mode's sync is 7
+        // tiles, not 1 — 2 independent syncs (Normal, then Cafe) = 14 total requests.
+        $this->assertSame(14, $this->countRequestsTo('searchNearby'));
     }
 
     public function test_repeated_normal_mode_requests_reuse_the_cached_sync(): void
@@ -87,7 +89,9 @@ class DiscoveryModeGooglePlacesTest extends TestCase
         $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX))->assertOk();
         $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX))->assertOk();
 
-        $this->assertSame(1, $this->countRequestsTo('searchNearby'));
+        // 7 tiles synced once on the first call; the second identical call finds every tile
+        // covered, so no additional requests.
+        $this->assertSame(7, $this->countRequestsTo('searchNearby'));
     }
 
     private function countRequestsTo(string $needle): int

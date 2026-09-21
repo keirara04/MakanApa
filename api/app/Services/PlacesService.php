@@ -38,8 +38,15 @@ class PlacesService
     /** The literal extra breadth Cafe/Low-key mode reaches for — also what readGoogleRestaurantsNear() excludes from every other mode, to stop these from leaking in (see its own doc comment). */
     private const CAFE_EXTRA_TYPES = ['cafe', 'coffee_shop', 'bakery'];
 
-    /** Above this radius, a single Nearby Search's 20-result cap starts leaving real coverage gaps — see syncFromGoogle()'s tiling. */
-    private const TILE_RADIUS_THRESHOLD_KM = 2.5;
+    /**
+     * Above this radius, a single Nearby Search's 20-result cap starts leaving real coverage
+     * gaps — see syncFromGoogle()'s tiling. Lowered from 2.5km: in denser areas (e.g. around a
+     * university) 20 results was already hit well under 2.5km, silently capping the map at ~20
+     * places even at a normal browsing zoom. Safe to lower — tiling is gated per-tile by
+     * isAreaCovered()'s 24h cache, so this only adds one-time Google calls per newly-seen tile,
+     * not a repeat cost on every request.
+     */
+    private const TILE_RADIUS_THRESHOLD_KM = 1.0;
 
     /** Hard cap on tiles per request, regardless of how large radiusKm is — bounds Google API cost from one client request. */
     private const MAX_TILES = 7;

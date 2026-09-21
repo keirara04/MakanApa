@@ -116,7 +116,6 @@ struct NearbyView: View {
             places: viewModel.places,
             isPicking: viewModel.isPicking,
             winnerPlaceId: viewModel.winnerPlaceId,
-            topRatedIds: viewModel.topRatedIds,
             initialCameraTarget: userCoordinate,
             recenterRequestId: recenterRequestId,
             focusTarget: viewModel.focusCoordinate,
@@ -182,10 +181,57 @@ struct NearbyView: View {
                 modeChip(.lowKey, label: "Low-key")
                 modeChip(.cafe, label: "Cafe")
                 moreModeMenu
+
+                if hasActiveFilters {
+                    resetChip
+                }
             }
             .padding(.vertical, 3)
         }
         .edgeFade()
+    }
+
+    /// True whenever any filter/mode/vibe has strayed from the default "For you, no filters"
+    /// state — this is what decides whether the Reset chip even shows up, so it doesn't clutter
+    /// the ribbon when there's nothing to reset.
+    private var hasActiveFilters: Bool {
+        viewModel.openNowFilter
+            || viewModel.budgetMaxFilter != nil
+            || viewModel.minRatingFilter != nil
+            || viewModel.discoveryMode != .normal
+            || viewModel.vibe != nil
+    }
+
+    /// Outline style, not filled — this isn't a toggle state like the other chips, it's a
+    /// one-shot action, so it shouldn't read as "selected."
+    private var resetChip: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(reduceMotion ? .easeOut(duration: 0.1) : Motion.quick) {
+                resetFilters()
+            }
+        } label: {
+            Label("Reset", systemImage: "arrow.counterclockwise")
+                .font(.makanBody(13))
+                .lineLimit(1)
+                .foregroundStyle(Color.sambalRed)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.white)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.sambalRed.opacity(0.4), lineWidth: 1))
+        }
+        .buttonStyle(MakanApaChipButtonStyle())
+        .accessibilityLabel("Reset filters")
+    }
+
+    private func resetFilters() {
+        viewModel.openNowFilter = false
+        viewModel.budgetMaxFilter = nil
+        viewModel.minRatingFilter = nil
+        viewModel.discoveryMode = .normal
+        viewModel.vibe = nil
+        rerunSearch()
     }
 
     private var moreModeMenu: some View {

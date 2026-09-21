@@ -13,7 +13,7 @@ class PlaceSyncArea extends Model
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
-            'radius_km' => 'decimal:2',
+            'radius_km' => 'decimal:4',
             'synced_at' => 'datetime',
             'types' => 'array',
         ];

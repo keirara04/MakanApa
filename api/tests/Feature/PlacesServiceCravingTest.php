@@ -82,7 +82,9 @@ class PlacesServiceCravingTest extends TestCase
         $craving = (new CravingResolver)->resolve('ice cream'); // ice_cream has multiple aliases
         app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 2.0, $craving);
 
-        Http::assertSentCount(2); // exactly one nearby + one text search
+        // radius 2.0 is above TILE_RADIUS_THRESHOLD_KM, so the nearby sync itself is 7 tiled
+        // calls; text search (never tiled) adds exactly one more regardless of alias count.
+        Http::assertSentCount(8);
     }
 
     public function test_second_request_in_same_area_within_cache_window_skips_text_search_call(): void
@@ -99,10 +101,10 @@ class PlacesServiceCravingTest extends TestCase
         $service->nearbyRestaurants(self::LAT, self::LNG, 2.0, $craving);
         $service->nearbyRestaurants(self::LAT, self::LNG, 2.0, $craving);
 
-        // First request: 1 nearby + 1 text search. Second request: nearby is skipped by the
-        // area-sync cache and text search is skipped by its own result cache — neither Google
-        // endpoint is hit again.
-        Http::assertSentCount(2);
+        // First request: 7 tiled nearby calls + 1 text search. Second request: every tile is
+        // covered by the area-sync cache and text search is skipped by its own result cache —
+        // neither Google endpoint is hit again.
+        Http::assertSentCount(8);
     }
 
     public function test_no_craving_never_triggers_text_search(): void
