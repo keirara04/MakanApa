@@ -19,6 +19,43 @@ struct LogoutResponse: Decodable {
     let loggedOut: Bool
 }
 
+struct RegisterRequestBody: Encodable {
+    let name: String
+    let email: String
+    let password: String
+    let deviceLabel: String
+}
+
+struct AppleLoginRequestBody: Encodable {
+    let identityToken: String
+    let authorizationCode: String
+    let nonce: String
+    let fullName: String?
+    let deviceLabel: String
+}
+
+struct GoogleLoginRequestBody: Encodable {
+    let idToken: String
+    let deviceLabel: String
+}
+
+struct LinkAccountRequestBody: Encodable {
+    let password: String
+    let linkToken: String
+    let deviceLabel: String
+}
+
+/// Covers both outcomes of /auth/apple and /auth/google in one decodable shape — an immediate
+/// session (`token`/`user` present) or a pending link offer (`needsLinking`/`linkToken`/`email`
+/// present instead). See AuthStore.SocialLoginOutcome for the branch callers actually use.
+struct SocialLoginResponse: Decodable {
+    let token: String?
+    let user: AuthUser?
+    let needsLinking: Bool?
+    let linkToken: String?
+    let email: String?
+}
+
 struct AdminUserListResponse: Decodable {
     let users: [AdminUser]
 }

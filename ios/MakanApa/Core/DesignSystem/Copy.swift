@@ -69,15 +69,9 @@ enum Copy {
     static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more makan."
     static let privacyPolicyURL = "https://dear-papaya-894.notion.site/MakanApa-Privacy-Policy-3dd5ee337d988041840fdc5560b64bf8"
 
-    static let privateBetaEyebrow = "PRIVATE BETA"
     static let loginTagline = "Makan dulu. Decide later."
     static let signIn = "Sign in"
     static let loginInvalidCredentials = "Email or password doesn't match."
-    static let joinBetaPrompt = "Don't have beta access?"
-    static let joinBetaCTA = "Join beta →"
-    static let joinBetaSheetTitle = "Private beta"
-    static let joinBetaSheetBody = "MakanApa is currently being tested with a small group of university students. We're starting around UKM first and opening access gradually as we improve recommendations."
-    static let joinBetaGotIt = "Got it"
 
     static let communityHeadlineUniversityFormat = "%@ tengah makan apa? 👀"
     static let communitySubtitleUniversityFormat = "Popular around %@"
@@ -94,17 +88,22 @@ enum Copy {
     static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."
     static let communityLocationOpenSettings = "Open Settings"
 
-    static let communityChooseCommunityTitle = "Choose your community"
+    // Kept short deliberately — this title sits inline between "Cancel" and this save button,
+    // and a longer pair (e.g. "Choose your community" / "Save community") truncates on
+    // standard-width devices. The subtitle below already spells out what this screen is for.
+    static let communityChooseCommunityTitle = "Community"
     static let communityChooseCommunitySubtitle = "This helps MakanApa show what's popular around people in your community."
     static let communityChooseCommunityFooter = "University verification will be available later."
-    static let communityChooseCommunitySave = "Save community"
+    static let communityChooseCommunitySave = "Save"
     static let communityChangeCommunityCTA = "Change ›"
     static let communityAssignCommunityCTA = "Choose ›"
     static let communityUniversitiesSectionHeader = "UNIVERSITIES"
     static let communityAreasSectionHeader = "AREA"
     static let communityRequestUniversityRow = "Can't find your university? Request it"
     static let communityRequestAreaRow = "Can't find your area? Request it"
-    static let communityRequestSheetTitle = "Request a community"
+    // Same inline-title-truncation reasoning as communityChooseCommunityTitle above — flanked
+    // by "Cancel" and "Send request", so it needs to stay short.
+    static let communityRequestSheetTitle = "Request"
     static let communityRequestUniversityPlaceholder = "e.g. Universiti Malaya"
     static let communityRequestAreaPlaceholder = "e.g. Shah Alam, Cheras, your neighbourhood"
     static let communityRequestSubmit = "Send request"

@@ -17,9 +17,12 @@ struct NearbyView: View {
     @State private var isSearchActive = false
     @State private var searchPlaceholderExample = NearbyView.searchPlaceholderExamples[0]
     @FocusState private var searchFieldFocused: Bool
+    @State private var hasShownAreaPanelHint = UserDefaults.standard.bool(forKey: NearbyView.areaPanelHintKey)
+    @State private var showAreaPanelHintTooltip = false
     private var preferences = PlacePreferencesStore.shared
 
     private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
+    private static let areaPanelHintKey = "NearbyView.hasShownAreaPanelHint"
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -75,11 +78,20 @@ struct NearbyView: View {
                 .padding(.trailing, 12)
                 .padding(.bottom, 130)
                 .zIndex(1)
+                // Pops in/out (scale + fade), not a slide — this button's position is fixed, only
+                // its own appearance should read as animating, not motion borrowed from the
+                // panel resize that happens to be driving `panelState` at the same time.
+                .transition(reduceMotion ? .opacity : .scale(scale: 0.7, anchor: .bottomTrailing).combined(with: .opacity))
             }
 
             if viewModel.selectedPlace == nil {
                 VStack {
                     Spacer()
+                    if showAreaPanelHintTooltip {
+                        areaPanelHintBubble
+                            .padding(.bottom, 6)
+                            .transition(.opacity)
+                    }
                     NearbyAreaPanel(
                         summary: viewModel.areaSummary,
                         places: viewModel.places,
@@ -106,6 +118,7 @@ struct NearbyView: View {
             if case .authorized = locationService.state {} else {
                 locationService.requestLocation()
             }
+            showAreaPanelHintIfNeeded()
         }
     }
 
@@ -559,6 +572,54 @@ struct NearbyView: View {
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.15), radius: 5, y: 2)
         }
+    }
+
+    // MARK: - Area panel discoverability (first-run only)
+
+    /// Teaches "drag up for more" once, the first time Nearby ever appears — a static chevron
+    /// next to the collapsed row's subtitle wasn't enough on its own (users weren't finding the
+    /// panel). Motion-based by default: the panel briefly peeks to `.medium` and eases back,
+    /// so the drag affordance is felt rather than read. Reduce Motion gets a plain text bubble
+    /// instead, since a peek animation is exactly the kind of motion that setting exists to skip.
+    private func showAreaPanelHintIfNeeded() {
+        guard !hasShownAreaPanelHint else { return }
+        hasShownAreaPanelHint = true
+        UserDefaults.standard.set(true, forKey: Self.areaPanelHintKey)
+
+        if reduceMotion {
+            withAnimation(.easeOut(duration: 0.2)) { showAreaPanelHintTooltip = true }
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                withAnimation(.easeOut(duration: 0.2)) { showAreaPanelHintTooltip = false }
+            }
+            return
+        }
+
+        Task {
+            // Let the map/panel finish their own entrance before nudging — a peek that starts
+            // mid-appearance would just read as more of the same motion, not a deliberate hint.
+            try? await Task.sleep(for: .milliseconds(700))
+            guard panelState == .collapsed else { return }
+            withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
+                panelState = .medium
+            }
+            try? await Task.sleep(for: .milliseconds(900))
+            guard panelState == .medium else { return }
+            withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
+                panelState = .collapsed
+            }
+        }
+    }
+
+    private var areaPanelHintBubble: some View {
+        Text("Drag up to see more nearby spots")
+            .font(.makanBody(12))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.kicap)
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
     }
 
     // MARK: - Recenter

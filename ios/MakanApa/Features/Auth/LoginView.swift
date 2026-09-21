@@ -11,7 +11,8 @@ struct LoginView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     @State private var shakeTrigger = 0
-    @State private var showJoinBeta = false
+    @State private var showSignUp = false
+    @State private var pendingLink: PendingLink?
     @State private var showPassword = false
     @State private var appeared = false
     @FocusState private var focusedField: Field?
@@ -55,7 +56,10 @@ struct LoginView: View {
                 appeared = true
             }
         }
-        .sheet(isPresented: $showJoinBeta) { joinBetaSheet }
+        .sheet(isPresented: $showSignUp) { SignUpView() }
+        .sheet(item: $pendingLink) { link in
+            LinkAccountSheet(linkToken: link.linkToken, email: link.email, provider: link.provider)
+        }
     }
 
     private var brandHeader: some View {
@@ -65,15 +69,6 @@ struct LoginView: View {
                 .tracking(-0.6)
                 .foregroundStyle(accent)
             Spacer(minLength: 12)
-            HStack(spacing: 6) {
-                Circle().fill(accent).frame(width: 5, height: 5)
-                Text("Campus beta")
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-            }
-            .foregroundStyle(Color.kicap.opacity(0.7))
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .background(Color.kicap.opacity(0.045), in: Capsule())
         }
         .padding(.bottom, focusedField == nil ? 0 : 12)
     }
@@ -111,6 +106,24 @@ struct LoginView: View {
                 Text("Sign in. Your next favourite is waiting.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Color.kicap.opacity(0.7))
+            }
+
+            SocialSignInButtons(
+                onNeedsLinking: { linkToken, email, provider in
+                    pendingLink = PendingLink(linkToken: linkToken, email: email, provider: provider)
+                },
+                onError: { message in
+                    errorMessage = message
+                    shakeTrigger += 1
+                }
+            )
+
+            HStack(spacing: 10) {
+                Rectangle().fill(Color.kicap.opacity(0.12)).frame(height: 1)
+                Text("or")
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(Color.kicap.opacity(0.5))
+                Rectangle().fill(Color.kicap.opacity(0.12)).frame(height: 1)
             }
 
             VStack(alignment: .leading, spacing: 16) {
@@ -183,7 +196,7 @@ struct LoginView: View {
             HStack(spacing: 4) {
                 Text("New here?")
                     .foregroundStyle(Color.kicap.opacity(0.7))
-                Button("About the beta") { showJoinBeta = true }
+                Button("Sign up") { showSignUp = true }
                     .fontWeight(.semibold)
                     .foregroundStyle(accent)
                     .frame(minHeight: 44)
@@ -228,25 +241,6 @@ struct LoginView: View {
         .disabled(isSubmitting || email.isEmpty || password.isEmpty)
     }
 
-    private var joinBetaSheet: some View {
-        VStack(spacing: 20) {
-            Text(Copy.joinBetaSheetTitle)
-                .font(.makanDisplay(22))
-                .foregroundStyle(Color.kicap)
-
-            Text(Copy.joinBetaSheetBody)
-                .font(.makanBody(15))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            MakanPrimaryButton(title: Copy.joinBetaGotIt) {
-                showJoinBeta = false
-            }
-        }
-        .padding(28)
-        .presentationDetents([.medium])
-    }
-
     @MainActor
     private func submit() async {
         focusedField = nil
@@ -278,7 +272,8 @@ struct LoginView: View {
 }
 
 /// Small ±5pt horizontal shake on failed login — the form card only, not the whole screen.
-private struct ShakeEffect: ViewModifier {
+/// Internal, not private — SignUpView reuses this for its own failed-submit feedback.
+struct ShakeEffect: ViewModifier {
     let trigger: Int
 
     func body(content: Content) -> some View {
@@ -287,7 +282,7 @@ private struct ShakeEffect: ViewModifier {
     }
 }
 
-private struct ShakeGeometryEffect: GeometryEffect {
+struct ShakeGeometryEffect: GeometryEffect {
     var animatableData: CGFloat
 
     func effectValue(size: CGSize) -> ProjectionTransform {
@@ -297,6 +292,13 @@ private struct ShakeGeometryEffect: GeometryEffect {
         let translation = amplitude * sin(progress * .pi * shakes * 2) * (1 - progress)
         return ProjectionTransform(CGAffineTransform(translationX: animatableData == 0 ? 0 : translation, y: 0))
     }
+}
+
+private struct PendingLink: Identifiable {
+    let linkToken: String
+    let email: String
+    let provider: String
+    var id: String { linkToken }
 }
 
 #Preview {

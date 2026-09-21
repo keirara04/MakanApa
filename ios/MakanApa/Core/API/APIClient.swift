@@ -101,6 +101,28 @@ enum APIClient {
         try await post("auth/login", body: LoginRequestBody(email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
     }
 
+    static func register(name: String, email: String, password: String, deviceLabel: String) async throws -> LoginResponse {
+        try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
+    }
+
+    static func loginWithApple(
+        identityToken: String, authorizationCode: String, nonce: String, fullName: String?, deviceLabel: String
+    ) async throws -> SocialLoginResponse {
+        try await post(
+            "auth/apple",
+            body: AppleLoginRequestBody(identityToken: identityToken, authorizationCode: authorizationCode, nonce: nonce, fullName: fullName, deviceLabel: deviceLabel),
+            authenticated: false
+        )
+    }
+
+    static func loginWithGoogle(idToken: String, deviceLabel: String) async throws -> SocialLoginResponse {
+        try await post("auth/google", body: GoogleLoginRequestBody(idToken: idToken, deviceLabel: deviceLabel), authenticated: false)
+    }
+
+    static func completeLink(password: String, linkToken: String, deviceLabel: String) async throws -> LoginResponse {
+        try await post("auth/link", body: LinkAccountRequestBody(password: password, linkToken: linkToken, deviceLabel: deviceLabel), authenticated: false)
+    }
+
     static func logout() async throws -> LogoutResponse {
         try await post("auth/logout", body: EmptyBody())
     }

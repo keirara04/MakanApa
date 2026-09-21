@@ -53,5 +53,25 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(30)->by($request->ip()),
             ];
         });
+
+        RateLimiter::for('register', function ($request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('social', function ($request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // auth/link is a password-check endpoint (it's how an existing account proves ownership
+        // before a social identity gets attached) — throttled at least as tightly as login, plus
+        // a per-token cap so a leaked/guessed linkToken can't be brute-forced across IPs.
+        RateLimiter::for('link', function ($request) {
+            $token = (string) $request->input('linkToken');
+
+            return [
+                Limit::perMinute(5)->by($token),
+                Limit::perMinute(10)->by($request->ip()),
+            ];
+        });
     }
 }

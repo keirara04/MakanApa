@@ -1,5 +1,6 @@
-import SwiftUI
 import GoogleMaps
+import GoogleSignIn
+import SwiftUI
 
 @main
 struct MakanApaApp: App {
@@ -42,6 +43,12 @@ struct MakanApaApp: App {
             .animation(Motion.standard, value: authStore.session)
             .task {
                 await authStore.bootstrap()
+            }
+            .onOpenURL { url in
+                // Google's sign-in sheet completes via a redirect back into the app through the
+                // reversed-client-id URL scheme registered in Info.plist — the SDK needs this
+                // callback to resolve the in-flight sign-in Task, otherwise it hangs forever.
+                GIDSignIn.sharedInstance.handle(url)
             }
         }
     }

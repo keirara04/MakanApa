@@ -23,6 +23,14 @@ enum SessionState: Equatable {
     case unauthenticated
 }
 
+/// Both /auth/apple and /auth/google resolve to one of these two shapes — see
+/// `SocialLoginResponse`. `.needsLinking` carries only the opaque `linkToken` the backend issued
+/// and an `email` for display; AuthStore never holds or transmits a provider subject id itself.
+enum SocialLoginOutcome {
+    case authenticated
+    case needsLinking(linkToken: String, email: String)
+}
+
 /// Owns auth *state*, not token persistence (see CredentialStore). Three-state session — not a
 /// plain isLoggedIn Bool — so the root view can show a brand splash while a stored token is
 /// being validated against /auth/me, instead of flashing Login for a frame before landing on
@@ -60,6 +68,47 @@ final class AuthStore {
         let response = try await APIClient.login(email: email, password: password, deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
+    }
+
+    func register(name: String, email: String, password: String) async throws {
+        let response = try await APIClient.register(name: name, email: email, password: password, deviceLabel: Self.deviceLabel)
+        CredentialStore.shared.token = response.token
+        session = .authenticated(response.user)
+    }
+
+    func loginWithApple(identityToken: String, authorizationCode: String, rawNonce: String, fullName: String?) async throws -> SocialLoginOutcome {
+        let response = try await APIClient.loginWithApple(
+            identityToken: identityToken, authorizationCode: authorizationCode, nonce: rawNonce, fullName: fullName, deviceLabel: Self.deviceLabel
+        )
+        return try applySocialLoginResponse(response)
+    }
+
+    func loginWithGoogle(idToken: String) async throws -> SocialLoginOutcome {
+        let response = try await APIClient.loginWithGoogle(idToken: idToken, deviceLabel: Self.deviceLabel)
+        return try applySocialLoginResponse(response)
+    }
+
+    /// The client supplies only a password and the opaque linkToken — never a provider identity
+    /// — the backend already verified the provider subject at the moment /auth/apple or
+    /// /auth/google issued this token.
+    func completeLink(password: String, linkToken: String) async throws {
+        let response = try await APIClient.completeLink(password: password, linkToken: linkToken, deviceLabel: Self.deviceLabel)
+        CredentialStore.shared.token = response.token
+        session = .authenticated(response.user)
+    }
+
+    private func applySocialLoginResponse(_ response: SocialLoginResponse) throws -> SocialLoginOutcome {
+        if response.needsLinking == true, let linkToken = response.linkToken, let email = response.email {
+            return .needsLinking(linkToken: linkToken, email: email)
+        }
+
+        guard let token = response.token, let user = response.user else {
+            throw APIError.invalidResponse
+        }
+
+        CredentialStore.shared.token = token
+        session = .authenticated(user)
+        return .authenticated
     }
 
     /// `university`/`area` both nil means an explicit Public selection, not "leave unchanged" —

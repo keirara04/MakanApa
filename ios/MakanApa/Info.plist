@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<!--
+	Google Sign-In: replace both placeholders below with the real values from Google Cloud
+	Console before this flow can work. GIDClientID is the iOS OAuth client (drives the native
+	sign-in UI); GIDServerClientID is the separate Web-application OAuth client whose ID becomes
+	the ID token's `aud` claim — this is deliberately NOT the same value as GIDClientID, since
+	that's what the backend's GOOGLE_SERVER_CLIENT_ID config checks the token against (see
+	config/services.php on the API side). The URL scheme below must be the iOS client ID's
+	"reversed client ID" (found in the same Google Cloud Console client), not the raw client ID.
+	-->
+	<key>GIDClientID</key>
+	<string>REPLACE_WITH_GOOGLE_IOS_CLIENT_ID</string>
+	<key>GIDServerClientID</key>
+	<string>REPLACE_WITH_GOOGLE_SERVER_CLIENT_ID</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>REPLACE_WITH_GOOGLE_REVERSED_IOS_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
+</dict>
 </plist>

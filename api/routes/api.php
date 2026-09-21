@@ -24,6 +24,10 @@ Route::get('/health', HealthController::class);
 
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    Route::post('auth/apple', [AuthController::class, 'apple'])->middleware('throttle:social');
+    Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:social');
+    Route::post('auth/link', [AuthController::class, 'link'])->middleware('throttle:link');
 
     // Private beta: every real endpoint below requires a valid Sanctum token, not just
     // auth/admin — otherwise the app-level login gate is cosmetic and the underlying Google
