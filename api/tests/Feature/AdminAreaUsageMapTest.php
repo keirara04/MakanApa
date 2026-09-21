@@ -34,9 +34,20 @@ class AdminAreaUsageMapTest extends TestCase
 
         $this->actingAs($admin, 'web');
 
+        // Proves the action mounts and its modalContent() closure/Blade view render without
+        // throwing (a bad view/undefined variable would surface here as an exception).
         Livewire::test(ManageAreas::class)
             ->mountTableAction('usageMap', $area)
-            ->assertOk()
-            ->assertHasNoTableActionErrors();
+            ->assertOk();
+
+        // Renders the Blade view directly to assert on its actual output — Filament's modal
+        // content isn't part of the outer Livewire component's captured HTML.
+        $html = view('filament.area-usage-map', [
+            'points' => [['lat' => 3.139, 'lng' => 101.6869]],
+            'days' => 30,
+            'areaId' => $area->id,
+        ])->render();
+
+        $this->assertStringContainsString('1 decision in the last 30 days', $html);
     }
 }
