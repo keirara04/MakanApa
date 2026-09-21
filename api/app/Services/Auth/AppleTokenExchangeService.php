@@ -56,9 +56,26 @@ class AppleTokenExchangeService
                 'aud' => 'https://appleid.apple.com',
                 'sub' => config('services.apple.client_id'),
             ],
-            str_replace('\n', "\n", (string) config('services.apple.private_key')),
+            $this->privateKeyPem(),
             'ES256',
             config('services.apple.key_id'),
         );
+    }
+
+    /**
+     * openssl (via firebase/php-jwt) requires PEM framing to parse an EC key. Apple's downloaded
+     * `.p8` file already has it, but copying just the key body into an env var (easy to do by
+     * accident) strips it — so this reconstructs the framing when it's missing rather than
+     * failing on an otherwise-valid key.
+     */
+    private function privateKeyPem(): string
+    {
+        $raw = trim((string) config('services.apple.private_key'));
+
+        if (str_contains($raw, '-----BEGIN')) {
+            return str_replace('\n', "\n", $raw);
+        }
+
+        return "-----BEGIN PRIVATE KEY-----\n{$raw}\n-----END PRIVATE KEY-----";
     }
 }
