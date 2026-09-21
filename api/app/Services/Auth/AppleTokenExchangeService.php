@@ -18,6 +18,8 @@ class AppleTokenExchangeService
 {
     private const TOKEN_URL = 'https://appleid.apple.com/auth/token';
 
+    private const REVOKE_URL = 'https://appleid.apple.com/auth/revoke';
+
     /**
      * @return string|null the refresh token, or null if the exchange couldn't complete
      */
@@ -36,6 +38,25 @@ class AppleTokenExchangeService
             Log::warning('[AppleTokenExchangeService] authorization code exchange failed', ['error' => $e->getMessage()]);
 
             return null;
+        }
+    }
+
+    /**
+     * Called on account deletion — Apple requires apps that support Sign in with Apple to revoke
+     * the associated token when the account is deleted, not just delete the local row.
+     * Best-effort: a failed revoke shouldn't block the deletion itself from completing.
+     */
+    public function revoke(string $refreshToken): void
+    {
+        try {
+            Http::asForm()->timeout(5)->post(self::REVOKE_URL, [
+                'client_id' => config('services.apple.client_id'),
+                'client_secret' => $this->clientSecret(),
+                'token' => $refreshToken,
+                'token_type_hint' => 'refresh_token',
+            ])->throw();
+        } catch (Throwable $e) {
+            Log::warning('[AppleTokenExchangeService] refresh token revocation failed', ['error' => $e->getMessage()]);
         }
     }
 

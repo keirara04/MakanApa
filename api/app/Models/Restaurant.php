@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
     'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count', 'google_types',
     'source_submission_id', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
+    'merged_into_restaurant_id',
 ])]
 class Restaurant extends Model
 {
@@ -68,6 +69,33 @@ class Restaurant extends Model
     public function fieldOverrides(): HasMany
     {
         return $this->hasMany(RestaurantFieldOverride::class);
+    }
+
+    /** The restaurant this one was merged away into by RestaurantMergeService, if any. */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Restaurant::class, 'merged_into_restaurant_id');
+    }
+
+    /** Duplicates that were merged away into this restaurant. */
+    public function mergedFrom(): HasMany
+    {
+        return $this->hasMany(Restaurant::class, 'merged_into_restaurant_id');
+    }
+
+    /**
+     * The row admins/sync should actually act on. A merged-away restaurant keeps its own
+     * provider_place_id (RestaurantMergeService never clears it — see PlacesService's lookup
+     * sites), so anything that finds a restaurant by provider_place_id or by ID must resolve
+     * through this before writing, or it can resurrect a duplicate that was deliberately merged
+     * away. Single hop only — RestaurantMergeService refuses to merge into an already-merged-away
+     * row, so merged_into_restaurant_id never chains.
+     */
+    public function canonicalRestaurant(): self
+    {
+        return $this->merged_into_restaurant_id === null
+            ? $this
+            : ($this->mergedInto ?? Restaurant::findOrFail($this->merged_into_restaurant_id));
     }
 
     /**

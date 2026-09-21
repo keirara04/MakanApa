@@ -215,7 +215,7 @@ class PlacesService
             throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
         }
 
-        $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $googlePlaceId)->first();
+        $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $googlePlaceId)->first()?->canonicalRestaurant();
         if ($existing) {
             $existing->load(['cuisines', 'tags']);
 
@@ -547,10 +547,17 @@ class PlacesService
      * field is simply discarded for this sync, not just ignored at read time. New rows (first
      * sync for this provider_place_id) have no overrides yet, so this is a no-op for genuinely
      * new places.
+     *
+     * If this provider_place_id belongs to a restaurant that's been merged away by
+     * RestaurantMergeService (merged_into_restaurant_id set), the sync must redirect onto the
+     * canonical restaurant instead — never write to (and so never reactivate) the merged-away
+     * row. provider_place_id is deliberately left on the merged-away row, so the lookup below
+     * still finds it every sync; canonicalRestaurant() is what keeps the write off of it.
      */
     private function upsertRestaurant(array $data): Restaurant
     {
-        $existing = Restaurant::where('provider', 'google')->where('provider_place_id', $data['provider_place_id'])->first();
+        $found = Restaurant::where('provider', 'google')->where('provider_place_id', $data['provider_place_id'])->first();
+        $existing = $found?->canonicalRestaurant();
 
         $payload = [
             'name' => $data['name'],
@@ -569,12 +576,16 @@ class PlacesService
         if ($existing) {
             $overriddenFields = RestaurantFieldOverride::where('restaurant_id', $existing->id)->pluck('field')->all();
             $payload = Arr::except($payload, $overriddenFields);
-        }
 
-        $restaurant = Restaurant::updateOrCreate(
-            ['provider' => 'google', 'provider_place_id' => $data['provider_place_id']],
-            $payload
-        );
+            $existing->update($payload);
+            $restaurant = $existing;
+        } else {
+            $restaurant = Restaurant::create([
+                'provider' => 'google',
+                'provider_place_id' => $data['provider_place_id'],
+                ...$payload,
+            ]);
+        }
 
         $cuisineIds = collect($data['cuisines'])->map(
             fn (string $slug) => Cuisine::firstOrCreate(['slug' => $slug], ['name' => ucfirst($slug)])->id

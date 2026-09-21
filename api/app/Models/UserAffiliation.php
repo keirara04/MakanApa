@@ -16,6 +16,11 @@ class UserAffiliation extends Model
         ];
     }
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function university(): BelongsTo
     {
         return $this->belongsTo(University::class);

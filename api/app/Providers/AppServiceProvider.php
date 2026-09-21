@@ -73,5 +73,11 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(10)->by($request->ip()),
             ];
         });
+
+        // Also a password-check endpoint (for password accounts) — keyed by user id so a
+        // password-guessing loop against one account can't be spread across other users' quota.
+        RateLimiter::for('delete-account', function ($request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

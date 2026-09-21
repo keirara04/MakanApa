@@ -30,6 +30,11 @@ class RestaurantPhoto extends Model
         return $this->belongsTo(RestaurantSubmission::class, 'restaurant_submission_id');
     }
 
+    public function uploadedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
     /** Only meaningful once `disk` is the public disk — pending photos have no public URL. */
     public function publicUrl(): ?string
     {

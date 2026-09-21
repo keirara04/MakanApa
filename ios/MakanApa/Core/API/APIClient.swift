@@ -127,6 +127,10 @@ enum APIClient {
         try await post("auth/logout", body: EmptyBody())
     }
 
+    static func deleteAccount(password: String?) async throws -> DeleteAccountResponse {
+        try await delete("auth/me", body: DeleteAccountRequestBody(password: password))
+    }
+
     static func me() async throws -> MeResponse {
         try await get("auth/me", query: [])
     }
@@ -304,6 +308,25 @@ enum APIClient {
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         await attachAuthorization(to: &request)
+
+        let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    private static func delete<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {
+        var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
+        request.httpBody = try encoder.encode(body)
 
         let (data, httpResponse) = try await send(request)
         try validate(httpResponse)

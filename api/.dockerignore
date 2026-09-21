@@ -5,6 +5,10 @@
 .github
 node_modules
 vendor
+# Locally-generated (dev-dependency-aware) package/service discovery cache — must never ship;
+# it's what broke the image build when a require-dev provider (e.g. Laravel Pail) got cached
+# from a local `php artisan` run and then couldn't be found in the --no-dev vendor install.
+bootstrap/cache/*.php
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*

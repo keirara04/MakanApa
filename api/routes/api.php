@@ -34,6 +34,7 @@ Route::prefix('v1')->group(function () {
     // Places/OpenRouter usage stays reachable by anyone who knows the endpoints.
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::delete('auth/me', [AuthController::class, 'destroy'])->middleware('throttle:delete-account');
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('universities', [UniversityController::class, 'index']);
         Route::get('areas', [AreaController::class, 'index']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AppleLoginRequest;
+use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\GoogleLoginRequest;
 use App\Http\Requests\LinkAccountRequest;
 use App\Http\Requests\LoginRequest;
@@ -268,6 +269,36 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['loggedOut' => true]);
+    }
+
+    /**
+     * Self-service account deletion — required by App Store review for any app that supports
+     * account creation. Revokes the Apple grant first (if any), then removes every Sanctum
+     * token before deleting the row, rather than relying solely on cascading FKs to clean up
+     * everything, since token cleanup isn't itself a foreign key (Sanctum uses a polymorphic
+     * `tokenable` column, not a constrained one).
+     */
+    public function destroy(DeleteAccountRequest $request, AppleTokenExchangeService $exchange): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+
+        // Only password accounts need to prove intent this way — a social-only account
+        // (password === null) already proved a recent sign-in to obtain this Sanctum token.
+        if ($user->password !== null) {
+            if (empty($data['password']) || ! Hash::check($data['password'], $user->password)) {
+                return response()->json(['message' => 'Incorrect password.'], 401);
+            }
+        }
+
+        if ($user->apple_refresh_token) {
+            $exchange->revoke($user->apple_refresh_token);
+        }
+
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['deleted' => true]);
     }
 
     public function me(Request $request): JsonResponse

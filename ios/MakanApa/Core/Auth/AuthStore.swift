@@ -125,6 +125,15 @@ final class AuthStore {
         session = .unauthenticated
     }
 
+    /// `password` is only required for accounts that have one — pass `nil` for a social-only
+    /// account, the backend skips the check for those since the Sanctum token already proves a
+    /// recent sign-in.
+    func deleteAccount(password: String?) async throws {
+        _ = try await APIClient.deleteAccount(password: password)
+        CredentialStore.shared.token = nil
+        session = .unauthenticated
+    }
+
     /// Called from call sites that catch `APIError.unauthorized` — a mid-session revoke or an
     /// expired token surfaces as a 401 on the next request, not just at launch, so this is the
     /// one place that reaction is handled rather than every ViewModel re-implementing it.

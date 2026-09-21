@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CommunityRequest;
+use App\Services\AdminAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CommunityRequestController extends Controller
 {
+    public function __construct(private readonly AdminAuditLogger $auditLogger) {}
+
     public function index(Request $request): JsonResponse
     {
         $status = $request->query('status', 'pending');
@@ -32,6 +35,7 @@ class CommunityRequestController extends Controller
     public function resolve(CommunityRequest $request): JsonResponse
     {
         $request->update(['status' => 'resolved', 'resolved_at' => now()]);
+        $this->auditLogger->log(auth()->user(), 'community_request.resolve', $request);
 
         return response()->json(['resolved' => true]);
     }
@@ -39,6 +43,7 @@ class CommunityRequestController extends Controller
     public function dismiss(CommunityRequest $request): JsonResponse
     {
         $request->update(['status' => 'dismissed', 'resolved_at' => now()]);
+        $this->auditLogger->log(auth()->user(), 'community_request.dismiss', $request);
 
         return response()->json(['dismissed' => true]);
     }

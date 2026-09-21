@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var locationService
     private var authStore = AuthStore.shared
     @State private var showingAboutInfo = false
+    @State private var showingDeleteAccount = false
 
     var body: some View {
         NavigationStack {
@@ -155,6 +156,14 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Button(role: .destructive) {
+                        showingDeleteAccount = true
+                    } label: {
+                        Text("Delete account")
+                    }
+                }
+
+                Section {
                     VStack(spacing: 6) {
                         MascotView(mood: .idle, size: 60)
                         Text(Copy.tagline)
@@ -171,6 +180,9 @@ struct SettingsView: View {
             .alert("MakanApa?", isPresented: $showingAboutInfo) {
             } message: {
                 Text(Copy.aboutDescription)
+            }
+            .sheet(isPresented: $showingDeleteAccount) {
+                DeleteAccountSheet()
             }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

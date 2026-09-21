@@ -45,6 +45,14 @@ struct LinkAccountRequestBody: Encodable {
     let deviceLabel: String
 }
 
+struct DeleteAccountRequestBody: Encodable {
+    let password: String?
+}
+
+struct DeleteAccountResponse: Decodable {
+    let deleted: Bool
+}
+
 /// Covers both outcomes of /auth/apple and /auth/google in one decodable shape — an immediate
 /// session (`token`/`user` present) or a pending link offer (`needsLinking`/`linkToken`/`email`
 /// present instead). See AuthStore.SocialLoginOutcome for the branch callers actually use.
