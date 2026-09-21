@@ -14,6 +14,12 @@ final class NearbyViewModel {
     private static let significantMoveFraction = 0.35
 
     var places: [NearbyPlace] = []
+    /// "What's around here" — set from the exact same `nearbyPlaces()` response `places` came
+    /// from, never a second/separate request, so the panel can never disagree with the map.
+    var areaSummary: AreaSummaryResponse?
+    /// Ids from `areaSummary.topRated`, refreshed only on camera-idle (inside `search()`) so
+    /// pin emphasis doesn't reshuffle mid-drag.
+    var topRatedIds: Set<Int> = []
     var selectedPlace: NearbyPlace?
     var placeDetails: PlaceDetails?
     var isLoadingDetails = false
@@ -168,6 +174,8 @@ final class NearbyViewModel {
                 mode: discoveryMode, vibe: vibe
             )
             places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
+            areaSummary = response.areaSummary
+            topRatedIds = Set(response.areaSummary.topRated.map(\.id))
             lastSearchedViewport = viewport
             browseCenter = Self.center(of: viewport)
             showSearchThisArea = false

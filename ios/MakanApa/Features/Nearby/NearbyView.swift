@@ -9,6 +9,7 @@ struct NearbyView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = NearbyViewModel()
+    @State private var panelState: NearbyPanelState = .collapsed
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
     @State private var recenterRequestId = 0
@@ -71,10 +72,18 @@ struct NearbyView: View {
             .zIndex(1)
 
             if viewModel.selectedPlace == nil {
-                VStack {
+                VStack(spacing: 8) {
                     Spacer()
-                    pickOneLahButton
-                        .padding(.bottom, 8)
+                    if panelState == .collapsed {
+                        pickOneLahButton
+                    }
+                    NearbyAreaPanel(
+                        summary: viewModel.areaSummary,
+                        places: viewModel.places,
+                        browseCenter: viewModel.browseCenter,
+                        onSelectPlace: { selectPlace($0) },
+                        state: $panelState
+                    )
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)
@@ -100,6 +109,7 @@ struct NearbyView: View {
             places: viewModel.places,
             isPicking: viewModel.isPicking,
             winnerPlaceId: viewModel.winnerPlaceId,
+            topRatedIds: viewModel.topRatedIds,
             initialCameraTarget: userCoordinate,
             recenterRequestId: recenterRequestId,
             focusTarget: viewModel.focusCoordinate,
@@ -112,14 +122,20 @@ struct NearbyView: View {
                 Task { await viewModel.viewportSettled(viewport, zoom: zoom) }
             },
             onMarkerTapped: { place in
-                viewModel.placeDetails = nil
-                viewModel.selectedPlace = place
-                // A leftover "Pick one lah" winner highlight has nothing to do with a place the
-                // user is now tapping directly — clear it so only the just-tapped pin stays red.
-                viewModel.winnerPlaceId = nil
-                Task { await viewModel.loadDetails(for: place) }
+                selectPlace(place)
             }
         )
+    }
+
+    /// Shared by a direct marker tap and picking a place from the area panel's Top Rated /
+    /// Community Finds / full list sections — one selection path, not two loosely synced ones.
+    private func selectPlace(_ place: NearbyPlace) {
+        viewModel.placeDetails = nil
+        viewModel.selectedPlace = place
+        // A leftover "Pick one lah" winner highlight has nothing to do with a place the user is
+        // now selecting directly — clear it so only the just-selected pin stays red.
+        viewModel.winnerPlaceId = nil
+        Task { await viewModel.loadDetails(for: place) }
     }
 
     private var userCoordinate: CLLocationCoordinate2D? {

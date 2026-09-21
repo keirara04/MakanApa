@@ -12,6 +12,7 @@ use App\Models\Restaurant;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
+use App\Support\AreaPersonality;
 use App\Support\DiscoveryMode;
 use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
@@ -33,6 +34,11 @@ class NearbyController extends Controller
 
     /** Shrinks a viewport by this fraction per side before treating it as the Pick-one-lah candidate pool — markers half hidden under floating search bar/filter chips/the Pick-one-lah button itself can't win. */
     private const PICK_VIEWPORT_INSET = 0.1;
+
+    /** Matches the app's one existing budget chip (`NearbyView.swift`'s "≤ RM20" sends `budgetMax: 2`) — the area summary must not invent a second, disagreeing definition of "budget-friendly". */
+    private const BUDGET_FRIENDLY_MAX_PRICE_LEVEL = 2;
+
+    private const AREA_SUMMARY_TOP_N = 3;
 
     public function __construct(
         private readonly PlacesService $placesService,
@@ -60,6 +66,9 @@ class NearbyController extends Controller
 
         return response()->json([
             'places' => array_map(fn (array $restaurant) => $this->presentMarker($restaurant), $restaurants),
+            // Built from this exact same $restaurants array — never a second, independently
+            // filtered fetch — so the panel's counts can never disagree with what the map shows.
+            'areaSummary' => $this->buildAreaSummary($restaurants, $data),
         ]);
     }
 
@@ -206,6 +215,67 @@ class NearbyController extends Controller
 
             return true;
         }));
+    }
+
+    /**
+     * Nearby's "what's around here" interpretation layer — every count/list below comes from
+     * the same already-viewport-and-filter-scoped $restaurants array the marker list itself
+     * uses, not a fresh query, so it can never drift from what's actually on the map.
+     */
+    private function buildAreaSummary(array $restaurants, array $bounds): array
+    {
+        $placeCount = count($restaurants);
+        $openNowCount = count(array_filter($restaurants, fn (array $r) => $r['open_status'] === 'open'));
+        $budgetFriendlyCount = count(array_filter($restaurants, fn (array $r) => $this->isBudgetFriendly($r['price_level'])));
+
+        $topCategories = $this->topCategories($restaurants);
+
+        $rated = array_values(array_filter($restaurants, fn (array $r) => $r['rating'] !== null));
+        usort($rated, fn (array $a, array $b) => $b['rating'] <=> $a['rating']);
+        $topRated = array_slice($rated, 0, self::AREA_SUMMARY_TOP_N);
+
+        [$centerLat, $centerLon] = $this->viewportToCircle($bounds);
+        $communityFinds = array_values(array_filter($restaurants, fn (array $r) => $r['provider'] === 'user_submitted'));
+        usort($communityFinds, fn (array $a, array $b) => RecommendationService::distanceKm($centerLat, $centerLon, $a['latitude'], $a['longitude'])
+            <=> RecommendationService::distanceKm($centerLat, $centerLon, $b['latitude'], $b['longitude']));
+        $communityFinds = array_slice($communityFinds, 0, self::AREA_SUMMARY_TOP_N);
+
+        return [
+            'placeCount' => $placeCount,
+            'openNowCount' => $openNowCount,
+            'budgetFriendlyCount' => $budgetFriendlyCount,
+            'topCategories' => $topCategories,
+            'topRated' => array_map(fn (array $r) => $this->presentMarker($r), $topRated),
+            'communityFinds' => array_map(fn (array $r) => $this->presentMarker($r), $communityFinds),
+            'personalityTags' => AreaPersonality::forSummary($placeCount, $budgetFriendlyCount, $topCategories),
+        ];
+    }
+
+    private function isBudgetFriendly(?int $priceLevel): bool
+    {
+        return $priceLevel !== null && $priceLevel <= self::BUDGET_FRIENDLY_MAX_PRICE_LEVEL;
+    }
+
+    /** @return array<int, array{label: string, count: int}> top categories, descending by count */
+    private function topCategories(array $restaurants): array
+    {
+        $counts = [];
+        foreach ($restaurants as $restaurant) {
+            $category = $restaurant['food_category'] ?? null;
+            if ($category === null) {
+                continue;
+            }
+            $counts[$category] = ($counts[$category] ?? 0) + 1;
+        }
+
+        arsort($counts);
+
+        $shaped = array_map(
+            fn (string $label, int $count) => ['label' => $label, 'count' => $count],
+            array_keys($counts), array_values($counts)
+        );
+
+        return array_slice($shaped, 0, self::AREA_SUMMARY_TOP_N);
     }
 
     private function presentMarker(array $restaurant): array

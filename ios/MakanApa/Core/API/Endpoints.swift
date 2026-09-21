@@ -79,15 +79,19 @@ struct CommunityFeedItem: Decodable, Identifiable, Equatable {
     let priceLevel: Int?
     let cuisines: [String]
     let openStatus: String
-    let pickCount: Int
-    let pickerCount: Int
     let distanceKm: Double?
+    // Trending-only — nil for "new in your area" items, which have no pick history yet.
+    let pickCount: Int?
+    let pickerCount: Int?
     let trendingVibe: String?
+    // New-in-area-only — nil for trending items.
+    let approvedAt: String?
 }
 
 struct CommunityFeedResponse: Decodable, Equatable {
     let community: CommunityInfo
     let trending: [CommunityFeedItem]
+    let newInArea: [CommunityFeedItem]
 }
 
 // MARK: - Community places (submissions)
@@ -405,6 +409,34 @@ struct NearbyPlace: Decodable, Equatable, Identifiable {
 
 struct NearbyPlacesResponse: Decodable {
     let places: [NearbyPlace]
+    let areaSummary: AreaSummaryResponse
+}
+
+struct AreaCategoryCount: Decodable, Equatable {
+    let label: String
+    let count: Int
+}
+
+/// "budget_friendly" | "category_heavy" — plain data from the backend, never emoji/prose;
+/// this layer decides how each key actually renders.
+struct AreaPersonalityTag: Decodable, Equatable, Identifiable {
+    let key: String
+    let label: String
+
+    var id: String { key }
+}
+
+/// Nearby's "what's around here" interpretation layer — computed backend-side from the exact
+/// same viewport-and-filter-scoped restaurant set the marker list itself uses, never a second,
+/// independently fetched dataset (see `NearbyController::buildAreaSummary`).
+struct AreaSummaryResponse: Decodable, Equatable {
+    let placeCount: Int
+    let openNowCount: Int
+    let budgetFriendlyCount: Int
+    let topCategories: [AreaCategoryCount]
+    let topRated: [NearbyPlace]
+    let communityFinds: [NearbyPlace]
+    let personalityTags: [AreaPersonalityTag]
 }
 
 // MARK: - Place search (Nearby search capsule)

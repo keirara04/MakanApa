@@ -95,6 +95,7 @@ class CommunityController extends Controller
             return response()->json([
                 'community' => $this->communityInfo($affiliationType, $user->universityShortName()),
                 'trending' => [],
+                'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $lat, $lon),
             ]);
         }
 
@@ -135,7 +136,76 @@ class CommunityController extends Controller
         return response()->json([
             'community' => $this->communityInfo($affiliationType, $user->universityShortName()),
             'trending' => $trending,
+            'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $lat, $lon),
         ]);
+    }
+
+    /**
+     * Recently-approved community submissions (provider = user_submitted), independent of the
+     * trending aggregate above — a brand-new place has zero decisions/picks and would never
+     * clear min_pickers, but the person who just got it approved should still see it here.
+     * Scoped the same way as the trending branch: university via the source submission's
+     * university_id snapshot, Public via lat/lon radius.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function newInArea(bool $isUniversity, ?int $universityId, ?float $lat, ?float $lon): array
+    {
+        $config = Config::get('recommendation.community_feed');
+        $since = now()->subDays($config['new_in_area_days']);
+
+        $query = Restaurant::query()
+            ->where('is_active', true)
+            ->where('provider', 'user_submitted')
+            ->where('created_at', '>=', $since)
+            ->with('cuisines');
+
+        if ($isUniversity) {
+            $query->whereHas('sourceSubmission', fn ($q) => $q->where('university_id', $universityId));
+        } else {
+            if ($lat === null || $lon === null) {
+                return [];
+            }
+
+            $radiusKm = (float) $config['public_radius_km'];
+            $latDelta = $radiusKm / 111.0;
+            $lonDelta = $radiusKm / (111.0 * max(cos(deg2rad($lat)), 0.01));
+
+            $query->whereHas('sourceSubmission', fn ($q) => $q->whereNull('university_id'))
+                ->whereBetween('latitude', [$lat - $latDelta, $lat + $latDelta])
+                ->whereBetween('longitude', [$lon - $lonDelta, $lon + $lonDelta]);
+        }
+
+        $restaurants = $query->orderByDesc('created_at')->limit($config['new_in_area_limit'] * 3)->get();
+
+        if (! $isUniversity) {
+            // Same bbox-then-exact-radius pattern as the trending branch above.
+            $restaurants = $restaurants->filter(fn ($restaurant) => RecommendationService::distanceKm(
+                $lat, $lon, (float) $restaurant->latitude, (float) $restaurant->longitude
+            ) <= $radiusKm);
+        }
+
+        return $restaurants
+            ->take($config['new_in_area_limit'])
+            ->map(function ($restaurant) use ($lat, $lon) {
+                $base = $restaurant->toRecommendationArray();
+
+                return [
+                    'id' => $base['id'],
+                    'name' => $base['name'],
+                    'foodCategory' => $base['food_category'],
+                    'rating' => $base['rating'],
+                    'priceLevel' => $base['price_level'],
+                    'cuisines' => $base['cuisines'],
+                    'openStatus' => $base['open_status'],
+                    'distanceKm' => ($lat !== null && $lon !== null)
+                        ? RecommendationService::distanceKm($lat, $lon, $base['latitude'], $base['longitude'])
+                        : null,
+                    'approvedAt' => $restaurant->created_at?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

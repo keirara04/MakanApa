@@ -55,5 +55,10 @@ return [
         'min_pickers' => 2,
         'limit' => 20,
         'public_radius_km' => 10,
+        // "New in your area" — recently-approved community submissions, independent of the
+        // trending threshold above (a brand-new place has zero picks and would never clear
+        // min_pickers, but should still be visible while it's fresh).
+        'new_in_area_days' => 14,
+        'new_in_area_limit' => 10,
     ],
 ];

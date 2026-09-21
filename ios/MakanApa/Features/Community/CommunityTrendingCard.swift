@@ -55,14 +55,16 @@ struct CommunityTrendingCard: View {
                     .foregroundStyle(.secondary)
 
                     HStack(spacing: 8) {
-                        HStack(spacing: 3) {
-                            Text("🔥")
-                            Text("\(item.pickerCount)")
-                                .contentTransition(.numericText())
-                            Text(item.pickerCount == 1 ? "person picked this" : "people picked this")
+                        if let pickerCount = item.pickerCount {
+                            HStack(spacing: 3) {
+                                Text("🔥")
+                                Text("\(pickerCount)")
+                                    .contentTransition(.numericText())
+                                Text(pickerCount == 1 ? "person picked this" : "people picked this")
+                            }
+                            .font(.makanBody(12))
+                            .foregroundStyle(Color.kicap.opacity(0.75))
                         }
-                        .font(.makanBody(12))
-                        .foregroundStyle(Color.kicap.opacity(0.75))
 
                         if let vibe = item.trendingVibe {
                             VibeBadge(vibe: vibe)

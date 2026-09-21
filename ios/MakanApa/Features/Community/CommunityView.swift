@@ -47,8 +47,13 @@ struct CommunityView: View {
                 if viewModel.isLoading && viewModel.feed == nil {
                     skeletonRows
                 } else if let feed = viewModel.feed {
+                    if !feed.newInArea.isEmpty {
+                        newInAreaSection(feed.newInArea)
+                    }
                     if feed.trending.isEmpty {
-                        emptyState
+                        if feed.newInArea.isEmpty {
+                            emptyState
+                        }
                     } else {
                         ForEach(Array(feed.trending.enumerated()), id: \.element.id) { index, item in
                             CommunityTrendingCard(rank: index + 1, item: item) {
@@ -163,6 +168,30 @@ struct CommunityView: View {
             return String(format: Copy.communitySubtitleUniversityFormat, university)
         }
         return Copy.communitySubtitlePublic
+    }
+
+    // MARK: - New in your area
+
+    private func newInAreaSection(_ items: [CommunityFeedItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NEW IN YOUR AREA")
+                .font(.makanBody(11))
+                .foregroundStyle(.secondary)
+                .tracking(1)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(items) { item in
+                        NewInAreaCard(item: item) {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            selectedItem = item
+                        }
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+        .padding(.bottom, 4)
     }
 
     // MARK: - States
