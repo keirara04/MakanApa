@@ -6,4 +6,14 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* MakanApa marketing site palette (support/privacy pages) */
+    --color-cream: #fdf6ec;
+    --color-cream-100: #faeed9;
+    --color-sambal-50: #fff1ee;
+    --color-sambal-100: #ffdfd6;
+    --color-sambal-500: #e8461f;
+    --color-sambal-600: #cc3814;
+    --color-sambal-700: #a62c0f;
+    --color-ink: #2b1c14;
 }
