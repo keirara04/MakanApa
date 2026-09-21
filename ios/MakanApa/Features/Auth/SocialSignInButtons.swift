@@ -38,10 +38,10 @@ struct SocialSignInButtons: View {
                 if isGoogleSigningIn {
                     ProgressView()
                 } else {
-                    // Stand-in glyph — swap for Google's official multi-color "G" mark before
-                    // shipping, since their brand guidelines require the exact asset.
-                    Image(systemName: "g.circle.fill")
-                        .font(.system(size: 18))
+                    Image("GoogleLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
                         .accessibilityHidden(true)
                 }
                 Text(isGoogleSigningIn ? "Signing in…" : "Continue with Google")

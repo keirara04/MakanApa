@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\FakesIdentityTokens;
@@ -80,7 +81,7 @@ class AuthGoogleTest extends TestCase
     {
         $otherKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
         openssl_pkey_export($otherKey, $otherPem);
-        $forgedToken = \Firebase\JWT\JWT::encode($this->claims(), $otherPem, 'RS256', $this->fakeKid());
+        $forgedToken = JWT::encode($this->claims(), $otherPem, 'RS256', $this->fakeKid());
 
         $response = $this->postJson('/api/v1/auth/google', $this->payload([], ['idToken' => $forgedToken]));
 

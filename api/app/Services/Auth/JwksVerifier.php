@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -62,7 +63,7 @@ class JwksVerifier
     }
 
     /**
-     * @return array<string, \Firebase\JWT\Key>
+     * @return array<string, Key>
      */
     private function keySet(bool $forceRefresh): array
     {
