@@ -103,6 +103,7 @@ class RestaurantSubmissionController extends Controller
         $submission = RestaurantSubmission::create([
             'user_id' => $user->id,
             'university_id' => $user->universityId(),
+            'area_id' => $user->areaId(),
             'restaurant_id' => $data['restaurantId'] ?? null,
             'submission_type' => $data['submissionType'],
             'source_type' => $data['sourceType'],

@@ -13,7 +13,7 @@ struct CommunityView: View {
 
     var body: some View {
         Group {
-            if viewModel.isUniversityUser {
+            if viewModel.isUniversityUser || viewModel.isAreaUser {
                 content
             } else {
                 switch locationService.state {
@@ -83,7 +83,7 @@ struct CommunityView: View {
             }
         }
         .sheet(isPresented: $showingCommunityAssignment) {
-            CommunityAssignmentSheet(currentUniversity: currentUniversity) {
+            CommunityAssignmentSheet(currentUniversity: currentUniversity, currentArea: currentArea) {
                 await attemptLoad()
             }
         }
@@ -103,7 +103,7 @@ struct CommunityView: View {
                     showingCommunityAssignment = true
                 } label: {
                     HStack(spacing: 4) {
-                        CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity)
+                        CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity, area: currentArea)
                         Text(currentAffiliationType == nil ? Copy.communityAssignCommunityCTA : Copy.communityChangeCommunityCTA)
                             .font(.makanBody(11))
                             .foregroundStyle(Color.sambalRed)
@@ -156,9 +156,17 @@ struct CommunityView: View {
         return nil
     }
 
+    private var currentArea: String? {
+        if case .authenticated(let user) = AuthStore.shared.session { return user.area }
+        return nil
+    }
+
     private var headline: String {
         if currentAffiliationType == "university", let university = currentUniversity {
             return String(format: Copy.communityHeadlineUniversityFormat, university)
+        }
+        if currentAffiliationType == "area", let area = currentArea {
+            return String(format: Copy.communityHeadlineAreaFormat, area)
         }
         return Copy.communityHeadlinePublic
     }
@@ -166,6 +174,9 @@ struct CommunityView: View {
     private var subtitle: String {
         if currentAffiliationType == "university", let university = currentUniversity {
             return String(format: Copy.communitySubtitleUniversityFormat, university)
+        }
+        if currentAffiliationType == "area", let area = currentArea {
+            return String(format: Copy.communitySubtitleAreaFormat, area)
         }
         return Copy.communitySubtitlePublic
     }
@@ -281,7 +292,7 @@ struct CommunityView: View {
 
     @MainActor
     private func attemptLoad() async {
-        if viewModel.isUniversityUser {
+        if viewModel.isUniversityUser || viewModel.isAreaUser {
             await viewModel.load(coordinate: currentCoordinate)
         } else if case .authorized(let coordinate) = locationService.state {
             await viewModel.load(coordinate: coordinate)

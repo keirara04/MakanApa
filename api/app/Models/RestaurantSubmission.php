@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'user_id', 'university_id', 'restaurant_id', 'submission_type', 'source_type', 'google_place_id',
+    'user_id', 'university_id', 'area_id', 'restaurant_id', 'submission_type', 'source_type', 'google_place_id',
     'name', 'address', 'food_category', 'price_level', 'phone', 'instagram_handle', 'tiktok_handle',
     'website_url', 'menu_items', 'latitude', 'longitude', 'location_source', 'notes', 'changed_fields',
     'status', 'reviewed_by', 'reviewed_at', 'review_note',

@@ -31,10 +31,12 @@ extension View {
 struct CommunityBadge: View {
     let label: String
 
-    init(affiliationType: String?, university: String?) {
+    init(affiliationType: String?, university: String?, area: String? = nil) {
         switch affiliationType {
         case "university":
             label = university ?? "Public"
+        case "area":
+            label = area ?? "Public"
         case "public":
             label = "Public"
         default:

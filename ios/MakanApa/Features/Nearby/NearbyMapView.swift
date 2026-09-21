@@ -182,7 +182,10 @@ struct NearbyMapView: UIViewRepresentable {
                 marker.position = coordinate
             } else {
                 let marker = GMSMarker(position: coordinate)
-                marker.icon = RatingBubbleRenderer.icon(rating: nil, isWinner: true, isTopRated: false)
+                // Not routed through RatingBubbleRenderer.icon — that path is now invisible for
+                // ratingless places (declutter), but this pin is a deliberate "you picked this
+                // spot" marker, not restaurant clutter, so it always needs to actually show.
+                marker.icon = GMSMarker.markerImage(with: UIColor(named: "SambalRed") ?? .systemRed)
                 marker.zIndex = 20
                 marker.map = mapView
                 temporarySearchMarker = marker
@@ -290,23 +293,23 @@ struct NearbyMapView: UIViewRepresentable {
 /// rating is always a plain dot regardless of winner/top-rated status — there is no meaningful
 /// "★–" state to show, so don't show one.
 enum RatingBubbleRenderer {
-    private static let dotDiameter: CGFloat = 10
+    /// Invisible, not just small — a normal place gets no visible mark on the map at all now
+    /// (still tappable: Google Maps' own base-layer POI icon is what a user actually taps for
+    /// these). Kept as a real (if invisible) icon rather than omitting the marker entirely, so
+    /// tap-to-select still works for every place, not only winner/top-rated ones.
+    private static let invisibleMarkerDiameter: CGFloat = 24
 
     static func icon(rating: Double?, isWinner: Bool, isTopRated: Bool) -> UIImage {
         guard let rating, isWinner || isTopRated else {
-            return dotIcon()
+            return invisibleIcon()
         }
         return pillIcon(rating: rating, highlighted: isWinner)
     }
 
-    private static func dotIcon() -> UIImage {
-        let size = CGSize(width: dotDiameter, height: dotDiameter)
+    private static func invisibleIcon() -> UIImage {
+        let size = CGSize(width: invisibleMarkerDiameter, height: invisibleMarkerDiameter)
         let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { context in
-            context.cgContext.setShadow(offset: CGSize(width: 0, height: 1), blur: 1.5, color: UIColor.black.withAlphaComponent(0.2).cgColor)
-            (UIColor(named: "Kunyit") ?? .systemOrange).setFill()
-            UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).fill()
-        }
+        return renderer.image { _ in }
     }
 
     private static func pillIcon(rating: Double, highlighted: Bool) -> UIImage {

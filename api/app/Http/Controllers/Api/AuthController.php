@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateMyAffiliationRequest;
+use App\Models\Area;
 use App\Models\University;
 use App\Models\User;
 use App\Models\UserAffiliation;
@@ -62,12 +63,14 @@ class AuthController extends Controller
         $data = $request->validated();
 
         $university = isset($data['university']) ? University::where('short_name', $data['university'])->first() : null;
+        $area = isset($data['area']) ? Area::where('short_name', $data['area'])->first() : null;
 
         UserAffiliation::updateOrCreate(
             ['user_id' => $request->user()->id],
             [
-                'type' => $university ? 'university' : 'public',
+                'type' => $university ? 'university' : ($area ? 'area' : 'public'),
                 'university_id' => $university?->id,
+                'area_id' => $area?->id,
                 'verification_status' => 'self_reported',
                 'verification_method' => 'self_reported',
                 'verified_at' => null,
@@ -81,7 +84,7 @@ class AuthController extends Controller
 
     private function presentUser(User $user): array
     {
-        $user->loadMissing('affiliation.university');
+        $user->loadMissing('affiliation.university', 'affiliation.area');
 
         return [
             'id' => $user->id,
@@ -90,6 +93,7 @@ class AuthController extends Controller
             'status' => $user->status,
             'affiliationType' => $user->affiliation?->type,
             'university' => $user->universityShortName(),
+            'area' => $user->areaShortName(),
             'affiliationVerificationStatus' => $user->affiliation?->verification_status,
         ];
     }

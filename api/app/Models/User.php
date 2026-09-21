@@ -56,4 +56,14 @@ class User extends Authenticatable
     {
         return $this->affiliation?->university?->short_name;
     }
+
+    public function areaId(): ?int
+    {
+        return $this->affiliation?->area_id;
+    }
+
+    public function areaShortName(): ?string
+    {
+        return $this->affiliation?->area?->short_name;
+    }
 }

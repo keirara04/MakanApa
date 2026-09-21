@@ -1,10 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AreaController as AdminAreaController;
+use App\Http\Controllers\Api\Admin\CommunityRequestController as AdminCommunityRequestController;
 use App\Http\Controllers\Api\Admin\RestaurantSubmissionController as AdminRestaurantSubmissionController;
 use App\Http\Controllers\Api\Admin\SubmissionPhotoController as AdminSubmissionPhotoController;
+use App\Http\Controllers\Api\Admin\UniversityController as AdminUniversityController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\CommunityRequestController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\PhotoController;
@@ -27,6 +32,7 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('universities', [UniversityController::class, 'index']);
+        Route::get('areas', [AreaController::class, 'index']);
 
         // Local-DB-only aggregate queries, not Google-Places-backed — gets its own more
         // generous limit than the Places-protecting throttle:30,1 group below, not none at all.
@@ -39,6 +45,10 @@ Route::prefix('v1')->group(function () {
         Route::middleware('throttle:10,1')->group(function () {
             Route::patch('me/community', [AuthController::class, 'updateAffiliation']);
         });
+
+        // "My university/area isn't listed" — a rare, deliberate action, same throttle class
+        // as community/submissions store below.
+        Route::post('community/requests', [CommunityRequestController::class, 'store'])->middleware('throttle:5,1');
 
         // Google Places-backed endpoints are rate limited per client/IP so a runaway client
         // can't turn this into a Google Places billing incident during the beta.
@@ -93,6 +103,15 @@ Route::prefix('v1')->group(function () {
             Route::post('community/restaurants/{restaurant}/remove', [AdminRestaurantSubmissionController::class, 'remove']);
             Route::get('submission-photos/{photo}', AdminSubmissionPhotoController::class)
                 ->name('admin.submission-photos.show')->middleware('signed');
+
+            Route::get('community/requests', [AdminCommunityRequestController::class, 'index']);
+            Route::post('community/requests/{request}/resolve', [AdminCommunityRequestController::class, 'resolve']);
+            Route::post('community/requests/{request}/dismiss', [AdminCommunityRequestController::class, 'dismiss']);
+
+            Route::get('universities', [AdminUniversityController::class, 'index']);
+            Route::post('universities', [AdminUniversityController::class, 'store']);
+            Route::get('areas', [AdminAreaController::class, 'index']);
+            Route::post('areas', [AdminAreaController::class, 'store']);
         });
     });
 });

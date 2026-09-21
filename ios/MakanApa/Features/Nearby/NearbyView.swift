@@ -60,16 +60,22 @@ struct NearbyView: View {
             .padding(.top, 16)
             .zIndex(1)
 
-            HStack {
-                Spacer()
-                VStack {
+            // Only while collapsed — the area panel already covers/exceeds this position once
+            // it's dragged to medium/large, so floating the button there would just sit behind
+            // it (it previously sat low enough to be half-covered by the panel + tab bar, i.e.
+            // "tenggelam").
+            if panelState == .collapsed {
+                HStack {
                     Spacer()
-                    recenterButton
+                    VStack {
+                        Spacer()
+                        recenterButton
+                    }
                 }
+                .padding(.trailing, 12)
+                .padding(.bottom, 130)
+                .zIndex(1)
             }
-            .padding(.trailing, 12)
-            .padding(.bottom, 90)
-            .zIndex(1)
 
             if viewModel.selectedPlace == nil {
                 VStack {

@@ -15,6 +15,15 @@ final class CommunityViewModel {
         return false
     }
 
+    /// Area-affiliated users skip the location-permission gate too — like university users,
+    /// their feed is scoped by affiliation, not by GPS coordinate.
+    var isAreaUser: Bool {
+        if case .authenticated(let user) = AuthStore.shared.session {
+            return user.affiliationType == "area"
+        }
+        return false
+    }
+
     @MainActor
     func load(coordinate: CLLocationCoordinate2D?) async {
         isLoading = true

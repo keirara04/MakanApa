@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['restaurant_id', 'decision_id', 'university_id', 'vibe'])]
+#[Fillable(['restaurant_id', 'decision_id', 'university_id', 'area_id', 'vibe'])]
 class RestaurantVibeVote extends Model
 {
     const UPDATED_AT = null;

@@ -52,6 +52,7 @@ struct RevokeUserResponse: Decodable {
 
 struct UpdateMyCommunityRequestBody: Encodable {
     let university: String?
+    let area: String?
 }
 
 struct UniversityOption: Decodable, Identifiable, Equatable {
@@ -65,10 +66,35 @@ struct UniversitiesResponse: Decodable {
     let universities: [UniversityOption]
 }
 
+/// Mirrors `UniversityOption` — an admin-curated named group ("KL", "Selangor", a
+/// neighbourhood), not geo-bounded, self-selected the same way a university is.
+struct AreaOption: Decodable, Identifiable, Equatable {
+    let shortName: String
+    let name: String
+
+    var id: String { shortName }
+}
+
+struct AreasResponse: Decodable {
+    let areas: [AreaOption]
+}
+
 struct CommunityInfo: Decodable, Equatable {
     let type: String
     let university: String?
+    let area: String?
     let label: String
+}
+
+// MARK: - Community requests ("my university/area isn't listed")
+
+struct CommunityRequestBody: Encodable {
+    let type: String
+    let name: String
+}
+
+struct CommunityRequestResponse: Decodable {
+    let requested: Bool
 }
 
 struct CommunityFeedItem: Decodable, Identifiable, Equatable {
@@ -283,6 +309,69 @@ struct ReleaseFieldOverrideResponse: Decodable {
 
 struct AdminRemoveResponse: Decodable {
     let removed: Bool
+}
+
+// MARK: - Admin: community requests + university/area management
+
+struct AdminCommunityRequest: Decodable, Identifiable, Equatable {
+    let id: Int
+    let type: String
+    let name: String
+    let status: String
+    let createdAt: String
+    let requesterEmail: String?
+}
+
+struct AdminCommunityRequestListResponse: Decodable {
+    let requests: [AdminCommunityRequest]
+}
+
+struct AdminCommunityRequestResolveResponse: Decodable {
+    let resolved: Bool
+}
+
+struct AdminCommunityRequestDismissResponse: Decodable {
+    let dismissed: Bool
+}
+
+struct AdminUniversityListItem: Decodable, Identifiable, Equatable {
+    let id: Int
+    let name: String
+    let shortName: String
+    let active: Bool
+}
+
+struct AdminUniversityListResponse: Decodable {
+    let universities: [AdminUniversityListItem]
+}
+
+struct CreateUniversityRequestBody: Encodable {
+    let name: String
+    let shortName: String
+}
+
+struct CreateUniversityResponse: Decodable {
+    let university: UniversityOption
+}
+
+struct AdminAreaListItem: Decodable, Identifiable, Equatable {
+    let id: Int
+    let name: String
+    let shortName: String
+    let active: Bool
+}
+
+struct AdminAreaListResponse: Decodable {
+    let areas: [AdminAreaListItem]
+}
+
+struct CreateAreaRequestBody: Encodable {
+    let name: String
+    let shortName: String
+}
+
+struct CreateAreaResponse: Decodable {
+    let area: AreaOption
 }
 
 struct AdminApproveResponse: Decodable {

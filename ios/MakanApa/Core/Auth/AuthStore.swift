@@ -8,6 +8,7 @@ struct AuthUser: Codable, Equatable {
     let status: String
     let affiliationType: String?
     let university: String?
+    let area: String?
     /// "verified" (admin-assigned) | "self_reported" (picked in-app) | nil (no affiliation row
     /// yet). Not rendered anywhere yet — carried through now so a future "UKM ✓" verified badge
     /// doesn't need another auth-response shape change.
@@ -61,10 +62,11 @@ final class AuthStore {
         session = .authenticated(response.user)
     }
 
-    /// `university` nil means an explicit Public selection, not "leave unchanged" — there is
-    /// no partial-update variant of this call.
-    func updateCommunity(university: String?) async throws {
-        let response = try await APIClient.updateMyCommunity(university: university)
+    /// `university`/`area` both nil means an explicit Public selection, not "leave unchanged" —
+    /// there is no partial-update variant of this call. The two are mutually exclusive; callers
+    /// should never pass both non-nil (the backend rejects it).
+    func updateCommunity(university: String?, area: String?) async throws {
+        let response = try await APIClient.updateMyCommunity(university: university, area: area)
         session = .authenticated(response.user)
     }
 

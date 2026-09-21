@@ -81,6 +81,8 @@ enum Copy {
 
     static let communityHeadlineUniversityFormat = "%@ tengah makan apa? 👀"
     static let communitySubtitleUniversityFormat = "Popular around %@"
+    static let communityHeadlineAreaFormat = "%@ tengah makan apa? 👀"
+    static let communitySubtitleAreaFormat = "Popular around %@"
     static let communityHeadlinePublic = "What's trending near you"
     static let communitySubtitlePublic = "Trending picks nearby"
     static let communityEmptyHeadline = "Nothing trending yet 👀"
@@ -99,6 +101,14 @@ enum Copy {
     static let communityChangeCommunityCTA = "Change ›"
     static let communityAssignCommunityCTA = "Choose ›"
     static let communityUniversitiesSectionHeader = "UNIVERSITIES"
+    static let communityAreasSectionHeader = "AREA"
+    static let communityRequestUniversityRow = "Can't find your university? Request it"
+    static let communityRequestAreaRow = "Can't find your area? Request it"
+    static let communityRequestSheetTitle = "Request a community"
+    static let communityRequestUniversityPlaceholder = "e.g. Universiti Malaya"
+    static let communityRequestAreaPlaceholder = "e.g. Shah Alam, Cheras, your neighbourhood"
+    static let communityRequestSubmit = "Send request"
+    static let communityRequestSentConfirmation = "Thanks, we'll take a look! 👀"
 
     static let communityAddPlaceMenuItem = "Add a place"
     static let communityAddPlaceCTA = "Know a good spot? Add it →"

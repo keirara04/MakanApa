@@ -43,6 +43,16 @@ struct SettingsView: View {
                                         .foregroundStyle(Color.kicap)
                                 }
                             }
+                            NavigationLink {
+                                CommunityRequestsView()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "text.bubble.fill")
+                                        .foregroundStyle(Color.sambalRed)
+                                    Text("Community Requests")
+                                        .foregroundStyle(Color.kicap)
+                                }
+                            }
                         }
                     }
                 }

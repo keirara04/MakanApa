@@ -26,6 +26,7 @@ class RestaurantController extends Controller
         ], [
             'user_id' => $request->user()?->id,
             'university_id' => $request->user()?->universityId(),
+            'area_id' => $request->user()?->areaId(),
         ]);
 
         return response()->json(['saved' => true]);

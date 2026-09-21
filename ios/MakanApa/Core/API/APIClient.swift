@@ -109,8 +109,8 @@ enum APIClient {
         try await get("auth/me", query: [])
     }
 
-    static func updateMyCommunity(university: String?) async throws -> MeResponse {
-        try await patch("me/community", body: UpdateMyCommunityRequestBody(university: university))
+    static func updateMyCommunity(university: String?, area: String?) async throws -> MeResponse {
+        try await patch("me/community", body: UpdateMyCommunityRequestBody(university: university, area: area))
     }
 
     // MARK: - Admin
@@ -129,6 +129,14 @@ enum APIClient {
 
     static func listUniversities() async throws -> UniversitiesResponse {
         try await get("universities", query: [])
+    }
+
+    static func listAreas() async throws -> AreasResponse {
+        try await get("areas", query: [])
+    }
+
+    static func submitCommunityRequest(type: String, name: String) async throws -> CommunityRequestResponse {
+        try await post("community/requests", body: CommunityRequestBody(type: type, name: name))
     }
 
     static func communityFeed(latitude: Double?, longitude: Double?) async throws -> CommunityFeedResponse {
@@ -215,6 +223,36 @@ enum APIClient {
 
     static func adminRemoveRestaurant(restaurantId: Int) async throws -> AdminRemoveResponse {
         try await post("admin/community/restaurants/\(restaurantId)/remove", body: EmptyBody())
+    }
+
+    // MARK: - Admin: community requests + university/area management
+
+    static func adminListCommunityRequests(status: String) async throws -> AdminCommunityRequestListResponse {
+        try await get("admin/community/requests", query: [URLQueryItem(name: "status", value: status)])
+    }
+
+    static func adminResolveCommunityRequest(id: Int) async throws -> AdminCommunityRequestResolveResponse {
+        try await post("admin/community/requests/\(id)/resolve", body: EmptyBody())
+    }
+
+    static func adminDismissCommunityRequest(id: Int) async throws -> AdminCommunityRequestDismissResponse {
+        try await post("admin/community/requests/\(id)/dismiss", body: EmptyBody())
+    }
+
+    static func adminListUniversities() async throws -> AdminUniversityListResponse {
+        try await get("admin/universities", query: [])
+    }
+
+    static func adminCreateUniversity(name: String, shortName: String) async throws -> CreateUniversityResponse {
+        try await post("admin/universities", body: CreateUniversityRequestBody(name: name, shortName: shortName))
+    }
+
+    static func adminListAreas() async throws -> AdminAreaListResponse {
+        try await get("admin/areas", query: [])
+    }
+
+    static func adminCreateArea(name: String, shortName: String) async throws -> CreateAreaResponse {
+        try await post("admin/areas", body: CreateAreaRequestBody(name: name, shortName: shortName))
     }
 
     private struct EmptyBody: Encodable {}

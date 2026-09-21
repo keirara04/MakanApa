@@ -17,7 +17,10 @@ class UpdateMyAffiliationRequest extends FormRequest
         return [
             // Retired universities stay in the admin-facing exists check (CreateUserRequest) so
             // historical rows still resolve, but self-service picks only from what's live today.
-            'university' => ['nullable', 'string', Rule::exists('universities', 'short_name')->where('active', true)],
+            // University and area are mutually exclusive — picking one clears the other; neither
+            // set at all means Public.
+            'university' => ['nullable', 'string', 'prohibits:area', Rule::exists('universities', 'short_name')->where('active', true)],
+            'area' => ['nullable', 'string', 'prohibits:university', Rule::exists('areas', 'short_name')->where('active', true)],
         ];
     }
 }

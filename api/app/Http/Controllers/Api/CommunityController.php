@@ -14,10 +14,11 @@ use Illuminate\Support\Facades\Config;
 
 /**
  * Read-only trending feed scoped to the caller's community: their university (via the
- * decisions.university_id/restaurant_vibe_votes.university_id snapshots) or, for Public
- * accounts, restaurants within a fixed radius of their current location. Registered users
- * only (decisions.user_id not null) — Community represents explicit profile affiliation, so
- * anonymous/installation-only activity is deliberately excluded from both branches.
+ * decisions.university_id/restaurant_vibe_votes.university_id snapshots), their area (same
+ * pattern via area_id — a named, admin-curated group like "KL"/"Selangor", not geo-bounded) or,
+ * for Public accounts, restaurants within a fixed radius of their current location. Registered
+ * users only (decisions.user_id not null) — Community represents explicit profile affiliation,
+ * so anonymous/installation-only activity is deliberately excluded from all three branches.
  */
 class CommunityController extends Controller
 {
@@ -26,6 +27,7 @@ class CommunityController extends Controller
         $user = $request->user();
         $affiliationType = $user->affiliation?->type;
         $isUniversity = $affiliationType === 'university';
+        $isArea = $affiliationType === 'area';
 
         $data = $request->validate([
             'latitude' => ['nullable', 'numeric'],
@@ -35,7 +37,7 @@ class CommunityController extends Controller
         $lat = isset($data['latitude']) ? (float) $data['latitude'] : null;
         $lon = isset($data['longitude']) ? (float) $data['longitude'] : null;
 
-        if (! $isUniversity && ($lat === null || $lon === null)) {
+        if (! $isUniversity && ! $isArea && ($lat === null || $lon === null)) {
             return response()->json(['message' => 'Location is required for the Public community feed.'], 422);
         }
 
@@ -50,12 +52,17 @@ class CommunityController extends Controller
 
         if ($isUniversity) {
             $query->where('decisions.university_id', $user->universityId());
+        } elseif ($isArea) {
+            $query->where('decisions.area_id', $user->areaId());
         } else {
             $radiusKm = (float) $config['public_radius_km'];
             $latDelta = $radiusKm / 111.0;
             $lonDelta = $radiusKm / (111.0 * max(cos(deg2rad($lat)), 0.01));
 
+            // whereNull both — an area- or university-affiliated decision must never leak into
+            // the Public radius feed just because it happens to be geographically close.
             $query->whereNull('decisions.university_id')
+                ->whereNull('decisions.area_id')
                 ->join('restaurants', 'restaurants.id', '=', 'decision_recommendations.restaurant_id')
                 ->whereBetween('restaurants.latitude', [$lat - $latDelta, $lat + $latDelta])
                 ->whereBetween('restaurants.longitude', [$lon - $lonDelta, $lon + $lonDelta]);
@@ -71,7 +78,9 @@ class CommunityController extends Controller
             ->orderByDesc('picker_count')
             ->get();
 
-        if (! $isUniversity && $aggregates->isNotEmpty()) {
+        $isRadiusScoped = ! $isUniversity && ! $isArea;
+
+        if ($isRadiusScoped && $aggregates->isNotEmpty()) {
             // The bounding box above is only a candidate reducer (a square, not the real
             // radius) — apply the exact circular cutoff before ranking/limiting, not after,
             // so a genuinely-nearby lower-count restaurant can't be pushed out by a
@@ -93,9 +102,9 @@ class CommunityController extends Controller
 
         if ($aggregates->isEmpty()) {
             return response()->json([
-                'community' => $this->communityInfo($affiliationType, $user->universityShortName()),
+                'community' => $this->communityInfo($affiliationType, $user->universityShortName(), $user->areaShortName()),
                 'trending' => [],
-                'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $lat, $lon),
+                'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $isArea, $user->areaId(), $lat, $lon),
             ]);
         }
 
@@ -103,7 +112,7 @@ class CommunityController extends Controller
         // is_active filter: a closure-approved (soft-deleted) restaurant must drop out of the
         // live feed even though its historical decisions/vibe votes stay untouched for analytics.
         $restaurants = Restaurant::whereIn('id', $restaurantIds)->where('is_active', true)->with('cuisines')->get()->keyBy('id');
-        $trendingVibes = $this->trendingVibes($restaurantIds, $isUniversity, $user->universityId());
+        $trendingVibes = $this->trendingVibes($restaurantIds, $isUniversity, $user->universityId(), $isArea, $user->areaId());
 
         $trending = $aggregates
             ->map(function ($row) use ($restaurants, $trendingVibes, $lat, $lon) {
@@ -134,9 +143,9 @@ class CommunityController extends Controller
             ->values();
 
         return response()->json([
-            'community' => $this->communityInfo($affiliationType, $user->universityShortName()),
+            'community' => $this->communityInfo($affiliationType, $user->universityShortName(), $user->areaShortName()),
             'trending' => $trending,
-            'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $lat, $lon),
+            'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $isArea, $user->areaId(), $lat, $lon),
         ]);
     }
 
@@ -149,12 +158,12 @@ class CommunityController extends Controller
      * path through AddPlaceFlow), so provider alone can't distinguish "came through community
      * moderation" from "background Google sync"; source_submission_id is set by both approval
      * branches and left null by the background sync in PlacesService.
-     * Scoped the same way as the trending branch: university via the source submission's
-     * university_id snapshot, Public via lat/lon radius.
+     * Scoped the same way as the trending branch: university/area via the source submission's
+     * university_id/area_id snapshot (no radius, same as trending), Public via lat/lon radius.
      *
      * @return array<int, array<string, mixed>>
      */
-    private function newInArea(bool $isUniversity, ?int $universityId, ?float $lat, ?float $lon): array
+    private function newInArea(bool $isUniversity, ?int $universityId, bool $isArea, ?int $areaId, ?float $lat, ?float $lon): array
     {
         $config = Config::get('recommendation.community_feed');
         $since = now()->subDays($config['new_in_area_days']);
@@ -167,6 +176,8 @@ class CommunityController extends Controller
 
         if ($isUniversity) {
             $query->whereHas('sourceSubmission', fn ($q) => $q->where('university_id', $universityId));
+        } elseif ($isArea) {
+            $query->whereHas('sourceSubmission', fn ($q) => $q->where('area_id', $areaId));
         } else {
             if ($lat === null || $lon === null) {
                 return [];
@@ -176,14 +187,16 @@ class CommunityController extends Controller
             $latDelta = $radiusKm / 111.0;
             $lonDelta = $radiusKm / (111.0 * max(cos(deg2rad($lat)), 0.01));
 
-            $query->whereHas('sourceSubmission', fn ($q) => $q->whereNull('university_id'))
+            $query->whereHas('sourceSubmission', fn ($q) => $q->whereNull('university_id')->whereNull('area_id'))
                 ->whereBetween('latitude', [$lat - $latDelta, $lat + $latDelta])
                 ->whereBetween('longitude', [$lon - $lonDelta, $lon + $lonDelta]);
         }
 
         $restaurants = $query->orderByDesc('created_at')->limit($config['new_in_area_limit'] * 3)->get();
 
-        if (! $isUniversity) {
+        $isRadiusScoped = ! $isUniversity && ! $isArea;
+
+        if ($isRadiusScoped) {
             // Same bbox-then-exact-radius pattern as the trending branch above.
             $restaurants = $restaurants->filter(fn ($restaurant) => RecommendationService::distanceKm(
                 $lat, $lon, (float) $restaurant->latitude, (float) $restaurant->longitude
@@ -221,14 +234,21 @@ class CommunityController extends Controller
      *
      * @return array<int, string> restaurant_id => CommunityTag value
      */
-    private function trendingVibes(array $restaurantIds, bool $isUniversity, ?int $universityId): array
+    private function trendingVibes(array $restaurantIds, bool $isUniversity, ?int $universityId, bool $isArea, ?int $areaId): array
     {
         if (empty($restaurantIds)) {
             return [];
         }
 
         $query = RestaurantVibeVote::query()->whereIn('restaurant_id', $restaurantIds);
-        $query = $isUniversity ? $query->where('university_id', $universityId) : $query->whereNull('university_id');
+
+        if ($isUniversity) {
+            $query->where('university_id', $universityId);
+        } elseif ($isArea) {
+            $query->where('area_id', $areaId);
+        } else {
+            $query->whereNull('university_id')->whereNull('area_id');
+        }
 
         $rows = $query
             ->selectRaw('restaurant_id, vibe, count(*) as votes')
@@ -252,12 +272,16 @@ class CommunityController extends Controller
         return $result;
     }
 
-    private function communityInfo(?string $affiliationType, ?string $university): array
+    private function communityInfo(?string $affiliationType, ?string $university, ?string $area): array
     {
         if ($affiliationType === 'university' && $university !== null) {
-            return ['type' => 'university', 'university' => $university, 'label' => "{$university} Community"];
+            return ['type' => 'university', 'university' => $university, 'area' => null, 'label' => "{$university} Community"];
         }
 
-        return ['type' => 'public', 'university' => null, 'label' => 'Community'];
+        if ($affiliationType === 'area' && $area !== null) {
+            return ['type' => 'area', 'university' => null, 'area' => $area, 'label' => "{$area} Community"];
+        }
+
+        return ['type' => 'public', 'university' => null, 'area' => null, 'label' => 'Community'];
     }
 }
