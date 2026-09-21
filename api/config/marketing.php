@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Public contact addresses and the marketing subdomain are deployment
-    | config, not source — no fallback to a real address/domain here so a
+    | config, not source. No fallback to a real address/domain here, so a
     | fresh environment can't silently leak one that isn't meant for it.
     |
     */

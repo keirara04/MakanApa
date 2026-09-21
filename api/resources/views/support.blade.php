@@ -1,6 +1,6 @@
 @extends('layouts.marketing')
 
-@section('title', 'Support — MakanApa')
+@section('title', 'Support | MakanApa')
 @section('description', 'Get help with MakanApa: sign-in issues, restaurant info, account deletion, and how to reach us.')
 
 @section('content')
@@ -10,7 +10,7 @@
         <h1 class="mt-4 text-3xl font-semibold">Need help? We got you.</h1>
         <p class="mt-3 text-ink/70">
             Something not working, found the wrong restaurant info, or just have an idea that could make
-            MakanApa better? Send it our way — we're still improving MakanApa and feedback genuinely helps.
+            MakanApa better? Send it our way. We're still improving MakanApa and feedback genuinely helps.
         </p>
         @if (config('marketing.support_email'))
             <a href="mailto:{{ config('marketing.support_email') }}"
@@ -93,7 +93,7 @@
                     <span class="float-right text-ink/40 group-open:rotate-45 transition-transform">+</span>
                 </summary>
                 <div class="mt-3 text-sm text-ink/70 space-y-2">
-                    <p>Restaurant information changes all the time. Let us know if a restaurant has incorrect opening hours, location, price, or contact details — or if it's closed permanently, moved, appears more than once, or is otherwise wrong.</p>
+                    <p>Restaurant information changes all the time. Let us know if a restaurant has incorrect opening hours, location, price, or contact details, or if it's closed permanently, moved, appears more than once, or is otherwise wrong.</p>
                     <p>Please include the restaurant name and what needs correcting when you contact us.</p>
                 </div>
             </details>
@@ -123,7 +123,7 @@
                     <span class="float-right text-ink/40 group-open:rotate-45 transition-transform">+</span>
                 </summary>
                 <div class="mt-3 text-sm text-ink/70 space-y-2">
-                    <p>You can delete your MakanApa account from within the app. Deletion is instant and permanent — there's no review queue and it can't be undone.</p>
+                    <p>You can delete your MakanApa account from within the app. Deletion is instant and permanent: there's no review queue and it can't be undone.</p>
                     <p>If you're unable to access your account or need help, contact support below.</p>
                 </div>
             </details>
@@ -135,7 +135,7 @@
                 </summary>
                 <div class="mt-3 text-sm text-ink/70 space-y-2">
                     <p>Your account and personal account information (name, email, password credential, sign-in identifiers, sessions) are permanently removed.</p>
-                    <p>Some activity and community contributions — like restaurant submissions or photos you've shared — may remain in anonymized form, no longer connected to your account.</p>
+                    <p>Some activity and community contributions, like restaurant submissions or photos you've shared, may remain in anonymized form, no longer connected to your account.</p>
                     <p>We keep one minimal record (your email and the deletion date) for security and compliance purposes.</p>
                     <p><a href="{{ url('/privacy') }}" class="font-medium text-sambal-600 underline">Read the full privacy policy →</a></p>
                 </div>
@@ -149,11 +149,11 @@
         <div class="mt-3 rounded-2xl border border-sambal-100 bg-white p-5 text-sm text-ink/70">
             <p>Please send us:</p>
             <ul class="mt-2 list-disc pl-5 space-y-1">
-                <li><strong>What happened</strong> — describe the problem.</li>
+                <li><strong>What happened</strong>: describe the problem.</li>
                 <li><strong>What you expected to happen.</strong></li>
-                <li><strong>Steps to reproduce it</strong> — e.g. "Open Nearby → select '≤ RM20' → tap restaurant → app closes."</li>
-                <li><strong>Device information</strong> — iPhone model and iOS version.</li>
-                <li><strong>MakanApa version</strong> — found in the app or App Store.</li>
+                <li><strong>Steps to reproduce it</strong>: e.g. "Open Nearby, select '≤ RM20', tap restaurant, app closes."</li>
+                <li><strong>Device information</strong>: iPhone model and iOS version.</li>
+                <li><strong>MakanApa version</strong>: found in the app or App Store.</li>
                 <li><strong>Screenshot or screen recording</strong>, if possible.</li>
             </ul>
         </div>
@@ -180,7 +180,7 @@
 
     <section class="mt-12 rounded-2xl border border-sambal-100 bg-white p-5 text-sm text-ink/70">
         <div class="flex flex-wrap gap-x-8 gap-y-2">
-            <div><span class="font-medium text-ink">MakanApa</span> — What to Eat</div>
+            <div><span class="font-medium text-ink">MakanApa</span>: What to Eat</div>
             <div>Developer: Hakeemi Ridza</div>
             @if (config('marketing.support_email'))
                 <div>Support: {{ config('marketing.support_email') }}</div>

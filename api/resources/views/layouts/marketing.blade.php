@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>@yield('title', 'MakanApa')</title>
-        <meta name="description" content="@yield('description', 'MakanApa — what to eat, decided in seconds.')">
+        <meta name="description" content="@yield('description', 'MakanApa: what to eat, decided in seconds.')">
 
         @fonts
 
@@ -16,6 +16,8 @@
             /* Minimal fallback so the page is legible even before a production build exists. */
             body { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         </style>
+
+        @stack('styles')
     </head>
     <body class="bg-cream text-ink antialiased">
         <header class="border-b border-sambal-100">

@@ -6,6 +6,18 @@ RUN apk add --no-cache icu-dev && docker-php-ext-install intl
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
+FROM node:22-alpine AS assets
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY resources/css resources/css
+COPY resources/js resources/js
+COPY vite.config.js ./
+# Vite's Blade plugin scans for @vite-referenced views to fingerprint correctly. Needs the
+# views present at build time, not just the css/js entrypoints.
+COPY resources/views resources/views
+RUN npm run build
+
 FROM php:8.4-apache AS app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,6 +39,7 @@ WORKDIR /var/www/html
 
 COPY . .
 COPY --from=vendor /app/vendor ./vendor
+COPY --from=assets /app/public/build ./public/build
 
 # Publishes Filament's CSS/JS to public/ at build time — cheaper and more predictable than
 # regenerating them on every container start via docker-entrypoint.sh.

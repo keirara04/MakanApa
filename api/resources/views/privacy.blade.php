@@ -1,6 +1,6 @@
 @extends('layouts.marketing')
 
-@section('title', 'Privacy Policy — MakanApa')
+@section('title', 'Privacy Policy | MakanApa')
 @section('description', 'How MakanApa collects, uses, and deletes your data.')
 
 @section('content')
@@ -8,7 +8,7 @@
     <h1 class="text-3xl font-semibold">Privacy Policy</h1>
     <p class="mt-2 text-sm text-ink/60">Last updated: September 21, 2026</p>
     <p class="mt-4 text-ink/70">
-        This page explains what information MakanApa collects, why, and what happens to it — including when
+        This page explains what information MakanApa collects, why, and what happens to it, including when
         you delete your account.
     </p>
 
@@ -20,7 +20,7 @@
                 When you create a MakanApa account, we collect your name, email address, and avatar (if provided).
                 If you sign in with Apple or Google, we store the account identifier those providers give us so we
                 can recognize you on future sign-ins. If you set a password, we store a securely hashed version of
-                it — never the password itself.
+                it, never the password itself.
             </p>
         </section>
 
@@ -47,7 +47,7 @@
         <section id="activity">
             <h2 class="text-lg font-semibold text-ink">04. Your activity</h2>
             <p class="mt-2">
-                We record the choices you make while using MakanApa — cravings, budget, and distance preferences
+                We record the choices you make while using MakanApa: cravings, budget, and distance preferences
                 (decisions), the recommendations shown to you, restaurants you save, and "vibe" votes you cast on
                 restaurants. This activity is used to power recommendations and isn't displayed publicly attached
                 to your identity.
@@ -81,10 +81,10 @@
             <h2 class="text-lg font-semibold text-ink">07. Service providers</h2>
             <p class="mt-2">We use the following third parties, each for a specific purpose:</p>
             <ul class="mt-3 divide-y divide-sambal-100 rounded-2xl border border-sambal-100 bg-white text-sm">
-                <li class="p-4"><strong class="text-ink">Apple</strong> — Sign in with Apple, account authentication.</li>
-                <li class="p-4"><strong class="text-ink">Google Sign-In</strong> — account authentication.</li>
-                <li class="p-4"><strong class="text-ink">Google Places</strong> — restaurant discovery and information, and temporary restaurant-photo delivery (not stored by us).</li>
-                <li class="p-4"><strong class="text-ink">Object storage provider</strong> — stores photos you upload for restaurants (S3-compatible storage).</li>
+                <li class="p-4"><strong class="text-ink">Apple</strong>: Sign in with Apple, account authentication.</li>
+                <li class="p-4"><strong class="text-ink">Google Sign-In</strong>: account authentication.</li>
+                <li class="p-4"><strong class="text-ink">Google Places</strong>: restaurant discovery and information, and temporary restaurant-photo delivery (not stored by us).</li>
+                <li class="p-4"><strong class="text-ink">Object storage provider</strong>: stores photos you upload for restaurants (S3-compatible storage).</li>
             </ul>
             <p class="mt-3 text-sm text-ink/60">
                 We don't use analytics or crash-reporting services at this time. If that changes, this section
@@ -96,7 +96,7 @@
             <h2 class="text-lg font-semibold text-ink">08. Account deletion</h2>
             <p class="mt-2">
                 You can delete your MakanApa account from within the app. Deletion is immediate, self-service, and
-                permanent — there is no review queue and it cannot be undone.
+                permanent: there is no review queue and it cannot be undone.
             </p>
 
             <p class="mt-4 font-medium text-ink">What disappears:</p>
@@ -109,9 +109,9 @@
 
             <p class="mt-4 font-medium text-ink">What may remain, in anonymized form:</p>
             <ul class="mt-2 list-disc pl-5 space-y-1 text-sm">
-                <li>Activity data — decisions, recommendations shown to you, saves, vibe votes</li>
-                <li>Community contributions — restaurant submissions, published photos</li>
-                <li>Group activity — decision rooms you created</li>
+                <li>Activity data: decisions, recommendations shown to you, saves, vibe votes</li>
+                <li>Community contributions: restaurant submissions, published photos</li>
+                <li>Group activity: decision rooms you created</li>
             </ul>
             <p class="mt-2 text-sm text-ink/70">
                 In each case, the connection to your account is removed rather than the record being deleted,
