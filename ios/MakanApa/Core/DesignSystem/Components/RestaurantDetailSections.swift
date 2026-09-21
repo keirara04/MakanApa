@@ -123,7 +123,14 @@ struct PlaceCommunityPhotoStrip: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(urls, id: \.self) { urlString in
-                        RemoteImage(url: URL(string: urlString)) {
+                        // Community/S3 photos only (never Google) — safe to cache in memory.
+                        // Keyed by URL since these aren't currently exposed with a stable photo
+                        // ID to the client; a good follow-up, not blocking.
+                        RemoteImage(
+                            url: URL(string: urlString),
+                            cachePolicy: .memory(key: urlString),
+                            targetSize: CGSize(width: 140, height: 140)
+                        ) {
                             Color.kicap.opacity(0.06)
                         }
                         .aspectRatio(contentMode: .fill)

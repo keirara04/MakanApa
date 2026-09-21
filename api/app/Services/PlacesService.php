@@ -14,6 +14,7 @@ use App\Services\Places\PlaceNormalizer;
 use App\Services\Places\ProviderPlace;
 use App\Support\DiscoveryMode;
 use App\Support\Vibe;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
@@ -619,9 +620,7 @@ class PlacesService
     {
         $modeAllowsCafeLeaning = ! empty(array_intersect($includedTypes, self::CAFE_EXTRA_TYPES));
 
-        return Restaurant::where('provider', 'google')
-            ->where('is_active', true)
-            ->with(['cuisines', 'tags'])
+        return $this->boundingBoxQuery('google', $latitude, $longitude, $radiusKm)
             ->get()
             ->filter(fn (Restaurant $restaurant) => RecommendationService::distanceKm(
                 $latitude, $longitude, (float) $restaurant->latitude, (float) $restaurant->longitude
@@ -641,9 +640,7 @@ class PlacesService
      */
     private function readUserSubmittedRestaurantsNear(float $latitude, float $longitude, float $radiusKm): array
     {
-        return Restaurant::where('provider', 'user_submitted')
-            ->where('is_active', true)
-            ->with(['cuisines', 'tags'])
+        return $this->boundingBoxQuery('user_submitted', $latitude, $longitude, $radiusKm)
             ->get()
             ->filter(fn (Restaurant $restaurant) => RecommendationService::distanceKm(
                 $latitude, $longitude, (float) $restaurant->latitude, (float) $restaurant->longitude
@@ -651,5 +648,33 @@ class PlacesService
             ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
             ->values()
             ->all();
+    }
+
+    /**
+     * SQL-level pre-filter shared by both "restaurants near a point" readers — a degree-delta
+     * bounding box on lat/lng, cheap and index-able (see the `(provider, is_active, latitude)`
+     * index), narrowing what actually gets fetched before the exact Haversine `->filter()` in
+     * each caller trims the box's corners down to the real circle. Column list matches exactly
+     * what `Restaurant::toRecommendationArray()` reads (including `opening_hours`, needed by
+     * `openStatus()` — NOT excludable despite not appearing directly in that method's return
+     * array) — `address`/timestamps are the only columns genuinely unused, so those are the
+     * only ones left out here.
+     */
+    private function boundingBoxQuery(string $provider, float $latitude, float $longitude, float $radiusKm): Builder
+    {
+        $latDelta = $radiusKm / 111.0;
+        $lngDelta = $radiusKm / (111.320 * max(cos(deg2rad($latitude)), 0.01));
+
+        return Restaurant::where('provider', $provider)
+            ->where('is_active', true)
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+            ->select([
+                'id', 'name', 'latitude', 'longitude', 'price_level', 'rating', 'opening_hours',
+                'is_active', 'provider', 'provider_place_id', 'food_category', 'signature_dish',
+                'google_types', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
+                'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count',
+            ])
+            ->with(['cuisines:id,slug', 'tags:id,name']);
     }
 }

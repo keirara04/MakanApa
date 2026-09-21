@@ -286,6 +286,7 @@ struct NearbyMapView: UIViewRepresentable {
 /// `UIImageView` used as the marker's `iconView`. Two visual tiers: **winner** (sambal-red
 /// `★4.7` pill, "Pick one lah" result) > **any rated place** (white `★4.7` pill). A place with
 /// no rating at all is a plain (invisible) dot — there's no meaningful "★–" state to show.
+@MainActor
 enum RatingBubbleRenderer {
     /// Invisible, not just small — an unrated place gets no visible mark on the map (still
     /// tappable: Google Maps' own base-layer POI icon is what a user actually taps for these).
@@ -293,11 +294,26 @@ enum RatingBubbleRenderer {
     /// tap-to-select still works even for places with no rating.
     private static let invisibleMarkerDiameter: CGFloat = 24
 
+    /// Keyspace is tiny by construction (one-decimal ratings 0.0-5.0 × winner true/false), so a
+    /// plain dictionary with no eviction policy is fine — never needs the ceremony `NSCache`
+    /// would add. Avoids re-rasterizing the same bitmap on every `addMarker`/`applyIcon` call,
+    /// which fires on every `sync()` even for markers whose (rating, isWinner) hasn't changed.
+    private struct RatingMarkerKey: Hashable {
+        let ratingTenths: Int?
+        let isWinner: Bool
+    }
+
+    private static var cache: [RatingMarkerKey: UIImage] = [:]
+
     static func icon(rating: Double?, isWinner: Bool) -> UIImage {
-        guard let rating else {
-            return invisibleIcon()
+        let key = RatingMarkerKey(ratingTenths: rating.map { Int(($0 * 10).rounded()) }, isWinner: isWinner)
+        if let cached = cache[key] {
+            return cached
         }
-        return pillIcon(rating: rating, highlighted: isWinner)
+
+        let image = rating.map { pillIcon(rating: $0, highlighted: isWinner) } ?? invisibleIcon()
+        cache[key] = image
+        return image
     }
 
     private static func invisibleIcon() -> UIImage {

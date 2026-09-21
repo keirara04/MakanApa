@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Decision;
+use App\Models\RestaurantPhoto;
 use App\Models\User;
 use App\Models\UserAffiliation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthAccountDeletionTest extends TestCase
@@ -121,5 +124,108 @@ class AuthAccountDeletionTest extends TestCase
         $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertOk();
 
         $this->assertDatabaseHas('account_deletions', ['user_id' => $user->id, 'email' => 'gone@example.com']);
+    }
+
+    public function test_deletion_removes_uploaded_photo_from_pending_disk(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('pending/photo.jpg', 'fake-bytes');
+
+        $user = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-1']);
+        $photo = RestaurantPhoto::create([
+            'disk' => 'local',
+            'path' => 'pending/photo.jpg',
+            'photo_type' => 'other',
+            'uploaded_by' => $user->id,
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertOk();
+
+        $this->assertModelMissing($photo);
+        Storage::disk('local')->assertMissing('pending/photo.jpg');
+    }
+
+    public function test_deletion_removes_uploaded_photo_from_public_disk(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('restaurants/photo.jpg', 'fake-bytes');
+
+        $user = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-1']);
+        $photo = RestaurantPhoto::create([
+            'disk' => 'public',
+            'path' => 'restaurants/photo.jpg',
+            'photo_type' => 'other',
+            'uploaded_by' => $user->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertOk();
+
+        $this->assertModelMissing($photo);
+        Storage::disk('public')->assertMissing('restaurants/photo.jpg');
+    }
+
+    public function test_deletion_does_not_touch_another_users_photo(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('restaurants/a.jpg', 'a');
+        Storage::disk('public')->put('restaurants/b.jpg', 'b');
+
+        $userA = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-a']);
+        $userB = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-b']);
+
+        RestaurantPhoto::create([
+            'disk' => 'public', 'path' => 'restaurants/a.jpg', 'photo_type' => 'other',
+            'uploaded_by' => $userA->id, 'is_active' => true,
+        ]);
+        $photoB = RestaurantPhoto::create([
+            'disk' => 'public', 'path' => 'restaurants/b.jpg', 'photo_type' => 'other',
+            'uploaded_by' => $userB->id, 'is_active' => true,
+        ]);
+
+        $this->actingAs($userA)->deleteJson('/api/v1/auth/me')->assertOk();
+
+        $this->assertModelExists($photoB);
+        Storage::disk('public')->assertExists('restaurants/b.jpg');
+    }
+
+    public function test_deletion_fails_loudly_if_photo_storage_delete_fails(): void
+    {
+        $user = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-1']);
+        RestaurantPhoto::create([
+            'disk' => 'local',
+            'path' => 'pending/photo.jpg',
+            'photo_type' => 'other',
+            'uploaded_by' => $user->id,
+            'is_active' => false,
+        ]);
+
+        // Flysystem's local adapter returns true from delete() even for a nonexistent file, so
+        // a real disk can't simulate this — mock the disk to force delete() to return false,
+        // the actual failure signal the service checks for.
+        $failingDisk = \Mockery::mock();
+        $failingDisk->shouldReceive('delete')->once()->andReturn(false);
+        Storage::shouldReceive('disk')->with('local')->once()->andReturn($failingDisk);
+
+        $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertStatus(500);
+
+        // Deletion aborted, not silently reported as successful with an orphaned file.
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_deletion_still_anonymizes_rather_than_deletes_decisions(): void
+    {
+        $user = User::factory()->create(['password' => null, 'google_sub' => 'google-sub-1']);
+        $decision = Decision::create([
+            'user_id' => $user->id,
+            'mode' => 'solo',
+            'latitude' => 2.9,
+            'longitude' => 101.7,
+        ]);
+
+        $this->actingAs($user)->deleteJson('/api/v1/auth/me')->assertOk();
+
+        $this->assertDatabaseHas('decisions', ['id' => $decision->id, 'user_id' => null]);
     }
 }

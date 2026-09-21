@@ -50,6 +50,7 @@ struct NearbyAreaPanel: View {
     @State private var dragTranslation: CGFloat = 0
     @State private var sort: NearbySortOption = .defaultOrder
     @State private var listScrollOffset: CGFloat = 0
+    @Namespace private var ctaNamespace
 
     private var screenHeight: CGFloat { UIScreen.main.bounds.height }
 
@@ -64,6 +65,10 @@ struct NearbyAreaPanel: View {
         VStack(spacing: 0) {
             grabber
             content
+                // Panel height (outer `state` mutation) animates on `.standard`; overriding the
+                // transaction here makes the crossfading content — including the CTA's
+                // matchedGeometryEffect move — resolve on the snappier `.quick` instead.
+                .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.quick, value: state)
         }
         .frame(maxWidth: .infinity)
         .frame(height: currentHeight, alignment: .top)
@@ -73,11 +78,21 @@ struct NearbyAreaPanel: View {
         .gesture(dragGesture)
     }
 
+    // Tappable in every state — the one consistent "advance" control across collapsed→medium
+    // and medium→large, alongside the drag gesture. The tap catcher is a layout-neutral overlay
+    // (doesn't affect the VStack's spacing) sized to Apple HIG's 44x44 minimum, since the visible
+    // capsule itself is only 3pt tall.
     private var grabber: some View {
         Capsule()
             .fill(Color.kicap.opacity(0.12))
             .frame(width: 28, height: 3)
             .padding(.vertical, 8)
+            .overlay(
+                Color.clear
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+                    .onTapGesture { advanceState() }
+            )
     }
 
     @ViewBuilder
@@ -113,6 +128,10 @@ struct NearbyAreaPanel: View {
                         .foregroundStyle(.secondary.opacity(0.7))
                 }
             }
+            // Scoped to just this text block, not the whole row — a tap gesture on the full
+            // HStack would sit "under" the CTA button and risk stealing its taps.
+            .contentShape(Rectangle())
+            .onTapGesture { advanceState() }
             Spacer(minLength: 8)
             pickOneLahButton(compact: true)
         }
@@ -149,6 +168,11 @@ struct NearbyAreaPanel: View {
         .disabled(isPicking || !hasPlaces)
         .opacity(hasPlaces ? 1 : 0.5)
         .buttonStyle(PressCompressStyle())
+        // Shared across the compact (collapsed) and full-width (medium/large) call sites below —
+        // since they're mutually exclusive branches of the same `switch state` in `content`,
+        // SwiftUI keeps both alive during the crossfade transition, which is what lets this
+        // interpolate the button's position/size instead of just crossfading two static buttons.
+        .matchedGeometryEffect(id: "pickOneLahCTA", in: ctaNamespace)
     }
 
     // MARK: - Medium
@@ -409,6 +433,24 @@ struct NearbyAreaPanel: View {
         withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .interactiveSpring(response: 0.35, dampingFraction: 0.85)) {
             state = closest
             dragTranslation = 0
+        }
+    }
+
+    /// Tap-to-advance, alongside the drag gesture above rather than replacing it — one state at
+    /// a time (collapsed → medium → large), never backward; collapsing back down is still a
+    /// drag-only action. Uses `Motion.standard` for the panel growth, matching the drag-snap's
+    /// spring feel but on a named preset instead of an inline one, per the "morphing pill" brief.
+    private func advanceState() {
+        let next: NearbyPanelState?
+        switch state {
+        case .collapsed: next = .medium
+        case .medium: next = .large
+        case .large: next = nil
+        }
+        guard let next else { return }
+
+        withAnimation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard) {
+            state = next
         }
     }
 }

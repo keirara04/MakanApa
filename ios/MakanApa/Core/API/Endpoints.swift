@@ -528,7 +528,7 @@ struct AcceptResponse: Decodable {
     let accepted: Bool
 }
 
-struct MapViewport: Encodable {
+struct MapViewport: Encodable, Equatable {
     let north: Double
     let south: Double
     let east: Double

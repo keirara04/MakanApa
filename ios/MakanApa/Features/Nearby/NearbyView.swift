@@ -783,13 +783,22 @@ struct NearbyView: View {
     private func placePhoto(for place: NearbyPlace) -> some View {
         // Google photo first (real, free coverage where it exists); a community-contributed
         // photo stands in as the hero for places Google never photographed, instead of always
-        // falling straight to the placeholder — see MakanApa#nearby-photo-fallback.
-        let heroURL = viewModel.placeDetails?.photos.first.flatMap { URL(string: $0.url) }
-            ?? viewModel.placeDetails?.communityPhotos.first.flatMap { URL(string: $0) }
+        // falling straight to the placeholder — see MakanApa#nearby-photo-fallback. Source is
+        // carried alongside the URL (not sniffed later) so RemoteImage gets an explicit cache
+        // policy: Google photos must never be cached, community photos safely can be.
+        let heroPhoto: (url: URL, source: PhotoSource)? = viewModel.placeDetails?.photos.first
+            .flatMap { photo in URL(string: photo.url).map { ($0, PhotoSource.google) } }
+            ?? viewModel.placeDetails?.communityPhotos.first
+                .flatMap { urlString in URL(string: urlString).map { ($0, PhotoSource.community) } }
 
         ZStack {
-            if let heroURL {
-                RemoteImage(url: heroURL) {
+            if let heroPhoto {
+                RemoteImage(
+                    url: heroPhoto.url,
+                    cachePolicy: heroPhoto.source == .community
+                        ? .memory(key: heroPhoto.url.absoluteString) : .noStore,
+                    targetSize: CGSize(width: UIScreen.main.bounds.width, height: 160)
+                ) {
                     placePhotoPlaceholder
                 }
                 .aspectRatio(contentMode: .fill)

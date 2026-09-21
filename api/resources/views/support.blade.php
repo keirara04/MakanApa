@@ -134,8 +134,8 @@
                     <span class="float-right text-ink/40 group-open:rotate-45 transition-transform">+</span>
                 </summary>
                 <div class="mt-3 text-sm text-ink/70 space-y-2">
-                    <p>Your account and personal account information (name, email, password credential, sign-in identifiers, sessions) are permanently removed.</p>
-                    <p>Some activity and community contributions, like restaurant submissions or photos you've shared, may remain in anonymized form, no longer connected to your account.</p>
+                    <p>Your account and personal account information (name, email, password credential, sign-in identifiers, sessions) are permanently removed, along with any photos you've uploaded.</p>
+                    <p>Some activity and community contributions, like restaurant submissions, may remain in anonymized form, no longer connected to your account.</p>
                     <p>We keep one minimal record (your email and the deletion date) for security and compliance purposes.</p>
                     <p><a href="{{ url('/privacy') }}" class="font-medium text-sambal-600 underline">Read the full privacy policy →</a></p>
                 </div>

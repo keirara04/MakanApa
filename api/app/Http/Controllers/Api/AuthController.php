@@ -10,7 +10,6 @@ use App\Http\Requests\LinkAccountRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateMyAffiliationRequest;
-use App\Models\AccountDeletion;
 use App\Models\Area;
 use App\Models\PendingProviderLink;
 use App\Models\University;
@@ -20,6 +19,7 @@ use App\Services\Auth\AppleIdentityTokenVerifier;
 use App\Services\Auth\AppleTokenExchangeService;
 use App\Services\Auth\GoogleIdentityTokenVerifier;
 use App\Services\Auth\InvalidIdentityTokenException;
+use App\Services\UserAccountDeletionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -286,12 +286,11 @@ class AuthController extends Controller
 
     /**
      * Self-service account deletion — required by App Store review for any app that supports
-     * account creation. Revokes the Apple grant first (if any), then removes every Sanctum
-     * token before deleting the row, rather than relying solely on cascading FKs to clean up
-     * everything, since token cleanup isn't itself a foreign key (Sanctum uses a polymorphic
-     * `tokenable` column, not a constrained one).
+     * account creation. All the deletion side effects (Apple revocation, uploaded-photo cleanup,
+     * token revocation, the audit trace, the forceDelete itself) live in
+     * UserAccountDeletionService — this method is just password verification + orchestration.
      */
-    public function destroy(DeleteAccountRequest $request, AppleTokenExchangeService $exchange): JsonResponse
+    public function destroy(DeleteAccountRequest $request, UserAccountDeletionService $deletion): JsonResponse
     {
         $user = $request->user();
         $data = $request->validated();
@@ -304,21 +303,7 @@ class AuthController extends Controller
             }
         }
 
-        if ($user->apple_refresh_token) {
-            $exchange->revoke($user->apple_refresh_token);
-        }
-
-        // Deletion is instant and self-service — there's no admin-reviewed queue for this.
-        // This is the only trace left afterward, so admins have some visibility (support,
-        // abuse patterns, compliance) once the row itself is gone.
-        AccountDeletion::create(['user_id' => $user->id, 'email' => $user->email]);
-
-        $user->tokens()->delete();
-        // forceDelete(), not delete() — the User model gained SoftDeletes for the admin panel's
-        // reversible moderation delete, but self-service deletion is a genuine, permanent
-        // removal (matches what the privacy policy promises). AccountDeletion above is the only
-        // trace meant to survive this.
-        $user->forceDelete();
+        $deletion->delete($user);
 
         return response()->json(['deleted' => true]);
     }

@@ -105,12 +105,13 @@
                 <li>Your Apple/Google account identifiers (and your Apple sign-in grant is revoked)</li>
                 <li>Your active sessions and sign-in tokens</li>
                 <li>Your community affiliation</li>
+                <li>Photos you uploaded, both the file and the record, deleted rather than anonymized</li>
             </ul>
 
             <p class="mt-4 font-medium text-ink">What may remain, in anonymized form:</p>
             <ul class="mt-2 list-disc pl-5 space-y-1 text-sm">
                 <li>Activity data: decisions, recommendations shown to you, saves, vibe votes</li>
-                <li>Community contributions: restaurant submissions, published photos</li>
+                <li>Community contributions: restaurant submissions you made</li>
                 <li>Group activity: decision rooms you created</li>
             </ul>
             <p class="mt-2 text-sm text-ink/70">

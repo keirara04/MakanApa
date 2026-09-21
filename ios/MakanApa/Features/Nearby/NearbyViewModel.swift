@@ -82,6 +82,24 @@ final class NearbyViewModel {
     private var lastSearchedViewport: MapViewport?
     private var didLoadFilters = false
 
+    /// Identifies a Nearby fetch by everything that actually changes its result — used to skip
+    /// an exact repeat request and to know whether an in-flight fetch is now stale.
+    private struct NearbyQueryKey: Equatable {
+        let viewport: MapViewport
+        let openNow: Bool
+        let budgetMax: Int?
+        let minRating: Double?
+        let mode: DiscoveryMode
+        let vibe: Vibe?
+    }
+
+    /// The view fires an unstructured `Task { await viewModel.viewportSettled(...) }` on every
+    /// camera-idle event (`NearbyView.swift`) with no cancellation of its own — without this,
+    /// several overlapping fetches can be in flight at once, and whichever happens to finish
+    /// last wins the race on `places`/`areaSummary`, regardless of which one is actually current.
+    private var searchFetchTask: Task<Void, Never>?
+    private var lastSucceededQueryKey: NearbyQueryKey?
+
     private static let openNowKey = "NearbyViewModel.openNowFilter"
     private static let budgetMaxKey = "NearbyViewModel.budgetMaxFilter"
     private static let minRatingKey = "NearbyViewModel.minRatingFilter"
@@ -162,25 +180,48 @@ final class NearbyViewModel {
 
     @MainActor
     private func search(_ viewport: MapViewport) async {
+        let key = NearbyQueryKey(
+            viewport: viewport, openNow: openNowFilter, budgetMax: budgetMaxFilter,
+            minRating: minRatingFilter, mode: discoveryMode, vibe: vibe
+        )
+        // Already have fresh data for exactly this query — e.g. a redundant "Search this area"
+        // tap after nothing actually moved. `lastSucceededQueryKey` only updates on success
+        // (below), so a failed fetch never blocks a retry of the same query.
+        guard key != lastSucceededQueryKey else { return }
+
+        // A genuinely new query supersedes whatever's in flight — cancel it rather than let two
+        // responses race to be the one that lands last.
+        searchFetchTask?.cancel()
         isLoading = true
         apiError = nil
-        do {
-            let response = try await APIClient.nearbyPlaces(
-                viewport: viewport, openNow: openNowFilter ? true : nil,
-                budgetMax: budgetMaxFilter, minRating: minRatingFilter,
-                mode: discoveryMode, vibe: vibe
-            )
-            places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
-            areaSummary = response.areaSummary
-            lastSearchedViewport = viewport
-            browseCenter = Self.center(of: viewport)
-            showSearchThisArea = false
-        } catch let error as APIError {
-            apiError = error
-        } catch {
-            apiError = .transport(error)
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let response = try await APIClient.nearbyPlaces(
+                    viewport: viewport, openNow: self.openNowFilter ? true : nil,
+                    budgetMax: self.budgetMaxFilter, minRating: self.minRatingFilter,
+                    mode: self.discoveryMode, vibe: self.vibe
+                )
+                guard !Task.isCancelled else { return }
+                self.places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
+                self.areaSummary = response.areaSummary
+                self.lastSearchedViewport = viewport
+                self.lastSucceededQueryKey = key
+                self.browseCenter = Self.center(of: viewport)
+                self.showSearchThisArea = false
+            } catch let error as APIError {
+                guard !Task.isCancelled else { return }
+                self.apiError = error
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.apiError = .transport(error)
+            }
+            guard !Task.isCancelled else { return }
+            self.isLoading = false
         }
-        isLoading = false
+        searchFetchTask = task
+        await task.value
     }
 
     private static func center(of viewport: MapViewport) -> CLLocationCoordinate2D {
