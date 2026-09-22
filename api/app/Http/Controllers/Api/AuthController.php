@@ -10,6 +10,7 @@ use App\Http\Requests\LinkAccountRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateMyAffiliationRequest;
+use App\Http\Requests\UpdateMyProfileRequest;
 use App\Models\Area;
 use App\Models\PendingProviderLink;
 use App\Models\University;
@@ -344,6 +345,24 @@ class AuthController extends Controller
         return response()->json(['user' => $this->presentUser($request->user())]);
     }
 
+    public function updateProfile(UpdateMyProfileRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $data = $request->validated();
+
+        if (array_key_exists('name', $data)) {
+            $user->name = $data['name'];
+        }
+
+        if (array_key_exists('avatarKey', $data)) {
+            $user->avatar_key = $data['avatarKey'];
+        }
+
+        $user->save();
+
+        return response()->json(['user' => $this->presentUser($user)]);
+    }
+
     private function presentUser(User $user): array
     {
         $user->loadMissing('affiliation.university', 'affiliation.area');
@@ -351,6 +370,8 @@ class AuthController extends Controller
         return [
             'id' => $user->id,
             'email' => $user->email,
+            'name' => $user->name,
+            'avatarKey' => $user->avatar_key,
             'role' => $user->role,
             'status' => $user->status,
             'affiliationType' => $user->affiliation?->type,

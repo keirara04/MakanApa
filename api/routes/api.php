@@ -62,6 +62,7 @@ Route::prefix('v1')->group(function () {
         // times a minute, so this gets a much tighter limit than community/feed above.
         Route::middleware('throttle:10,1')->group(function () {
             Route::patch('me/community', [AuthController::class, 'updateAffiliation']);
+            Route::patch('me/profile', [AuthController::class, 'updateProfile']);
         });
 
         // "My university/area isn't listed" — a rare, deliberate action, same throttle class

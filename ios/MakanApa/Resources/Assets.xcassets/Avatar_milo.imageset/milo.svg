@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+<title id="title">Milo — MakanApa Local Favorites avatar</title>
+<desc id="description">A friendly green chocolate drink mug with a foamy top, tiny arms and feet, and rosy cheeks.</desc>
+<defs>
+<radialGradient id="blush"><stop offset="0" stop-color="#efa6a1" stop-opacity=".76"/><stop offset="1" stop-color="#efa6a1" stop-opacity="0"/></radialGradient>
+<linearGradient id="shine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+
+    <linearGradient id="body" x1=".09" y1="0" x2=".96" y2="1"><stop offset="0" stop-color="#9ad77a"/><stop offset=".47" stop-color="#65af59"/><stop offset="1" stop-color="#347b44"/></linearGradient>
+    <linearGradient id="feet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6aae58"/><stop offset="1" stop-color="#367b41"/></linearGradient>
+    <radialGradient id="drink" cx="30%" cy="22%" r="86%"><stop offset="0" stop-color="#b77b4f"/><stop offset="1" stop-color="#6c422c"/></radialGradient>
+    </defs>
+
+    <path d="M201 419c-14 3-25 15-27 29-2 12 8 21 24 22 17 1 35-5 41-15 8-13-2-31-18-35-7-2-14-2-20-1Z" fill="url(#feet)" stroke="#306b3c" stroke-width="3"/>
+    <path d="M311 419c14 3 25 15 27 29 2 12-8 21-24 22-17 1-35-5-41-15-8-13 2-31 18-35 7-2 14-2 20-1Z" fill="url(#feet)" stroke="#306b3c" stroke-width="3"/>
+    <path d="M187 442c-3 7 1 12 11 13m127-13c3 7-1 12-11 13" fill="none" stroke="#a8d783" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+    
+    <path d="M345 215c43-11 71 4 71 44 0 39-29 67-63 63" fill="none" stroke="#3f8548" stroke-width="27" stroke-linecap="round"/>
+    <path d="M350 226c33-8 54 4 54 33 0 26-16 46-40 50" fill="none" stroke="#95d47b" stroke-opacity=".6" stroke-width="8" stroke-linecap="round"/>
+    
+    <path d="M153 291c-19-8-35 1-39 17-4 16 3 34 19 42 14 7 28-1 34-15l12-32Z" fill="#80c26a" stroke="#4d914c" stroke-width="3"/>
+    <path d="M359 291c19-8 35 1 39 17 4 16-3 34-19 42-14 7-28-1-34-15l-12-32Z" fill="#80c26a" stroke="#4d914c" stroke-width="3"/>
+    <path d="M124 315c-2 10 2 19 9 23m388 315c2 10-2 19-9 23" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+    
+    <path d="M157 189h198l-13 220c-1 19-13 31-32 31H202c-19 0-31-12-32-31Z" fill="url(#body)" stroke="#317845" stroke-width="3"/>
+    <path d="M176 209h30l-8 194c-1 9 1 16 7 23-16-5-22-13-23-27Z" fill="url(#shine)" opacity=".74"/>
+    <path d="M330 214h14l-12 188c-2 15-7 21-20 26 10-11 12-26 13-42Z" fill="#235e3a" opacity=".2"/>
+    <ellipse cx="256" cy="189" rx="100" ry="28" fill="#3a8246" stroke="#2d6d3d" stroke-width="3"/>
+    <ellipse cx="256" cy="184" rx="84" ry="16" fill="url(#drink)"/>
+    <path d="M200 185c17-9 37-9 53-2 16 6 33 7 49 1" fill="none" stroke="#f2d2a2" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+    <path d="M187 224c15-4 26-4 37 0" fill="none" stroke="#bceaa0" stroke-opacity=".66" stroke-width="6" stroke-linecap="round"/>
+    
+    <ellipse cx="188" cy="326" rx="20" ry="14" fill="url(#blush)"/>
+    <ellipse cx="324" cy="326" rx="20" ry="14" fill="url(#blush)"/>
+    <circle cx="211" cy="297" r="12" fill="#342f2e"/>
+    <circle cx="301" cy="297" r="12" fill="#342f2e"/>
+    <circle cx="207" cy="293" r="3.5" fill="#fffdfa"/>
+    <circle cx="297" cy="293" r="3.5" fill="#fffdfa"/>
+    <path d="M231 335c12 17 38 17 50 0" fill="none" stroke="#294d36" stroke-width="7" stroke-linecap="round"/>
+    
+</svg>

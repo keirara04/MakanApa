@@ -147,6 +147,10 @@ enum APIClient {
         try await patch("me/community", body: UpdateMyCommunityRequestBody(university: university, area: area))
     }
 
+    static func updateMyProfile(name: String?, avatarKey: String?) async throws -> MeResponse {
+        try await patch("me/profile", body: UpdateMyProfileRequestBody(name: name, avatarKey: avatarKey))
+    }
+
     // MARK: - Admin
 
     static func listBetaUsers() async throws -> AdminUserListResponse {

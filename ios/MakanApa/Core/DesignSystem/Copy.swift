@@ -67,7 +67,7 @@ enum Copy {
 
     static let tagline = "Less thinking. More makan."
     static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more makan."
-    static let privacyPolicyURL = "https://dear-papaya-894.notion.site/MakanApa-Privacy-Policy-3dd5ee337d988041840fdc5560b64bf8"
+    static let privacyPolicyURL = "https://makanapa.hakeemiridza.com/privacy"
 
     static let loginTagline = "Makan dulu. Decide later."
     static let signIn = "Sign in"

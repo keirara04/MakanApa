@@ -13,12 +13,16 @@ struct SettingsView: View {
             List {
                 if case .authenticated(let user) = authStore.session {
                     Section("Account") {
-                        HStack {
-                            Text("Email")
-                                .foregroundStyle(Color.kicap)
-                            Spacer()
-                            Text(user.email)
-                                .foregroundStyle(.secondary)
+                        NavigationLink {
+                            EditProfileView()
+                        } label: {
+                            HStack {
+                                Text("Profile")
+                                    .foregroundStyle(Color.kicap)
+                                Spacer()
+                                Text(user.email)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 

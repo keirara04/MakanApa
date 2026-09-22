@@ -4,6 +4,8 @@ import Observation
 struct AuthUser: Codable, Equatable {
     let id: Int
     let email: String
+    let name: String?
+    let avatarKey: String?
     let role: String
     let status: String
     let affiliationType: String?
@@ -116,6 +118,11 @@ final class AuthStore {
     /// should never pass both non-nil (the backend rejects it).
     func updateCommunity(university: String?, area: String?) async throws {
         let response = try await APIClient.updateMyCommunity(university: university, area: area)
+        session = .authenticated(response.user)
+    }
+
+    func updateProfile(name: String?, avatarKey: String?) async throws {
+        let response = try await APIClient.updateMyProfile(name: name, avatarKey: avatarKey)
         session = .authenticated(response.user)
     }
 

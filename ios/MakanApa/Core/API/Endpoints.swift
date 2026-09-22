@@ -100,6 +100,25 @@ struct UpdateMyCommunityRequestBody: Encodable {
     let area: String?
 }
 
+/// Custom `encode(to:)` because the synthesized one omits `nil` keys entirely — this call site
+/// always sends both fields as a full snapshot, and `avatarKey: nil` must serialize as an
+/// explicit JSON `null` (backend resets the avatar) rather than being dropped (backend would
+/// leave it unchanged).
+struct UpdateMyProfileRequestBody: Encodable {
+    let name: String?
+    let avatarKey: String?
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(avatarKey, forKey: .avatarKey)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case name, avatarKey
+    }
+}
+
 struct UniversityOption: Decodable, Identifiable, Equatable {
     let shortName: String
     let name: String

@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = E823597CCF1CD50A5011EDE9 /* Palette.swift */; };
+		EA06C2C4B780B27B81C2B92E /* AvatarCharacter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */; };
+		07D7BC2A2C232B75B706ACE6 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B3E4D55FFEBD5CBCE9CE64 /* EditProfileView.swift */; };
 		04A68DD56BB569C4B41E8075 /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7068A6E7F367B07A43EFC336 /* FavoritesView.swift */; };
 		0649DB4919CFAD5A3CFC1EBA /* MapsConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */; };
 		13F26D245255CED8F6F6D8F2 /* Endpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */; };
@@ -146,6 +148,8 @@
 		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
+		0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AvatarCharacter.swift; sourceTree = "<group>"; };
+		31B3E4D55FFEBD5CBCE9CE64 /* EditProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
 		7C3FFF8EE7DE42989C5853CF /* RemoteImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteImage.swift; sourceTree = "<group>"; };
 		85ECF82BD7C14C52881E2C11 /* NearbyAreaPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyAreaPanel.swift; path = Nearby/NearbyAreaPanel.swift; sourceTree = "<group>"; };
@@ -219,6 +223,7 @@
 				2601E14E8DA35E4CC488500B /* Admin */,
 				D44C0FE71741420C9D8ABA54 /* Community */,
 				3B6F4E9D9F4A4A6E9F0A1234 /* Onboarding */,
+				69D7976A4D0320849CB65323 /* Profile */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -289,6 +294,14 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
+		69D7976A4D0320849CB65323 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				31B3E4D55FFEBD5CBCE9CE64 /* EditProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
 		493BE46F243EC9877611E727 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -335,6 +348,7 @@
 				87CA0BC5F99741A7ACEF6729 /* VibeBadge.swift */,
 				6BCE6EDF523F4942A583F696 /* PhotoGalleryView.swift */,
 				995638F5B6AD495CB07DD2A6 /* ImageMemoryCache.swift */,
+				0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -632,6 +646,8 @@
 				6E7C3EB8DBB54321B1B78BCA /* CommunityBadge.swift in Sources */,
 				C04DC331EF72428DB163D9F0 /* RestaurantDetailSections.swift in Sources */,
 				EAAA5614E3CE4DF5BEFC12FF /* PhotoGalleryView.swift in Sources */,
+				EA06C2C4B780B27B81C2B92E /* AvatarCharacter.swift in Sources */,
+				07D7BC2A2C232B75B706ACE6 /* EditProfileView.swift in Sources */,
 				37559DE54E0544F3A2FA9390 /* ImageMemoryCache.swift in Sources */,
 				D7DD8BE39EEE4A6C87AC7E9C /* RemoteImage.swift in Sources */,
 				4FD8E9F424DE7D3DA24C4D3C /* MoodChoiceCard.swift in Sources */,
