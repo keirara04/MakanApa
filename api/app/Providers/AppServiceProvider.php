@@ -7,6 +7,7 @@ use App\Models\NotificationDelivery;
 use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
 use App\Services\Craving\OpenRouterIntentParser;
+use App\Services\Push\ApnAuthProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationFailed;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnChannel;
+use Pushok\AuthProviderInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -39,6 +41,24 @@ class AppServiceProvider extends ServiceProvider
             return new CravingResolver(
                 new OpenRouterIntentParser($apiKey, config('services.openrouter.model')),
                 new DailyAiBudget((int) config('services.openrouter.daily_limit')),
+            );
+        });
+
+        // Overrides laravel-notification-channels/apn's own binding (Pushok\AuthProvider\Token) —
+        // see ApnAuthProvider's doc comment for why that vendor class can never produce a token
+        // Apple accepts. Discovered package providers (ApnServiceProvider included) always
+        // register() before this app's own providers (see
+        // Application::registerConfiguredProviders), so binding here in register() reliably wins
+        // over the vendor package's bind() of the same interface.
+        $this->app->bind(AuthProviderInterface::class, function () {
+            $config = config('broadcasting.connections.apn');
+
+            return new ApnAuthProvider(
+                keyId: $config['key_id'],
+                teamId: $config['team_id'],
+                appBundleId: $config['app_bundle_id'],
+                privateKeyPath: $config['private_key_path'],
+                privateKeySecret: $config['private_key_secret'] ?? null,
             );
         });
     }

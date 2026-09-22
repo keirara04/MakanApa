@@ -24,6 +24,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\View\PanelsRenderHook;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -51,6 +52,13 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            // Lives in the topbar's x-persist block, so it survives Filament's wire:navigate SPA
+            // transitions between pages rather than being re-mounted per page — one button,
+            // everywhere, without adding it to every Resource/Page individually.
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn () => view('filament.hooks.sync-button'),
+            )
             ->navigationGroups([
                 'Overview',
                 'Moderation',
