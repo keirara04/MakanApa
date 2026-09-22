@@ -124,7 +124,11 @@ class AppServiceProvider extends ServiceProvider
         // listener above) so the admin Notification Log shows it as failed rather than stuck on
         // queued.
         Event::listen(function (NotificationFailed $event) {
-            $reason = (string) ($event->data['error'] ?? '');
+            // Per-token APNs rejections (bad token, expired cert, ...) land in data['error'].
+            // Anything thrown before that — auth/connection/cert-loading failures — comes through
+            // NotificationSender's catch block instead, as data['exception'], with no 'error' key
+            // at all; without this fallback those all showed up as a bare "Unknown error".
+            $reason = (string) ($event->data['error'] ?? ($event->data['exception'] ?? null)?->getMessage() ?? '');
 
             $deliveryId = Context::get('notification_delivery_id');
             if ($deliveryId !== null) {
