@@ -14,3 +14,8 @@ Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // Retention policy for unmoderated Community Places photos — see the command's own doc comment.
 Schedule::command('restaurant-photos:prune')->daily();
+
+// Admin-scheduled push notifications (Filament: System > Scheduled Notifications) — checks for
+// anything due every minute. Requires the scheduler itself to actually be running in production
+// (`php artisan schedule:work`, or cron calling `schedule:run` every minute) — not automatic.
+Schedule::command('notifications:dispatch-scheduled')->everyMinute();

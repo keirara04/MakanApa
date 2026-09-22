@@ -35,6 +35,11 @@ struct NearbyMapView: UIViewRepresentable {
         mapView.delegate = context.coordinator
         mapView.isMyLocationEnabled = true
         mapView.settings.myLocationButton = false
+        // Google's logo/legal attribution sits pinned to this padding's bottom-left corner — the
+        // Maps Platform ToS require it stay visible and unobscured, so this shifts it clear of
+        // the "Around here" pill/sheet rather than hiding it (matches the 130pt the recenter
+        // button in NearbyView clears the same UI by).
+        mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: 130, right: 0)
         if let target = initialCameraTarget {
             mapView.camera = GMSCameraPosition(target: target, zoom: 15)
         }
