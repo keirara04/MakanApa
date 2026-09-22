@@ -18,13 +18,13 @@ enum AvatarCharacter: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .defaultCharacter: "MakanApa"
+        case .defaultCharacter: "Classic"
         case .nasi: "Nasi"
         case .roti: "Roti"
         case .milo: "Milo"
         case .laksa: "Laksa"
         case .tehTarik: "Teh Tarik"
-        case .mascot: "Nasi"
+        case .mascot: "MakanApa"
         }
     }
 
