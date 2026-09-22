@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import MapKit
 import CoreLocation
 
 private struct PressableCardStyle: ButtonStyle {
@@ -190,11 +189,12 @@ struct HomeView: View {
     }
 
     private func pickAgain(_ decision: RecentDecision) {
-        let coordinate = CLLocationCoordinate2D(latitude: decision.latitude, longitude: decision.longitude)
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = decision.name
-        mapItem.openInMaps()
+        let destination = MapDestination(
+            coordinate: CLLocationCoordinate2D(latitude: decision.latitude, longitude: decision.longitude),
+            name: decision.name,
+            googleMapsURL: nil
+        )
+        PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
     }
 
     private func relativeDay(_ date: Date) -> String {

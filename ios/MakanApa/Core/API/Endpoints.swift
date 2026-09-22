@@ -495,6 +495,7 @@ struct RecommendationResponse: Decodable, Equatable {
         let openStatus: String
         let photos: [Photo]
         let reviews: [Review]
+        let menuItems: [MenuItem]
         let placeGoogleMapsUrl: String?
         let closesAt: String?
         /// Only present once a restaurant has enough CommunityTag votes to clear the backend's

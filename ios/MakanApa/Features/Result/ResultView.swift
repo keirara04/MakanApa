@@ -150,6 +150,10 @@ struct ResultView: View {
 
                     reasonChips
 
+                    if !pick.menuItems.isEmpty {
+                        menuSection(for: pick)
+                    }
+
                     if !pick.reviews.isEmpty {
                         reviewsSection(for: pick)
                     }
@@ -427,6 +431,23 @@ struct ResultView: View {
     // MARK: - Reviews
 
     @ViewBuilder
+    private func menuSection(for pick: RecommendationResponse.Recommendation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Potential menu")
+                .font(.makanBody(10))
+                .foregroundStyle(.secondary)
+
+            PlaceMenuSection(items: pick.menuItems)
+
+            Text("Shared by the MakanApa community — may not be complete or up to date.")
+                .font(.makanBody(10))
+                .foregroundStyle(Color.kicap.opacity(0.4))
+        }
+        .padding(14)
+        .background(Color.kicap.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
     private func reviewsSection(for pick: RecommendationResponse.Recommendation) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 4) {
