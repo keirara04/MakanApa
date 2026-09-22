@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# App Store assets
+appstore-screenshots/
+
 # Xcode
 ios/**/build/
 ios/**/DerivedData/

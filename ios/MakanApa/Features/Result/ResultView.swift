@@ -697,9 +697,11 @@ struct ResultView: View {
         }
         maybeShowVibePrompt()
         let coordinate = CLLocationCoordinate2D(latitude: recommendation.latitude, longitude: recommendation.longitude)
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = recommendation.name
-        mapItem.openInMaps()
+        let destination = MapDestination(
+            coordinate: coordinate,
+            name: recommendation.name,
+            googleMapsURL: recommendation.placeGoogleMapsUrl.flatMap(URL.init(string:))
+        )
+        PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
     }
 }

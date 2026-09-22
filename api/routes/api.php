@@ -30,6 +30,12 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:social');
     Route::post('auth/link', [AuthController::class, 'link'])->middleware('throttle:link');
 
+    // Bare signed URL, no Sanctum — AsyncImage/browsers/img-tag loaders fetch this directly
+    // and can't attach an Authorization header. The signature itself is the auth: it's
+    // generated server-side only for an authenticated user's own recommendation response,
+    // short-lived (30 min), and scoped to one transient Google photo resource name.
+    Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
+
     // Private beta: every real endpoint below requires a valid Sanctum token, not just
     // auth/admin — otherwise the app-level login gate is cosmetic and the underlying Google
     // Places/OpenRouter usage stays reachable by anyone who knows the endpoints.
@@ -87,7 +93,6 @@ Route::prefix('v1')->group(function () {
         Route::post('decisions/{decision}/vibe-tag', [RecommendationController::class, 'vibeTag']);
         Route::post('restaurants/{restaurant}/save', [RestaurantController::class, 'save']);
         Route::post('restaurants/{restaurant}/unsave', [RestaurantController::class, 'unsave']);
-        Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
 
         Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine']);
         Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update']);

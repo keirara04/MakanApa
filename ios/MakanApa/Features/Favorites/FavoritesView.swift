@@ -82,9 +82,7 @@ struct FavoritesView: View {
 
     private func openDirections(to place: SavedPlace) {
         let coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
-        let placemark = MKPlacemark(coordinate: coordinate)
-        let mapItem = MKMapItem(placemark: placemark)
-        mapItem.name = place.name
-        mapItem.openInMaps()
+        let destination = MapDestination(coordinate: coordinate, name: place.name, googleMapsURL: nil)
+        PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
     }
 }

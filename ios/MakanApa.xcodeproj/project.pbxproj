@@ -62,6 +62,8 @@
 		92D98D0DB07949E5A6122AB4 /* BetaCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB3284A147544F68D5E08AB /* BetaCredentialStore.swift */; };
 		9D519BDB0E0C46DAA439E5B5 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */; };
 		9F8FEBCEF0D562AFB788192D /* PreferenceProgressHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* PreferredMapsLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F3 /* PreferredMapsLauncher.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F4 /* MapProviderPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F5 /* MapProviderPreference.swift */; };
 		A410022608D32871EDDB33DA /* CredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274CA36352CF48000FD00802 /* CredentialStore.swift */; };
 		A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */; };
 		B395B06CDF344F3A8CFACAF5 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */; };
@@ -148,6 +150,8 @@
 		8E3FD3E83EC941AEA9B44D17 /* CommunityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityView.swift; sourceTree = "<group>"; };
 		8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginMascotView.swift; sourceTree = "<group>"; };
 		901B1D09195E987A9470A2FE /* AuthStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F3 /* PreferredMapsLauncher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PreferredMapsLauncher.swift; path = Map/PreferredMapsLauncher.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F5 /* MapProviderPreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapProviderPreference.swift; sourceTree = "<group>"; };
 		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
 		AA1C6F81AA004B2DABE13679 /* AppleNonce.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleNonce.swift; sourceTree = "<group>"; };
 		ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionTracker.swift; sourceTree = "<group>"; };
@@ -456,6 +460,7 @@
 			isa = PBXGroup;
 			children = (
 				D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F3 /* PreferredMapsLauncher.swift */,
 			);
 			name = Map;
 			sourceTree = "<group>";
@@ -468,6 +473,7 @@
 				7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */,
 				3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */,
 				17B16BD57F8D4B7D8EFBFF94 /* OnboardingState.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F5 /* MapProviderPreference.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -635,6 +641,8 @@
 				6BD18ED6ACDA339474E3F6CE /* ThinkingChecklist.swift in Sources */,
 				D9E3298186267729CEC217A0 /* Typography.swift in Sources */,
 				0649DB4919CFAD5A3CFC1EBA /* MapsConfig.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* PreferredMapsLauncher.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F4 /* MapProviderPreference.swift in Sources */,
 				2CA2AA66B894F6436BB4695C /* NearbyViewModel.swift in Sources */,
 				E85AC4C35311E38D93FB589D /* NearbyMapView.swift in Sources */,
 				F9EF69508E474E7D86507081 /* NearbyAreaPanel.swift in Sources */,
@@ -688,7 +696,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
@@ -716,7 +724,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;

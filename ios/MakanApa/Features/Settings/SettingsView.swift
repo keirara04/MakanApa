@@ -71,6 +71,19 @@ struct SettingsView: View {
                     }
                 }
 
+                Section {
+                    Picker("Open \"Jom Makan\" in", selection: mapProviderBinding) {
+                        ForEach(MapProvider.allCases) { provider in
+                            Text(provider.label).tag(provider)
+                        }
+                    }
+                    .tint(Color.kicap)
+                } header: {
+                    Text("Maps")
+                } footer: {
+                    Text("Used when you tap Jom Makan or Directions to head to a restaurant.")
+                }
+
                 Section("Location") {
                     Button {
                         openSystemSettings()
@@ -205,6 +218,13 @@ struct SettingsView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
         return "\(version) (\(build))"
+    }
+
+    private var mapProviderBinding: Binding<MapProvider> {
+        Binding(
+            get: { MapProviderPreference.current },
+            set: { MapProviderPreference.current = $0 }
+        )
     }
 
     private func openSystemSettings() {
