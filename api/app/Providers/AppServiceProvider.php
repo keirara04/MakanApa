@@ -7,9 +7,11 @@ use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
 use App\Services\Craving\OpenRouterIntentParser;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationFailed;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -82,6 +84,13 @@ class AppServiceProvider extends ServiceProvider
         // password-guessing loop against one account can't be spread across other users' quota.
         RateLimiter::for('delete-account', function ($request) {
             return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // laravel-notification-channels/apn's own service provider only binds the Pushok/token
+        // internals — it never registers 'apn' as an actual Notification channel driver, so
+        // `via()` returning ['apn'] would otherwise fail with "Driver [apn] not supported."
+        Notification::resolved(function (ChannelManager $service) {
+            $service->extend('apn', fn ($app) => $app->make(ApnChannel::class));
         });
 
         // APNs reports dead tokens (uninstalled app, disabled notifications at the OS level,
