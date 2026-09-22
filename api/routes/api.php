@@ -11,8 +11,10 @@ use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\CommunityRequestController;
+use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
+use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PlaceSearchController;
 use App\Http\Controllers\Api\RecommendationController;
@@ -36,11 +38,19 @@ Route::prefix('v1')->group(function () {
     // short-lived (30 min), and scoped to one transient Google photo resource name.
     Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
 
+    // Public: installs register a device token before ever logging in (or without ever logging
+    // in at all) — this never sets user_id, only claim()/unclaim() below do that.
+    Route::post('device-tokens', [DeviceTokenController::class, 'register'])->middleware('throttle:60,1');
+
     // Private beta: every real endpoint below requires a valid Sanctum token, not just
     // auth/admin — otherwise the app-level login gate is cosmetic and the underlying Google
     // Places/OpenRouter usage stays reachable by anyone who knows the endpoints.
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
+        Route::post('me/device-tokens/claim', [DeviceTokenController::class, 'claim']);
+        Route::delete('me/device-tokens/claim', [DeviceTokenController::class, 'unclaim']);
+        Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show']);
+        Route::patch('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
         Route::delete('auth/me', [AuthController::class, 'destroy'])->middleware('throttle:delete-account');
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('universities', [UniversityController::class, 'index']);

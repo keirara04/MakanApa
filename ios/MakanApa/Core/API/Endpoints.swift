@@ -705,3 +705,52 @@ struct AppSessionStartResponse: Decodable {
 struct AppSessionEndResponse: Decodable {
     let ended: Bool
 }
+
+// MARK: - Push notifications
+
+struct RegisterDeviceTokenRequestBody: Encodable {
+    let installationId: String
+    let token: String
+    let environment: String
+}
+
+struct DeviceTokenAckResponse: Decodable {
+    let ok: Bool
+}
+
+struct UnclaimDeviceTokenRequestBody: Encodable {
+    let installationId: String
+    let environment: String
+}
+
+/// Mirrors the backend's `NotificationCategory` keys — v1 categories only (nearby/marketing
+/// re-engagement is deferred, see the push notifications plan). Backend keys are snake_case
+/// (matches `App\Support\NotificationCategory`), unlike every other endpoint in this file, so
+/// this one needs explicit CodingKeys rather than relying on the shared camelCase default.
+struct NotificationPreferences: Codable, Equatable {
+    var communitySubmissions: Bool
+    var accountAdmin: Bool
+    var releaseAnnouncements: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case communitySubmissions = "community_submissions"
+        case accountAdmin = "account_admin"
+        case releaseAnnouncements = "release_announcements"
+    }
+}
+
+struct NotificationPreferencesResponse: Decodable {
+    let preferences: NotificationPreferences
+}
+
+struct UpdateNotificationPreferencesRequestBody: Encodable {
+    var communitySubmissions: Bool? = nil
+    var accountAdmin: Bool? = nil
+    var releaseAnnouncements: Bool? = nil
+
+    private enum CodingKeys: String, CodingKey {
+        case communitySubmissions = "community_submissions"
+        case accountAdmin = "account_admin"
+        case releaseAnnouncements = "release_announcements"
+    }
+}

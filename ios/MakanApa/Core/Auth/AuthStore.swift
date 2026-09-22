@@ -70,12 +70,14 @@ final class AuthStore {
         let response = try await APIClient.login(email: email, password: password, deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
+        claimDeviceTokenIfPresent()
     }
 
     func register(name: String, email: String, password: String) async throws {
         let response = try await APIClient.register(name: name, email: email, password: password, deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
+        claimDeviceTokenIfPresent()
     }
 
     func loginWithApple(identityToken: String, authorizationCode: String, rawNonce: String, fullName: String?) async throws -> SocialLoginOutcome {
@@ -97,6 +99,7 @@ final class AuthStore {
         let response = try await APIClient.completeLink(password: password, linkToken: linkToken, deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
+        claimDeviceTokenIfPresent()
     }
 
     private func applySocialLoginResponse(_ response: SocialLoginResponse) throws -> SocialLoginOutcome {
@@ -110,6 +113,7 @@ final class AuthStore {
 
         CredentialStore.shared.token = token
         session = .authenticated(user)
+        claimDeviceTokenIfPresent()
         return .authenticated
     }
 
@@ -127,6 +131,9 @@ final class AuthStore {
     }
 
     func logout() async {
+        // Unclaims (not deletes) so the installation stays eligible for anonymous/transactional
+        // pushes after the next `register()` call — see DeviceTokenController on the backend.
+        try? await APIClient.unclaimDeviceToken(installationId: InstallationID.current, environment: PushEnvironment.current)
         _ = try? await APIClient.logout()
         CredentialStore.shared.token = nil
         session = .unauthenticated
@@ -150,6 +157,15 @@ final class AuthStore {
         #endif
         CredentialStore.shared.token = nil
         session = .unauthenticated
+    }
+
+    /// Fires the claim call using whatever APNs token this install already registered (if any) —
+    /// a no-op until `PushNotificationDelegate` has actually received one from the OS.
+    private func claimDeviceTokenIfPresent() {
+        guard let token = DeviceTokenStore.current else { return }
+        Task {
+            try? await APIClient.claimDeviceToken(installationId: InstallationID.current, token: token, environment: PushEnvironment.current)
+        }
     }
 
     /// A non-personal Sanctum token label — purely for the admin's own reference — rather than

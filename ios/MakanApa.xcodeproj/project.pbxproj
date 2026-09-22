@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3E8DE33D3356F80A466AC3EC /* PushDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4B05FD9815AA34474506BF /* PushDestination.swift */; };
+		035BDFFF69F501D19F9CCF07 /* PushNotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 512CD262E5BF2826DCBC0486 /* PushNotificationDelegate.swift */; };
+		2780F45EA012EDAE7F955B38 /* PushEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E785CC3F21720401472D01A /* PushEnvironment.swift */; };
+		E477A90C1347F11247AECDAB /* DeviceTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE1E5B643129A8F624C57E88 /* DeviceTokenStore.swift */; };
+		DD44E06B5DEA67D1283F1244 /* NotificationPrimingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148D07FB8BC13EE6CF6D01A0 /* NotificationPrimingState.swift */; };
+		0FF69EBF2A26F53C02B5382F /* NotificationPrimingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75B500351219E2E63A2DBE4C /* NotificationPrimingView.swift */; };
 		0090FB36643C7D71C4BE47DD /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = E823597CCF1CD50A5011EDE9 /* Palette.swift */; };
 		EA06C2C4B780B27B81C2B92E /* AvatarCharacter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */; };
 		07D7BC2A2C232B75B706ACE6 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B3E4D55FFEBD5CBCE9CE64 /* EditProfileView.swift */; };
@@ -107,6 +113,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		EA4B05FD9815AA34474506BF /* PushDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushDestination.swift; sourceTree = "<group>"; };
+		512CD262E5BF2826DCBC0486 /* PushNotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationDelegate.swift; sourceTree = "<group>"; };
+		8E785CC3F21720401472D01A /* PushEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushEnvironment.swift; sourceTree = "<group>"; };
+		AE1E5B643129A8F624C57E88 /* DeviceTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTokenStore.swift; sourceTree = "<group>"; };
+		148D07FB8BC13EE6CF6D01A0 /* NotificationPrimingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPrimingState.swift; sourceTree = "<group>"; };
+		75B500351219E2E63A2DBE4C /* NotificationPrimingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPrimingView.swift; sourceTree = "<group>"; };
 		001E9DD4DCD505BDCC84A55D /* RecentDecisionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentDecisionStore.swift; sourceTree = "<group>"; };
 		011E6031DBB15CA7420E8B83 /* PreferenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceView.swift; sourceTree = "<group>"; };
 		0187FAF972CA4569B2740E6C /* NewInAreaCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NewInAreaCard.swift; sourceTree = "<group>"; };
@@ -224,8 +236,17 @@
 				D44C0FE71741420C9D8ABA54 /* Community */,
 				3B6F4E9D9F4A4A6E9F0A1234 /* Onboarding */,
 				69D7976A4D0320849CB65323 /* Profile */,
+				2BCE65C93EEBA300797358F6 /* Notifications */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		2BCE65C93EEBA300797358F6 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				75B500351219E2E63A2DBE4C /* NotificationPrimingView.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		0A2C37FFCE6E437A66DA4DB0 /* fixtures */ = {
@@ -424,6 +445,8 @@
 			children = (
 				217BC4E792F65DECF27B6B66 /* AppRouter.swift */,
 				09287437BC53CD13153BE4A7 /* MakanApaApp.swift */,
+				EA4B05FD9815AA34474506BF /* PushDestination.swift */,
+				512CD262E5BF2826DCBC0486 /* PushNotificationDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -494,6 +517,9 @@
 				3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */,
 				17B16BD57F8D4B7D8EFBFF94 /* OnboardingState.swift */,
 				A1B2C3D4E5F6A7B8C9D0E1F5 /* MapProviderPreference.swift */,
+				8E785CC3F21720401472D01A /* PushEnvironment.swift */,
+				AE1E5B643129A8F624C57E88 /* DeviceTokenStore.swift */,
+				148D07FB8BC13EE6CF6D01A0 /* NotificationPrimingState.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -700,6 +726,12 @@
 				1BB327CB475E46138DB95AE8 /* NewInAreaCard.swift in Sources */,
 				C1A5EE44D376431CAF829C96 /* CommunityRestaurantDetailSheet.swift in Sources */,
 				720BFAF300CA420E84414909 /* VibeBadge.swift in Sources */,
+				3E8DE33D3356F80A466AC3EC /* PushDestination.swift in Sources */,
+				035BDFFF69F501D19F9CCF07 /* PushNotificationDelegate.swift in Sources */,
+				2780F45EA012EDAE7F955B38 /* PushEnvironment.swift in Sources */,
+				E477A90C1347F11247AECDAB /* DeviceTokenStore.swift in Sources */,
+				DD44E06B5DEA67D1283F1244 /* NotificationPrimingState.swift in Sources */,
+				0FF69EBF2A26F53C02B5382F /* NotificationPrimingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

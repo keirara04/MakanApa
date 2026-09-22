@@ -293,6 +293,35 @@ enum APIClient {
         try await post("admin/areas", body: CreateAreaRequestBody(name: name, shortName: shortName))
     }
 
+    // MARK: - Push notifications
+
+    static func registerDeviceToken(installationId: String, token: String, environment: String) async throws -> DeviceTokenAckResponse {
+        try await post(
+            "device-tokens",
+            body: RegisterDeviceTokenRequestBody(installationId: installationId, token: token, environment: environment),
+            authenticated: false
+        )
+    }
+
+    static func claimDeviceToken(installationId: String, token: String, environment: String) async throws -> DeviceTokenAckResponse {
+        try await post(
+            "me/device-tokens/claim",
+            body: RegisterDeviceTokenRequestBody(installationId: installationId, token: token, environment: environment)
+        )
+    }
+
+    static func unclaimDeviceToken(installationId: String, environment: String) async throws -> DeviceTokenAckResponse {
+        try await delete("me/device-tokens/claim", body: UnclaimDeviceTokenRequestBody(installationId: installationId, environment: environment))
+    }
+
+    static func fetchNotificationPreferences() async throws -> NotificationPreferencesResponse {
+        try await get("me/notification-preferences", query: [])
+    }
+
+    static func updateNotificationPreferences(_ body: UpdateNotificationPreferencesRequestBody) async throws -> NotificationPreferencesResponse {
+        try await patch("me/notification-preferences", body: body)
+    }
+
     private struct EmptyBody: Encodable {}
 
     private static func patch<Body: Encodable, Response: Decodable>(_ path: String, body: Body) async throws -> Response {

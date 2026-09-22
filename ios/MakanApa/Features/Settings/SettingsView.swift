@@ -7,6 +7,7 @@ struct SettingsView: View {
     private var authStore = AuthStore.shared
     @State private var showingAboutInfo = false
     @State private var showingDeleteAccount = false
+    @State private var notificationPreferences: NotificationPreferences?
 
     var body: some View {
         NavigationStack {
@@ -24,6 +25,33 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                    }
+
+                    if let preferences = notificationPreferences {
+                        Section("Notifications") {
+                            Toggle("Submission updates", isOn: Binding(
+                                get: { preferences.communitySubmissions },
+                                set: { newValue in
+                                    notificationPreferences?.communitySubmissions = newValue
+                                    updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(communitySubmissions: newValue))
+                                }
+                            ))
+                            Toggle("Account notices", isOn: Binding(
+                                get: { preferences.accountAdmin },
+                                set: { newValue in
+                                    notificationPreferences?.accountAdmin = newValue
+                                    updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(accountAdmin: newValue))
+                                }
+                            ))
+                            Toggle("News & new releases", isOn: Binding(
+                                get: { preferences.releaseAnnouncements },
+                                set: { newValue in
+                                    notificationPreferences?.releaseAnnouncements = newValue
+                                    updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(releaseAnnouncements: newValue))
+                                }
+                            ))
+                        }
+                        .tint(.sambalRed)
                     }
 
                     if user.isSuperadmin {
@@ -206,6 +234,18 @@ struct SettingsView: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .task {
+                guard case .authenticated = authStore.session else { return }
+                notificationPreferences = try? await APIClient.fetchNotificationPreferences().preferences
+            }
+        }
+    }
+
+    /// Fire-and-forget PATCH — the toggle's own binding already applied the optimistic local
+    /// update, matching the map provider Picker's pattern above of never blocking on the network.
+    private func updateNotificationPreferences(_ body: UpdateNotificationPreferencesRequestBody) {
+        Task {
+            _ = try? await APIClient.updateNotificationPreferences(body)
         }
     }
 

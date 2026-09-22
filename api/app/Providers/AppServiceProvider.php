@@ -2,14 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\DeviceToken;
 use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
 use App\Services\Craving\OpenRouterIntentParser;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use NotificationChannels\Apn\ApnChannel;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -78,6 +82,28 @@ class AppServiceProvider extends ServiceProvider
         // password-guessing loop against one account can't be spread across other users' quota.
         RateLimiter::for('delete-account', function ($request) {
             return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // APNs reports dead tokens (uninstalled app, disabled notifications at the OS level,
+        // etc.) as a per-send failure rather than a synchronous error — mark the row rather than
+        // delete it, so routeNotificationForApn() stops targeting it but history/diagnostics
+        // survive. A fresh register()/claim() call for the same installation clears this again.
+        Event::listen(function (NotificationFailed $event) {
+            if ($event->channel !== ApnChannel::class) {
+                return;
+            }
+
+            $reason = (string) ($event->data['error'] ?? '');
+            if (! str_contains($reason, 'BadDeviceToken') && ! str_contains($reason, 'Unregistered')) {
+                return;
+            }
+
+            $token = $event->data['token'] ?? null;
+            if ($token === null) {
+                return;
+            }
+
+            DeviceToken::where('token', strtolower($token))->update(['invalidated_at' => now()]);
         });
     }
 }

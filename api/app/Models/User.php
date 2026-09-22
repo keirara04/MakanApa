@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\NotificationCategory;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
 use Filament\Models\Contracts\FilamentUser;
@@ -10,13 +11,14 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token'])]
+#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences'])]
 #[Hidden(['password', 'remember_token', 'apple_refresh_token'])]
 class User extends Authenticatable implements FilamentUser, HasEmailAuthentication
 {
@@ -35,7 +37,29 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
             'deleted_at' => 'datetime',
             'password' => 'hashed',
             'apple_refresh_token' => 'encrypted',
+            'notification_preferences' => 'array',
         ];
+    }
+
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    /** Required by laravel-notification-channels/apn — routes a `->notify()` call to this user's live device tokens. */
+    public function routeNotificationForApn(): array
+    {
+        return $this->deviceTokens()
+            ->whereNull('invalidated_at')
+            ->pluck('token')
+            ->all();
+    }
+
+    public function wantsNotification(string $category): bool
+    {
+        $preferences = $this->notification_preferences ?? [];
+
+        return $preferences[$category] ?? in_array($category, NotificationCategory::DEFAULT_TRUE, strict: true);
     }
 
     public function isSuperadmin(): bool

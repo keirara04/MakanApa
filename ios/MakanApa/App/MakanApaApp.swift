@@ -2,13 +2,21 @@ import GoogleMaps
 import GoogleSignIn
 import SwiftUI
 
+enum AppTab {
+    case decide, nearby, community
+}
+
 @main
 struct MakanApaApp: App {
+    @UIApplicationDelegateAdaptor(PushNotificationDelegate.self) private var pushDelegate
     @State private var decideRouter = AppRouter()
     @State private var nearbyRouter = AppRouter()
     @State private var soloViewModel = SoloViewModel()
     @State private var locationService = LocationService()
     @State private var onboardingState = OnboardingState.shared
+    @State private var primingState = NotificationPrimingState.shared
+    @State private var pendingDeepLink = PendingDeepLink.shared
+    @State private var selectedTab: AppTab = .decide
     private var authStore = AuthStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -35,6 +43,9 @@ struct MakanApaApp: App {
                     OnboardingView(onFinished: {})
                         .environment(locationService)
                         .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                } else if !primingState.hasSeenPriming {
+                    NotificationPrimingView(onFinished: { primingState.complete() })
+                        .transition(.opacity.combined(with: .scale(scale: 0.985)))
                 } else {
                     switch authStore.session {
                     case .loading:
@@ -50,6 +61,7 @@ struct MakanApaApp: App {
             }
             .animation(Motion.standard, value: authStore.session)
             .animation(Motion.standard, value: onboardingState.hasCompletedOnboarding)
+            .animation(Motion.standard, value: primingState.hasSeenPriming)
             .task {
                 await authStore.bootstrap()
             }
@@ -82,6 +94,24 @@ struct MakanApaApp: App {
                 guard case .authenticated = newSession, scenePhase == .active else { return }
                 AppSessionTracker.shared.start()
             }
+            .onChange(of: pendingDeepLink.destination) { _, destination in
+                guard let destination else { return }
+                handle(destination)
+                pendingDeepLink.destination = nil
+            }
+        }
+    }
+
+    /// The delegate only reports which destination was tapped — this is the one place that
+    /// decides what it means for navigation. No per-submission detail screen exists yet, so
+    /// `.submission` lands on the Community tab (My Submissions is reachable from there) rather
+    /// than a specific detail push.
+    private func handle(_ destination: PushDestination) {
+        switch destination {
+        case .submission:
+            selectedTab = .community
+        case .release, .account:
+            selectedTab = .decide
         }
     }
 
@@ -96,7 +126,7 @@ struct MakanApaApp: App {
     }
 
     private var appShell: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack(path: $decideRouter.path) {
                 HomeView()
                     .navigationDestination(for: Route.self) { route in
@@ -116,6 +146,7 @@ struct MakanApaApp: App {
             .tabItem {
                 Label("Decide", systemImage: "sparkles")
             }
+            .tag(AppTab.decide)
 
             NavigationStack(path: $nearbyRouter.path) {
                 NearbyView()
@@ -132,6 +163,7 @@ struct MakanApaApp: App {
             .tabItem {
                 Label("Nearby", systemImage: "map")
             }
+            .tag(AppTab.nearby)
 
             NavigationStack {
                 CommunityView()
@@ -139,6 +171,7 @@ struct MakanApaApp: App {
             .tabItem {
                 Label("Community", systemImage: "person.3.fill")
             }
+            .tag(AppTab.community)
         }
         .environment(soloViewModel)
         .environment(locationService)

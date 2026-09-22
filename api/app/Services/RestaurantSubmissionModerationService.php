@@ -7,6 +7,7 @@ use App\Models\RestaurantFieldOverride;
 use App\Models\RestaurantMenuItem;
 use App\Models\RestaurantSubmission;
 use App\Models\User;
+use App\Notifications\CommunitySubmissionDecided;
 use App\Support\RestaurantField;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -48,6 +49,8 @@ class RestaurantSubmissionModerationService
                 'restaurant_id' => $restaurant->id,
             ]);
 
+            $locked->user?->notify(new CommunitySubmissionDecided($locked, 'approved'));
+
             return $restaurant;
         });
     }
@@ -84,6 +87,8 @@ class RestaurantSubmissionModerationService
             ]);
 
             $this->auditLogger->log($admin, 'submission.reject', $locked, reason: $reviewNote);
+
+            $locked->user?->notify(new CommunitySubmissionDecided($locked, 'rejected', $reviewNote));
         });
     }
 
