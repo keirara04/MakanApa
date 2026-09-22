@@ -36,12 +36,10 @@
 		568F9AC4F2AC6928C358E7C2 /* PreferenceActionFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D967C9D57D53BE1B350BD07 /* PreferenceActionFooter.swift */; };
 		577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */; };
 		57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */; };
-		7A4F3D47E3714E03A9BB734C /* AppSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
 		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
 		5B4DF37EA249496E90AE92F6 /* CravingSelectionSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6E0FE06AFF4354B5BF52F6 /* CravingSelectionSerializationTests.swift */; };
 		5C7FBB5938DCF9F9FDC8BBB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */; };
-		B395B06CDF344F3A8CFACAF5 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */; };
 		5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651EAF0CDE373FFCEA468C00 /* APIClient.swift */; };
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		65E43124C405EAF1E1442459 /* LoginButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */; };
@@ -54,6 +52,7 @@
 		72CD7F7BDC6576029CFAB2AE /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */; };
 		7553C5B190407AF2DC05FEE8 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA539C4A8192A886E0B977 /* LoginView.swift */; };
 		78F7C1207B9D4E938CCE89A4 /* LinkAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEB17967FD3347C9B43AB022 /* LinkAccountSheet.swift */; };
+		7A4F3D47E3714E03A9BB734C /* AppSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */; };
 		7DF9C7AFC1C74E6D721D96BF /* MoodSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */; };
 		7E60E3F3BF179DCD9F515F06 /* MakanPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */; };
 		8251F985672848778F55D49C /* CommunityViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */; };
@@ -65,6 +64,7 @@
 		9F8FEBCEF0D562AFB788192D /* PreferenceProgressHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */; };
 		A410022608D32871EDDB33DA /* CredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274CA36352CF48000FD00802 /* CredentialStore.swift */; };
 		A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */; };
+		B395B06CDF344F3A8CFACAF5 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */; };
 		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
 		B9970E5B3E021F59B98DDBAC /* SoloViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 676DDD5174F3FF818051408B /* SoloViewModel.swift */; };
 		BB1437851B22269710786978 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 2A55BF6BCA7D5A735ED224F9 /* GoogleMaps */; };
@@ -126,7 +126,6 @@
 		499DB7140BDB99BFCF6F9979 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedMakanMascot.swift; sourceTree = "<group>"; };
 		51BA9571215449F471D390E1 /* APIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIError.swift; sourceTree = "<group>"; };
-		ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionTracker.swift; sourceTree = "<group>"; };
 		5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodChoiceCard.swift; sourceTree = "<group>"; };
 		58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginButtonStyle.swift; sourceTree = "<group>"; };
 		651EAF0CDE373FFCEA468C00 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -141,7 +140,6 @@
 		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
-		AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeleteAccountSheet.swift; path = Settings/DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		77F5F6F9C576178B15319815 /* DebugLocationOverride.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLocationOverride.swift; sourceTree = "<group>"; };
 		7C3FFF8EE7DE42989C5853CF /* RemoteImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RemoteImage.swift; sourceTree = "<group>"; };
 		85ECF82BD7C14C52881E2C11 /* NearbyAreaPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyAreaPanel.swift; path = Nearby/NearbyAreaPanel.swift; sourceTree = "<group>"; };
@@ -152,10 +150,12 @@
 		901B1D09195E987A9470A2FE /* AuthStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
 		A98FF18AB7352F2071C01E14 /* restaurants.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = restaurants.json; sourceTree = "<group>"; };
 		AA1C6F81AA004B2DABE13679 /* AppleNonce.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleNonce.swift; sourceTree = "<group>"; };
+		ACC4A2DEC5C348BABA73363F /* AppSessionTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSessionTracker.swift; sourceTree = "<group>"; };
 		ACD1944D39B475AD84113B38 /* NearbyMapView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyMapView.swift; path = Nearby/NearbyMapView.swift; sourceTree = "<group>"; };
 		AD6E0FE06AFF4354B5BF52F6 /* CravingSelectionSerializationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CravingSelectionSerializationTests.swift; sourceTree = "<group>"; };
 		AEABBAA43AEC6C3BBB707E94 /* Endpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoints.swift; sourceTree = "<group>"; };
 		AEB17967FD3347C9B43AB022 /* LinkAccountSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LinkAccountSheet.swift; sourceTree = "<group>"; };
+		AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeleteAccountSheet.swift; path = Settings/DeleteAccountSheet.swift; sourceTree = "<group>"; };
 		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodSelectionView.swift; sourceTree = "<group>"; };
 		C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanChoiceTile.swift; sourceTree = "<group>"; };
@@ -688,10 +688,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -715,10 +716,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
