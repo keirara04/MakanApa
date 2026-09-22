@@ -34,7 +34,17 @@ class DispatchScheduledNotifications extends Command
                 continue; // another run already claimed this one
             }
 
-            $considered = $service->broadcast($scheduled->toNotification());
+            $considered = $service->broadcast($scheduled->toNotification(), [
+                'category' => $scheduled->category,
+                'title' => $scheduled->title,
+                'body' => $scheduled->body,
+                'version' => $scheduled->version,
+                'message' => $scheduled->message,
+                'app_store_url' => $scheduled->app_store_url,
+                'source' => 'scheduled',
+                'scheduled_notification_id' => $scheduled->id,
+                'created_by' => $scheduled->created_by,
+            ]);
 
             $this->info("Sent scheduled notification #{$scheduled->id} ({$scheduled->category}) to {$considered} users.");
         }

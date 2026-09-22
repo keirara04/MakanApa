@@ -93,7 +93,16 @@ class BroadcastNotification extends Page
             ? new ReleaseAnnouncement($data['version'], $data['message'], $data['appStoreUrl'] ?: null)
             : new AccountAdminNotice($data['title'], $data['body']);
 
-        $considered = $service->broadcast($notification);
+        $considered = $service->broadcast($notification, [
+            'category' => $data['category'],
+            'title' => $data['title'] ?? null,
+            'body' => $data['body'] ?? null,
+            'version' => $data['version'] ?? null,
+            'message' => $data['message'] ?? null,
+            'app_store_url' => $data['appStoreUrl'] ?? null,
+            'source' => 'manual',
+            'created_by' => auth()->id(),
+        ]);
 
         FilamentNotification::make()
             ->title("Broadcast queued for {$considered} users")

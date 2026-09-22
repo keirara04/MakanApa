@@ -3,12 +3,15 @@
 namespace App\Providers;
 
 use App\Models\DeviceToken;
+use App\Models\NotificationDelivery;
 use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
 use App\Services\Craving\OpenRouterIntentParser;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -93,16 +96,49 @@ class AppServiceProvider extends ServiceProvider
             $service->extend('apn', fn ($app) => $app->make(ApnChannel::class));
         });
 
+        // Flips the notification_deliveries row NotificationBroadcastService created for this
+        // send from "queued" to "sent" — Context (set right before ->notify() in that service)
+        // rides along with the queued job automatically, so this fires in the queue worker with
+        // the right delivery id even though the row was created in a completely separate request.
+        // ApnChannel::send() returns null (rather than skipping the event) when the user has no
+        // live device token — NotificationSent still fires in that case, so a null response is
+        // the only signal that nothing was actually delivered.
+        Event::listen(function (NotificationSent $event) {
+            $deliveryId = Context::get('notification_delivery_id');
+            if ($deliveryId === null) {
+                return;
+            }
+
+            NotificationDelivery::where('id', $deliveryId)->update([
+                'status' => $event->response === null ? 'skipped_no_token' : 'sent',
+                'channel' => $event->channel,
+                'sent_at' => now(),
+            ]);
+        });
+
         // APNs reports dead tokens (uninstalled app, disabled notifications at the OS level,
         // etc.) as a per-send failure rather than a synchronous error — mark the row rather than
         // delete it, so routeNotificationForApn() stops targeting it but history/diagnostics
         // survive. A fresh register()/claim() call for the same installation clears this again.
+        // Also records the failure against the notification_deliveries row (see NotificationSent
+        // listener above) so the admin Notification Log shows it as failed rather than stuck on
+        // queued.
         Event::listen(function (NotificationFailed $event) {
+            $reason = (string) ($event->data['error'] ?? '');
+
+            $deliveryId = Context::get('notification_delivery_id');
+            if ($deliveryId !== null) {
+                NotificationDelivery::where('id', $deliveryId)->update([
+                    'status' => 'failed',
+                    'channel' => $event->channel,
+                    'error' => $reason ?: 'Unknown error',
+                ]);
+            }
+
             if ($event->channel !== ApnChannel::class) {
                 return;
             }
 
-            $reason = (string) ($event->data['error'] ?? '');
             if (! str_contains($reason, 'BadDeviceToken') && ! str_contains($reason, 'Unregistered')) {
                 return;
             }

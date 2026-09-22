@@ -17,7 +17,13 @@ class BroadcastReleaseAnnouncement extends Command
         $version = $this->argument('version');
         $message = $this->option('message') ?: "MakanApa {$version} is out now — update to get the latest.";
 
-        $considered = $service->broadcast(new ReleaseAnnouncement($version, $message, $this->option('app-store-url')));
+        $considered = $service->broadcast(new ReleaseAnnouncement($version, $message, $this->option('app-store-url')), [
+            'category' => 'release_announcements',
+            'version' => $version,
+            'message' => $message,
+            'app_store_url' => $this->option('app-store-url'),
+            'source' => 'command',
+        ]);
 
         $this->info("Queued release announcement {$version} for {$considered} users (opted-out users are skipped automatically).");
 
