@@ -42,17 +42,21 @@ class NearbyPlacesTest extends TestCase
         $this->assertFalse($names->contains('Old Town Retro Diner (Closed Down)'));
     }
 
-    public function test_index_applies_budget_filter(): void
+    public function test_index_never_hard_filters_the_map_but_area_summary_respects_budget(): void
     {
         $this->seed(RestaurantSeeder::class);
+
+        $unfiltered = $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX))->json('places');
 
         $response = $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX + ['budgetMax' => 1]));
 
         $response->assertOk();
-        foreach ($response->json('places') as $place) {
-            $this->assertNotNull($place['priceLevel']);
-            $this->assertLessThanOrEqual(1, $place['priceLevel']);
-        }
+        // The map's marker list is never hard-filtered by the Open now/Budget/Rating chips —
+        // it always matches the unfiltered viewport set.
+        $this->assertSame(collect($unfiltered)->pluck('id')->sort()->values()->all(), collect($response->json('places'))->pluck('id')->sort()->values()->all());
+
+        $expectedBudgetFriendly = collect($unfiltered)->filter(fn ($place) => $place['priceLevel'] !== null && $place['priceLevel'] <= 1)->count();
+        $this->assertSame($expectedBudgetFriendly, $response->json('areaSummary.placeCount'));
     }
 
     public function test_index_rejects_inverted_bounds(): void

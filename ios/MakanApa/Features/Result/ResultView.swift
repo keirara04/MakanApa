@@ -19,6 +19,7 @@ struct ResultView: View {
     @State private var acceptSettle = false
     @State private var revealedReasonCount = 0
     @State private var showVibePrompt = false
+    @State private var showingAddMenu = false
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
 
@@ -56,6 +57,21 @@ struct ResultView: View {
         .sheet(isPresented: $showVibePrompt) {
             vibePromptSheet
                 .presentationDetents([.height(220)])
+        }
+        .sheet(isPresented: $showingAddMenu) {
+            if let pick = viewModel.currentPick {
+                AddPlaceFlow(
+                    prefillExisting: ExistingPlaceResult(
+                        id: pick.id,
+                        name: pick.name,
+                        address: nil,
+                        foodCategory: pick.foodCategory,
+                        priceLevel: pick.priceLevel,
+                        distanceKm: pick.distanceKm
+                    ),
+                    prefillShowMenuSection: true
+                )
+            }
         }
     }
 
@@ -152,6 +168,8 @@ struct ResultView: View {
 
                     if !pick.menuItems.isEmpty {
                         menuSection(for: pick)
+                    } else {
+                        menuNudge
                     }
 
                     if !pick.reviews.isEmpty {
@@ -431,6 +449,25 @@ struct ResultView: View {
     // MARK: - Reviews
 
     @ViewBuilder
+    private var menuNudge: some View {
+        Button {
+            showingAddMenu = true
+        } label: {
+            HStack {
+                Text("Know the menu? Add it")
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.kicap.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+        }
+    }
+
     private func menuSection(for pick: RecommendationResponse.Recommendation) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Potential menu")

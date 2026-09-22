@@ -11,6 +11,12 @@ struct AddPlaceFlow: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    /// Skips search and jumps straight into edit mode for a known restaurant — the "Know
+    /// the menu? Add it" nudge already knows which place it's for, no reason to make the
+    /// user search for it again.
+    var prefillExisting: ExistingPlaceResult?
+    var prefillShowMenuSection = false
+
     @State private var step: AddPlaceStep = .search
 
     // Search
@@ -106,6 +112,11 @@ struct AddPlaceFlow: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            guard let prefillExisting, restaurantId == nil else { return }
+            selectExisting(prefillExisting)
+            showingMenuSection = prefillShowMenuSection
         }
     }
 

@@ -13,7 +13,24 @@ final class NearbyViewModel {
     /// pan re-triggering the pill (and, downstream, a Places call) every time.
     private static let significantMoveFraction = 0.35
 
+    /// Full viewport set, unfiltered by Open now/Budget/Rating — the map always shows every
+    /// restaurant in view regardless of which chips are active (backend mirrors this: index()
+    /// returns everything, only areaSummary is hard-filtered).
     var places: [NearbyPlace] = []
+
+    /// `places` narrowed by the Open now/Budget/Rating chips — what the area panel's full
+    /// sortable list (`.large` state) shows, since that list should still respect them even
+    /// though the map itself doesn't.
+    var filteredPlaces: [NearbyPlace] {
+        places.filter { place in
+            if openNowFilter, place.openStatus != "open" { return false }
+            if let budgetMaxFilter, let priceLevel = place.priceLevel, priceLevel > budgetMaxFilter { return false }
+            if let minRatingFilter {
+                guard let rating = place.rating, rating >= minRatingFilter else { return false }
+            }
+            return true
+        }
+    }
     /// "What's around here" — set from the exact same `nearbyPlaces()` response `places` came
     /// from, never a second/separate request, so the panel can never disagree with the map.
     var areaSummary: AreaSummaryResponse?
@@ -326,7 +343,7 @@ final class NearbyViewModel {
         let minimumPulseDuration: Duration = .milliseconds(600)
         let start = ContinuousClock.now
 
-        let visibleIds = places.map(\.id)
+        let visibleIds = filteredPlaces.map(\.id)
         guard !visibleIds.isEmpty else {
             return (nil, nil, nil, nil)
         }

@@ -52,6 +52,12 @@ struct RemoteImage<Placeholder: View>: View {
             phase = .failure
             return
         }
+
+        if let cached = ImageMemoryCache.image(for: url) {
+            phase = .success(Image(uiImage: cached))
+            return
+        }
+
         phase = .loading
         loadTask = Task {
             var request = URLRequest(url: url)
@@ -64,6 +70,7 @@ struct RemoteImage<Placeholder: View>: View {
                     phase = .failure
                     return
                 }
+                ImageMemoryCache.store(uiImage, for: url)
                 phase = .success(Image(uiImage: uiImage))
             } catch {
                 guard !Task.isCancelled else { return }

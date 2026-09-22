@@ -19,6 +19,7 @@ struct NearbyView: View {
     @FocusState private var searchFieldFocused: Bool
     @State private var hasShownAreaPanelHint = UserDefaults.standard.bool(forKey: NearbyView.areaPanelHintKey)
     @State private var showAreaPanelHintTooltip = false
+    @State private var showingPhotoGallery = false
     private var preferences = PlacePreferencesStore.shared
 
     private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
@@ -94,7 +95,7 @@ struct NearbyView: View {
                     }
                     NearbyAreaPanel(
                         summary: viewModel.areaSummary,
-                        places: viewModel.places,
+                        places: viewModel.filteredPlaces,
                         browseCenter: viewModel.browseCenter,
                         onSelectPlace: { selectPlace($0) },
                         onPickOneLah: { Task { await pickOneLah() } },
@@ -777,6 +778,19 @@ struct NearbyView: View {
             }
             .padding(20)
         }
+        .fullScreenCover(isPresented: $showingPhotoGallery) {
+            PhotoGalleryView(urls: galleryURLs)
+        }
+    }
+
+    /// Every photo the hero could have shown — Google's up to 5, then community photos — so
+    /// tapping the hero always opens to the same image it's already showing, with the rest of
+    /// the set a swipe away.
+    private var galleryURLs: [URL] {
+        guard let details = viewModel.placeDetails else { return [] }
+        let googleURLs = details.photos.compactMap { URL(string: $0.url) }
+        let communityURLs = details.communityPhotos.compactMap { URL(string: $0) }
+        return googleURLs + communityURLs
     }
 
     @ViewBuilder
@@ -789,10 +803,16 @@ struct NearbyView: View {
 
         ZStack {
             if let heroURL {
-                RemoteImage(url: heroURL) {
-                    placePhotoPlaceholder
+                Button {
+                    showingPhotoGallery = true
+                } label: {
+                    RemoteImage(url: heroURL) {
+                        placePhotoPlaceholder
+                    }
+                    .aspectRatio(contentMode: .fill)
                 }
-                .aspectRatio(contentMode: .fill)
+                .buttonStyle(.plain)
+                .disabled(galleryURLs.count <= 1)
             } else if viewModel.isLoadingDetails {
                 placePhotoPlaceholder
             } else {
@@ -851,7 +871,7 @@ struct NearbyView: View {
 
 /// Press-scale (0.96) + `Motion.quick` shared by every filter/mode/vibe chip, so the three chip
 /// builders only own content and selected-state, not duplicated press-animation code.
-private struct MakanApaChipButtonStyle: ButtonStyle {
+struct MakanApaChipButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {

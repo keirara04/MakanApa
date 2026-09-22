@@ -23,10 +23,11 @@ use Throwable;
 
 /**
  * Nearby: map-first browse. Unlike Decide, candidates aren't preference-scored — the
- * viewport (and the Open now / Budget / Rating filters) determine eligibility; the map
- * itself is the "preference." Scoring/picking still goes through the same
- * RecommendationService as Decide, only for "🍚 Pick one lah" (pick()), never for the
- * plain marker list (index()).
+ * viewport determines eligibility for the map itself; the Open now / Budget / Rating chips
+ * only narrow the panel's areaSummary and the Pick-one-lah candidate pool (applyHardFilters()),
+ * never the marker list index() returns — the map always shows everything in view. Scoring/
+ * picking still goes through the same RecommendationService as Decide, only for "🍚 Pick one
+ * lah" (pick()), never for the plain marker list.
  */
 class NearbyController extends Controller
 {
@@ -65,10 +66,10 @@ class NearbyController extends Controller
         }
 
         return response()->json([
+            // Every restaurant in the viewport, regardless of the Open now/Budget/Rating chips —
+            // the map always shows everything; only the panel's counts/lists below respect them.
             'places' => array_map(fn (array $restaurant) => $this->presentMarker($restaurant), $restaurants),
-            // Built from this exact same $restaurants array — never a second, independently
-            // filtered fetch — so the panel's counts can never disagree with what the map shows.
-            'areaSummary' => $this->buildAreaSummary($restaurants, $data),
+            'areaSummary' => $this->buildAreaSummary($this->applyHardFilters($restaurants, $data), $data),
         ]);
     }
 
@@ -80,11 +81,11 @@ class NearbyController extends Controller
         $vibe = Vibe::fromRequest($data['vibe'] ?? null);
 
         try {
-            $authoritative = $this->restaurantsInViewport($viewport + [
+            $authoritative = $this->applyHardFilters($this->restaurantsInViewport($viewport, $mode, $vibe), [
                 'openNow' => $data['openNow'] ?? null,
                 'budgetMax' => $data['budgetMax'] ?? null,
                 'minRating' => $data['minRating'] ?? null,
-            ], $mode, $vibe);
+            ]);
         } catch (Throwable $e) {
             Log::error('Places lookup failed', ['error' => $e->getMessage()]);
 
@@ -188,7 +189,8 @@ class NearbyController extends Controller
 
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays within the given
-     *                                          bounds, honoring the optional openNow/budgetMax/minRating filters.
+     *                                          bounds — viewport-scoped only, never hard-filtered
+     *                                          by Open now/Budget/Rating (see applyHardFilters()).
      */
     private function restaurantsInViewport(array $bounds, ?DiscoveryMode $mode = null, ?Vibe $vibe = null): array
     {
@@ -196,20 +198,30 @@ class NearbyController extends Controller
 
         $restaurants = $this->placesService->nearbyRestaurants($centerLat, $centerLon, $radiusKm, mode: $mode, vibe: $vibe);
 
-        return array_values(array_filter($restaurants, function (array $restaurant) use ($bounds) {
-            if ($restaurant['latitude'] > $bounds['north'] || $restaurant['latitude'] < $bounds['south']
-                || $restaurant['longitude'] > $bounds['east'] || $restaurant['longitude'] < $bounds['west']) {
+        return array_values(array_filter($restaurants, fn (array $restaurant) => !(
+            $restaurant['latitude'] > $bounds['north'] || $restaurant['latitude'] < $bounds['south']
+            || $restaurant['longitude'] > $bounds['east'] || $restaurant['longitude'] < $bounds['west']
+        )));
+    }
+
+    /**
+     * Open now / Budget / Rating chip filters, applied separately from the viewport scoping
+     * above — used for the panel's areaSummary and the Pick-one-lah candidate pool, but never
+     * for index()'s plain marker list: the map always shows every restaurant in view regardless
+     * of which chips are active.
+     */
+    private function applyHardFilters(array $restaurants, array $filters): array
+    {
+        return array_values(array_filter($restaurants, function (array $restaurant) use ($filters) {
+            if (($filters['openNow'] ?? null) && $restaurant['open_status'] !== 'open') {
                 return false;
             }
-            if (($bounds['openNow'] ?? null) && $restaurant['open_status'] !== 'open') {
+            if (($filters['budgetMax'] ?? null) !== null && $restaurant['price_level'] !== null
+                && $restaurant['price_level'] > $filters['budgetMax']) {
                 return false;
             }
-            if (($bounds['budgetMax'] ?? null) !== null && $restaurant['price_level'] !== null
-                && $restaurant['price_level'] > $bounds['budgetMax']) {
-                return false;
-            }
-            if (($bounds['minRating'] ?? null) !== null
-                && ($restaurant['rating'] === null || $restaurant['rating'] < $bounds['minRating'])) {
+            if (($filters['minRating'] ?? null) !== null
+                && ($restaurant['rating'] === null || $restaurant['rating'] < $filters['minRating'])) {
                 return false;
             }
 
@@ -218,9 +230,9 @@ class NearbyController extends Controller
     }
 
     /**
-     * Nearby's "what's around here" interpretation layer — every count/list below comes from
-     * the same already-viewport-and-filter-scoped $restaurants array the marker list itself
-     * uses, not a fresh query, so it can never drift from what's actually on the map.
+     * Nearby's "what's around here" interpretation layer. Takes the already-hard-filtered
+     * subset (applyHardFilters()) — deliberately narrower than the $restaurants the marker
+     * list itself returns, since the map ignores the chips but this summary respects them.
      */
     private function buildAreaSummary(array $restaurants, array $bounds): array
     {

@@ -62,26 +62,77 @@ struct NearbyAreaPanel: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            grabber
-            content
-                // Panel height (outer `state` mutation) animates on `.standard`; overriding the
-                // transaction here makes the crossfading content — including the CTA's
-                // matchedGeometryEffect move — resolve on the snappier `.quick` instead.
-                .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.quick, value: state)
+        // Collapsed is its own small floating pill row, not the docked full-width sheet —
+        // same "small, opens on tap" pattern as the filter chips in `primaryRibbon`, rather
+        // than a permanently-docked white bar eating a strip of the map.
+        if state == .collapsed {
+            collapsedPillRow
+                .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+        } else {
+            VStack(spacing: 0) {
+                grabber
+                content
+                    // Panel height (outer `state` mutation) animates on `.standard`; overriding the
+                    // transaction here makes the crossfading content — including the CTA's
+                    // matchedGeometryEffect move — resolve on the snappier `.quick` instead.
+                    .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.quick, value: state)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: currentHeight, alignment: .top)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 16, y: -2)
+            .gesture(dragGesture)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: currentHeight, alignment: .top)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 16, y: -2)
-        .gesture(dragGesture)
     }
 
-    // Tappable in every state — the one consistent "advance" control across collapsed→medium
-    // and medium→large, alongside the drag gesture. The tap catcher is a layout-neutral overlay
-    // (doesn't affect the VStack's spacing) sized to Apple HIG's 44x44 minimum, since the visible
-    // capsule itself is only 3pt tall.
+    // MARK: - Collapsed pill
+
+    /// Two independent capsules, not one docked bar — the area-summary pill opens the panel;
+    /// "Pick one lah" stays reachable at a glance without opening anything, same as the old
+    /// docked collapsed row's inline CTA (plan correction: never make this a full-width button).
+    private var collapsedPillRow: some View {
+        HStack(alignment: .center, spacing: 8) {
+            areaSummaryPill
+            Spacer(minLength: 8)
+            pickOneLahButton(compact: true)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private var areaSummaryPill: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            advanceState()
+        } label: {
+            HStack(spacing: 6) {
+                Text("Around here")
+                    .fontWeight(.semibold)
+                Text("·")
+                    .foregroundStyle(.secondary)
+                Text(collapsedSubtitle)
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary.opacity(0.7))
+            }
+            .font(.makanBody(13))
+            .lineLimit(1)
+            .foregroundStyle(Color.kicap)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        }
+        .buttonStyle(MakanApaChipButtonStyle())
+    }
+
+    // One-tap close — no drag required, mirroring the pill's one-tap open. Only ever shown
+    // while medium/large (collapsed renders `collapsedPillRow` instead), so a tap here always
+    // means "close," regardless of which of the two expanded heights it's currently at. The tap
+    // catcher is a layout-neutral overlay (doesn't affect the VStack's spacing) sized to Apple
+    // HIG's 44x44 minimum, since the visible capsule itself is only 3pt tall.
     private var grabber: some View {
         Capsule()
             .fill(Color.kicap.opacity(0.12))
@@ -91,7 +142,7 @@ struct NearbyAreaPanel: View {
                 Color.clear
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
-                    .onTapGesture { advanceState() }
+                    .onTapGesture { close() }
             )
     }
 
@@ -99,44 +150,12 @@ struct NearbyAreaPanel: View {
     private var content: some View {
         switch state {
         case .collapsed:
-            collapsedRow.transition(.opacity)
+            EmptyView()
         case .medium:
             mediumContent.transition(.opacity)
         case .large:
             largeContent.transition(.opacity)
         }
-    }
-
-    // One row: two-line "Around here / N places nearby" on the left, a compact inline CTA on
-    // the right — never a full-width button underneath, which would force this state to grow
-    // past ~100pt and start eating map space again.
-    private var collapsedRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Around here")
-                    .font(.makanBody(15))
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.kicap)
-                HStack(spacing: 4) {
-                    Text(collapsedSubtitle)
-                        .font(.makanBody(12))
-                        .foregroundStyle(.secondary)
-                    // Deliberately small/secondary — a big chevron would compete with the CTA
-                    // for attention right next to it.
-                    Image(systemName: "chevron.up")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary.opacity(0.7))
-                }
-            }
-            // Scoped to just this text block, not the whole row — a tap gesture on the full
-            // HStack would sit "under" the CTA button and risk stealing its taps.
-            .contentShape(Rectangle())
-            .onTapGesture { advanceState() }
-            Spacer(minLength: 8)
-            pickOneLahButton(compact: true)
-        }
-        .padding(.horizontal, 16)
-        .contentShape(Rectangle())
     }
 
     // "Around here", never "Around <university>" — affiliation answers who your community is,
@@ -436,21 +455,21 @@ struct NearbyAreaPanel: View {
         }
     }
 
-    /// Tap-to-advance, alongside the drag gesture above rather than replacing it — one state at
-    /// a time (collapsed → medium → large), never backward; collapsing back down is still a
-    /// drag-only action. Uses `Motion.standard` for the panel growth, matching the drag-snap's
-    /// spring feel but on a named preset instead of an inline one, per the "morphing pill" brief.
+    /// Only ever called from the collapsed pill, so this is really just "open" — one tap,
+    /// straight to `.medium`. The drag gesture is still how you reach `.large`, but open/close
+    /// (the two states the user actually toggles) are each a single tap, no drag required.
     private func advanceState() {
-        let next: NearbyPanelState?
-        switch state {
-        case .collapsed: next = .medium
-        case .medium: next = .large
-        case .large: next = nil
-        }
-        guard let next else { return }
-
+        guard state == .collapsed else { return }
         withAnimation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard) {
-            state = next
+            state = .medium
+        }
+    }
+
+    /// One tap, from either expanded height, straight back to the pill — mirrors `advanceState()`
+    /// being the one-tap way in.
+    private func close() {
+        withAnimation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard) {
+            state = .collapsed
         }
     }
 }
