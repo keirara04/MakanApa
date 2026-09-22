@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\AdminTimezone;
 use App\Support\NotificationCategory;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\Email\Contracts\HasEmailAuthentication;
@@ -18,7 +19,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences'])]
+#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone'])]
 #[Hidden(['password', 'remember_token', 'apple_refresh_token'])]
 class User extends Authenticatable implements FilamentUser, HasEmailAuthentication
 {
@@ -65,6 +66,12 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
     public function isSuperadmin(): bool
     {
         return $this->role === 'superadmin';
+    }
+
+    /** Filament-only display preference — see AdminTimezone. Never null in practice past this getter. */
+    public function displayTimezone(): string
+    {
+        return $this->display_timezone ?? AdminTimezone::DEFAULT;
     }
 
     public function isActive(): bool
