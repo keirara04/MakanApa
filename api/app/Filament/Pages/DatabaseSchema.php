@@ -52,7 +52,7 @@ class DatabaseSchema extends Page
      */
     public function getDiagram(): string
     {
-        $cacheKey = 'filament:database-schema-diagram:' . md5(implode(',', $this->hiddenTables));
+        $cacheKey = 'filament:database-schema-diagram:'.md5(implode(',', $this->hiddenTables));
 
         return Cache::remember($cacheKey, now()->addMinutes(5), function () {
             $tables = collect(Schema::getTables())
@@ -65,7 +65,7 @@ class DatabaseSchema extends Page
             $relationships = [];
 
             foreach ($tables as $table) {
-                $lines[] = '    ' . $this->mermaidEntity($table) . ' {';
+                $lines[] = '    '.$this->mermaidEntity($table).' {';
 
                 foreach (Schema::getColumns($table) as $column) {
                     $type = $this->mermaidType($column['type_name'] ?? $column['type'] ?? 'unknown');
@@ -79,11 +79,11 @@ class DatabaseSchema extends Page
                         $attrs[] = 'FK';
                     }
 
-                    $suffix = $attrs === [] ? '' : ' ' . implode(',', $attrs);
+                    $suffix = $attrs === [] ? '' : ' '.implode(',', $attrs);
 
                     $comment = $column['nullable'] ? 'nullable' : 'not null';
                     if (($column['default'] ?? null) !== null) {
-                        $comment .= ', default ' . $column['default'];
+                        $comment .= ', default '.$column['default'];
                     }
 
                     $lines[] = "        {$type} {$name}{$suffix} \"{$this->mermaidComment($comment)}\"";
@@ -123,7 +123,7 @@ class DatabaseSchema extends Page
             ->reduce(function (array $carry, string $resourceClass) {
                 try {
                     $model = $resourceClass::getModel();
-                    $table = (new $model())->getTable();
+                    $table = (new $model)->getTable();
                     $carry[$table] = $resourceClass::getUrl('index');
                 } catch (\Throwable) {
                     // Resource has no index route, abstract model, or similar — skip it.
