@@ -122,8 +122,15 @@ class AppServiceProvider extends ServiceProvider
         // the right delivery id even though the row was created in a completely separate request.
         // ApnChannel::send() returns null (rather than skipping the event) when the user has no
         // live device token — NotificationSent still fires in that case, so a null response is
-        // the only signal that nothing was actually delivered.
+        // the only signal that nothing was actually delivered. Filtered to the apn channel
+        // specifically: notifications also go out via the 'database' channel (in-app inbox),
+        // which fires its own NotificationSent event under the same Context and would otherwise
+        // race with/overwrite this row's real push-delivery outcome.
         Event::listen(function (NotificationSent $event) {
+            if ($event->channel !== ApnChannel::class) {
+                return;
+            }
+
             $deliveryId = Context::get('notification_delivery_id');
             if ($deliveryId === null) {
                 return;

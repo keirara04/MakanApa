@@ -96,10 +96,13 @@ class PlacesService
         // existing dedupe-by-provider_place_id handles the overlap) surfaces more of what's
         // actually there. Small/typical searches are untouched — tileCircles() returns a single
         // tile below TILE_RADIUS_THRESHOLD_KM, identical to pre-tiling behavior.
-        foreach ($this->tileCircles($latitude, $longitude, $radiusKm) as $tile) {
-            if (! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $includedTypes)) {
-                $this->syncFromGoogle($tile['lat'], $tile['lon'], $tile['radius'], $apiKey, $includedTypes);
-            }
+        $uncoveredTiles = array_values(array_filter(
+            $this->tileCircles($latitude, $longitude, $radiusKm),
+            fn (array $tile) => ! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $includedTypes)
+        ));
+
+        if (! empty($uncoveredTiles)) {
+            $this->syncTilesFromGoogle($uncoveredTiles, $apiKey, $includedTypes);
         }
 
         $nearbyCount = null;
@@ -481,25 +484,34 @@ class PlacesService
     }
 
     /**
+     * Fetches every uncovered tile concurrently (see GooglePlacesProvider::nearbyRestaurantsBatch)
+     * instead of one Nearby Search per tile in sequence, then upserts/marks each tile covered in
+     * request order for deterministic PlaceSyncArea rows regardless of which HTTP response lands
+     * first.
+     *
+     * @param  array<int, array{lat: float, lon: float, radius: float}>  $tiles
      * @param  string[]  $includedTypes
      */
-    private function syncFromGoogle(float $latitude, float $longitude, float $radiusKm, string $apiKey, array $includedTypes): void
+    private function syncTilesFromGoogle(array $tiles, string $apiKey, array $includedTypes): void
     {
-        $providerPlaces = (new GooglePlacesProvider($apiKey))->nearbyRestaurants($latitude, $longitude, $radiusKm, $includedTypes);
-        $normalized = $this->normalizer->normalize($providerPlaces);
+        $providerPlacesByTile = (new GooglePlacesProvider($apiKey))->nearbyRestaurantsBatch($tiles, $includedTypes);
 
-        foreach ($normalized as $data) {
-            $this->upsertRestaurant($data);
+        foreach ($tiles as $i => $tile) {
+            $normalized = $this->normalizer->normalize($providerPlacesByTile[$i]);
+
+            foreach ($normalized as $data) {
+                $this->upsertRestaurant($data);
+            }
+
+            PlaceSyncArea::create([
+                'provider' => 'google',
+                'latitude' => $tile['lat'],
+                'longitude' => $tile['lon'],
+                'radius_km' => $tile['radius'],
+                'synced_at' => now(),
+                'types' => $includedTypes,
+            ]);
         }
-
-        PlaceSyncArea::create([
-            'provider' => 'google',
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'radius_km' => $radiusKm,
-            'synced_at' => now(),
-            'types' => $includedTypes,
-        ]);
     }
 
     /**

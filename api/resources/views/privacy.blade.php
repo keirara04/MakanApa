@@ -6,7 +6,7 @@
 @section('content')
 
     <h1 class="text-3xl font-semibold">Privacy Policy</h1>
-    <p class="mt-2 text-sm text-ink/60">Last updated: September 21, 2026</p>
+    <p class="mt-2 text-sm text-ink/60">Last updated: September 23, 2026</p>
     <p class="mt-4 text-ink/70">
         This page explains what information MakanApa collects, why, and what happens to it, including when
         you delete your account.
@@ -77,14 +77,37 @@
             </p>
         </section>
 
+        <section id="notifications">
+            <h2 class="text-lg font-semibold text-ink">07. Push notifications</h2>
+            <p class="mt-2">
+                If you allow notifications, your device registers a push token with Apple's Push Notification
+                service (APNs), which we store alongside a device identifier, platform, and whether it's a
+                sandbox or production build. This lets us deliver notifications to your device; we never see or
+                store the content of a notification beyond what we sent to trigger it.
+            </p>
+            <p class="mt-2">
+                You can control which categories of notification you receive from Settings in the app:
+            </p>
+            <ul class="mt-2 list-disc pl-5 space-y-1 text-sm">
+                <li>Account &amp; admin notices, and updates about your community submissions — on by default</li>
+                <li>News &amp; release announcements — off by default, opt-in only</li>
+            </ul>
+            <p class="mt-2">
+                If Apple reports that your device's token is no longer valid (for example, the app was
+                uninstalled), we stop sending to it but keep the record for diagnostics rather than deleting it
+                outright.
+            </p>
+        </section>
+
         <section id="providers">
-            <h2 class="text-lg font-semibold text-ink">07. Service providers</h2>
+            <h2 class="text-lg font-semibold text-ink">08. Service providers</h2>
             <p class="mt-2">We use the following third parties, each for a specific purpose:</p>
             <ul class="mt-3 divide-y divide-sambal-100 rounded-2xl border border-sambal-100 bg-white text-sm">
                 <li class="p-4"><strong class="text-ink">Apple</strong>: Sign in with Apple, account authentication.</li>
                 <li class="p-4"><strong class="text-ink">Google Sign-In</strong>: account authentication.</li>
                 <li class="p-4"><strong class="text-ink">Google Places</strong>: restaurant discovery and information, and temporary restaurant-photo delivery (not stored by us).</li>
                 <li class="p-4"><strong class="text-ink">Object storage provider</strong>: stores photos you upload for restaurants (S3-compatible storage).</li>
+                <li class="p-4"><strong class="text-ink">Apple Push Notification service (APNs)</strong>: delivers push notifications to your device.</li>
             </ul>
             <p class="mt-3 text-sm text-ink/60">
                 We don't use analytics or crash-reporting services at this time. If that changes, this section
@@ -93,7 +116,7 @@
         </section>
 
         <section id="deletion">
-            <h2 class="text-lg font-semibold text-ink">08. Account deletion</h2>
+            <h2 class="text-lg font-semibold text-ink">09. Account deletion</h2>
             <p class="mt-2">
                 You can delete your MakanApa account from within the app. Deletion is immediate, self-service, and
                 permanent: there is no review queue and it cannot be undone.
@@ -105,6 +128,7 @@
                 <li>Your Apple/Google account identifiers (and your Apple sign-in grant is revoked)</li>
                 <li>Your active sessions and sign-in tokens</li>
                 <li>Your community affiliation</li>
+                <li>Your notification preferences</li>
                 <li>Photos you uploaded, both the file and the record, deleted rather than anonymized</li>
             </ul>
 
@@ -113,6 +137,7 @@
                 <li>Activity data: decisions, recommendations shown to you, saves, vibe votes</li>
                 <li>Community contributions: restaurant submissions you made</li>
                 <li>Group activity: decision rooms you created</li>
+                <li>Device push tokens: kept but detached from your account, so notifications stop</li>
             </ul>
             <p class="mt-2 text-sm text-ink/70">
                 In each case, the connection to your account is removed rather than the record being deleted,
@@ -128,7 +153,7 @@
         </section>
 
         <section id="contact">
-            <h2 class="text-lg font-semibold text-ink">09. Contact</h2>
+            <h2 class="text-lg font-semibold text-ink">10. Contact</h2>
             <p class="mt-2">
                 Questions about this policy or your data?
                 @if (config('marketing.privacy_email'))

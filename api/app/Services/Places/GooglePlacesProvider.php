@@ -2,6 +2,7 @@
 
 namespace App\Services\Places;
 
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -61,6 +62,57 @@ class GooglePlacesProvider implements PlacesProvider
         ])->throw();
 
         return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+    }
+
+    /**
+     * Same circles as nearbyRestaurants(), fired concurrently via Http::pool instead of one
+     * at a time — a cold-cache area with several tiles (PlacesService::MAX_TILES, up to 7)
+     * used to pay the sum of each Nearby Search's latency sequentially; this pays roughly the
+     * slowest single call instead. That sequential wait was the main source of "Search this
+     * area" feeling laggy the first time someone browses a new part of the map.
+     *
+     * @param  array<int, array{lat: float, lon: float, radius: float}>  $tiles
+     * @param  string[]  $includedTypes
+     * @return array<int, Collection<int, ProviderPlace>> same order/index as $tiles
+     */
+    public function nearbyRestaurantsBatch(array $tiles, array $includedTypes = ['restaurant']): array
+    {
+        if (empty($this->apiKey)) {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        if (count($tiles) === 1) {
+            return [$this->nearbyRestaurants($tiles[0]['lat'], $tiles[0]['lon'], $tiles[0]['radius'], $includedTypes)];
+        }
+
+        $responses = Http::pool(fn (Pool $pool) => collect($tiles)->map(
+            fn (array $tile, int $index) => $pool->as((string) $index)
+                ->withHeaders([
+                    'X-Goog-Api-Key' => $this->apiKey,
+                    'X-Goog-FieldMask' => self::FIELD_MASK,
+                ])
+                ->timeout(8)
+                ->post(self::ENDPOINT, [
+                    'includedTypes' => $includedTypes,
+                    'maxResultCount' => 20,
+                    'rankPreference' => 'DISTANCE',
+                    'locationRestriction' => [
+                        'circle' => [
+                            'center' => ['latitude' => $tile['lat'], 'longitude' => $tile['lon']],
+                            'radius' => $tile['radius'] * 1000,
+                        ],
+                    ],
+                ])
+        )->all());
+
+        return collect($tiles)
+            ->map(function (array $tile, int $index) use ($responses) {
+                $response = $responses[(string) $index]->throw();
+
+                return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+            })
+            ->values()
+            ->all();
     }
 
     /**

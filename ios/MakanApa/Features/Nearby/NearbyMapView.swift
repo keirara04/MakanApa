@@ -82,9 +82,13 @@ struct NearbyMapView: UIViewRepresentable {
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
         private var markersById: [Int: GMSMarker] = [:]
-        /// Kept alongside `markersById` since a `GMSMarker` using `iconView` (instead of the
-        /// static `icon` image) needs a live `UIView` reference to animate — that's what makes
-        /// appear/bounce/removal transforms possible instead of just swapping a bitmap.
+        /// A marker sits in `markersById` at all times, but only gets an entry here — a live
+        /// `UIView` swapped in via `marker.iconView` — while it's actually mid-transform (entrance
+        /// pop, winner bounce, search-result highlight scale). `GMSMapView` repositions every
+        /// `iconView` marker's `UIView` on every camera frame, which is cheap for one or two
+        /// markers but visibly janks panning once dozens sit in that mode permanently — so a
+        /// settled marker always drops back to the GPU-composited `marker.icon` bitmap instead
+        /// (see `activateIconView`/`settle`).
         private var iconViewsById: [Int: UIImageView] = [:]
         private var lastWinnerId: Int?
         private var lastHighlightedSearchId: Int?
@@ -125,10 +129,10 @@ struct NearbyMapView: UIViewRepresentable {
             var newIndex = 0
             for place in places {
                 let isWinner = winnerPlaceId == place.id
-                if let marker = markersById[place.id], let iconView = iconViewsById[place.id] {
+                if let marker = markersById[place.id] {
                     marker.position = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
                     marker.userData = place
-                    applyIcon(to: iconView, rating: place.rating, isWinner: isWinner)
+                    applyIcon(id: place.id, marker: marker, rating: place.rating, isWinner: isWinner)
                     marker.zIndex = isWinner ? 10 : 0
                     applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
                 } else {
@@ -137,8 +141,10 @@ struct NearbyMapView: UIViewRepresentable {
                 }
             }
 
-            if let winnerPlaceId, winnerPlaceId != lastWinnerId, let iconView = iconViewsById[winnerPlaceId] {
-                bounce(iconView)
+            if let winnerPlaceId, winnerPlaceId != lastWinnerId, let marker = markersById[winnerPlaceId] {
+                let image = RatingBubbleRenderer.icon(rating: places.first { $0.id == winnerPlaceId }?.rating, isWinner: true)
+                let iconView = activateIconView(id: winnerPlaceId, marker: marker, image: image)
+                bounce(iconView) { [weak self] in self?.settle(id: winnerPlaceId, marker: marker) }
             }
             lastWinnerId = winnerPlaceId
 
@@ -157,10 +163,17 @@ struct NearbyMapView: UIViewRepresentable {
         private func syncSearchHighlight(_ highlightedSearchPlaceId: Int?) {
             guard highlightedSearchPlaceId != lastHighlightedSearchId else { return }
 
-            if let previousId = lastHighlightedSearchId, let iconView = iconViewsById[previousId] {
-                UIView.animate(withDuration: 0.16) { iconView.transform = .identity }
+            if let previousId = lastHighlightedSearchId, let marker = markersById[previousId],
+               let iconView = iconViewsById[previousId] {
+                UIView.animate(withDuration: 0.16, animations: {
+                    iconView.transform = .identity
+                }, completion: { [weak self] _ in
+                    self?.settle(id: previousId, marker: marker)
+                })
             }
-            if let newId = highlightedSearchPlaceId, let iconView = iconViewsById[newId] {
+            if let newId = highlightedSearchPlaceId, let marker = markersById[newId] {
+                let image = RatingBubbleRenderer.icon(rating: (marker.userData as? NearbyPlace)?.rating, isWinner: lastWinnerId == newId)
+                let iconView = activateIconView(id: newId, marker: marker, image: image)
                 UIView.animate(
                     withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.4, options: []
                 ) {
@@ -198,51 +211,81 @@ struct NearbyMapView: UIViewRepresentable {
         private func addMarker(for place: NearbyPlace, winnerPlaceId: Int?, staggerIndex: Int, on mapView: GMSMapView) {
             let isWinner = winnerPlaceId == place.id
             let image = RatingBubbleRenderer.icon(rating: place.rating, isWinner: isWinner)
-            let iconView = UIImageView(image: image)
-            iconView.frame = CGRect(origin: .zero, size: image.size)
-            iconView.alpha = 0
-            iconView.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
 
             let marker = GMSMarker(position: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
             marker.userData = place
-            marker.iconView = iconView
             marker.zIndex = isWinner ? 10 : 0
             marker.map = mapView
-
             markersById[place.id] = marker
-            iconViewsById[place.id] = iconView
             applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
+
+            let iconView = activateIconView(id: place.id, marker: marker, image: image)
+            iconView.alpha = 0
+            iconView.transform = CGAffineTransform(scaleX: 0.85, y: 0.85)
 
             // Several markers can land in the same `sync()` (first load, "search this area") —
             // a small per-marker delay reads as a stagger instead of everything popping at once.
             let delay = Double(min(staggerIndex, 8)) * 0.03
             UIView.animate(
                 withDuration: 0.28, delay: delay, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.4,
-                options: [.allowUserInteraction]
-            ) {
-                iconView.alpha = 1
-                iconView.transform = .identity
-            }
+                options: [.allowUserInteraction],
+                animations: {
+                    iconView.alpha = 1
+                    iconView.transform = .identity
+                }, completion: { [weak self] _ in
+                    self?.settle(id: place.id, marker: marker)
+                }
+            )
         }
 
         private func removeMarker(id: Int, marker: GMSMarker) {
             markersById.removeValue(forKey: id)
-            guard let iconView = iconViewsById.removeValue(forKey: id) else {
-                marker.map = nil
-                return
-            }
+            let iconView = iconViewsById[id] ?? activateIconView(id: id, marker: marker, image: marker.icon ?? RatingBubbleRenderer.icon(rating: nil, isWinner: false))
             UIView.animate(withDuration: 0.18, animations: {
                 iconView.alpha = 0
                 iconView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-            }, completion: { _ in
+            }, completion: { [weak self] _ in
+                self?.iconViewsById.removeValue(forKey: id)
                 marker.map = nil
             })
         }
 
-        private func applyIcon(to iconView: UIImageView, rating: Double?, isWinner: Bool) {
+        /// Live (`iconView`) markers get their bitmap updated in place; settled markers just get
+        /// a fresh `marker.icon` bitmap swapped in — either way avoids re-triggering the entrance
+        /// animation or promoting a settled marker back to a live `UIView` just to redraw a rating.
+        private func applyIcon(id: Int, marker: GMSMarker, rating: Double?, isWinner: Bool) {
             let image = RatingBubbleRenderer.icon(rating: rating, isWinner: isWinner)
-            iconView.image = image
-            iconView.bounds.size = image.size
+            if let iconView = iconViewsById[id] {
+                iconView.image = image
+                iconView.bounds.size = image.size
+            } else {
+                marker.icon = image
+            }
+        }
+
+        /// Promotes a settled (`icon`-only) marker to a live `iconView` so it can be transform-
+        /// animated, or returns its existing live view unchanged if it's already live.
+        @discardableResult
+        private func activateIconView(id: Int, marker: GMSMarker, image: UIImage) -> UIImageView {
+            if let existing = iconViewsById[id] {
+                return existing
+            }
+            let iconView = UIImageView(image: image)
+            iconView.frame = CGRect(origin: .zero, size: image.size)
+            marker.icon = nil
+            marker.iconView = iconView
+            iconViewsById[id] = iconView
+            return iconView
+        }
+
+        /// Demotes a live marker back to a static `icon` bitmap once its transform has returned
+        /// to identity — a marker mid-transform (e.g. still at highlight scale) is left alone so
+        /// this never clips an animation partway through.
+        private func settle(id: Int, marker: GMSMarker) {
+            guard let iconView = iconViewsById[id], iconView.transform == .identity else { return }
+            marker.iconView = nil
+            marker.icon = iconView.image
+            iconViewsById.removeValue(forKey: id)
         }
 
         private func applyOpacity(_ marker: GMSMarker, winnerPlaceId: Int?, placeId: Int) {
@@ -254,14 +297,18 @@ struct NearbyMapView: UIViewRepresentable {
         }
 
         /// One-shot pop, not a loop — the winner should feel like it just got tapped on the
-        /// shoulder, not keep vibrating for as long as the sheet is open.
-        private func bounce(_ iconView: UIView) {
+        /// shoulder, not keep vibrating for as long as the sheet is open. `onSettled` runs after
+        /// the transform returns to identity, so the caller (`sync()`) can drop this marker back
+        /// out of live `iconView` mode once the animation's done with it.
+        private func bounce(_ iconView: UIView, onSettled: @escaping () -> Void) {
             UIView.animate(withDuration: 0.14, animations: {
                 iconView.transform = CGAffineTransform(scaleX: 1.16, y: 1.16)
             }, completion: { _ in
-                UIView.animate(withDuration: 0.16, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.6, options: []) {
-                    iconView.transform = .identity
-                }
+                UIView.animate(
+                    withDuration: 0.16, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.6, options: [],
+                    animations: { iconView.transform = .identity },
+                    completion: { _ in onSettled() }
+                )
             })
         }
 

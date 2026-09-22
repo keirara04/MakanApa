@@ -20,7 +20,10 @@ class ReleaseAnnouncement extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::RELEASE_ANNOUNCEMENTS) ? ['apn'] : [];
+        // 'database' rides along with the same preference gate as 'apn' — opting out of this
+        // category means it doesn't show up in the in-app notifications list either, not just
+        // that the push is suppressed.
+        return $notifiable->wantsNotification(NotificationCategory::RELEASE_ANNOUNCEMENTS) ? ['database', 'apn'] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage
@@ -30,5 +33,16 @@ class ReleaseAnnouncement extends Notification implements ShouldQueue
             'version' => $this->version,
             'appStoreUrl' => $this->appStoreUrl,
         ])->sound('default');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'type' => 'release',
+            'title' => "MakanApa {$this->version} is here",
+            'body' => $this->message,
+            'version' => $this->version,
+            'appStoreUrl' => $this->appStoreUrl,
+        ];
     }
 }

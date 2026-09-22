@@ -19,7 +19,10 @@ class AccountAdminNotice extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::ACCOUNT_ADMIN) ? ['apn'] : [];
+        // 'database' rides along with the same preference gate as 'apn' — opting out of this
+        // category means it doesn't show up in the in-app notifications list either, not just
+        // that the push is suppressed.
+        return $notifiable->wantsNotification(NotificationCategory::ACCOUNT_ADMIN) ? ['database', 'apn'] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage
@@ -27,5 +30,14 @@ class AccountAdminNotice extends Notification implements ShouldQueue
         return ApnMessage::create($this->title, $this->body, [
             'type' => 'account_admin',
         ])->sound('default');
+    }
+
+    public function toDatabase(object $notifiable): array
+    {
+        return [
+            'type' => 'account_admin',
+            'title' => $this->title,
+            'body' => $this->body,
+        ];
     }
 }

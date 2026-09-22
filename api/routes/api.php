@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\CommunityRequestController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PlaceSearchController;
@@ -51,6 +52,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('me/device-tokens/claim', [DeviceTokenController::class, 'unclaim']);
         Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::patch('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('me/notifications', [NotificationController::class, 'index']);
+        Route::post('me/notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('me/notifications/{notification}/read', [NotificationController::class, 'read']);
         Route::delete('auth/me', [AuthController::class, 'destroy'])->middleware('throttle:delete-account');
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::get('universities', [UniversityController::class, 'index']);
