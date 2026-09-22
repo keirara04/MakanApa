@@ -4,7 +4,9 @@ import UIKit
 /// photo content in the sense Google's terms restrict (long-term/disk storage); this just avoids
 /// re-fetching (and re-billing) the same photo twice within one app session.
 enum ImageMemoryCache {
-    private static let cache: NSCache<NSString, UIImage> = {
+    // NSCache is documented thread-safe internally — the compiler just can't see that, since
+    // it's an Obj-C type predating Sendable.
+    nonisolated(unsafe) private static let cache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = 200
         return cache

@@ -198,7 +198,7 @@ class NearbyController extends Controller
 
         $restaurants = $this->placesService->nearbyRestaurants($centerLat, $centerLon, $radiusKm, mode: $mode, vibe: $vibe);
 
-        return array_values(array_filter($restaurants, fn (array $restaurant) => !(
+        return array_values(array_filter($restaurants, fn (array $restaurant) => ! (
             $restaurant['latitude'] > $bounds['north'] || $restaurant['latitude'] < $bounds['south']
             || $restaurant['longitude'] > $bounds['east'] || $restaurant['longitude'] < $bounds['west']
         )));
