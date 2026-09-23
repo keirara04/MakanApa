@@ -35,6 +35,7 @@
         </style>
 
         @stack('styles')
+        @stack('head_scripts')
     </head>
     <body class="bg-cream text-ink antialiased">
         <a href="#main"
@@ -51,6 +52,7 @@
                 <nav aria-label="Main" class="flex items-center gap-1 text-sm font-medium sm:gap-3">
                     <a href="{{ url('/support') }}" class="hidden min-h-11 items-center px-2 hover:text-sambal-600 sm:inline-flex">Support</a>
                     <a href="{{ url('/privacy') }}" class="hidden min-h-11 items-center px-2 hover:text-sambal-600 sm:inline-flex">Privacy</a>
+                    @stack('nav_extra')
                     <x-marketing.download-button from="nav" size="sm">Get the app</x-marketing.download-button>
                 </nav>
             </div>
@@ -75,5 +77,7 @@
                 <p>Made in Malaysia <span aria-hidden="true">🇲🇾</span> · &copy; {{ date('Y') }} Hakeemi Ridza. All rights reserved.</p>
             </div>
         </footer>
+
+        @stack('body_scripts')
     </body>
 </html>

@@ -30,7 +30,9 @@ class BrainEvaluationReport
     {
         $since = now()->subDays($days);
 
-        $base = fn () => $this->cohort(DB::table('decisions')->where('decisions.created_at', '>=', $since), $cohort);
+        // Search choices are 100% accepted by construction — they'd flatter whichever version they
+        // landed under, so they never count toward the v1-vs-v2 comparison.
+        $base = fn () => $this->cohort(DB::table('decisions')->where('decisions.created_at', '>=', $since)->where('decisions.mode', '!=', 'search'), $cohort);
 
         $rows = $base()
             ->leftJoin('decision_recommendations as acc', function ($join) {

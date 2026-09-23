@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-/// Shown once, right after onboarding completes (see MakanApaApp.swift) — before the OS
-/// permission dialog, not instead of it. Visual hierarchy matters here: the two bullets are
+/// Shown once, after the user's first accepted pick (see ResultView.afterAccept()) — once the app
+/// has proven useful, and before the OS permission dialog, not instead of it. Visual hierarchy matters here: the two bullets are
 /// things the app will send once permission is granted, the release toggle is a separate
 /// MakanApa preference (not itself a permission), and only the CTA actually triggers the
 /// system-level prompt.
@@ -89,9 +89,8 @@ struct NotificationPrimingView: View {
         onFinished()
     }
 
-    /// Onboarding runs before login, so this screen can appear pre-auth — in that case the
-    /// choice is simply dropped; there's no user row to persist it against yet, and the backend
-    /// defaults release_announcements to false anyway, matching this screen's own default.
+    /// Only reachable signed in now, but kept defensive: with no session the choice is simply
+    /// dropped — the backend defaults release_announcements to false, matching this screen.
     private func persistReleasePreferenceIfAuthenticated() async {
         guard case .authenticated = AuthStore.shared.session, wantsReleaseAnnouncements else { return }
         _ = try? await APIClient.updateNotificationPreferences(

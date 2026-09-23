@@ -39,6 +39,10 @@ return [
         'provider' => env('PLACES_PROVIDER', 'fixture'),
         'google_api_key' => env('GOOGLE_PLACES_API_KEY'),
         'cache_hours' => env('PLACES_CACHE_HOURS', 8),
+        // Short-lived reuse of a winner's Place Details (photos/reviews/closing time) across
+        // reroll-backs and re-opened detail sheets. Kept to minutes, not hours — Google's terms
+        // restrict long-term caching of Places content. 0 disables it.
+        'details_cache_minutes' => env('PLACES_DETAILS_CACHE_MINUTES', 10),
     ],
 
     'openrouter' => [

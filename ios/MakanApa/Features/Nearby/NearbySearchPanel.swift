@@ -1,0 +1,411 @@
+import SwiftUI
+import UIKit
+
+/// Search mode's full-height results panel — replaces the old small list floating over the map.
+/// Owns every state a search can be in: empty field (recents + suggestions), loading, results,
+/// no results, error. Pure view: all actions go back out through closures.
+struct NearbySearchResultsPanel: View {
+    let query: String
+    let session: SearchSession?
+    let isSearching: Bool
+    let error: APIError?
+    let recentSearches: [String]
+    let onSelect: (PlaceSearchResult) -> Void
+    let onRunSearch: (String) -> Void
+    let onRemoveRecent: (String) -> Void
+    let onSearchWider: () -> Void
+    let onSearchGoogle: () -> Void
+    let onShowOnMap: () -> Void
+    let onRetry: () -> Void
+    let onAddPlace: () -> Void
+
+    private static let quickSuggestions = ["nasi lemak", "mamak", "coffee", "chicken rice"]
+
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                content
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 24)
+        }
+        .scrollDismissesKeyboard(.immediately)
+        .scrollIndicators(.hidden)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if trimmedQuery.count < 2 {
+            startState
+        } else if let error, session?.query != trimmedQuery || session?.results.isEmpty != false {
+            errorState(error)
+        } else if let session, session.query == trimmedQuery {
+            if session.results.isEmpty {
+                noResultsState(session)
+            } else {
+                resultsState(session)
+            }
+        } else if isSearching {
+            loadingState
+        }
+    }
+
+    // MARK: - States
+
+    private var startState: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if !recentSearches.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    sectionLabel("Recent")
+                    ForEach(recentSearches, id: \.self) { recent in
+                        HStack {
+                            Button {
+                                onRunSearch(recent)
+                            } label: {
+                                Label(recent, systemImage: "clock.arrow.circlepath")
+                                    .font(.makanBody(15))
+                                    .foregroundStyle(Color.kicap)
+                                    .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            Button {
+                                onRemoveRecent(recent)
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 36, height: 36)
+                            }
+                            .accessibilityLabel("Remove \(recent) from recent searches")
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                sectionLabel("Try")
+                chipRow(Self.quickSuggestions)
+            }
+        }
+        .padding(16)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var loadingState: some View {
+        VStack(spacing: 8) {
+            ForEach(0..<4, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white)
+                    .frame(height: 78)
+                    .overlay(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Capsule().fill(Color.kicap.opacity(0.08)).frame(width: 140, height: 12)
+                            Capsule().fill(Color.kicap.opacity(0.06)).frame(width: 200, height: 10)
+                        }
+                        .padding(.horizontal, 14)
+                    }
+            }
+        }
+        .redacted(reason: .placeholder)
+        .accessibilityLabel("Searching")
+    }
+
+    private func errorState(_ error: APIError) -> some View {
+        VStack(spacing: 10) {
+            Text(error.userFacingCopy.detail)
+                .font(.makanBody(14))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button(Copy.tryAgain, action: onRetry)
+                .font(.makanBody(14))
+                .foregroundStyle(Color.sambalRed)
+                .frame(minHeight: 44)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func noResultsState(_ session: SearchSession) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("No “\(session.query)” within \(Self.radiusLabel(session.radiusKm)).")
+                .font(.makanBody(15))
+                .foregroundStyle(Color.kicap)
+
+            HStack(spacing: 10) {
+                if let wider = session.meta?.widerRadiusKm {
+                    pillButton("Search within \(Self.radiusLabel(wider))", systemImage: "arrow.up.left.and.arrow.down.right", prominent: true, action: onSearchWider)
+                }
+                pillButton("Add this place", systemImage: "plus", prominent: session.meta?.widerRadiusKm == nil, action: onAddPlace)
+            }
+
+            if session.meta?.googleAvailable == true {
+                Button(action: onSearchGoogle) {
+                    Label("Search Google for “\(session.query)”", systemImage: "globe")
+                        .font(.makanBody(13))
+                        .foregroundStyle(Color.sambalRed)
+                }
+                .frame(minHeight: 36)
+            }
+
+            if !session.suggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionLabel("Maybe try")
+                    chipRow(session.suggestions)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    @ViewBuilder
+    private func resultsState(_ session: SearchSession) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("\(session.results.count) \(session.results.count == 1 ? "result" : "results") · within \(Self.radiusLabel(session.radiusKm))")
+                .font(.makanBody(13))
+                .foregroundStyle(.secondary)
+            if let wider = session.meta?.widerRadiusKm {
+                Button("Wider (\(Self.radiusLabel(wider)))", action: onSearchWider)
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.sambalRed)
+            }
+            Spacer()
+            Button(action: onShowOnMap) {
+                Label("Map", systemImage: "map")
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+            }
+            .accessibilityLabel("Show all results on the map")
+        }
+        .padding(.horizontal, 4)
+
+        ForEach(Array(session.results.enumerated()), id: \.element.id) { index, result in
+            if session.startsGroup(at: index) {
+                Text("\(result.name) · \(result.groupSize) nearby")
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+                    .padding(.top, index == 0 ? 0 : 6)
+            }
+            Button {
+                onSelect(result)
+            } label: {
+                SearchResultRow(result: result, query: session.query)
+            }
+            .buttonStyle(SearchResultPressStyle())
+        }
+
+        if session.meta?.googleAvailable == true {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("More nearby places")
+                    .font(.makanBody(13))
+                    .foregroundStyle(.secondary)
+                Button(action: onSearchGoogle) {
+                    Label("Search Google", systemImage: "globe")
+                        .font(.makanBody(14))
+                        .foregroundStyle(Color.sambalRed)
+                }
+                .frame(minHeight: 36)
+            }
+            .padding(.horizontal, 4)
+            .padding(.top, 6)
+        }
+    }
+
+    // MARK: - Pieces
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.makanBody(11))
+            .tracking(0.5)
+            .foregroundStyle(.secondary)
+    }
+
+    private func chipRow(_ items: [String]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(items, id: \.self) { item in
+                    Button {
+                        onRunSearch(item)
+                    } label: {
+                        Text(item)
+                            .font(.makanBody(13))
+                            .foregroundStyle(Color.kicap)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.kicap.opacity(0.06))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func pillButton(_ title: String, systemImage: String, prominent: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.makanBody(13))
+                .foregroundStyle(prominent ? .white : Color.kicap)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(prominent ? Color.sambalRed : Color.kicap.opacity(0.06))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    static func radiusLabel(_ km: Double) -> String {
+        "\(km.formatted(.number.precision(.fractionLength(0...1)))) km"
+    }
+}
+
+/// One search result. Name stays on its own line; the location line is what tells two branches
+/// of the same chain apart, falling back to category and finally distance alone.
+struct SearchResultRow: View {
+    let result: PlaceSearchResult
+    let query: String
+    var compact = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(highlightedName)
+                    .font(.makanBody(15))
+                    .foregroundStyle(Color.kicap)
+                    .lineLimit(1)
+
+                if let location = locationLine {
+                    Text(location)
+                        .font(.makanBody(12))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                HStack(spacing: 6) {
+                    if let status = openStatusText {
+                        Text(status.text)
+                            .foregroundStyle(status.color)
+                    }
+                    if let spend = PricePresentation.approximateSpendLabel(for: result.priceLevel) {
+                        Text(spend).foregroundStyle(.secondary)
+                    }
+                    if let halal = result.halal?.display, result.halal?.status != .unknown {
+                        HalalBadge(display: halal)
+                    }
+                    if result.isCommunityFind {
+                        Text("◇ Community find").foregroundStyle(Color.pandan)
+                    }
+                }
+                .font(.makanBody(12))
+                .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            if let rating = result.rating {
+                Label(String(format: "%.1f", rating), systemImage: "star.fill")
+                    .font(.makanBody(12))
+                    .foregroundStyle(Color.kunyit)
+                    .labelStyle(.titleAndIcon)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: compact ? 280 : .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Address · distance, else category · distance, else distance — never a line that starts
+    /// with a stray separator.
+    private var locationLine: String? {
+        let lead = result.address ?? result.category ?? result.cuisine
+        let distance = result.distanceKm.map { String(format: "%.1f km", $0) }
+        let parts = [lead, distance].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private var openStatusText: (text: String, color: Color)? {
+        switch result.openStatus {
+        case "open":
+            return (result.closesAt.map { "Open · closes \($0)" } ?? "Open", Color.pandan)
+        case "closed":
+            return ("Closed", Color.sambalRed)
+        default:
+            return nil
+        }
+    }
+
+    /// The part of the name that matched the query in bold.
+    private var highlightedName: AttributedString {
+        var attributed = AttributedString(result.name)
+        let needle = query.trimmingCharacters(in: .whitespaces)
+        if !needle.isEmpty, let range = attributed.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) {
+            attributed[range].font = .makanBody(15).weight(.heavy)
+        }
+        return attributed
+    }
+}
+
+/// Map mode's bottom strip: the same results in the same order, one card per pin.
+struct SearchResultsCarousel: View {
+    let session: SearchSession
+    let onSelect: (PlaceSearchResult) -> Void
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 10) {
+                    ForEach(Array(session.results.enumerated()), id: \.element.id) { index, result in
+                        Button {
+                            onSelect(result)
+                        } label: {
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("\(index + 1)")
+                                    .font(.makanBody(12).weight(.heavy))
+                                    .foregroundStyle(index == 0 || result.id == session.selectedResultId ? .white : Color.kicap)
+                                    .frame(width: 22, height: 22)
+                                    .background(index == 0 || result.id == session.selectedResultId ? Color.sambalRed : Color.kicap.opacity(0.08))
+                                    .clipShape(Circle())
+                                SearchResultRow(result: result, query: session.query, compact: true)
+                            }
+                        }
+                        .buttonStyle(SearchResultPressStyle())
+                        .id(result.id)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+            }
+            .onAppear {
+                if let selected = session.selectedResultId {
+                    proxy.scrollTo(selected, anchor: .center)
+                }
+            }
+        }
+    }
+}
+
+struct SearchResultPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1.0)
+            .animation(Motion.quick, value: configuration.isPressed)
+    }
+}

@@ -674,20 +674,102 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
     /// Present only for `.googleFallback`.
     let googlePlaceId: String?
     let name: String
+    /// Short street/area address ("Jalan Reko, Kajang") — what tells branches apart. Nil for
+    /// rows synced before addresses were stored.
+    let address: String?
     let category: String?
     let cuisine: String?
     let distanceKm: Double?
     let priceLevel: Int?
     let rating: Double?
-    let openStatus: String?
+    let openStatus: String
+    /// "10:00 PM" local, only when open now and weekly hours are known.
+    let closesAt: String?
+    let halal: HalalSummary?
+    let isCommunityFind: Bool
+    /// Shared by likely branches of one chain; nil when the row stands alone.
+    let groupKey: String?
+    let groupSize: Int
     let latitude: Double
     let longitude: Double
 
     var id: String { restaurantId.map(String.init) ?? googlePlaceId ?? name }
+
+    private enum CodingKeys: String, CodingKey {
+        case provenance, id, restaurantId, googlePlaceId, name, address, category, cuisine, distanceKm
+        case priceLevel, rating, openStatus, closesAt, halal, isCommunityFind, groupKey, groupSize
+        case latitude, longitude
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        provenance = try c.decode(PlaceSearchProvenance.self, forKey: .provenance)
+        // `id` is the canonical key; `restaurantId` is what older backends sent.
+        restaurantId = try c.decodeIfPresent(Int.self, forKey: .id) ?? c.decodeIfPresent(Int.self, forKey: .restaurantId)
+        googlePlaceId = try c.decodeIfPresent(String.self, forKey: .googlePlaceId)
+        name = try c.decode(String.self, forKey: .name)
+        address = try c.decodeIfPresent(String.self, forKey: .address)
+        category = try c.decodeIfPresent(String.self, forKey: .category)
+        cuisine = try c.decodeIfPresent(String.self, forKey: .cuisine)
+        distanceKm = try c.decodeIfPresent(Double.self, forKey: .distanceKm)
+        priceLevel = try c.decodeIfPresent(Int.self, forKey: .priceLevel)
+        rating = try c.decodeIfPresent(Double.self, forKey: .rating)
+        openStatus = try c.decodeIfPresent(String.self, forKey: .openStatus) ?? "unknown"
+        closesAt = try c.decodeIfPresent(String.self, forKey: .closesAt)
+        halal = try? c.decodeIfPresent(HalalSummary.self, forKey: .halal)
+        isCommunityFind = try c.decodeIfPresent(Bool.self, forKey: .isCommunityFind) ?? (provenance == .community)
+        groupKey = try c.decodeIfPresent(String.self, forKey: .groupKey)
+        groupSize = try c.decodeIfPresent(Int.self, forKey: .groupSize) ?? 1
+        latitude = try c.decode(Double.self, forKey: .latitude)
+        longitude = try c.decode(Double.self, forKey: .longitude)
+    }
+
+    /// The canonical marker/sheet shape — so the sheet's first paint already has the right open
+    /// status and halal badge instead of "unknown" until details load.
+    func asNearbyPlace(id: Int) -> NearbyPlace {
+        NearbyPlace(
+            id: id, name: name, rating: rating, priceLevel: priceLevel,
+            latitude: latitude, longitude: longitude, openStatus: openStatus, halal: halal
+        )
+    }
+}
+
+struct PlaceSearchMeta: Decodable, Equatable {
+    let radiusKm: Double
+    /// local | google | mixed
+    let source: String
+    /// Google wasn't asked this time but could be — the list offers "Search Google".
+    let googleAvailable: Bool
+    /// The next "Search wider" radius, nil once at the widest.
+    let widerRadiusKm: Double?
+    let total: Int
 }
 
 struct PlaceSearchResponseV2: Decodable {
     let results: [PlaceSearchResult]
+    /// Optional: older backends didn't send it.
+    let meta: PlaceSearchMeta?
+    let suggestions: [String]?
+}
+
+struct ChooseRestaurantRequestBody: Encodable {
+    struct SearchContext: Encodable {
+        let query: String
+        let radiusKm: Double
+        let source: String
+    }
+
+    let clientChoiceId: String
+    let installationId: String
+    let latitude: Double?
+    let longitude: Double?
+    let search: SearchContext?
+}
+
+struct ChooseRestaurantResponse: Decodable {
+    let decisionId: Int
+    let clientToken: String
+    let created: Bool
 }
 
 struct ResolvePlaceRequestBody: Encodable {

@@ -42,6 +42,25 @@
 /* Contrast note: white text needs sambal-600 or darker (sambal-500 is 3.9:1); muted body
    text should stay at ink/70 or above on cream (ink/60 is 4.3:1). */
 
+/* Landing page Manglish ↔ English toggle (<x-marketing.lang>, <x-marketing.lang-toggle>).
+   display:none also hides the inactive voice from screen readers. */
+html:not([data-lang='en']) .lang-en,
+html[data-lang='en'] .lang-ms {
+    display: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none;
+    }
+}
+
 @layer base {
     :focus-visible {
         outline: 3px solid var(--color-sambal-600);

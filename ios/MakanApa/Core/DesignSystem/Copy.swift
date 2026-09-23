@@ -5,6 +5,10 @@ enum Copy {
     static let homeGreeting = "Hungry?"
     static let homeSubtext = "Okay, what we doing today?"
     static let gengComingSoon = "Soon lah 👀 Geng mode is still cooking."
+    static let gengTeaser = "Geng mode: settle for the whole group"
+    static let quickPickTitle = "Just pick lah"
+    static let chooseCravingTitle = "I know what I want"
+    static let chooseCravingSubtitle = "Craving, budget, distance"
 
     static let soloMoodPrompt = "What mood today?"
     static let soloMoodSubtext = "Craving something in particular?"
@@ -60,6 +64,14 @@ enum Copy {
     static let genericAPIErrorHeadline = "Aiyo 😭"
     static let genericAPIErrorDetail = "MakanApa blur kejap.\nTry again in a bit."
     static let tryAgain = "Try again"
+    static let rateLimitedHeadline = "Slow down a bit lah 😅"
+
+    static func rateLimitedDetail(retryAfterSeconds: Int?) -> String {
+        guard let seconds = retryAfterSeconds, seconds > 0 else {
+            return "Too many tries in a row.\nTry again in a minute."
+        }
+        return "Too many tries in a row.\nTry again in \(seconds)s."
+    }
     static let backHome = "Back home"
 
     static let locationDenied = "Can't find makan if we don't know where you are 👀"

@@ -84,14 +84,19 @@ final class NearbyViewModel {
     /// area" searches around the new area instead of silently snapping back to GPS.
     private(set) var browseCenter: CLLocationCoordinate2D?
 
-    // MARK: - Search capsule
+    // MARK: - Search session
 
     /// Setting this doesn't itself trigger a search — the view calls `scheduleSearch()` on
     /// change (via `.onChange`), since a synchronous `didSet` can't call an actor-isolated method
     /// under Swift 6 strict concurrency.
     var searchQuery: String = ""
-    var searchResults: [PlaceSearchResult] = []
-    var isSearching = false
+    /// The current search, kept across opening/closing a result's sheet — see `SearchSession`.
+    private(set) var searchSession: SearchSession?
+    private(set) var isSearching = false
+    private(set) var searchError: APIError?
+    /// The search result the open place sheet came from — its address/closing time/branches
+    /// paint the sheet immediately. Nil when the sheet was opened from a marker or the panel.
+    private(set) var selectedSearchResult: PlaceSearchResult?
     /// A `.googleFallback` result's coordinate, shown as a temporary pin before it resolves.
     var temporarySearchCoordinate: CLLocationCoordinate2D?
     /// The selected search result's canonical place id, once known — kept separate from
@@ -100,10 +105,41 @@ final class NearbyViewModel {
     /// The selected search result's coordinate — drives the map's one-off "focus" recenter.
     var focusCoordinate: CLLocationCoordinate2D?
     var focusRequestId = 0
+    /// Bumped to make the map fit every result pin (Show all on map).
+    private(set) var fitResultsRequestId = 0
 
     private var searchTask: Task<Void, Never>?
-    private static let searchDebounce: Duration = .milliseconds(350)
+    /// Only the newest request may write results — an older, slower response is dropped.
+    private var searchRequestSerial = 0
+    private static let searchDebounce: Duration = .milliseconds(300)
     private static let minSearchQueryLength = 2
+    private static let defaultSearchRadiusKm = 6.0
+
+    /// A camera move the app is about to make, so the settle it causes doesn't raise "Search
+    /// this area". Expires quickly in case the camera didn't actually need to move.
+    private var pendingMoveOrigin: (origin: MapMoveOrigin, at: Date)?
+
+    /// Result pins for Show all on map — list order, #1 and the selected one called out.
+    var searchPins: [SearchPin] {
+        guard let session = searchSession, session.presentation == .map else { return [] }
+        return session.results.enumerated().map { index, result in
+            SearchPin(
+                id: result.id, rank: index + 1,
+                coordinate: CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude),
+                isTop: index == 0, isSelected: result.id == session.selectedResultId
+            )
+        }
+    }
+
+    // MARK: - Makan sini
+
+    enum ChoiceState: Equatable {
+        case idle, sending, chosen, failed
+    }
+
+    private(set) var choiceStates: [Int: ChoiceState] = [:]
+    /// One retry key per restaurant per app run — a retried "Makan sini" can't double-record.
+    private var choiceIds: [Int: String] = [:]
 
     private var lastSearchedViewport: MapViewport?
     private var didLoadFilters = false
@@ -167,6 +203,17 @@ final class NearbyViewModel {
     @MainActor
     func viewportSettled(_ viewport: MapViewport, zoom: Float) async {
         isZoomedTooFarOut = zoom < Self.minZoomForMarkers
+
+        // A move the app made itself (focusing a result, fitting all results) never raises
+        // "Search this area" — only the user's own drag/pinch does.
+        if let pending = pendingMoveOrigin {
+            pendingMoveOrigin = nil
+            if pending.origin != .user, Date().timeIntervalSince(pending.at) < 3 {
+                showSearchThisArea = false
+                if lastSearchedViewport != nil { return }
+            }
+        }
+
         if isZoomedTooFarOut {
             showSearchThisArea = false
             return
@@ -263,82 +310,215 @@ final class NearbyViewModel {
     // MARK: - Search capsule
 
     /// Cancels any in-flight debounce/request before scheduling a new one — only the latest
-    /// keystroke's search should ever land. Called by the view on `searchQuery` change.
+    /// keystroke's search should ever land. Called by the view on `searchQuery` change. A new
+    /// query always starts a new session.
     @MainActor
     func scheduleSearch() {
         searchTask?.cancel()
         let query = searchQuery.trimmingCharacters(in: .whitespaces)
         guard query.count >= Self.minSearchQueryLength else {
-            searchResults = []
+            searchRequestSerial += 1
+            searchSession = nil
+            searchError = nil
             isSearching = false
             return
         }
+        guard query != searchSession?.query else { return }
         searchTask = Task { [weak self] in
             try? await Task.sleep(for: Self.searchDebounce)
             guard let self, !Task.isCancelled else { return }
-            await self.performSearch(query: query)
+            await self.performSearch(query: query, radiusKm: Self.defaultSearchRadiusKm)
         }
     }
 
+    /// Same query, next radius rung — keeps the session's center so "wider" means wider, not
+    /// "wherever the map drifted to".
     @MainActor
-    private func performSearch(query: String) async {
-        guard let center = browseCenter else { return }
+    func searchWider() async {
+        guard let session = searchSession, let wider = session.meta?.widerRadiusKm else { return }
+        await performSearch(query: session.query, radiusKm: wider, center: session.center, presentation: session.presentation)
+    }
+
+    /// The explicit "More nearby places — Search Google" row.
+    @MainActor
+    func searchGoogle() async {
+        guard let session = searchSession else { return }
+        await performSearch(query: session.query, radiusKm: session.radiusKm, center: session.center, includeGoogle: true, presentation: session.presentation)
+    }
+
+    @MainActor
+    func retrySearch() async {
+        let query = searchSession?.query ?? searchQuery.trimmingCharacters(in: .whitespaces)
+        guard query.count >= Self.minSearchQueryLength else { return }
+        await performSearch(query: query, radiusKm: searchSession?.radiusKm ?? Self.defaultSearchRadiusKm, center: searchSession?.center)
+    }
+
+    /// Runs a suggestion or recent search as if it had been typed.
+    @MainActor
+    func runSearch(_ query: String) async {
+        searchTask?.cancel()
+        searchQuery = query
+        await performSearch(query: query, radiusKm: Self.defaultSearchRadiusKm)
+    }
+
+    @MainActor
+    private func performSearch(
+        query: String, radiusKm: Double, center: CLLocationCoordinate2D? = nil,
+        includeGoogle: Bool? = nil, presentation: SearchSession.Presentation = .list
+    ) async {
+        guard let center = center ?? browseCenter else { return }
+        searchRequestSerial += 1
+        let serial = searchRequestSerial
         isSearching = true
+        searchError = nil
+        defer { if serial == searchRequestSerial { isSearching = false } }
+
         do {
             let response = try await APIClient.searchPlaces(
-                query: query, latitude: center.latitude, longitude: center.longitude
+                query: query, latitude: center.latitude, longitude: center.longitude,
+                radiusKm: radiusKm, includeGoogle: includeGoogle
             )
-            guard !Task.isCancelled else { return }
-            searchResults = response.results
+            guard serial == searchRequestSerial, !Task.isCancelled else { return }
+            searchSession = SearchSession(
+                query: query, centerLatitude: center.latitude, centerLongitude: center.longitude,
+                radiusKm: response.meta?.radiusKm ?? radiusKm,
+                results: response.results.filter { result in
+                    result.restaurantId.map { !PlacePreferencesStore.shared.isExcluded($0) } ?? true
+                },
+                meta: response.meta, suggestions: response.suggestions ?? [],
+                presentation: presentation, searchedAt: Date()
+            )
+            if presentation == .map {
+                expectProgrammaticMove(.showAllResults)
+                fitResultsRequestId += 1
+            }
         } catch let error as APIError {
-            if !Task.isCancelled { apiError = error }
+            if serial == searchRequestSerial, !Task.isCancelled { searchError = error }
         } catch {
-            if !Task.isCancelled { apiError = .transport(error) }
+            if serial == searchRequestSerial, !Task.isCancelled { searchError = .transport(error) }
         }
-        isSearching = false
     }
 
     /// Resolves a `.googleFallback` result to a canonical restaurant before opening its detail
     /// sheet — canonical/community results already have a `restaurantId` and skip straight
-    /// through. Returns nil (and sets `apiError`) if resolution fails.
+    /// through. The session is kept, so the sheet can go back to these results. Returns nil (and
+    /// sets `apiError`) if resolution fails.
     @MainActor
     func selectSearchResult(_ result: PlaceSearchResult) async -> NearbyPlace? {
+        searchSession?.selectedResultId = result.id
+        if let query = searchSession?.query { RecentSearchStore.record(query) }
+        selectedSearchResult = result
+
+        expectProgrammaticMove(.searchSelection)
         focusCoordinate = CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude)
         focusRequestId += 1
 
+        let place: NearbyPlace
         if result.provenance == .googleFallback, let googlePlaceId = result.googlePlaceId {
             temporarySearchCoordinate = focusCoordinate
             do {
                 let response = try await APIClient.resolvePlace(googlePlaceId: googlePlaceId)
                 temporarySearchCoordinate = nil
-                highlightedSearchPlaceId = response.restaurant.id
-                return response.restaurant
+                place = response.restaurant
             } catch let error as APIError {
+                temporarySearchCoordinate = nil
                 apiError = error
                 return nil
             } catch {
+                temporarySearchCoordinate = nil
                 apiError = .transport(error)
                 return nil
             }
+        } else if let restaurantId = result.restaurantId {
+            place = result.asNearbyPlace(id: restaurantId)
+        } else {
+            return nil
         }
 
-        guard let restaurantId = result.restaurantId else { return nil }
-        highlightedSearchPlaceId = restaurantId
-        return NearbyPlace(
-            id: restaurantId, name: result.name, rating: result.rating, priceLevel: result.priceLevel,
-            latitude: result.latitude, longitude: result.longitude, openStatus: result.openStatus ?? "unknown",
-            halal: nil
-        )
+        // The camera is about to leave the loaded area — make sure this place has a pin there.
+        if !places.contains(where: { $0.id == place.id }) {
+            places.append(place)
+        }
+        highlightedSearchPlaceId = place.id
+        return place
+    }
+
+    /// The place sheet was opened some other way (marker, area panel) — it isn't a search result.
+    @MainActor
+    func clearSelectedSearchResult() {
+        selectedSearchResult = nil
+    }
+
+    @MainActor
+    func showAllResultsOnMap() {
+        guard searchSession?.results.isEmpty == false else { return }
+        searchSession?.presentation = .map
+        expectProgrammaticMove(.showAllResults)
+        fitResultsRequestId += 1
+    }
+
+    @MainActor
+    func showResultsList() {
+        searchSession?.presentation = .list
     }
 
     @MainActor
     func clearSearch() {
         searchTask?.cancel()
+        searchRequestSerial += 1
         searchQuery = ""
-        searchResults = []
+        searchSession = nil
+        searchError = nil
+        selectedSearchResult = nil
         isSearching = false
         temporarySearchCoordinate = nil
         highlightedSearchPlaceId = nil
+    }
+
+    @MainActor
+    func expectProgrammaticMove(_ origin: MapMoveOrigin) {
+        pendingMoveOrigin = (origin, Date())
+    }
+
+    /// "Makan sini" — the user's own pick, recorded like an accepted recommendation (Recent,
+    /// community signal, Selera). Carries the search context when the place came from search.
+    @MainActor
+    func makanSini(_ place: NearbyPlace, userLocation: CLLocationCoordinate2D?) async -> ChooseRestaurantResponse? {
+        guard choiceStates[place.id] != .sending else { return nil }
+        choiceStates[place.id] = .sending
+        let choiceId = choiceIds[place.id] ?? UUID().uuidString
+        choiceIds[place.id] = choiceId
+
+        let fromSearch = selectedSearchResult?.restaurantId == place.id ? searchSession : nil
+        let body = ChooseRestaurantRequestBody(
+            clientChoiceId: choiceId,
+            installationId: InstallationID.current,
+            latitude: userLocation?.latitude, longitude: userLocation?.longitude,
+            search: fromSearch.map { .init(query: $0.query, radiusKm: $0.radiusKm, source: $0.source) }
+        )
+
+        do {
+            let response = try await APIClient.chooseRestaurant(id: place.id, body: body)
+            choiceStates[place.id] = .chosen
+            RecentDecisionStore.shared.record(RecentDecision(
+                id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude,
+                foodCategory: placeDetails?.id == place.id ? placeDetails?.foodCategory : nil,
+                priceLevel: place.priceLevel, rating: place.rating,
+                timestamp: Date(), source: fromSearch == nil ? "nearby" : "search"
+            ))
+            PendingVibePromptStore.shared.recordAccept(
+                decisionId: response.decisionId, clientToken: response.clientToken, restaurantName: place.name
+            )
+            return response
+        } catch let error as APIError {
+            choiceStates[place.id] = .failed
+            apiError = error
+            return nil
+        } catch {
+            choiceStates[place.id] = .failed
+            apiError = .transport(error)
+            return nil
+        }
     }
 
     /// Runs the "🍚 Pick one lah" sequence: pulses the currently visible candidates while the

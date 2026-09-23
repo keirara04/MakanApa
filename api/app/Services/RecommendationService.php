@@ -6,6 +6,7 @@ use App\Services\Brain\DecisionBrainState;
 use App\Services\Brain\SeleraScorer;
 use App\Services\Craving\CravingIntent;
 use App\Support\FoodTaxonomy;
+use App\Support\Halal\HalalEligibility;
 use App\Support\Halal\HalalStatus;
 use App\Support\ScoreWeights;
 use App\Support\Vibe;
@@ -105,7 +106,7 @@ class RecommendationService
     /** Reads the effective status Restaurant::toRecommendationArray() already resolved (expiry applied). */
     public static function isNonHalal(array $restaurant): bool
     {
-        return ($restaurant['halal_status'] ?? HalalStatus::Unknown->value) === HalalStatus::NonHalal->value;
+        return HalalEligibility::isNonHalal($restaurant);
     }
 
     private static function halalConfidenceComponent(array $restaurant): float

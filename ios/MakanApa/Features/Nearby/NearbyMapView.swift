@@ -26,8 +26,13 @@ struct NearbyMapView: UIViewRepresentable {
     /// A `.googleFallback` search result's coordinate before it resolves to a canonical
     /// restaurant/marker — rendered as a lightweight standalone pin.
     var temporarySearchCoordinate: CLLocationCoordinate2D? = nil
+    /// Show all on map: one numbered pin per search result, in list order. Empty otherwise.
+    var searchPins: [SearchPin] = []
+    /// Bumped to fit the camera around every `searchPins` coordinate.
+    var fitSearchPinsRequestId: Int = 0
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
+    var onSearchPinTapped: (String) -> Void = { _ in }
 
     func makeUIView(context: Context) -> GMSMapView {
         let options = GMSMapViewOptions()
@@ -67,10 +72,22 @@ struct NearbyMapView: UIViewRepresentable {
             highlightedSearchPlaceId: highlightedSearchPlaceId, on: mapView
         )
         context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
+        context.coordinator.syncSearchPins(searchPins, on: mapView)
+
+        if fitSearchPinsRequestId != context.coordinator.lastHandledFitId, !searchPins.isEmpty {
+            context.coordinator.lastHandledFitId = fitSearchPinsRequestId
+            if searchPins.count == 1, let only = searchPins.first {
+                mapView.animate(to: GMSCameraPosition(target: only.coordinate, zoom: 16))
+            } else {
+                let bounds = searchPins.reduce(GMSCoordinateBounds()) { $0.includingCoordinate($1.coordinate) }
+                // Clear of the search capsule on top and the result carousel at the bottom.
+                mapView.animate(with: GMSCameraUpdate.fit(bounds, with: UIEdgeInsets(top: 150, left: 48, bottom: 230, right: 48)))
+            }
+        }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped)
+        Coordinator(onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped, onSearchPinTapped: onSearchPinTapped)
     }
 
     @MainActor
@@ -78,9 +95,13 @@ struct NearbyMapView: UIViewRepresentable {
         var didSetInitialCamera = false
         var lastHandledRecenterId = 0
         var lastHandledFocusId = 0
+        var lastHandledFitId = 0
 
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
+        private let onSearchPinTapped: (String) -> Void
+        private var searchPinMarkers: [String: GMSMarker] = [:]
+        private var lastSearchPins: [SearchPin] = []
         private var markersById: [Int: GMSMarker] = [:]
         /// A marker sits in `markersById` at all times, but only gets an entry here — a live
         /// `UIView` swapped in via `marker.iconView` — while it's actually mid-transform (entrance
@@ -96,9 +117,14 @@ struct NearbyMapView: UIViewRepresentable {
         private var pulseDim = false
         private var temporarySearchMarker: GMSMarker?
 
-        init(onCameraIdle: @escaping (MapViewport, Float) -> Void, onMarkerTapped: @escaping (NearbyPlace) -> Void) {
+        init(
+            onCameraIdle: @escaping (MapViewport, Float) -> Void,
+            onMarkerTapped: @escaping (NearbyPlace) -> Void,
+            onSearchPinTapped: @escaping (String) -> Void
+        ) {
             self.onCameraIdle = onCameraIdle
             self.onMarkerTapped = onMarkerTapped
+            self.onSearchPinTapped = onSearchPinTapped
         }
 
         func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
@@ -111,9 +137,36 @@ struct NearbyMapView: UIViewRepresentable {
         }
 
         func mapView(_ mapView: GMSMapView, didTap marker: GMSMarker) -> Bool {
+            if let pin = marker.userData as? SearchPin {
+                onSearchPinTapped(pin.id)
+                return true
+            }
             guard let place = marker.userData as? NearbyPlace else { return false }
             onMarkerTapped(place)
             return true
+        }
+
+        /// Numbered result pins for Show all on map — #1 in brand red, the selected one larger,
+        /// the rest white. Diffed against the last set so an unchanged list doesn't re-render.
+        func syncSearchPins(_ pins: [SearchPin], on mapView: GMSMapView) {
+            guard pins != lastSearchPins else { return }
+            lastSearchPins = pins
+
+            let currentIds = Set(pins.map(\.id))
+            for (id, marker) in searchPinMarkers where !currentIds.contains(id) {
+                marker.map = nil
+                searchPinMarkers[id] = nil
+            }
+            for pin in pins {
+                let marker = searchPinMarkers[pin.id] ?? GMSMarker(position: pin.coordinate)
+                marker.position = pin.coordinate
+                marker.userData = pin
+                marker.icon = SearchPinRenderer.icon(rank: pin.rank, isTop: pin.isTop, isSelected: pin.isSelected)
+                marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+                marker.zIndex = pin.isSelected ? 30 : (pin.isTop ? 25 : 20)
+                if marker.map == nil { marker.map = mapView }
+                searchPinMarkers[pin.id] = marker
+            }
         }
 
         func sync(
@@ -397,5 +450,63 @@ enum RatingBubbleRenderer {
                 withAttributes: [.font: font, .foregroundColor: textColor as Any]
             )
         }
+    }
+}
+
+
+/// One search result on the map in Show all on map.
+struct SearchPin: Equatable {
+    let id: String
+    let rank: Int
+    let coordinate: CLLocationCoordinate2D
+    let isTop: Bool
+    let isSelected: Bool
+
+    static func == (lhs: SearchPin, rhs: SearchPin) -> Bool {
+        lhs.id == rhs.id && lhs.rank == rhs.rank && lhs.isTop == rhs.isTop && lhs.isSelected == rhs.isSelected
+            && lhs.coordinate.latitude == rhs.coordinate.latitude && lhs.coordinate.longitude == rhs.coordinate.longitude
+    }
+}
+
+/// Round numbered badges for result pins — rank order matches the list and the carousel.
+@MainActor
+enum SearchPinRenderer {
+    private struct Key: Hashable {
+        let rank: Int
+        let isTop: Bool
+        let isSelected: Bool
+    }
+
+    private static var cache: [Key: UIImage] = [:]
+
+    static func icon(rank: Int, isTop: Bool, isSelected: Bool) -> UIImage {
+        let key = Key(rank: rank, isTop: isTop, isSelected: isSelected)
+        if let cached = cache[key] { return cached }
+
+        let diameter: CGFloat = isSelected ? 38 : 30
+        let ring: CGFloat = isSelected ? 4 : 2
+        let sambal = UIColor(named: "SambalRed") ?? .systemRed
+        let kicap = UIColor(named: "Kicap") ?? .darkText
+        let fill = isTop || isSelected ? sambal : UIColor.white
+        let textColor = isTop || isSelected ? UIColor.white : kicap
+        let font = UIFont.systemFont(ofSize: isSelected ? 16 : 13, weight: .heavy)
+        let size = CGSize(width: diameter + 4, height: diameter + 4)
+
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            let circle = CGRect(x: 2, y: 2, width: diameter, height: diameter)
+            context.cgContext.setShadow(offset: CGSize(width: 0, height: 1), blur: 3, color: UIColor.black.withAlphaComponent(0.25).cgColor)
+            UIColor.white.setFill()
+            UIBezierPath(ovalIn: circle).fill()
+            context.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
+            fill.setFill()
+            UIBezierPath(ovalIn: circle.insetBy(dx: ring, dy: ring)).fill()
+
+            let text = "\(rank)" as NSString
+            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
+            let textSize = text.size(withAttributes: attributes)
+            text.draw(at: CGPoint(x: circle.midX - textSize.width / 2, y: circle.midY - textSize.height / 2), withAttributes: attributes)
+        }
+        cache[key] = image
+        return image
     }
 }

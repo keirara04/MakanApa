@@ -410,12 +410,7 @@ struct CommunityView: View {
     }
 
     private func bannerMessage(for error: APIError) -> String {
-        switch error {
-        case .transport:
-            return Copy.connectionErrorDetail
-        default:
-            return Copy.genericAPIErrorDetail
-        }
+        error.userFacingCopy.detail
     }
 
     private func locationPrompt(headline: String, detail: String, buttonTitle: String, action: @escaping () -> Void) -> some View {

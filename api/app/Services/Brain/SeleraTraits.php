@@ -143,7 +143,7 @@ class SeleraTraits
     private function recentAcceptCategories(TasteProfile $profile, TasteOwner $owner): array
     {
         return $owner->scope(TasteEvent::query())
-            ->where('signal', 'accept')
+            ->whereIn('signal', TasteMemory::ACCEPT_SIGNALS)
             ->where('dimension', 'category')
             ->when($profile->reset_at_event_id, fn ($q) => $q->where('id', '>', $profile->reset_at_event_id))
             ->orderByDesc('id')

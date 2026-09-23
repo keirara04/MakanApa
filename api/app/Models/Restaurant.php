@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Halal\HalalReviewState;
 use App\Support\Halal\HalalStatus;
+use App\Support\OpeningHours;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -212,6 +213,8 @@ class Restaurant extends Model
     {
         return [
             ...$this->toRecommendationArray(),
+            'address' => $this->address,
+            'closes_at' => OpeningHours::closesAt($this->opening_hours, now()),
             'provenance' => $provenance,
             'is_community_find' => $provenance === 'community',
             'distance_km' => $distanceKm,
@@ -219,15 +222,12 @@ class Restaurant extends Model
         ];
     }
 
-    /** OPEN / CLOSED / UNKNOWN — never a nullable boolean, so "we don't know" can't collapse into true/false. */
+    /**
+     * OPEN / CLOSED / UNKNOWN — never a nullable boolean, so "we don't know" can't collapse into
+     * true/false. Worked out at read time from the stored weekly hours (see OpeningHours).
+     */
     public function openStatus(): string
     {
-        $openNow = $this->opening_hours['open_now'] ?? null;
-
-        return match ($openNow) {
-            true => 'open',
-            false => 'closed',
-            default => 'unknown',
-        };
+        return OpeningHours::status($this->opening_hours, now());
     }
 }

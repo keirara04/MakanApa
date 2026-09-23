@@ -119,6 +119,38 @@ class CommunityAreaTest extends TestCase
         $response->assertJsonPath('trending.0.name', 'KL Cafe');
     }
 
+    public function test_area_trending_feed_is_shared_for_a_few_minutes_then_refreshes(): void
+    {
+        $kl = Area::create(['name' => 'Kuala Lumpur', 'short_name' => 'KL', 'active' => true]);
+        $pickTwice = function (string $name) use ($kl) {
+            $restaurant = Restaurant::create([
+                'name' => $name, 'latitude' => 3.139, 'longitude' => 101.6869,
+                'is_active' => true, 'provider' => 'google', 'provider_place_id' => 'ChIJ-'.$name,
+            ]);
+            foreach (range(1, 2) as $i) {
+                $picker = User::factory()->create(['role' => 'user', 'status' => 'active']);
+                Decision::create([
+                    'user_id' => $picker->id, 'area_id' => $kl->id, 'mode' => 'solo',
+                    'client_token' => "tok-{$name}-{$i}", 'latitude' => 3.139, 'longitude' => 101.6869,
+                    'max_distance' => 5.0,
+                ])->recommendations()->create([
+                    'restaurant_id' => $restaurant->id, 'rank' => 1, 'score' => 1.0, 'shown_at' => now(), 'accepted_at' => now(),
+                ]);
+            }
+        };
+        $this->actingAsSelf();
+        $this->patchJson('/api/v1/me/community', ['area' => 'KL'])->assertOk();
+
+        $pickTwice('First Cafe');
+        $this->getJson('/api/v1/community/feed')->assertOk()->assertJsonCount(1, 'trending');
+
+        $pickTwice('Second Cafe');
+        $this->getJson('/api/v1/community/feed')->assertOk()->assertJsonCount(1, 'trending');
+
+        $this->travel(config('recommendation.community_feed.cache_seconds') + 1)->seconds();
+        $this->getJson('/api/v1/community/feed')->assertOk()->assertJsonCount(2, 'trending');
+    }
+
     public function test_new_in_area_scoped_to_the_users_area(): void
     {
         $kl = Area::create(['name' => 'Kuala Lumpur', 'short_name' => 'KL', 'active' => true]);

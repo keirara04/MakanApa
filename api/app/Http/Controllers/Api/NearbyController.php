@@ -17,6 +17,7 @@ use App\Services\PlacesService;
 use App\Services\RecommendationService;
 use App\Support\AreaPersonality;
 use App\Support\DiscoveryMode;
+use App\Support\Halal\HalalEligibility;
 use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -221,7 +222,7 @@ class NearbyController extends Controller
             'instagramHandle' => $data['instagram_handle'],
             'tiktokHandle' => $data['tiktok_handle'],
             'websiteUrl' => $data['website_url'],
-            ...$this->presentDiscoveryExtras($data['id']),
+            ...$this->presentDiscoveryExtras($data['id'], $restaurant),
         ]);
     }
 
@@ -258,7 +259,7 @@ class NearbyController extends Controller
                 && $restaurant['price_level'] > $filters['budgetMax']) {
                 return false;
             }
-            if (($filters['halalOnly'] ?? false) && RecommendationService::isNonHalal($restaurant)) {
+            if (! HalalEligibility::allows($restaurant, (bool) ($filters['halalOnly'] ?? false))) {
                 return false;
             }
             if (($filters['minRating'] ?? null) !== null
@@ -333,7 +334,7 @@ class NearbyController extends Controller
 
     private function withoutNonHalal(array $restaurants): array
     {
-        return array_values(array_filter($restaurants, fn (array $r) => ! RecommendationService::isNonHalal($r)));
+        return HalalEligibility::filter($restaurants, true);
     }
 
     private function presentMarker(array $restaurant): array

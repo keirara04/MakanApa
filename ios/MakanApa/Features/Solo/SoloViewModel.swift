@@ -101,12 +101,66 @@ final class SoloViewModel {
         DistanceOption(km: 5.0, illustration: "DistanceCar", label: "Don't mind", subtext: "janji sedap"),
     ]
 
+    // MARK: - Quick pick ("Just pick lah")
+
+    private static let lastBudgetKey = "SoloViewModel.lastBudgetMax"
+    private static let lastBudgetAnythingKey = "SoloViewModel.lastBudgetAnything"
+    private static let lastDistanceKey = "SoloViewModel.lastDistanceKm"
+
+    /// Called when the user finishes the full preference flow — the budget/distance they chose
+    /// become the defaults for the one-tap quick pick on Home.
+    func rememberChoices() {
+        let defaults = UserDefaults.standard
+        defaults.set(budgetMax == nil, forKey: Self.lastBudgetAnythingKey)
+        if let budgetMax { defaults.set(budgetMax, forKey: Self.lastBudgetKey) }
+        defaults.set(maxDistanceKm, forKey: Self.lastDistanceKey)
+    }
+
+    /// Resets to "Anything lah" with the last remembered budget/distance (or the defaults) —
+    /// the whole point is zero questions, so no craving, lens, mode or vibe carries over.
+    func prepareQuickPick() {
+        let defaults = UserDefaults.standard
+        cravingSelection = .anything
+        lens = nil
+        vibe = nil
+        discoveryMode = .normal
+        if defaults.bool(forKey: Self.lastBudgetAnythingKey) {
+            budgetMax = nil
+        } else if let saved = defaults.object(forKey: Self.lastBudgetKey) as? Int {
+            budgetMax = saved
+        } else {
+            budgetMax = 2
+        }
+        let savedDistance = defaults.double(forKey: Self.lastDistanceKey)
+        maxDistanceKm = savedDistance > 0 ? savedDistance : 2.0
+    }
+
+    /// Quick-pick card subtitle showing the remembered choices (not whatever the preference
+    /// flow currently has half-selected), e.g. "Anything · ~RM20 · 10 min".
+    var quickPickSummaryForDisplay: String {
+        let defaults = UserDefaults.standard
+        let budgetTier: Int? = defaults.bool(forKey: Self.lastBudgetAnythingKey)
+            ? nil
+            : (defaults.object(forKey: Self.lastBudgetKey) as? Int ?? 2)
+        let savedDistance = defaults.double(forKey: Self.lastDistanceKey)
+        let distanceKm = savedDistance > 0 ? savedDistance : 2.0
+        let budget = Self.budgetOptions.first { $0.tier == budgetTier }?.amount ?? "Any budget"
+        let distance = Self.distanceOptions.first { $0.km == distanceKm }?.label ?? "\(distanceKm.formatted()) km"
+        return "Anything · \(budget) · \(distance)"
+    }
+
+    /// How long the last fresh decision took end to end. A slow answer has already made the user
+    /// wait on the loading screen, so ResultView skips replaying the thinking trace on top of it.
+    private(set) var lastDecisionLatency: Duration = .zero
+
     @MainActor
     func decide(coordinate: CLLocationCoordinate2D) async {
         pickSource = "solo"
         lastCoordinate = coordinate
         apiError = nil
         isEmptyResult = false
+        let start = ContinuousClock.now
+        defer { lastDecisionLatency = ContinuousClock.now - start }
         do {
             let response = try await APIClient.recommendSolo(
                 latitude: coordinate.latitude,
@@ -180,18 +234,13 @@ final class SoloViewModel {
         _ = try? await APIClient.accept(decisionId: decisionId, clientToken: clientToken)
 
         if let pick = currentPick {
+            PendingVibePromptStore.shared.recordAccept(decisionId: decisionId, clientToken: clientToken, restaurantName: pick.name)
             RecentDecisionStore.shared.record(RecentDecision(
                 id: pick.id, name: pick.name, latitude: pick.latitude, longitude: pick.longitude,
                 foodCategory: pick.foodCategory, priceLevel: pick.priceLevel, rating: pick.rating,
                 timestamp: Date(), source: pickSource
             ))
         }
-    }
-
-    @MainActor
-    func submitVibeTag(_ tag: CommunityTag) async {
-        guard let decisionId, let clientToken else { return }
-        _ = try? await APIClient.submitVibeTag(decisionId: decisionId, clientToken: clientToken, vibe: tag)
     }
 
     // MARK: - Makan Brain
@@ -270,6 +319,8 @@ final class SoloViewModel {
         recommendation: RecommendationResponse.Recommendation?, error: APIError?
     ) {
         pickSource = "nearby"
+        // Nearby's own pick pulse already covered the wait — let the trace play normally.
+        lastDecisionLatency = .zero
         cravingSelection = nil
         budgetMax = nil
         tunesUsed = []

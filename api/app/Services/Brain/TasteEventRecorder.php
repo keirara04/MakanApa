@@ -39,6 +39,27 @@ class TasteEventRecorder
         $this->write($decision, $row, $user, 'accept', null, 'behaviour', $rows);
     }
 
+    /**
+     * "Makan sini" from search — the user named what they wanted and picked it themselves, so it
+     * teaches like an accept at explicit authority. TasteMemory treats it as an accept for slots
+     * and the recent-categories ring.
+     */
+    public function searchChoose(Decision $decision, DecisionRecommendation $row, ?User $user): void
+    {
+        $restaurant = $row->restaurant()->with('cuisines')->first();
+        if (! $restaurant) {
+            return;
+        }
+
+        $distanceKm = $row->breakdown['facts']['distanceKm'] ?? null;
+        $rows = $this->tasteRows('search_choose', $restaurant->food_category, $restaurant->cuisines->pluck('slug')->all(), $restaurant->price_level, 1.0, 'both', 'explicit');
+        if ($distanceKm !== null) {
+            $rows[] = ['dimension' => 'distance', 'dimension_key' => 'km', 'value' => (float) $distanceKm, 'scope' => 'long', 'authority' => 'explicit'];
+        }
+
+        $this->write($decision, $row, $user, 'search_choose', null, 'explicit', $rows);
+    }
+
     public function reroll(Decision $decision, DecisionRecommendation $rejected, ?User $user): void
     {
         $restaurant = $rejected->restaurant()->with('cuisines')->first();

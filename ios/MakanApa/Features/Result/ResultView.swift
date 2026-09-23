@@ -18,7 +18,7 @@ struct ResultView: View {
     @State private var exitEdge: Edge = .leading
     @State private var acceptSettle = false
     @State private var revealedReasonCount = 0
-    @State private var showVibePrompt = false
+    @State private var showNotificationPriming = false
     @State private var showingAddMenu = false
     @State private var showTrace = false
     @State private var showingWhatIf = false
@@ -27,6 +27,7 @@ struct ResultView: View {
     @State private var isTuning = false
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
+    private static let traceReplayLatencyLimit: Duration = .seconds(2)
 
     var body: some View {
         VStack(spacing: 20) {
@@ -65,9 +66,12 @@ struct ResultView: View {
             }
             .presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $showVibePrompt) {
-            vibePromptSheet
-                .presentationDetents([.height(220)])
+        .sheet(isPresented: $showNotificationPriming) {
+            NotificationPrimingView(onFinished: {
+                NotificationPrimingState.shared.complete()
+                showNotificationPriming = false
+            })
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $showingAddMenu) {
             if let pick = viewModel.currentPick {
@@ -88,57 +92,15 @@ struct ResultView: View {
         }
     }
 
-    // MARK: - Vibe prompt
+    // MARK: - After accept
 
-    /// Shown roughly every other accept, not every single time — a quick one-tap "what was
-    /// this place like" rather than a full review ask.
-    private func maybeShowVibePrompt() {
-        let key = "ResultView.acceptCount"
-        let count = UserDefaults.standard.integer(forKey: key) + 1
-        UserDefaults.standard.set(count, forKey: key)
-        if count % 2 == 0 {
-            showVibePrompt = true
+    /// The vibe question is now asked later, from Home (see PendingVibePromptStore). The accept
+    /// moment is instead where a first-time user is asked about notifications — right after
+    /// the app has actually been useful, not before they've even signed in.
+    private func afterAccept() {
+        if !NotificationPrimingState.shared.hasSeenPriming {
+            showNotificationPriming = true
         }
-    }
-
-    private var vibePromptSheet: some View {
-        VStack(spacing: 16) {
-            Text("What vibe was it?")
-                .font(.makanDisplay(18))
-                .foregroundStyle(Color.kicap)
-
-            let columns = [GridItem(.adaptive(minimum: 90))]
-            LazyVGrid(columns: columns, spacing: 10) {
-                vibeTagButton(.chill, label: "☕ Chill")
-                vibeTagButton(.study, label: "📚 Study")
-                vibeTagButton(.studentBudget, label: "💸 Student")
-                vibeTagButton(.lateNight, label: "🌙 Late night")
-                vibeTagButton(.hiddenGem, label: "✨ Hidden gem")
-            }
-
-            Button("Skip") { showVibePrompt = false }
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
-        }
-        .padding(20)
-    }
-
-    private func vibeTagButton(_ tag: CommunityTag, label: String) -> some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            Task { await viewModel.submitVibeTag(tag) }
-            showVibePrompt = false
-        } label: {
-            Text(label)
-                .font(.makanBody(13))
-                .foregroundStyle(Color.kicap)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-                .background(Color.kicap.opacity(0.06))
-                .clipShape(Capsule())
-        }
-        .buttonStyle(PressCompressStyle())
     }
 
     // MARK: - Result
@@ -276,7 +238,7 @@ struct ResultView: View {
                 acceptSettle = false
                 withAnimation(Motion.playful) { acceptSettle = true }
                 Task { await viewModel.acceptCurrentPick() }
-                maybeShowVibePrompt()
+                afterAccept()
             }
             feedbackButton(emoji: "🔄", label: "Another one") {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -693,7 +655,10 @@ struct ResultView: View {
         }
 
         // Real thinking trace first (only on a fresh decision — reroll/tune results carry none).
-        if let trace = viewModel.currentPick?.thinkingTrace, !trace.isEmpty {
+        // Skipped when the request itself was slow: the loading screen already made them wait,
+        // and replaying "thinking" after the answer exists just stacks a second delay on top.
+        if let trace = viewModel.currentPick?.thinkingTrace, !trace.isEmpty,
+           viewModel.lastDecisionLatency < Self.traceReplayLatencyLimit {
             showTrace = true
             try? await Task.sleep(for: ThinkingTraceView.duration(for: trace))
             guard !Task.isCancelled else { return }
@@ -846,12 +811,7 @@ struct ResultView: View {
     }
 
     private func errorCopy(for error: APIError) -> (headline: String, detail: String) {
-        switch error {
-        case .transport:
-            return (Copy.connectionErrorHeadline, Copy.connectionErrorDetail)
-        default:
-            return (Copy.genericAPIErrorHeadline, Copy.genericAPIErrorDetail)
-        }
+        error.userFacingCopy
     }
 
     // MARK: - Makan Brain actions
@@ -891,7 +851,7 @@ struct ResultView: View {
         Task {
             await viewModel.acceptCurrentPick()
         }
-        maybeShowVibePrompt()
+        afterAccept()
         let coordinate = CLLocationCoordinate2D(latitude: recommendation.latitude, longitude: recommendation.longitude)
         let destination = MapDestination(
             coordinate: coordinate,

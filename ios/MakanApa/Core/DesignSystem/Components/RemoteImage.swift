@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 
 /// Loads a remote image with an explicit short timeout and a manual retry affordance —
@@ -6,6 +7,8 @@ import SwiftUI
 struct RemoteImage<Placeholder: View>: View {
     let url: URL?
     var timeout: TimeInterval = 10
+    /// Longest side in pixels after decoding — a full-width card on a Pro Max is ~1290px.
+    var maxPixelSize: CGFloat = 1290
     @ViewBuilder var placeholder: () -> Placeholder
 
     @State private var phase: Phase = .idle
@@ -59,23 +62,39 @@ struct RemoteImage<Placeholder: View>: View {
         }
 
         phase = .loading
-        loadTask = Task {
-            var request = URLRequest(url: url)
-            request.timeoutInterval = timeout
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard !Task.isCancelled else { return }
-                guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-                      let uiImage = UIImage(data: data) else {
-                    phase = .failure
-                    return
-                }
-                ImageMemoryCache.store(uiImage, for: url)
-                phase = .success(Image(uiImage: uiImage))
-            } catch {
-                guard !Task.isCancelled else { return }
+        loadTask = Task { [timeout, maxPixelSize] in
+            // Network + decode run off the main actor — decoding a full JPEG on main was a
+            // visible hitch while swiping the photo carousel.
+            let uiImage = await Task.detached(priority: .userInitiated) {
+                await Self.fetchDownsampled(url: url, timeout: timeout, maxPixelSize: maxPixelSize)
+            }.value
+            guard !Task.isCancelled else { return }
+            guard let uiImage else {
                 phase = .failure
+                return
             }
+            ImageMemoryCache.store(uiImage, for: url)
+            phase = .success(Image(uiImage: uiImage))
         }
+    }
+
+    /// Decodes straight to a bitmap no larger than `maxPixelSize` on its longest side, already
+    /// prepared for display — never the full-size image first.
+    private static func fetchDownsampled(url: URL, timeout: TimeInterval, maxPixelSize: CGFloat) async -> UIImage? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = timeout
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+              let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return nil }
+
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: cgImage)
     }
 }

@@ -95,15 +95,22 @@ class PlaceNormalizer
             'provider' => 'google',
             'provider_place_id' => $place->providerPlaceId,
             'name' => $place->name,
+            'address' => $place->address,
             'latitude' => $place->latitude,
             'longitude' => $place->longitude,
             'price_level' => $place->priceLevel,
             'rating' => $place->rating,
             'user_rating_count' => $place->userRatingCount,
             'is_active' => true,
-            // Snapshot of Google's open-now signal at sync time — re-synced whenever the
-            // place_sync_areas cache window expires. Not full weekly-hours parsing (Phase 3 scope).
-            'opening_hours' => ['open_now' => $place->openNow],
+            // Weekly periods let App\Support\OpeningHours answer "open right now" at read time;
+            // the open_now snapshot (stamped with checked_at) is only a short-lived fallback for
+            // places Google has no regular hours for.
+            'opening_hours' => [
+                'open_now' => $place->openNow,
+                'periods' => $this->compactPeriods($place->openingPeriods),
+                'utc_offset_minutes' => $place->utcOffsetMinutes,
+                'checked_at' => now()->toIso8601String(),
+            ],
             'cuisines' => array_values(array_unique($cuisines)),
             'tags' => array_values(array_unique($tags)),
             'food_category' => $foodCategory,
@@ -112,6 +119,27 @@ class PlaceNormalizer
             // since the curated fields are lossy and shouldn't be reverse-engineered for that.
             'google_types' => $place->types,
         ];
+    }
+
+    /**
+     * Keeps only the day/hour/minute of each open/close point — Google also sends `date` and
+     * `truncated` flags that don't matter for a weekly schedule.
+     *
+     * @param  array<int, array<string, mixed>>|null  $periods
+     * @return array<int, array<string, array{day: int, hour: int, minute: int}>>|null
+     */
+    private function compactPeriods(?array $periods): ?array
+    {
+        if (empty($periods)) {
+            return null;
+        }
+
+        $point = fn (array $p) => ['day' => (int) ($p['day'] ?? 0), 'hour' => (int) ($p['hour'] ?? 0), 'minute' => (int) ($p['minute'] ?? 0)];
+
+        return array_values(array_map(fn (array $period) => array_filter([
+            'open' => isset($period['open']) ? $point($period['open']) : null,
+            'close' => isset($period['close']) ? $point($period['close']) : null,
+        ]), $periods));
     }
 
     /**

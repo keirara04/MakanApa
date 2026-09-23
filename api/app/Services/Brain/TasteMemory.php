@@ -20,6 +20,9 @@ final class TasteMemory
 
     public const SLOT_DIMENSIONS = ['category', 'cuisine'];
 
+    /** Signals that mean "I'm eating here" — a Decide/Nearby accept or a search "Makan sini". */
+    public const ACCEPT_SIGNALS = ['accept', 'search_choose'];
+
     /** @return array{memory: array, muted: array, corrections: array, signal_count: int} */
     public static function empty(): array
     {
@@ -81,13 +84,13 @@ final class TasteMemory
         if (in_array($dimension, self::TASTE_DIMENSIONS, true) && $key !== '') {
             $state['memory']['longTerm'][$dimension][$key] = self::bump($state['memory']['longTerm'][$dimension][$key] ?? null, $value, $at);
 
-            if ($event['signal'] === 'accept' && in_array($dimension, self::SLOT_DIMENSIONS, true)) {
+            if (in_array($event['signal'], self::ACCEPT_SIGNALS, true) && in_array($dimension, self::SLOT_DIMENSIONS, true)) {
                 foreach (array_filter([$event['slot'] ?? null, ! empty($meta['weekend']) ? 'weekend' : null]) as $slice) {
                     $state['memory']['slots'][$slice][$dimension][$key] = self::bump($state['memory']['slots'][$slice][$dimension][$key] ?? null, $value, $at);
                 }
             }
 
-            if ($event['signal'] === 'accept' && $dimension === 'category') {
+            if (in_array($event['signal'], self::ACCEPT_SIGNALS, true) && $dimension === 'category') {
                 $recent = $state['memory']['recent'];
                 $recent[] = ['category' => $key, 'at' => $at->toIso8601String()];
                 $state['memory']['recent'] = array_slice($recent, -(int) Config::get('brain.recent_size', 10));

@@ -6,6 +6,7 @@ use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Throwable;
 
 /**
  * Only knows how to talk to Google Places (New) :searchNearby. Does not
@@ -20,8 +21,14 @@ class GooglePlacesProvider implements PlacesProvider
 
     private const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
 
-    /** Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers. */
-    private const FIELD_MASK = 'places.id,places.displayName,places.location,places.types,places.rating,places.priceLevel,places.currentOpeningHours.openNow,places.userRatingCount';
+    /**
+     * Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers.
+     * regularOpeningHours.periods + utcOffsetMinutes let Restaurant::openStatus() work out
+     * open/closed at read time instead of trusting an openNow snapshot up to a day old; they sit
+     * in the same SKU tier currentOpeningHours.openNow already pulls in. shortFormattedAddress
+     * ("Jalan Reko, Kajang") is what tells two branches of the same chain apart in search.
+     */
+    private const FIELD_MASK = 'places.id,places.displayName,places.location,places.types,places.rating,places.priceLevel,places.currentOpeningHours.openNow,places.regularOpeningHours.periods,places.utcOffsetMinutes,places.userRatingCount,places.shortFormattedAddress';
 
     /**
      * Winner-only presentation fields (photos/reviews), fetched fresh per request —
@@ -32,7 +39,7 @@ class GooglePlacesProvider implements PlacesProvider
     private const DETAILS_FIELD_MASK = 'photos,reviews,googleMapsUri,currentOpeningHours,utcOffsetMinutes';
 
     /** Same fields as FIELD_MASK, but the single-place GET endpoint (fetchPlace()) doesn't use the `places.` list-response prefix. */
-    private const SINGLE_PLACE_FIELD_MASK = 'id,displayName,location,types,rating,priceLevel,currentOpeningHours.openNow,userRatingCount';
+    private const SINGLE_PLACE_FIELD_MASK = 'id,displayName,location,types,rating,priceLevel,currentOpeningHours.openNow,regularOpeningHours.periods,utcOffsetMinutes,userRatingCount,shortFormattedAddress';
 
     public function __construct(private readonly ?string $apiKey) {}
 
@@ -107,9 +114,63 @@ class GooglePlacesProvider implements PlacesProvider
 
         return collect($tiles)
             ->map(function (array $tile, int $index) use ($responses) {
-                $response = $responses[(string) $index]->throw();
+                // A pooled request that never connected comes back as the exception itself, not
+                // a Response — rethrow it rather than calling throw() on it.
+                $response = $responses[(string) $index];
+                if ($response instanceof Throwable) {
+                    throw $response;
+                }
 
-                return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+                return collect($response->throw()->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Several Text Search lanes fired concurrently. Unlike nearbyRestaurantsBatch(), one lane
+     * failing never fails the others — each slot is either its places or the Throwable that
+     * lane hit, so the caller can log and skip just that lane.
+     *
+     * @param  array<int, array{query: string, includedType: ?string}>  $lanes
+     * @return array<int, Collection<int, ProviderPlace>|Throwable> same order/index as $lanes
+     */
+    public function searchTextBatch(array $lanes, float $latitude, float $longitude, float $radiusKm): array
+    {
+        if (empty($this->apiKey)) {
+            throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
+        }
+
+        if (count($lanes) === 1) {
+            try {
+                return [$this->searchText($lanes[0]['query'], $latitude, $longitude, $radiusKm, $lanes[0]['includedType'])];
+            } catch (Throwable $e) {
+                return [$e];
+            }
+        }
+
+        $responses = Http::pool(fn (Pool $pool) => collect($lanes)->map(
+            fn (array $lane, int $index) => $pool->as((string) $index)
+                ->withHeaders([
+                    'X-Goog-Api-Key' => $this->apiKey,
+                    'X-Goog-FieldMask' => self::FIELD_MASK,
+                ])
+                ->timeout(8)
+                ->post(self::TEXT_SEARCH_ENDPOINT, $this->textSearchPayload($lane['query'], $latitude, $longitude, $radiusKm, $lane['includedType']))
+        )->all());
+
+        return collect($lanes)
+            ->map(function (array $lane, int $index) use ($responses) {
+                $response = $responses[(string) $index];
+                if ($response instanceof Throwable) {
+                    return $response;
+                }
+
+                try {
+                    return collect($response->throw()->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+                } catch (Throwable $e) {
+                    return $e;
+                }
             })
             ->values()
             ->all();
@@ -133,6 +194,17 @@ class GooglePlacesProvider implements PlacesProvider
             throw new RuntimeException('PLACES_PROVIDER=google requires GOOGLE_PLACES_API_KEY to be set.');
         }
 
+        $response = Http::withHeaders([
+            'X-Goog-Api-Key' => $this->apiKey,
+            'X-Goog-FieldMask' => self::FIELD_MASK,
+        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, $this->textSearchPayload($query, $latitude, $longitude, $radiusKm, $includedType))->throw();
+
+        return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+    }
+
+    /** @return array<string, mixed> */
+    private function textSearchPayload(string $query, float $latitude, float $longitude, float $radiusKm, ?string $includedType): array
+    {
         $payload = [
             'textQuery' => $query,
             'locationBias' => [
@@ -146,12 +218,7 @@ class GooglePlacesProvider implements PlacesProvider
             $payload['includedType'] = $includedType;
         }
 
-        $response = Http::withHeaders([
-            'X-Goog-Api-Key' => $this->apiKey,
-            'X-Goog-FieldMask' => self::FIELD_MASK,
-        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, $payload)->throw();
-
-        return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+        return $payload;
     }
 
     private function mapPlace(array $place): ProviderPlace
@@ -166,6 +233,9 @@ class GooglePlacesProvider implements PlacesProvider
             priceLevel: $this->mapPriceLevel($place['priceLevel'] ?? null),
             openNow: $place['currentOpeningHours']['openNow'] ?? null,
             userRatingCount: $place['userRatingCount'] ?? null,
+            openingPeriods: $place['regularOpeningHours']['periods'] ?? null,
+            utcOffsetMinutes: $place['utcOffsetMinutes'] ?? null,
+            address: $place['shortFormattedAddress'] ?? null,
         );
     }
 

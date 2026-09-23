@@ -10,6 +10,7 @@ use App\Services\RecommendationService;
 use App\Support\CommunityTag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -44,10 +45,9 @@ class CommunityController extends Controller
         $config = Config::get('recommendation.community_feed');
         $windowStart = now()->subDays($config['window_days']);
 
-        $query = app(CommunityPickStats::class)->acceptedQuery($user, $windowStart, $lat, $lon);
         $radiusKm = (float) $config['public_radius_km'];
 
-        $aggregates = $query
+        $aggregateQuery = fn () => app(CommunityPickStats::class)->acceptedQuery($user, $windowStart, $lat, $lon)
             ->selectRaw('decision_recommendations.restaurant_id as restaurant_id')
             ->selectRaw('count(*) as pick_count')
             ->selectRaw('count(distinct decisions.user_id) as picker_count')
@@ -55,7 +55,23 @@ class CommunityController extends Controller
             // Postgres can't reference a SELECT alias in HAVING — use the raw aggregate.
             ->havingRaw('count(distinct decisions.user_id) >= ?', [$config['min_pickers']])
             ->orderByDesc('picker_count')
-            ->get();
+            ->get()
+            ->map(fn ($row) => ['restaurant_id' => (int) $row->restaurant_id, 'pick_count' => (int) $row->pick_count, 'picker_count' => (int) $row->picker_count])
+            ->all();
+
+        // A university's/area's trending aggregate is identical for every member, so it's shared
+        // for a few minutes instead of re-running the 30-day join per feed open. The Public feed
+        // is anchored on the caller's own coordinates, so it always runs live.
+        $cacheScope = match (true) {
+            $isUniversity => 'university:'.$user->universityId(),
+            $isArea => 'area:'.$user->areaId(),
+            default => null,
+        };
+        $cacheSeconds = (int) ($config['cache_seconds'] ?? 0);
+        $aggregates = collect($cacheScope !== null && $cacheSeconds > 0
+            ? Cache::remember("community_feed:trending:v1:{$cacheScope}", $cacheSeconds, $aggregateQuery)
+            : $aggregateQuery()
+        )->map(fn (array $row) => (object) $row);
 
         $isRadiusScoped = ! $isUniversity && ! $isArea;
 

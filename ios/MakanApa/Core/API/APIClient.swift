@@ -27,7 +27,7 @@ enum APIClient {
             halal: HalalPreference.isOn,
             lens: lens, ignoreContext: ContextPreferences.ignoredKeys
         )
-        return try await post("recommendations/solo", body: body)
+        return try await post("recommendations/solo", body: body, timeout: placesTimeout)
     }
 
     static func reroll(decisionId: Int, clientToken: String) async throws -> RerollResponse {
@@ -61,13 +61,26 @@ enum APIClient {
         try await get("restaurants/\(restaurantId)/details", query: [])
     }
 
-    static func searchPlaces(query: String, latitude: Double, longitude: Double) async throws -> PlaceSearchResponseV2 {
-        let items: [URLQueryItem] = [
+    static func searchPlaces(
+        query: String, latitude: Double, longitude: Double, radiusKm: Double, includeGoogle: Bool? = nil
+    ) async throws -> PlaceSearchResponseV2 {
+        var items: [URLQueryItem] = [
             URLQueryItem(name: "query", value: query),
             URLQueryItem(name: "latitude", value: String(latitude)),
             URLQueryItem(name: "longitude", value: String(longitude)),
+            URLQueryItem(name: "radiusKm", value: String(radiusKm)),
+            URLQueryItem(name: "halal", value: HalalPreference.isOn ? "1" : "0"),
         ]
+        if let includeGoogle {
+            items.append(URLQueryItem(name: "includeGoogle", value: includeGoogle ? "1" : "0"))
+        }
         return try await get("places/search", query: items)
+    }
+
+    /// "Makan sini" — records the user's own pick as an accepted decision. Idempotent on
+    /// `clientChoiceId`, so the caller reuses the same id when retrying.
+    static func chooseRestaurant(id: Int, body: ChooseRestaurantRequestBody) async throws -> ChooseRestaurantResponse {
+        try await post("restaurants/\(id)/choose", body: body)
     }
 
     static func resolvePlace(googlePlaceId: String) async throws -> ResolvePlaceResponse {
@@ -85,7 +98,7 @@ enum APIClient {
             halal: HalalPreference.isOn,
             ignoreContext: ContextPreferences.ignoredKeys
         )
-        return try await post("places/nearby/pick", body: body)
+        return try await post("places/nearby/pick", body: body, timeout: placesTimeout)
     }
 
     static func saveRestaurant(id: Int) async throws -> SaveResponse {
@@ -535,12 +548,17 @@ enum APIClient {
         }
     }
 
+    /// Decide / Pick-one-lah can cold-sync an area from Google (tiles, text lanes, then the
+    /// winner's details) — give them room so the phone doesn't give up while the server is still
+    /// paying for the answer.
+    private static let placesTimeout: TimeInterval = 30
+
     private static func post<Body: Encodable, Response: Decodable>(
-        _ path: String, body: Body, clientToken: String? = nil, authenticated: Bool = true
+        _ path: String, body: Body, clientToken: String? = nil, authenticated: Bool = true, timeout: TimeInterval = 15
     ) async throws -> Response {
         var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
-        request.timeoutInterval = 15
+        request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let clientToken {
@@ -581,7 +599,7 @@ enum APIClient {
         request.httpBody = try encoder.encode(body)
 
         let (data, httpResponse) = try await send(request)
-        if (400..<500).contains(httpResponse.statusCode), httpResponse.statusCode != 401,
+        if (400..<500).contains(httpResponse.statusCode), httpResponse.statusCode != 401, httpResponse.statusCode != 429,
            let errorBody = try? decoder.decode(ServerErrorBody.self, from: data),
            let message = errorBody.errors?.values.first?.first ?? errorBody.message, !message.isEmpty {
             throw APIError.rejected(statusCode: httpResponse.statusCode, message: message)
@@ -662,6 +680,9 @@ enum APIClient {
     private static func validate(_ response: HTTPURLResponse) throws {
         if response.statusCode == 401 {
             throw APIError.unauthorized
+        }
+        if response.statusCode == 429 {
+            throw APIError.rateLimited(retryAfterSeconds: response.value(forHTTPHeaderField: "Retry-After").flatMap { Int($0) })
         }
         guard (200..<300).contains(response.statusCode) else {
             throw APIError.server(statusCode: response.statusCode)

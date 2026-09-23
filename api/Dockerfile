@@ -26,6 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libicu-dev \
         unzip \
     && docker-php-ext-install pdo pdo_pgsql opcache intl \
+    # phpredis — CACHE_STORE/QUEUE_CONNECTION=redis (see .env.staging.example).
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +38,7 @@ RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-av
 
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY docker/php/hardening.ini /usr/local/etc/php/conf.d/hardening.ini
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache-tuning.ini
 COPY docker/apache/zz-hardening.conf /etc/apache2/conf-available/zz-hardening.conf
 RUN a2enconf zz-hardening
 

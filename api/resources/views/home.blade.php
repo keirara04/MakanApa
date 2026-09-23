@@ -4,6 +4,10 @@
 @section('description', 'Makan apa hari ni? Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby. Free public beta on iPhone.')
 @section('main_class', '')
 
+@push('nav_extra')
+    <x-marketing.lang-toggle />
+@endpush
+
 @section('content')
 
     {{-- HERO ------------------------------------------------------------------------------ --}}
@@ -18,13 +22,12 @@
                 </p>
 
                 <h1 class="mt-5 text-[2.6rem] font-bold leading-[1.02] tracking-tight text-balance sm:text-6xl lg:text-[3.6rem]">
-                    Makan apa hari ni?
+                    <x-marketing.lang en="What should I eat today?">Makan apa hari ni?</x-marketing.lang>
                     <span class="block text-sambal-600">Decided in seconds.</span>
                 </h1>
 
                 <p class="mx-auto mt-5 max-w-md text-lg text-ink/75 lg:mx-0">
-                    Tell us your mood, budget and how far malas nak jalan. MakanApa picks one.
-                    Kalau tak ngam, reroll je.
+                    <x-marketing.lang en="Tell us your mood, budget and how far you're willing to go. MakanApa picks one. Not feeling it? Just reroll.">Tell us your mood, budget and how far malas nak jalan. MakanApa picks one. Kalau tak ngam, reroll je.</x-marketing.lang>
                 </p>
 
                 <div class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
@@ -53,15 +56,15 @@
 
                 {{-- Thought bubble --}}
                 <div aria-hidden="true" class="absolute left-[2%] top-[8%] -rotate-[10deg] rounded-[1.75rem] rounded-br-md border-2 border-ink/80 bg-white px-4 py-2 font-hand text-2xl leading-6 shadow-clay sm:text-3xl sm:leading-7">
-                    Nasi?<br>Korean?<br><span class="text-sambal-600">Anything lah!</span>
+                    <x-marketing.lang>Nasi?<x-slot:en>Rice?</x-slot:en></x-marketing.lang><br>Korean?<br><span class="text-sambal-600"><x-marketing.lang en="Anything's fine!">Anything lah!</x-marketing.lang></span>
                 </div>
 
                 <x-marketing.sticker class="absolute right-0 top-[6%] rotate-[4deg]">&lt; RM20</x-marketing.sticker>
                 <x-marketing.sticker tone="sambal" class="absolute -right-1 top-[28%] rotate-[10deg]">
                     <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.3 7 13 7 13s7-7.7 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
-                    Dekat je
+                    <x-marketing.lang en="Nearby">Dekat je</x-marketing.lang>
                 </x-marketing.sticker>
-                <x-marketing.sticker class="absolute right-2 top-[50%] -rotate-[6deg] max-sm:hidden">Janji sedap!</x-marketing.sticker>
+                <x-marketing.sticker class="absolute right-2 top-[50%] -rotate-[6deg] max-sm:hidden"><x-marketing.lang en="As long as it's good!">Janji sedap!</x-marketing.lang></x-marketing.sticker>
                 <x-marketing.doodle type="burst" class="absolute right-[26%] top-[46%] h-8 w-8 rotate-45 text-sambal-500 max-sm:hidden" />
             </div>
         </div>
@@ -91,8 +94,8 @@
 
             <div class="text-center lg:text-left">
                 <p class="text-3xl font-bold leading-tight tracking-tight text-balance sm:text-5xl">
-                    Scroll Grab 20 minit.<br>
-                    <span class="text-sambal-300">Still tak tahu nak makan apa?</span>
+                    <x-marketing.lang en="20 minutes scrolling Grab.">Scroll Grab 20 minit.</x-marketing.lang><br>
+                    <span class="text-sambal-300"><x-marketing.lang en="Still no idea what to eat?">Still tak tahu nak makan apa?</x-marketing.lang></span>
                 </p>
                 <p class="mt-4 text-lg text-cream/80">That's literally why we built MakanApa.</p>
             </div>
@@ -108,9 +111,10 @@
 
         @php
             $steps = [
-                ['mood-spicy', 'Apa vibe?', 'Nasi? Pedas? Something light? Anything also can.', ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Lemak', 'Mee Goreng'], 'Nasi Kandar'],
-                ['budget-normal', 'Budget macam mana?', 'Save sikit, normal lah, or treat yourself.', ['~RM10', '~RM20', '~RM35+', 'Anything lah'], '~RM20'],
-                ['distance-walk', 'Jauh boleh?', 'Dekat je, okay lah, or janji sedap.', ['Within 1 km', 'Within 2 km', 'Within 5 km'], 'Within 2 km'],
+                // [illustration, title [ms, en], body [ms, en], options (label or [ms, en]), picked option]
+                ['mood-spicy', ['Apa vibe?', "What's the vibe?"], ['Nasi? Pedas? Something light? Anything also can.', 'Rice? Spicy? Something light? Anything works.'], ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Lemak', 'Mee Goreng'], 'Nasi Kandar'],
+                ['budget-normal', ['Budget macam mana?', "What's the budget?"], ['Save sikit, normal lah, or treat yourself.', 'Save a little, keep it normal, or treat yourself.'], ['~RM10', '~RM20', '~RM35+', ['Anything lah', 'Anything']], '~RM20'],
+                ['distance-walk', ['Jauh boleh?', 'How far can you go?'], ['Dekat je, okay lah, or janji sedap.', 'Close by, a bit further, or anywhere worth it.'], ['Within 1 km', 'Within 2 km', 'Within 5 km'], 'Within 2 km'],
             ];
         @endphp
 
@@ -121,15 +125,21 @@
                         <span class="flex h-8 w-8 items-center justify-center rounded-full bg-sambal-50 text-sm font-bold text-sambal-700">{{ $i + 1 }}</span>
                         <img src="{{ asset("images/illustrations/{$art}.svg") }}" alt="" aria-hidden="true" width="56" height="56" class="h-14 w-14">
                     </div>
-                    <h3 class="mt-3 text-lg font-bold">{{ $title }}</h3>
-                    <p class="mt-1 text-sm text-ink/75">{{ $body }}</p>
+                    <h3 class="mt-3 text-lg font-bold"><x-marketing.lang :en="$title[1]">{{ $title[0] }}</x-marketing.lang></h3>
+                    <p class="mt-1 text-sm text-ink/75"><x-marketing.lang :en="$body[1]">{{ $body[0] }}</x-marketing.lang></p>
                     <ul class="mt-4 flex flex-wrap gap-2" aria-hidden="true">
                         @foreach ($options as $option)
                             <li @class([
                                 'rounded-full px-3 py-1 text-xs font-semibold',
                                 'bg-sambal-600 text-white' => $option === $picked,
                                 'border border-sambal-100 bg-cream text-ink/80' => $option !== $picked,
-                            ])>{{ $option }}</li>
+                            ])>
+                                @if (is_array($option))
+                                    <x-marketing.lang :en="$option[1]">{{ $option[0] }}</x-marketing.lang>
+                                @else
+                                    {{ $option }}
+                                @endif
+                            </li>
                         @endforeach
                     </ul>
                 </li>
@@ -151,7 +161,7 @@
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
             <p class="text-center text-xs font-semibold uppercase tracking-wider text-sambal-700">The real app</p>
             <h2 class="mx-auto mt-2 max-w-2xl text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-                From “entah nak makan apa” to settled in a few taps.
+                <x-marketing.lang en="From “what should we eat?” to settled in a few taps.">From “entah nak makan apa” to settled in a few taps.</x-marketing.lang>
             </h2>
         </div>
 
@@ -184,7 +194,7 @@
                     <img src="{{ asset('images/illustrations/mood-quick.svg') }}" alt="" aria-hidden="true" width="44" height="44" class="h-11 w-11 shrink-0">
                     <div>
                         <h3 class="text-lg font-bold">Reroll</h3>
-                        <p class="mt-1 text-sm text-ink/75">Tak ngam? Next one. Same preferences, different spot.</p>
+                        <p class="mt-1 text-sm text-ink/75"><x-marketing.lang en="Not feeling it? Next one. Same preferences, different spot.">Tak ngam? Next one. Same preferences, different spot.</x-marketing.lang></p>
                     </div>
                 </div>
                 <div class="mt-auto flex items-end gap-3 pt-5" aria-hidden="true">
@@ -193,7 +203,7 @@
                     </div>
                     <div class="mb-2 flex-1 rounded-2xl border border-sambal-100 bg-cream p-3 shadow-clay">
                         <p class="text-sm font-semibold">Not feeling it?</p>
-                        <p class="mt-2 inline-block rounded-full bg-sambal-600 px-3 py-1 text-xs font-bold text-white">Cari lagi!</p>
+                        <p class="mt-2 inline-block rounded-full bg-sambal-600 px-3 py-1 text-xs font-bold text-white"><x-marketing.lang en="Find another">Cari lagi!</x-marketing.lang></p>
                     </div>
                 </div>
             </article>
@@ -271,13 +281,13 @@
 
             <div class="relative mx-auto flex w-full max-w-xl flex-wrap justify-center gap-3 sm:block sm:h-72" role="list" aria-label="Things we all say about food">
                 @foreach ([
-                    ['“Dekat je.”', 'sm:left-0 sm:top-6 -rotate-6'],
-                    ['“Bawah RM20.”', 'sm:left-[26%] sm:top-0 rotate-3'],
-                    ['“Janji sedap.”', 'sm:right-[14%] sm:top-8 -rotate-3'],
-                    ['“Pedas sikit boleh.”', 'sm:right-0 sm:top-32 rotate-6'],
-                    ['“Anything lah.”', 'sm:left-[4%] sm:bottom-6 rotate-2'],
+                    [['“Dekat je.”', '“Somewhere close.”'], 'sm:left-0 sm:top-6 -rotate-6'],
+                    [['“Bawah RM20.”', '“Under RM20.”'], 'sm:left-[26%] sm:top-0 rotate-3'],
+                    [['“Janji sedap.”', '“As long as it’s good.”'], 'sm:right-[14%] sm:top-8 -rotate-3'],
+                    [['“Pedas sikit boleh.”', '“A little spicy is fine.”'], 'sm:right-0 sm:top-32 rotate-6'],
+                    [['“Anything lah.”', '“Anything’s fine.”'], 'sm:left-[4%] sm:bottom-6 rotate-2'],
                 ] as [$quote, $pos])
-                    <p role="listitem" class="sm:absolute {{ $pos }} rounded-[1.5rem] rounded-bl-md border-2 border-sambal-500 bg-white px-4 py-1.5 font-hand text-2xl text-ink shadow-clay sm:text-3xl">{{ $quote }}</p>
+                    <p role="listitem" class="sm:absolute {{ $pos }} rounded-[1.5rem] rounded-bl-md border-2 border-sambal-500 bg-white px-4 py-1.5 font-hand text-2xl text-ink shadow-clay sm:text-3xl"><x-marketing.lang :en="$quote[1]">{{ $quote[0] }}</x-marketing.lang></p>
                 @endforeach
                 <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" aria-hidden="true" width="128" height="128" loading="lazy"
                      class="mx-auto h-28 w-28 sm:absolute sm:bottom-0 sm:left-1/2 sm:h-32 sm:w-32 sm:-translate-x-1/2">
@@ -296,7 +306,7 @@
             $answer = 'pb-4 text-sm text-ink/75';
             $faqs = [
                 [
-                    ['Why TestFlight?', 'MakanApa is still in public beta, so the iPhone app is shared through Apple\'s TestFlight app. Tap the button, install TestFlight from the App Store if you don\'t have it, then tap <strong>Accept</strong> and <strong>Install</strong> for MakanApa. You might find a bug or two. Kalau jumpa, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">bagitahu us</a>.'],
+                    ['Why TestFlight?', 'MakanApa is still in public beta, so the iPhone app is shared through Apple\'s TestFlight app. Tap the button, install TestFlight from the App Store if you don\'t have it, then tap <strong>Accept</strong> and <strong>Install</strong> for MakanApa. You might find a bug or two. <span class="lang-ms">Kalau jumpa, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">bagitahu us</a>.</span><span class="lang-en">If you find one, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">let us know</a>.</span>'],
                     ['Is it free?', 'Yes, joining the beta is free.'],
                     ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
                 ],
@@ -329,7 +339,7 @@
                 <x-marketing.doodle type="sparkle" class="animate-twinkle absolute -right-2 bottom-4 h-4 w-4 text-sambal-500" />
             </div>
             <h2 class="text-3xl font-bold leading-tight tracking-tight lg:text-[2rem]">
-                Jom, stop scrolling.<br><span class="text-sambal-600">Start makan.</span>
+                <x-marketing.lang en="Come on, stop scrolling.">Jom, stop scrolling.</x-marketing.lang><br><span class="text-sambal-600"><x-marketing.lang en="Start eating.">Start makan.</x-marketing.lang></span>
             </h2>
             <p class="text-ink/75">Deciding what to eat shouldn't be the hardest part of your day.</p>
             <div class="flex flex-col items-center gap-2">

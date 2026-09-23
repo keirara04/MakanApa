@@ -14,7 +14,6 @@ struct MakanApaApp: App {
     @State private var soloViewModel = SoloViewModel()
     @State private var locationService = LocationService()
     @State private var onboardingState = OnboardingState.shared
-    @State private var primingState = NotificationPrimingState.shared
     @State private var pendingDeepLink = PendingDeepLink.shared
     @State private var selectedTab: AppTab = .decide
     private var authStore = AuthStore.shared
@@ -43,10 +42,9 @@ struct MakanApaApp: App {
                     OnboardingView(onFinished: {})
                         .environment(locationService)
                         .transition(.opacity.combined(with: .scale(scale: 0.985)))
-                } else if !primingState.hasSeenPriming {
-                    NotificationPrimingView(onFinished: { primingState.complete() })
-                        .transition(.opacity.combined(with: .scale(scale: 0.985)))
                 } else {
+                    // Notification priming is no longer a launch gate — it's offered after the
+                    // user's first accepted pick (ResultView.afterAccept()).
                     switch authStore.session {
                     case .loading:
                         splashView
@@ -61,7 +59,6 @@ struct MakanApaApp: App {
             }
             .animation(Motion.standard, value: authStore.session)
             .animation(Motion.standard, value: onboardingState.hasCompletedOnboarding)
-            .animation(Motion.standard, value: primingState.hasSeenPriming)
             .task {
                 await authStore.bootstrap()
             }
@@ -119,11 +116,25 @@ struct MakanApaApp: App {
     }
 
     private var splashView: some View {
-        VStack {
+        VStack(spacing: 16) {
             Spacer()
-            MascotView(mood: .idle, size: 120)
+            MascotView(mood: authStore.bootstrapFailed ? .sad : .idle, size: 120)
+            // Only reachable offline on a first launch with a saved token but no cached profile —
+            // the token is kept, so a retry lands straight back in the app.
+            if authStore.bootstrapFailed {
+                Text(Copy.connectionErrorDetail)
+                    .font(.makanBody(15))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(Copy.tryAgain) {
+                    Task { await authStore.bootstrap() }
+                }
+                .font(.makanBody(15))
+                .foregroundStyle(Color.sambalRed)
+            }
             Spacer()
         }
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.nasiCream)
     }

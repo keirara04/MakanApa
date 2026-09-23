@@ -60,5 +60,8 @@ return [
         // min_pickers, but should still be visible while it's fresh).
         'new_in_area_days' => 14,
         'new_in_area_limit' => 10,
+        // University/area trending aggregates are shared by every member — reused this long.
+        // 0 disables it (the Public radius feed is never cached; it depends on the caller's location).
+        'cache_seconds' => (int) env('COMMUNITY_FEED_CACHE_SECONDS', 300),
     ],
 ];

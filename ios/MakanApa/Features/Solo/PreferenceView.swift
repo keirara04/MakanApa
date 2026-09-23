@@ -279,6 +279,7 @@ struct PreferenceView: View {
         guard case let .authorized(coordinate) = locationService.state else { return }
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        viewModel.rememberChoices()
         isThinking = true
 
         thinkingTask = Task {

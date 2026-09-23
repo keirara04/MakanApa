@@ -18,5 +18,9 @@ final class ProviderPlace
         public readonly ?int $priceLevel,
         public readonly ?bool $openNow,
         public readonly ?int $userRatingCount = null,
+        /** Google's regularOpeningHours.periods, raw — see App\Support\OpeningHours. */
+        public readonly ?array $openingPeriods = null,
+        public readonly ?int $utcOffsetMinutes = null,
+        public readonly ?string $address = null,
     ) {}
 }

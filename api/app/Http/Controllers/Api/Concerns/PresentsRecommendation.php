@@ -17,6 +17,7 @@ use App\Support\DiscoveryMode;
 use App\Support\RecommendationHeadline;
 use App\Support\Vibe;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -31,8 +32,9 @@ trait PresentsRecommendation
 {
     /**
      * Winner-only Google Places Details fetch (photos/reviews/closing time) — never called
-     * for the full candidate list, only the one restaurant actually being shown. Transient:
-     * nothing this returns is written to the database.
+     * for the full candidate list, only the one restaurant actually being shown. Never written
+     * to the database; held in the cache for a few minutes only (services.places.details_cache_minutes)
+     * so rerolling back to a place or reopening its sheet doesn't pay for the same call again.
      */
     private function enrichWinner(array $restaurant): array
     {
@@ -42,11 +44,16 @@ trait PresentsRecommendation
             return $empty;
         }
 
-        try {
-            $apiKey = Config::get('services.places.google_api_key');
-            $raw = (new GooglePlacesProvider($apiKey))->fetchPresentationDetails($restaurant['provider_place_id']);
+        $placeId = $restaurant['provider_place_id'];
+        $fetch = fn () => $this->normalizer->normalizePresentationDetails(
+            (new GooglePlacesProvider(Config::get('services.places.google_api_key')))->fetchPresentationDetails($placeId)
+        );
+        $cacheMinutes = (int) Config::get('services.places.details_cache_minutes', 10);
 
-            return $this->normalizer->normalizePresentationDetails($raw);
+        try {
+            return $cacheMinutes > 0
+                ? Cache::remember('places_details:v1:'.$placeId, now()->addMinutes($cacheMinutes), $fetch)
+                : $fetch();
         } catch (Throwable $e) {
             Log::warning('Presentation details fetch failed', ['error' => $e->getMessage()]);
 
@@ -87,7 +94,7 @@ trait PresentsRecommendation
      * Community-contributed menu + photos — detail-level only (never in a list response), same
      * "lists stay light, detail loads richer" precedent as everything else in Community.
      */
-    private function presentDiscoveryExtras(int $restaurantId): array
+    private function presentDiscoveryExtras(int $restaurantId, ?Restaurant $restaurant = null): array
     {
         return [
             'menuItems' => RestaurantMenuItem::where('restaurant_id', $restaurantId)
@@ -108,7 +115,7 @@ trait PresentsRecommendation
                 ->filter()
                 ->values()
                 ->all(),
-            'halal' => app(HalalPresenter::class)->present(Restaurant::findOrFail($restaurantId), request()->user()),
+            'halal' => app(HalalPresenter::class)->present($restaurant ?? Restaurant::findOrFail($restaurantId), request()->user()),
         ];
     }
 

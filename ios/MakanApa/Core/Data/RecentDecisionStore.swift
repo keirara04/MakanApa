@@ -10,7 +10,7 @@ struct RecentDecision: Codable, Identifiable, Equatable {
     let priceLevel: Int?
     let rating: Double?
     let timestamp: Date
-    let source: String // "solo" | "nearby"
+    let source: String // "solo" | "nearby" | "search"
 }
 
 /// Last few accepted picks, most recent first, for Home's "Recent" block. Deliberately capped

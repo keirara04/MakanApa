@@ -16,11 +16,15 @@ use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\Places\ProviderPlace;
 use App\Support\DiscoveryMode;
+use App\Support\FoodTaxonomy;
+use App\Support\Halal\HalalEligibility;
 use App\Support\Halal\HalalHeuristic;
 use App\Support\Halal\HalalStatus;
+use App\Support\OpeningHours;
 use App\Support\Vibe;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -60,8 +64,37 @@ class PlacesService
     /** searchPlaces()'s radius around the caller's Nearby browse center — a fixed, generous "somewhere in the area" scope, not the viewport-derived radius nearbyRestaurants() uses. */
     private const SEARCH_RADIUS_KM = 6.0;
 
-    /** Below this many local matches, searchPlaces() also asks Google — keeps MakanApa's own data first-class by construction (it's always searched, always returned first) rather than by rank-boosting alone, while still calling Google on every keystroke when our own data already has enough to show. */
-    private const GOOGLE_FALLBACK_MIN_LOCAL_RESULTS = 8;
+    /** "Search wider" steps for searchPlaces() — the client asks for the next rung via widerRadiusKm. */
+    private const SEARCH_RADIUS_LADDER_KM = [6.0, 12.0, 25.0];
+
+    /**
+     * Google is consulted automatically only while local results hold fewer than this many
+     * *strong* (name) matches — three fuzzy category/menu hits must not block Google, but three
+     * real "KFC"s mean our own data already answers the question. Otherwise the client offers an
+     * explicit "Search Google" row (includeGoogle=true), so cost stays under the user's control.
+     */
+    private const GOOGLE_FALLBACK_MIN_STRONG_MATCHES = 3;
+
+    /** matchTier() at or below this is a name match — what counts as "strong" for the rule above. */
+    private const STRONG_MATCH_MAX_TIER = 2;
+
+    /** "kf" never pays for a Google call on its own; the local search still runs. */
+    private const GOOGLE_FALLBACK_MIN_QUERY_LENGTH = 3;
+
+    /** Did-you-mean suggestions only ever come from these many nearby names/aliases. */
+    private const SUGGESTION_LIMIT = 3;
+
+    /** How far outside the request a synced circle's center may sit and still be considered for coverage — comfortably above any tile/viewport radius. */
+    private const SYNC_AREA_SEARCH_MARGIN_KM = 10.0;
+
+    /** Points per ring when checking whether the union of synced circles covers a request (see isAreaCovered()). */
+    private const COVERAGE_SAMPLE_BEARINGS = 16;
+
+    /** @var array<string, int> cuisine slug => id, memoized across upserts in one sync */
+    private array $cuisineIds = [];
+
+    /** @var array<string, int> tag name => id, memoized across upserts in one sync */
+    private array $tagIds = [];
 
     public function __construct(
         private readonly PlaceNormalizer $normalizer,
@@ -70,6 +103,13 @@ class PlacesService
 
     /** Set by nearbyRestaurants() when a craving is present, for RecommendationController's debug payload only. */
     private array $lastCandidateCounts = [];
+
+    /**
+     * Set by searchPlaces() — how the last search was answered, for PlaceSearchController's `meta`.
+     *
+     * @var array{radius_km: float, source: string, google_available: bool, wider_radius_km: ?float, total: int, suggestions: string[]}|array{}
+     */
+    private array $lastSearchMeta = [];
 
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays, shaped for RecommendationService
@@ -104,9 +144,12 @@ class PlacesService
         // existing dedupe-by-provider_place_id handles the overlap) surfaces more of what's
         // actually there. Small/typical searches are untouched — tileCircles() returns a single
         // tile below TILE_RADIUS_THRESHOLD_KM, identical to pre-tiling behavior.
+        $tiles = $this->tileCircles($latitude, $longitude, $radiusKm);
+        // One query for every tile's coverage check, not one full-table read per tile.
+        $freshAreas = $this->freshSyncAreasNear($latitude, $longitude, $radiusKm, $includedTypes);
         $uncoveredTiles = array_values(array_filter(
-            $this->tileCircles($latitude, $longitude, $radiusKm),
-            fn (array $tile) => ! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $includedTypes)
+            $tiles,
+            fn (array $tile) => ! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $freshAreas)
         ));
 
         if (! empty($uncoveredTiles)) {
@@ -114,49 +157,41 @@ class PlacesService
         }
 
         $nearbyCount = null;
-        $textSearchCount = 0;
+        $textSearchLanes = [];
         if ($craving !== null && $craving->primarySearchTerm() !== null) {
-            $nearbyCount = count($this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes));
-
-            // Text Search is an opportunistic boost, not a required part of the response — a
-            // failure here (Google rate limit, transient 5xx, bad query) must never turn an
-            // otherwise-working nearby-search result into a hard failure for the whole request.
-            try {
-                $cravingDiscriminator = $craving->concept
-                    ?? strtolower(trim(preg_replace('/\s+/', ' ', $craving->raw) ?? ''));
-                // The concept's specific Google type when FoodTaxonomy has one (ice cream ->
-                // ice_cream_shop, dessert -> dessert_restaurant) — narrower than 'restaurant'
-                // without reopening the "craving search goes unrestricted" bug this replaces.
-                // Falls back to 'restaurant' for dish concepts with no placeTypes entry and for
-                // unresolved/raw-text cravings, i.e. today's exact prior behavior.
-                $cravingIncludedType = $craving->placeTypes[0] ?? 'restaurant';
-                $textSearchCount = $this->syncFromTextSearchQuery(
-                    $latitude, $longitude, $radiusKm, $apiKey,
-                    $craving->primarySearchTerm(), 'craving:'.$cravingDiscriminator, $cravingIncludedType
-                );
-            } catch (Throwable $e) {
-                Log::warning('Craving text search failed, continuing with nearby-only results', [
-                    'error' => $e->getMessage(),
-                    'query' => $craving->primarySearchTerm(),
-                ]);
+            // Debug payload only — a second full read of the area isn't worth paying otherwise.
+            if (Config::get('recommendation.debug')) {
+                $nearbyCount = count($this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes));
             }
+
+            $cravingDiscriminator = $craving->concept
+                ?? strtolower(trim(preg_replace('/\s+/', ' ', $craving->raw) ?? ''));
+            // The concept's specific Google type when FoodTaxonomy has one (ice cream ->
+            // ice_cream_shop, dessert -> dessert_restaurant) — narrower than 'restaurant'
+            // without reopening the "craving search goes unrestricted" bug this replaces.
+            // Falls back to 'restaurant' for dish concepts with no placeTypes entry and for
+            // unresolved/raw-text cravings, i.e. today's exact prior behavior.
+            $textSearchLanes[] = [
+                'kind' => 'craving',
+                'query' => $craving->primarySearchTerm(),
+                'discriminator' => 'craving:'.$cravingDiscriminator,
+                'includedType' => $craving->placeTypes[0] ?? 'restaurant',
+            ];
         }
 
         // Unrestricted (no includedType) — Google's Text Search only accepts one type, and a
         // lane meant to catch cafe-or-coffee_shop-or-bakery can't be expressed as a single
         // restriction anyway, so narrowing it here would just silently drop valid matches.
         foreach ($this->discoveryTextQueries($mode, $vibe) as $discoveryQuery) {
-            try {
-                $textSearchCount += $this->syncFromTextSearchQuery(
-                    $latitude, $longitude, $radiusKm, $apiKey, $discoveryQuery, 'discovery:'.$discoveryQuery, null
-                );
-            } catch (Throwable $e) {
-                Log::warning('Discovery text search failed, continuing without it', [
-                    'error' => $e->getMessage(),
-                    'query' => $discoveryQuery,
-                ]);
-            }
+            $textSearchLanes[] = [
+                'kind' => 'discovery',
+                'query' => $discoveryQuery,
+                'discriminator' => 'discovery:'.$discoveryQuery,
+                'includedType' => null,
+            ];
         }
+
+        $textSearchCount = $this->syncTextSearchLanes($latitude, $longitude, $radiusKm, $apiKey, $textSearchLanes);
 
         $restaurants = array_merge(
             $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes),
@@ -173,42 +208,77 @@ class PlacesService
     }
 
     /**
-     * Restaurant name/food/category/cuisine/dish search, scoped to the caller's current Nearby
-     * browse center. MakanApa's own DB is searched first and always included; Google Text Search
-     * is only called as a supplemental fallback when local results are thin — not on every
-     * keystroke — so the common case (our own data already covers the query) never pays for a
-     * Google call at all.
+     * Restaurant name/food/category/cuisine/dish search, scoped to a radius around the caller's
+     * Nearby browse center. MakanApa's own DB is searched first and always included; Google Text
+     * Search is a supplemental fallback — automatic only while local strong matches are thin
+     * (see GOOGLE_FALLBACK_MIN_STRONG_MATCHES), otherwise on explicit request ($includeGoogle).
      *
-     * Ranking is match-quality first (exact/prefix/contains name, then dish, then menu item, then
-     * category/cuisine, then distance), with provenance only breaking ties — a strong Google match
-     * must never lose to a weak community one just because community rows are "ours."
+     * Ranking answers "which place did you mean", not "where should you eat": match quality
+     * first, then provenance, then distance (1 km buckets), open before closed, rating, and exact
+     * distance as the final deterministic tiebreak. Likely branches of one chain are then pulled
+     * together (see groupBranches()) without hiding any of them.
      *
      * @return array<int, array<string, mixed>> each tagged 'provenance': canonical|community|google_fallback
      */
-    public function searchPlaces(string $query, float $latitude, float $longitude): array
-    {
-        $local = $this->searchLocalRestaurants($query, $latitude, $longitude);
+    public function searchPlaces(
+        string $query, float $latitude, float $longitude,
+        float $radiusKm = self::SEARCH_RADIUS_KM, bool $halalOnly = false, ?bool $includeGoogle = null,
+    ): array {
+        $normalizedQuery = mb_strtolower(trim($query));
+        $local = HalalEligibility::filter($this->searchLocalRestaurants($query, $latitude, $longitude, $radiusKm), $halalOnly);
 
-        $results = $local;
+        $strongLocalMatches = count(array_filter(
+            $local, fn (array $result) => $this->matchTier($result, $normalizedQuery) <= self::STRONG_MATCH_MAX_TIER
+        ));
+
         // Same PLACES_PROVIDER gate nearbyRestaurants() uses — fixture-mode environments (tests,
         // local dev without a Google key configured) must never place a live API call just
         // because search happens to also read GOOGLE_PLACES_API_KEY from the environment.
-        $usesGoogle = Config::get('services.places.provider', 'fixture') === 'google';
-        if ($usesGoogle && count($local) < self::GOOGLE_FALLBACK_MIN_LOCAL_RESULTS) {
-            $apiKey = Config::get('services.places.google_api_key');
-            if (! empty($apiKey)) {
-                try {
-                    $results = array_merge($results, $this->searchGoogleFallback($query, $latitude, $longitude, $apiKey));
-                } catch (Throwable $e) {
-                    Log::warning('Places search: Google text search fallback failed, returning local results only', [
-                        'error' => $e->getMessage(),
-                        'query' => $query,
-                    ]);
-                }
+        $apiKey = Config::get('services.places.google_api_key');
+        $googleConfigured = Config::get('services.places.provider', 'fixture') === 'google' && ! empty($apiKey);
+        $wantsGoogle = $includeGoogle ?? (
+            $strongLocalMatches < self::GOOGLE_FALLBACK_MIN_STRONG_MATCHES
+            && mb_strlen($normalizedQuery) >= self::GOOGLE_FALLBACK_MIN_QUERY_LENGTH
+        );
+
+        $results = $local;
+        $askedGoogle = false;
+        if ($googleConfigured && $wantsGoogle) {
+            try {
+                $results = array_merge($results, $this->searchGoogleFallback($query, $latitude, $longitude, $radiusKm, $apiKey));
+                $askedGoogle = true;
+            } catch (Throwable $e) {
+                Log::warning('Places search: Google text search fallback failed, returning local results only', [
+                    'error' => $e->getMessage(),
+                    'query' => $query,
+                ]);
             }
         }
 
-        return $this->rankSearchResults($results, $query);
+        $ranked = $this->groupBranches($this->rankSearchResults($results, $query));
+
+        $provenances = array_unique(array_column($ranked, 'provenance'));
+        $hasGoogle = in_array('google_fallback', $provenances, true);
+        $this->lastSearchMeta = [
+            'radius_km' => $radiusKm,
+            'source' => match (true) {
+                $hasGoogle && count($provenances) > 1 => 'mixed',
+                $hasGoogle => 'google',
+                default => 'local',
+            },
+            'google_available' => $googleConfigured && ! $askedGoogle,
+            'wider_radius_km' => collect(self::SEARCH_RADIUS_LADDER_KM)->first(fn (float $rung) => $rung > $radiusKm),
+            'total' => count($ranked),
+            'suggestions' => $ranked === [] ? $this->searchSuggestions($normalizedQuery, $latitude, $longitude, $radiusKm) : [],
+        ];
+
+        return $ranked;
+    }
+
+    /** @return array{radius_km: float, source: string, google_available: bool, wider_radius_km: ?float, total: int, suggestions: string[]}|array{} */
+    public function lastSearchMeta(): array
+    {
+        return $this->lastSearchMeta;
     }
 
     /**
@@ -245,12 +315,17 @@ class PlacesService
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function searchLocalRestaurants(string $query, float $latitude, float $longitude): array
+    private function searchLocalRestaurants(string $query, float $latitude, float $longitude, float $radiusKm): array
     {
         $pattern = '%'.$this->escapeLike($query).'%';
+        [$latDelta, $lngDelta] = self::boundingBoxDeltas($latitude, $radiusKm);
 
         return Restaurant::query()
             ->where('is_active', true)
+            // Box first so the text match only runs over the search area, not the whole table;
+            // the exact Haversine cutoff below still trims the corners.
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
             ->where(function ($q) use ($pattern) {
                 $q->where('name', 'ilike', $pattern)
                     ->orWhere('food_category', 'ilike', $pattern)
@@ -263,7 +338,7 @@ class PlacesService
             ->with(['cuisines', 'tags', 'menuItems'])
             ->get()
             ->map(fn (Restaurant $r) => [$r, RecommendationService::distanceKm($latitude, $longitude, (float) $r->latitude, (float) $r->longitude)])
-            ->filter(fn (array $pair) => $pair[1] <= self::SEARCH_RADIUS_KM)
+            ->filter(fn (array $pair) => $pair[1] <= $radiusKm)
             ->map(fn (array $pair) => [
                 ...$pair[0]->toSearchResultArray(
                     $pair[0]->provider === 'user_submitted' ? 'community' : 'canonical',
@@ -280,30 +355,39 @@ class PlacesService
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function searchGoogleFallback(string $query, float $latitude, float $longitude, string $apiKey): array
+    private function searchGoogleFallback(string $query, float $latitude, float $longitude, float $radiusKm, string $apiKey): array
     {
-        $existingPlaceIds = Restaurant::where('provider', 'google')->pluck('provider_place_id')->all();
+        $places = (new GooglePlacesProvider($apiKey))->searchText($query, $latitude, $longitude, $radiusKm, null);
 
-        $places = (new GooglePlacesProvider($apiKey))->searchText($query, $latitude, $longitude, self::SEARCH_RADIUS_KM, null);
+        // Only the IDs Google just returned — never the whole restaurants table.
+        $existingPlaceIds = Restaurant::where('provider', 'google')
+            ->whereIn('provider_place_id', $places->map(fn (ProviderPlace $place) => $place->providerPlaceId)->all())
+            ->pluck('provider_place_id')
+            ->flip();
 
-        return $places
-            ->reject(fn (ProviderPlace $place) => in_array($place->providerPlaceId, $existingPlaceIds, true))
-            ->map(fn (ProviderPlace $place) => [
+        return $this->normalizer->normalize($places->reject(fn (ProviderPlace $place) => $existingPlaceIds->has($place->providerPlaceId))->values())
+            ->map(fn (array $data) => [
                 'id' => null,
-                'google_place_id' => $place->providerPlaceId,
-                'name' => $place->name,
-                'latitude' => $place->latitude,
-                'longitude' => $place->longitude,
-                'price_level' => $place->priceLevel,
-                'rating' => $place->rating,
-                'food_category' => null,
+                'google_place_id' => $data['provider_place_id'],
+                'name' => $data['name'],
+                'address' => $data['address'],
+                'latitude' => $data['latitude'],
+                'longitude' => $data['longitude'],
+                'price_level' => $data['price_level'],
+                'rating' => $data['rating'],
+                'food_category' => $data['food_category'],
                 'signature_dish' => null,
-                'cuisines' => [],
+                'cuisines' => $data['cuisines'],
                 'tags' => [],
+                'open_status' => OpeningHours::status($data['opening_hours'], now()),
+                'closes_at' => OpeningHours::closesAt($data['opening_hours'], now()),
+                'halal_status' => HalalStatus::Unknown->value,
                 'provenance' => 'google_fallback',
                 'is_community_find' => false,
-                'distance_km' => RecommendationService::distanceKm($latitude, $longitude, $place->latitude, $place->longitude),
+                'distance_km' => RecommendationService::distanceKm($latitude, $longitude, $data['latitude'], $data['longitude']),
             ])
+            // Text Search's location is only a bias — keep the same radius promise local results make.
+            ->filter(fn (array $result) => $result['distance_km'] <= $radiusKm)
             ->values()
             ->all();
     }
@@ -351,23 +435,151 @@ class PlacesService
     {
         $normalizedQuery = mb_strtolower(trim($query));
 
-        $ranked = collect($results)
-            ->map(function (array $result) use ($normalizedQuery) {
-                $result['_tier'] = $this->matchTier($result, $normalizedQuery);
-                $result['_provenanceBoost'] = $result['provenance'] === 'google_fallback' ? 1 : 0;
+        $scored = collect($results)->map(function (array $result) use ($normalizedQuery) {
+            $result['_tier'] = $this->matchTier($result, $normalizedQuery);
 
-                return $result;
+            return $result;
+        });
+
+        // A row that only matched through a join the tiering can't re-check is noise once any
+        // real match exists.
+        $bestTier = $scored->min('_tier');
+        if ($bestTier !== null && $bestTier < 6) {
+            $scored = $scored->reject(fn (array $result) => $result['_tier'] === 6);
+        }
+
+        return $scored
+            ->sort(function (array $a, array $b) {
+                return [
+                    $a['_tier'],
+                    $a['provenance'] === 'google_fallback' ? 1 : 0,
+                    (int) floor($a['distance_km'] ?? 999),
+                    ($a['open_status'] ?? 'unknown') === 'closed' ? 1 : 0,
+                    -($a['rating'] ?? 0),
+                    $a['distance_km'] ?? 999,
+                    $a['name'],
+                ] <=> [
+                    $b['_tier'],
+                    $b['provenance'] === 'google_fallback' ? 1 : 0,
+                    (int) floor($b['distance_km'] ?? 999),
+                    ($b['open_status'] ?? 'unknown') === 'closed' ? 1 : 0,
+                    -($b['rating'] ?? 0),
+                    $b['distance_km'] ?? 999,
+                    $b['name'],
+                ];
             })
-            ->sortBy([
-                ['_tier', 'asc'],
-                ['_provenanceBoost', 'asc'],
-                ['distance_km', 'asc'],
-            ])
             ->values()
-            ->map(fn (array $result) => Arr::except($result, ['_tier', '_provenanceBoost', 'menu_item_names']))
+            ->map(fn (array $result) => Arr::except($result, ['_tier', 'menu_item_names']))
             ->all();
+    }
 
-        return $ranked;
+    /**
+     * Likely branches of one chain ("KFC" ×4) are pulled together at the position of the best-
+     * ranked one and tagged with a shared group_key/group_size, so the client can show a
+     * "KFC · 4 nearby" cue — every branch stays visible, nothing collapses. A shared name alone
+     * isn't enough (two unrelated "Restoran Ali" shops): the rows must also share a non-null
+     * food_category or website host.
+     *
+     * @param  array<int, array<string, mixed>>  $ranked
+     * @return array<int, array<string, mixed>>
+     */
+    private function groupBranches(array $ranked): array
+    {
+        $groups = [];
+        foreach ($ranked as $index => $result) {
+            $name = self::normalizedName($result['name'] ?? '');
+            foreach (array_filter([
+                'category:'.($result['food_category'] ?? ''),
+                'web:'.(parse_url((string) ($result['website_url'] ?? ''), PHP_URL_HOST) ?: ''),
+            ], fn (string $signal) => ! str_ends_with($signal, ':')) as $signal) {
+                $groups["{$name}|{$signal}"][] = $index;
+            }
+        }
+
+        $groupOf = [];
+        foreach ($groups as $key => $members) {
+            if (count($members) < 2) {
+                continue;
+            }
+            foreach ($members as $index) {
+                // First qualifying group wins; a row never belongs to two groups.
+                $groupOf[$index] ??= ['key' => $key, 'members' => $members];
+            }
+        }
+
+        $ordered = [];
+        $emitted = [];
+        foreach ($ranked as $index => $result) {
+            if (isset($emitted[$index])) {
+                continue;
+            }
+            $group = $groupOf[$index] ?? null;
+            $members = $group ? array_values(array_filter($group['members'], fn (int $m) => ($groupOf[$m]['key'] ?? null) === $group['key'])) : [$index];
+            foreach ($members as $member) {
+                $emitted[$member] = true;
+                $ordered[] = [
+                    ...$ranked[$member],
+                    'group_key' => $group ? self::normalizedName($ranked[$member]['name'] ?? '') : null,
+                    'group_size' => $group ? count($members) : 1,
+                ];
+            }
+        }
+
+        return $ordered;
+    }
+
+    private static function normalizedName(string $name): string
+    {
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', mb_strtolower($name)));
+    }
+
+    /**
+     * "Did you mean" for an empty result set — deterministic, no LLM: the food concept the query
+     * resolves to (its label/search terms), plus nearby restaurant names and taxonomy aliases
+     * within a small edit distance of the query (typos like "kfcc", "mcdonlds").
+     *
+     * @return string[]
+     */
+    private function searchSuggestions(string $normalizedQuery, float $latitude, float $longitude, float $radiusKm): array
+    {
+        if (mb_strlen($normalizedQuery) < 3) {
+            return [];
+        }
+
+        $suggestions = [];
+        if ($concept = FoodTaxonomy::resolve($normalizedQuery)) {
+            $suggestions[] = FoodTaxonomy::label($concept['concept']);
+            array_push($suggestions, ...$concept['searchTerms']);
+        }
+
+        [$latDelta, $lngDelta] = self::boundingBoxDeltas($latitude, $radiusKm);
+        $nearbyNames = Restaurant::query()
+            ->where('is_active', true)
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+            ->distinct()
+            ->limit(500)
+            ->pluck('name')
+            ->all();
+        $aliases = collect(FoodTaxonomy::CONCEPTS)->pluck('aliases')->flatten()->all();
+
+        $maxDistance = max(1, intdiv(mb_strlen($normalizedQuery), 4));
+        $close = collect([...$nearbyNames, ...$aliases])
+            ->filter(fn (string $candidate) => mb_strlen($candidate) <= 40)
+            ->map(fn (string $candidate) => [$candidate, levenshtein($normalizedQuery, mb_strtolower($candidate))])
+            ->filter(fn (array $pair) => $pair[1] > 0 && $pair[1] <= $maxDistance)
+            ->sortBy(fn (array $pair) => [$pair[1], mb_strlen($pair[0])])
+            ->map(fn (array $pair) => $pair[0])
+            ->all();
+        array_push($suggestions, ...$close);
+
+        return collect($suggestions)
+            ->filter()
+            ->unique(fn (string $suggestion) => mb_strtolower($suggestion))
+            ->reject(fn (string $suggestion) => mb_strtolower($suggestion) === $normalizedQuery)
+            ->take(self::SUGGESTION_LIMIT)
+            ->values()
+            ->all();
     }
 
     private function escapeLike(string $value): string
@@ -462,33 +674,67 @@ class PlacesService
     }
 
     /**
+     * Every fresh synced area that could overlap this request and already fetched every type it
+     * needs (a superset — a Cafe-mode sync covers a later Normal request, but not vice versa).
+     * Loaded once per request; isAreaCovered() then runs per tile in memory.
+     *
      * @param  string[]  $requiredTypes
+     * @return Collection<int, PlaceSyncArea>
      */
-    private function isAreaCovered(float $latitude, float $longitude, float $radiusKm, array $requiredTypes): bool
+    private function freshSyncAreasNear(float $latitude, float $longitude, float $radiusKm, array $requiredTypes): Collection
     {
         $cacheHours = (int) Config::get('services.places.cache_hours', 24);
-        $cutoff = now()->subHours($cacheHours);
+        // Generous margin: a synced circle centred outside the request can still reach into it.
+        [$latDelta, $lngDelta] = self::boundingBoxDeltas($latitude, $radiusKm + self::SYNC_AREA_SEARCH_MARGIN_KM);
 
         return PlaceSyncArea::where('provider', 'google')
-            ->where('synced_at', '>=', $cutoff)
-            ->get()
-            ->contains(function (PlaceSyncArea $area) use ($latitude, $longitude, $radiusKm, $requiredTypes) {
-                $distanceToCenter = RecommendationService::distanceKm(
-                    (float) $area->latitude, (float) $area->longitude, $latitude, $longitude
-                );
+            ->where('synced_at', '>=', now()->subHours($cacheHours))
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
+            ->get(['latitude', 'longitude', 'radius_km', 'types'])
+            ->filter(fn (PlaceSyncArea $area) => empty(array_diff($requiredTypes, $area->types ?? [])))
+            ->values();
+    }
 
-                // Covered only if the requested search circle sits fully inside the already-synced
-                // one AND that sync already fetched every type this request needs (a superset)  —
-                // e.g. a Cafe-mode sync covers a later Normal request, but not vice versa. The
-                // 1-meter tolerance absorbs float/decimal(10,7) rounding noise between a freshly
-                // computed tile center (tileCircles()) and the same center round-tripped through
-                // DB storage — without it, an identical repeat request can miss its own cache by
-                // a fraction of a millimeter and needlessly re-sync.
-                $locationCovered = $distanceToCenter + $radiusKm <= (float) $area->radius_km + 0.001;
-                $typesCovered = empty(array_diff($requiredTypes, $area->types ?? []));
+    /**
+     * Covered when the requested circle sits fully inside one already-synced circle, or — so a
+     * small pan doesn't re-bill Google for data already stored — when the union of synced circles
+     * covers it: its center, a ring at half radius and its whole edge all land inside some synced
+     * circle. The 1-meter tolerance absorbs float/decimal(10,7) rounding noise between a freshly
+     * computed tile center (tileCircles()) and the same center round-tripped through DB storage.
+     *
+     * @param  Collection<int, PlaceSyncArea>  $freshAreas  from freshSyncAreasNear()
+     */
+    private function isAreaCovered(float $latitude, float $longitude, float $radiusKm, Collection $freshAreas): bool
+    {
+        if ($freshAreas->isEmpty()) {
+            return false;
+        }
 
-                return $locationCovered && $typesCovered;
-            });
+        $insideAnArea = fn (float $lat, float $lon, float $radius) => $freshAreas->contains(
+            fn (PlaceSyncArea $area) => RecommendationService::distanceKm(
+                (float) $area->latitude, (float) $area->longitude, $lat, $lon
+            ) + $radius <= (float) $area->radius_km + 0.001
+        );
+
+        if ($insideAnArea($latitude, $longitude, $radiusKm)) {
+            return true;
+        }
+
+        $samplePoints = [[$latitude, $longitude]];
+        foreach ([$radiusKm, $radiusKm / 2] as $ringRadius) {
+            for ($i = 0; $i < self::COVERAGE_SAMPLE_BEARINGS; $i++) {
+                $samplePoints[] = self::offsetCoordinate($latitude, $longitude, $ringRadius, $i * (360 / self::COVERAGE_SAMPLE_BEARINGS));
+            }
+        }
+
+        foreach ($samplePoints as [$pointLat, $pointLon]) {
+            if (! $insideAnArea($pointLat, $pointLon, 0.0)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -523,34 +769,67 @@ class PlacesService
     }
 
     /**
-     * One Google Text Search call per distinct query. The result set itself is cached (not just
-     * the resolved query) so a cluster of nearby users requesting the same thing in the same
-     * window doesn't multiply Google billing; still upserted on every call — cache hit or miss —
-     * so scoring always reads fresh local data, only the Google call itself is skipped.
+     * One Google Text Search call per distinct lane (craving + discovery/vibe lanes), all cache
+     * misses fired concurrently. The result set itself is cached so a cluster of nearby users
+     * requesting the same thing doesn't multiply Google billing. Results are upserted only on a
+     * cache miss: a hit means that exact result set was already written within the cache window,
+     * and re-upserting ~20 places cost hundreds of queries per request for no new data.
      *
-     * @return int number of places returned by this search (cache hit or miss)
+     * Text Search is an opportunistic boost, never a required part of the response — a failing
+     * lane (Google rate limit, transient 5xx, bad query) is logged and skipped, never thrown.
+     *
+     * @param  array<int, array{kind: string, query: string, discriminator: string, includedType: ?string}>  $lanes
+     * @return int number of places the lanes returned (cache hit or miss)
      */
-    private function syncFromTextSearchQuery(
-        float $latitude, float $longitude, float $radiusKm, string $apiKey, string $query,
-        string $cacheDiscriminator, ?string $includedType,
-    ): int {
-        $normalized = Cache::remember(
+    private function syncTextSearchLanes(float $latitude, float $longitude, float $radiusKm, string $apiKey, array $lanes): int
+    {
+        $count = 0;
+        $misses = [];
+
+        foreach ($lanes as $lane) {
             // includedType is part of the cache key — the same query text restricted to
             // 'restaurant' vs unrestricted are different requests, must not share a cache entry.
-            $this->textSearchCacheKey($latitude, $longitude, $radiusKm, $cacheDiscriminator.':'.($includedType ?? 'any')),
-            now()->addMinutes(60),
-            function () use ($apiKey, $query, $latitude, $longitude, $radiusKm, $includedType) {
-                $providerPlaces = (new GooglePlacesProvider($apiKey))->searchText($query, $latitude, $longitude, $radiusKm, $includedType);
+            $key = $this->textSearchCacheKey($latitude, $longitude, $radiusKm, $lane['discriminator'].':'.($lane['includedType'] ?? 'any'));
+            $cached = Cache::get($key);
+            if ($cached !== null) {
+                $count += count($cached);
 
-                return $this->normalizer->normalize($providerPlaces)->all();
+                continue;
             }
-        );
-
-        foreach ($normalized as $data) {
-            $this->upsertRestaurant($data);
+            $misses[] = [...$lane, 'cacheKey' => $key];
         }
 
-        return count($normalized);
+        if (empty($misses)) {
+            return $count;
+        }
+
+        $results = (new GooglePlacesProvider($apiKey))->searchTextBatch(
+            array_map(fn (array $lane) => ['query' => $lane['query'], 'includedType' => $lane['includedType']], $misses),
+            $latitude, $longitude, $radiusKm,
+        );
+
+        foreach ($misses as $index => $lane) {
+            $result = $results[$index];
+            if ($result instanceof Throwable) {
+                Log::warning($lane['kind'] === 'craving'
+                    ? 'Craving text search failed, continuing with nearby-only results'
+                    : 'Discovery text search failed, continuing without it', [
+                        'error' => $result->getMessage(),
+                        'query' => $lane['query'],
+                    ]);
+
+                continue;
+            }
+
+            $normalized = $this->normalizer->normalize($result)->all();
+            Cache::put($lane['cacheKey'], $normalized, now()->addMinutes(60));
+            foreach ($normalized as $data) {
+                $this->upsertRestaurant($data);
+            }
+            $count += count($normalized);
+        }
+
+        return $count;
     }
 
     /** Rounded to ~100m/1km buckets so nearby duplicate searches share a cache entry. */
@@ -593,6 +872,10 @@ class PlacesService
             'food_category' => $data['food_category'],
             'last_synced_at' => now(),
         ];
+        // Only when Google sent one — a sync without the field must not blank an address we have.
+        if (! empty($data['address'])) {
+            $payload['address'] = $data['address'];
+        }
 
         if ($existing) {
             $overriddenFields = RestaurantFieldOverride::where('restaurant_id', $existing->id)->pluck('field')->all();
@@ -608,13 +891,15 @@ class PlacesService
             ]);
         }
 
+        // Memoized per service instance — a 7-tile sync upserts up to 140 places that share a
+        // handful of cuisines/tags, which used to be one firstOrCreate() query per place each.
         $cuisineIds = collect($data['cuisines'])->map(
-            fn (string $slug) => Cuisine::firstOrCreate(['slug' => $slug], ['name' => ucfirst($slug)])->id
+            fn (string $slug) => $this->cuisineIds[$slug] ??= Cuisine::firstOrCreate(['slug' => $slug], ['name' => ucfirst($slug)])->id
         );
         $restaurant->cuisines()->sync($cuisineIds);
 
         $tagIds = collect($data['tags'])->map(
-            fn (string $name) => Tag::firstOrCreate(['name' => $name])->id
+            fn (string $name) => $this->tagIds[$name] ??= Tag::firstOrCreate(['name' => $name])->id
         );
         $restaurant->tags()->sync($tagIds);
 
@@ -697,6 +982,20 @@ class PlacesService
     }
 
     /**
+     * Degree deltas for a lat/lng bounding box around a point — a cheap, index-able SQL
+     * pre-filter; callers trim the box corners with an exact Haversine check.
+     *
+     * @return array{0: float, 1: float} [latDelta, lngDelta]
+     */
+    private static function boundingBoxDeltas(float $latitude, float $radiusKm): array
+    {
+        return [
+            $radiusKm / 111.0,
+            $radiusKm / (111.320 * max(cos(deg2rad($latitude)), 0.01)),
+        ];
+    }
+
+    /**
      * SQL-level pre-filter shared by both "restaurants near a point" readers — a degree-delta
      * bounding box on lat/lng, cheap and index-able (see the `(provider, is_active, latitude)`
      * index), narrowing what actually gets fetched before the exact Haversine `->filter()` in
@@ -708,15 +1007,14 @@ class PlacesService
      */
     private function boundingBoxQuery(string $provider, float $latitude, float $longitude, float $radiusKm): Builder
     {
-        $latDelta = $radiusKm / 111.0;
-        $lngDelta = $radiusKm / (111.320 * max(cos(deg2rad($latitude)), 0.01));
+        [$latDelta, $lngDelta] = self::boundingBoxDeltas($latitude, $radiusKm);
 
         return Restaurant::where('provider', $provider)
             ->where('is_active', true)
             ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
             ->whereBetween('longitude', [$longitude - $lngDelta, $longitude + $lngDelta])
             ->select([
-                'id', 'name', 'latitude', 'longitude', 'price_level', 'rating', 'opening_hours',
+                'id', 'name', 'address', 'latitude', 'longitude', 'price_level', 'rating', 'opening_hours',
                 'is_active', 'provider', 'provider_place_id', 'food_category', 'signature_dish',
                 'google_types', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
                 'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count',

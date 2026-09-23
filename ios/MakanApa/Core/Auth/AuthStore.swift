@@ -55,8 +55,20 @@ final class AuthStore {
             if case .authenticated(let user) = session, !oldValue.isAuthenticated {
                 HalalPreference.reconcile(with: user)
             }
+            switch session {
+            case .authenticated(let user): Self.storeCachedUser(user)
+            case .unauthenticated: Self.storeCachedUser(nil)
+            case .loading: break
+            }
         }
     }
+
+    /// Set when a stored token exists but neither `/auth/me` nor a cached user could be used
+    /// (first launch after install/update while offline) — the splash offers a retry instead of
+    /// discarding a perfectly valid token.
+    private(set) var bootstrapFailed = false
+
+    private static let cachedUserKey = "AuthStore.cachedUser"
 
     private init() {}
 
@@ -68,15 +80,40 @@ final class AuthStore {
             session = .unauthenticated
             return
         }
+        bootstrapFailed = false
+
+        // Open straight into the app with the last known profile — no splash wait on the network,
+        // and no logout just because the phone is offline or the server is mid-deploy.
+        if case .loading = session, let cached = Self.loadCachedUser() {
+            session = .authenticated(cached)
+        }
+
         do {
             let response = try await APIClient.me()
             session = .authenticated(response.user)
+        } catch APIError.unauthorized {
+            // The only case that actually means "this token is dead".
+            handleUnauthorized()
         } catch {
             #if DEBUG
-            print("[AuthStore] bootstrap() /me failed: \(error)")
+            print("[AuthStore] bootstrap() /me failed, keeping session: \(error)")
             #endif
-            CredentialStore.shared.token = nil
-            session = .unauthenticated
+            if case .loading = session {
+                bootstrapFailed = true
+            }
+        }
+    }
+
+    private static func loadCachedUser() -> AuthUser? {
+        guard let data = UserDefaults.standard.data(forKey: cachedUserKey) else { return nil }
+        return try? JSONDecoder().decode(AuthUser.self, from: data)
+    }
+
+    private static func storeCachedUser(_ user: AuthUser?) {
+        if let user, let data = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(data, forKey: cachedUserKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: cachedUserKey)
         }
     }
 

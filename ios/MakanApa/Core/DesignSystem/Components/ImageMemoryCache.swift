@@ -13,10 +13,22 @@ enum ImageMemoryCache {
     }()
 
     static func image(for url: URL) -> UIImage? {
-        cache.object(forKey: url.absoluteString as NSString)
+        cache.object(forKey: key(for: url))
     }
 
     static func store(_ image: UIImage, for url: URL) {
-        cache.setObject(image, forKey: url.absoluteString as NSString)
+        cache.setObject(image, forKey: key(for: url))
+    }
+
+    /// The backend's photo proxy URLs are freshly signed (new `expires`/`signature`) on every
+    /// response, so the same Google photo arrives under a different URL after each reroll or
+    /// reopen. Keying those on the stable `name` parameter lets the second view hit memory.
+    private static func key(for url: URL) -> NSString {
+        if url.path.hasSuffix("/places/photo"),
+           let name = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+               .queryItems?.first(where: { $0.name == "name" })?.value {
+            return "places-photo:\(name)" as NSString
+        }
+        return url.absoluteString as NSString
     }
 }

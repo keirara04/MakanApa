@@ -9,6 +9,9 @@ enum APIError: Error {
     case rejected(statusCode: Int, message: String)
     case decoding(Error)
     case transport(Error)
+    /// HTTP 429 — the server's per-feature rate limit. `retryAfterSeconds` comes from the
+    /// `Retry-After` header when the server sent one.
+    case rateLimited(retryAfterSeconds: Int?)
 }
 
 extension APIError {
@@ -16,5 +19,20 @@ extension APIError {
     var serverMessage: String? {
         if case .rejected(_, let message) = self { return message }
         return nil
+    }
+}
+
+extension APIError {
+    /// Shared headline/detail for full-screen and banner error states, so every surface explains
+    /// a rate limit or a dropped connection the same way instead of a generic "blur kejap".
+    var userFacingCopy: (headline: String, detail: String) {
+        switch self {
+        case .transport:
+            return (Copy.connectionErrorHeadline, Copy.connectionErrorDetail)
+        case .rateLimited(let retryAfterSeconds):
+            return (Copy.rateLimitedHeadline, Copy.rateLimitedDetail(retryAfterSeconds: retryAfterSeconds))
+        default:
+            return (Copy.genericAPIErrorHeadline, Copy.genericAPIErrorDetail)
+        }
     }
 }
