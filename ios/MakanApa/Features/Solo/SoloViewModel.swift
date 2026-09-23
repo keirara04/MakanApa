@@ -132,6 +132,20 @@ final class SoloViewModel {
         }
     }
 
+    /// The next wider radius to offer when nothing matched ("Search within 5 km"). Nil once
+    /// we're already at the widest sensible search.
+    var widerDistanceKm: Double? {
+        let ladder: [Double] = [1, 2, 5, 10]
+        return ladder.first { $0 > maxDistanceKm }
+    }
+
+    @MainActor
+    func searchWider() async {
+        guard let wider = widerDistanceKm else { return }
+        maxDistanceKm = wider
+        await retry()
+    }
+
     @MainActor
     func retry() async {
         guard let lastCoordinate else { return }

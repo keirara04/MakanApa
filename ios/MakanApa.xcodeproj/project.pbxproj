@@ -107,6 +107,7 @@
 		D4C8FC307C588E0A30A59333 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 217BC4E792F65DECF27B6B66 /* AppRouter.swift */; };
 		D7DD8BE39EEE4A6C87AC7E9C /* RemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3FFF8EE7DE42989C5853CF /* RemoteImage.swift */; };
 		D9E3298186267729CEC217A0 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C2E6778243985350051EB2 /* Typography.swift */; };
+		DA90E011577C1264289CBAA9 /* CircleBackButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33B1181EFFA8EBFE26FB7D12 /* CircleBackButton.swift */; };
 		DB5E21DB94F580742C7527A4 /* OwnerClaimSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 080FDB052E9155A027160E3E /* OwnerClaimSheet.swift */; };
 		DCB0FD0C5F875D647570297F /* AnimatedMakanMascot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D34F6D670FE277FEE917869 /* AnimatedMakanMascot.swift */; };
 		DD44E06B5DEA67D1283F1244 /* NotificationPrimingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148D07FB8BC13EE6CF6D01A0 /* NotificationPrimingState.swift */; };
@@ -159,6 +160,7 @@
 		306B702B8A26340C493D9B9F /* Copy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Copy.swift; sourceTree = "<group>"; };
 		31B3E4D55FFEBD5CBCE9CE64 /* EditProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		336ABD5F3B374DE89B110479 /* CommunityViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityViewModel.swift; sourceTree = "<group>"; };
+		33B1181EFFA8EBFE26FB7D12 /* CircleBackButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CircleBackButton.swift; sourceTree = "<group>"; };
 		37B00B39706B3E9E4A9F0A29 /* MakanPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanPrimaryButton.swift; sourceTree = "<group>"; };
 		39EF322F970F4623A88E498E /* SignUpView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignUpView.swift; sourceTree = "<group>"; };
 		3ABDF06C7C7140FBBD2BC1AB /* UIImage+Resize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+Resize.swift"; sourceTree = "<group>"; };
@@ -426,6 +428,7 @@
 				0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */,
 				B658EFCF2950D0F56A44B1F9 /* HalalBadge.swift */,
 				ACD9C5FFDACC520497CC1C1B /* ContextStrip.swift */,
+				33B1181EFFA8EBFE26FB7D12 /* CircleBackButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -842,6 +845,7 @@
 				0383C7B83E61A9A00E6C9F97 /* SeleraView.swift in Sources */,
 				B6B04CC41D43B1A0C2F7D492 /* ContextStrip.swift in Sources */,
 				F51D55233EFCF7AFBD415418 /* ContextPreferences.swift in Sources */,
+				DA90E011577C1264289CBAA9 /* CircleBackButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

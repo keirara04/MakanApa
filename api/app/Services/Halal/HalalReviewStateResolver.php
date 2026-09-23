@@ -51,7 +51,7 @@ class HalalReviewStateResolver
             return HalalReviewState::ReverifyRequired;
         }
 
-        if ($certificate !== null && $certificate->expires_at->lte(today()->addDays(self::EXPIRING_WINDOW_DAYS))) {
+        if ($certificate?->expires_at !== null && $certificate->expires_at->lte(today()->addDays(self::EXPIRING_WINDOW_DAYS))) {
             return HalalReviewState::Expiring;
         }
 

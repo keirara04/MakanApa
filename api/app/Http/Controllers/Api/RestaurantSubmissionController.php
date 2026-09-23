@@ -88,6 +88,10 @@ class RestaurantSubmissionController extends Controller
                 'address' => $restaurant->address,
                 'foodCategory' => $restaurant->food_category,
                 'priceLevel' => $restaurant->price_level,
+                // An edit keeps the place's canonical location — the client needs it to build the
+                // submission (latitude/longitude are required even though they won't change).
+                'latitude' => (float) $restaurant->latitude,
+                'longitude' => (float) $restaurant->longitude,
                 'distanceKm' => ($lat !== null && $lon !== null)
                     ? RecommendationService::distanceKm($lat, $lon, (float) $restaurant->latitude, (float) $restaurant->longitude)
                     : null,

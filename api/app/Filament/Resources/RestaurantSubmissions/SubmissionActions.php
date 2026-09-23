@@ -72,7 +72,7 @@ class SubmissionActions
                 'certificate_number' => $record->certificate_number,
                 'expires_at' => $record->certificate_expires_at?->toDateString(),
                 'issued_at' => $record->certificate_issued_at?->toDateString(),
-                'verification_method' => CertificateVerificationMethod::ManualDirectoryCheck->value,
+                'verification_method' => CertificateVerificationMethod::AdminAttestation->value,
             ])
             ->schema([
                 Text::make(fn (RestaurantSubmission $record) => 'Reporter claims: '.($record->halal_claim?->label() ?? '—')
@@ -82,32 +82,32 @@ class SubmissionActions
                     ->options(collect(HalalStatus::claimable())->mapWithKeys(fn (HalalStatus $s) => [$s->value => $s->label()]))
                     ->required()
                     ->live(),
-                Section::make('Verified certificate')
-                    ->description('Required for "Certified". Check every field against the certificate photo and the authority\'s public directory.')
+                Section::make('Certification')
+                    ->description('Confirm the certification. Certificate details are optional — record them only if you have them.')
                     ->visible(fn (Get $get) => $get('resolved_status') === HalalStatus::Certified->value)
                     ->columns(2)
                     ->schema([
-                        Select::make('authority')
-                            ->options(collect(CertificationAuthority::cases())->mapWithKeys(fn ($a) => [$a->value => $a->label()]))
-                            ->required()
-                            ->live(),
-                        TextInput::make('certificate_number')->required()->maxLength(60),
-                        DatePicker::make('expires_at')->label('Expires')->required()->afterOrEqual('today'),
-                        DatePicker::make('issued_at')->label('Issued'),
-                        TextInput::make('holder_name')->label('Holder name on certificate'),
-                        TextInput::make('premise_name')->label('Premise on certificate'),
-                        Select::make('verification_method')
-                            ->label('How did you verify it?')
-                            ->options(collect(CertificateVerificationMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->label()]))
-                            ->required()
+                        Checkbox::make('confirmed')
+                            ->label('I confirm this premise holds a valid halal certificate')
+                            ->accepted()
                             ->columnSpanFull(),
+                        Select::make('authority')
+                            ->label('Authority (optional)')
+                            ->options(collect(CertificationAuthority::cases())->mapWithKeys(fn ($a) => [$a->value => $a->label()]))
+                            ->live(),
+                        Select::make('verification_method')
+                            ->label('How did you confirm it?')
+                            ->options(collect(CertificateVerificationMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->label()]))
+                            ->default(CertificateVerificationMethod::AdminAttestation->value),
+                        TextInput::make('certificate_number')->label('Certificate number (optional, admin-only)')->maxLength(60),
+                        DatePicker::make('expires_at')->label('Expires (optional)')->afterOrEqual('today')
+                            ->helperText('Without an expiry, the place stays certified until an admin changes it.'),
+                        DatePicker::make('issued_at')->label('Issued (optional)'),
+                        TextInput::make('premise_name')->label('Premise on certificate (optional)'),
                         Text::make(fn (Get $get) => ($url = app(HalalRegistry::class)->directoryUrl(CertificationAuthority::tryFrom((string) $get('authority'))))
                             ? new HtmlString('Directory: <a href="'.e($url).'" target="_blank" rel="noopener" class="underline">'.e($url).'</a>')
-                            : 'No public directory configured for this authority.')
+                            : '')
                             ->columnSpanFull(),
-                        Checkbox::make('check_number')->label('Number matches the directory / is legible on the photo')->accepted()->columnSpanFull(),
-                        Checkbox::make('check_premise')->label('Certificate is for THIS premise (not a sister outlet or supplier)')->accepted()->columnSpanFull(),
-                        Checkbox::make('check_expiry')->label('Expiry date matches the certificate')->accepted()->columnSpanFull(),
                     ]),
                 Textarea::make('evidence_summary')
                     ->label('Public evidence summary (optional)')
@@ -119,7 +119,7 @@ class SubmissionActions
                     'resolved_status' => $data['resolved_status'],
                     'evidence_summary' => $data['evidence_summary'] ?? null,
                     'certificate' => $data['resolved_status'] === HalalStatus::Certified->value
-                        ? Arr::only($data, ['authority', 'certificate_number', 'expires_at', 'issued_at', 'holder_name', 'premise_name', 'verification_method'])
+                        ? Arr::only($data, ['confirmed', 'authority', 'certificate_number', 'expires_at', 'issued_at', 'holder_name', 'premise_name', 'verification_method'])
                         : null,
                 ]));
 

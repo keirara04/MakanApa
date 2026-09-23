@@ -6,7 +6,7 @@
 @section('content')
 
     <h1 class="text-3xl font-semibold">Privacy Policy</h1>
-    <p class="mt-2 text-sm text-ink/60">Last updated: September 23, 2026</p>
+    <p class="mt-2 text-sm text-ink/70">Last updated: September 23, 2026</p>
     <p class="mt-4 text-ink/70">
         This page explains what information MakanApa collects, why, and what happens to it, including when
         you delete your account.
@@ -109,9 +109,10 @@
                 <li class="p-4"><strong class="text-ink">Object storage provider</strong>: stores photos you upload for restaurants (S3-compatible storage).</li>
                 <li class="p-4"><strong class="text-ink">Apple Push Notification service (APNs)</strong>: delivers push notifications to your device.</li>
             </ul>
-            <p class="mt-3 text-sm text-ink/60">
+            <p class="mt-3 text-sm text-ink/70">
                 We don't use analytics or crash-reporting services at this time. If that changes, this section
-                will be updated.
+                will be updated. This website keeps an anonymous count of page views and download-button
+                clicks. No cookies, IP addresses, or device identifiers are stored for this.
             </p>
         </section>
 

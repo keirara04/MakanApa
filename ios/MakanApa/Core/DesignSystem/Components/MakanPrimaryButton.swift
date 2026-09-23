@@ -14,10 +14,11 @@ struct MakanPrimaryButton: View {
             Text(title)
                 .font(.makanDisplay(20))
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
+                .frame(maxWidth: .infinity, minHeight: 56)
         }
-        .background(Color.sambalRed)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        // Same 56pt height / 18pt corners as PreferenceActionFooter, so the Decide flow's
+        // primary actions ("Continue" → "Find my makan" → "JOM MAKAN") read as one family.
+        .background(Color.sambalRed, in: RoundedRectangle(cornerRadius: 18))
+        .buttonStyle(PressCompressStyle())
     }
 }

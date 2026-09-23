@@ -7,6 +7,7 @@ use App\Models\RestaurantHalalCertificate;
 use App\Models\RestaurantHalalVerification;
 use App\Models\RestaurantOwner;
 use App\Services\Halal\CertificateData;
+use App\Services\Halal\HalalPresenter;
 use App\Services\Halal\HalalSnapshotService;
 use App\Services\Halal\HalalVerificationService;
 use App\Support\Halal\HalalDecisionMethod;
@@ -100,12 +101,49 @@ class HalalLedgerTest extends TestCase
             $this->assertArrayHasKey('expires_at', $e->errors());
         }
 
+        // Nothing at all and no confirmation: refused — silence never means "certified".
         try {
-            CertificateData::fromArray(['authority' => 'jakim']);
-            $this->fail('Incomplete cert accepted.');
+            CertificateData::fromArray([]);
+            $this->fail('Unconfirmed empty certificate accepted.');
         } catch (ValidationException $e) {
-            $this->assertEqualsCanonicalizing(['certificate_number', 'expires_at', 'verification_method'], array_keys($e->errors()));
+            $this->assertArrayHasKey('confirmed', $e->errors());
         }
+
+        // Confirmed by an admin with no private details: allowed, recorded as an attestation.
+        $data = CertificateData::fromArray(['confirmed' => true]);
+        $this->assertFalse($data->hasCertificateRecord());
+        $this->assertSame('admin_attestation', $data->verificationMethod->value);
+
+        // Authority only: allowed, kept as a certificate row without number/expiry.
+        $this->assertTrue(CertificateData::fromArray(['confirmed' => true, 'authority' => 'jakim'])->hasCertificateRecord());
+    }
+
+    public function test_admin_can_certify_without_recording_private_details(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        $admin = $this->makeAdmin();
+
+        // No details at all: certified, no certificate row, no expiry — stays certified.
+        $this->service()->recordAdminOverride($restaurant, HalalStatus::Certified, $admin, 'Visited, cert on wall', CertificateData::fromArray(['confirmed' => true]));
+        $fresh = $restaurant->fresh();
+        $this->assertSame(HalalStatus::Certified, $fresh->halal_status);
+        $this->assertNull($fresh->halal_active_certificate_id);
+        $this->assertSame(HalalReviewState::Clear, $fresh->halal_review_state);
+        $this->travel(800)->days();
+        $this->assertSame(HalalStatus::Certified, $restaurant->fresh()->effectiveHalalStatus());
+        $this->travelBack();
+
+        // Authority only: badge names the authority, number/expiry stay null.
+        $this->service()->recordAdminOverride($restaurant, HalalStatus::Certified, $admin, 'JAKIM confirmed by phone', CertificateData::fromArray(['confirmed' => true, 'authority' => 'jakim']));
+        $cert = $restaurant->fresh()->activeHalalCertificate;
+        $this->assertSame('jakim', $cert->authority->value);
+        $this->assertNull($cert->certificate_number);
+        $this->assertNull($cert->expires_at);
+        $this->assertSame('Halal (JAKIM)', app(HalalPresenter::class)->display($restaurant->fresh())['shortLabel']);
+
+        // A directory re-check still needs the certificate identity.
+        $this->expectException(ValidationException::class);
+        $this->service()->recordRegistryResult($restaurant, CertificateData::fromArray(['confirmed' => true, 'authority' => 'jakim']), $admin);
     }
 
     public function test_heuristic_retracts_its_own_non_halal_when_listing_no_longer_matches(): void

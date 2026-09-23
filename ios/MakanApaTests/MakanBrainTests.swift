@@ -79,3 +79,31 @@ final class MakanBrainTests: XCTestCase {
         XCTAssertFalse(ContextPreferences.isIgnored("rain"))
     }
 }
+
+// TEMP-SNAPSHOT (removed after visual check)
+import SwiftUI
+@MainActor
+final class TempSeleraSnapshot: XCTestCase {
+    func testSnapshot() throws {
+        let constraints = [
+            SeleraConstraint(key: "halal", label: "Halal only", icon: "", value: true, editIn: "settings"),
+            SeleraConstraint(key: "budget", label: "Budget", icon: "", value: nil, editIn: "each_decision"),
+            SeleraConstraint(key: "distance", label: "Distance", icon: "", value: nil, editIn: "each_decision"),
+        ]
+        let full = SeleraResponse(stage: "learning", signalCount: 7, traits: [
+            SeleraTrait(key: "category:nasi", icon: "", label: "Nasi person", strength: "strong", evidence: "5 of your last 7 accepted picks were nasi"),
+            SeleraTrait(key: "price:1", icon: "", label: "Budget-conscious", strength: "medium", evidence: "Based on the price range you usually accept"),
+            SeleraTrait(key: "slot:supper:mamak", icon: "", label: "Supper = mamak", strength: "emerging", evidence: "You picked mamak 4 times at supper"),
+        ], constraints: constraints)
+        let empty = SeleraResponse(stage: "starting", signalCount: 0, traits: [], constraints: constraints)
+        for (name, data) in [("full", full), ("empty", empty)] {
+            let vc = UIHostingController(rootView: NavigationStack { SeleraView(initial: data) })
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 874))
+            window.rootViewController = vc
+            window.makeKeyAndVisible()
+            RunLoop.main.run(until: Date().addingTimeInterval(1.5))
+            let img = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) }
+            try img.pngData()!.write(to: URL(fileURLWithPath: "/private/tmp/claude-501/-Users-user-VS-CODE-MakanApa/3d759f8d-6257-4f1c-b589-6fd803bbaaae/scratchpad/selera-\(name).png"))
+        }
+    }
+}

@@ -14,12 +14,12 @@
         </p>
         @if (config('marketing.support_email'))
             <a href="mailto:{{ config('marketing.support_email') }}"
-               class="mt-6 inline-block rounded-full bg-sambal-500 px-6 py-3 font-medium text-white hover:bg-sambal-600">
+               class="mt-6 inline-block rounded-full bg-sambal-600 px-6 py-3 font-medium text-white hover:bg-sambal-700">
                 Email support
             </a>
-            <p class="mt-2 text-sm text-ink/60">{{ config('marketing.support_email') }}</p>
+            <p class="mt-2 text-sm text-ink/70">{{ config('marketing.support_email') }}</p>
         @endif
-        <p class="mt-1 text-sm text-ink/60">
+        <p class="mt-1 text-sm text-ink/70">
             For technical problems, please include your device model, iOS version, MakanApa version, and a
             screenshot if possible.
         </p>
@@ -172,7 +172,7 @@
         <p class="mt-2 text-ink/70">We're happy to help.</p>
         @if (config('marketing.support_email'))
             <a href="mailto:{{ config('marketing.support_email') }}"
-               class="mt-4 inline-block rounded-full bg-sambal-500 px-6 py-3 font-medium text-white hover:bg-sambal-600">
+               class="mt-4 inline-block rounded-full bg-sambal-600 px-6 py-3 font-medium text-white hover:bg-sambal-700">
                 Contact MakanApa Support
             </a>
         @endif

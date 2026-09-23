@@ -3,7 +3,18 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Hand-lettered sticker font. Self-hosted (SIL OFL) so the site makes no third-party font calls. */
+@font-face {
+    font-family: 'Caveat';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/caveat/caveat-latin-700.woff2') format('woff2');
+}
+
 @theme {
+    --font-hand: 'Caveat', 'Marker Felt', 'Comic Sans MS', cursive;
+
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
@@ -18,4 +29,33 @@
     --color-sambal-600: #cc3814;
     --color-sambal-700: #a62c0f;
     --color-ink: #2b1c14;
+    /* Same values as the iOS asset catalog (Pandan / Kunyit colorsets). */
+    --color-pandan: #4f7a57;
+    --color-pandan-700: #3b5f42; /* text on pandan tints: 4.5:1+ */
+    --color-kunyit: #f4b942;
+
+    /* Soft "clay" depth for cards/phones: a hairline plus a warm, diffuse drop. */
+    --shadow-clay: 0 1px 0 rgb(43 28 20 / 0.04), 0 18px 40px -18px rgb(166 44 15 / 0.35);
+    --shadow-phone: 0 2px 0 rgb(43 28 20 / 0.06), 0 40px 80px -30px rgb(43 28 20 / 0.45);
+}
+
+/* Contrast note: white text needs sambal-600 or darker (sambal-500 is 3.9:1); muted body
+   text should stay at ink/70 or above on cream (ink/60 is 4.3:1). */
+
+@layer base {
+    :focus-visible {
+        outline: 3px solid var(--color-sambal-600);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
 }

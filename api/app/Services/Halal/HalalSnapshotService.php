@@ -32,9 +32,10 @@ class HalalSnapshotService
         $certificate = $active?->certificate;
         $status = $active?->status ?? HalalStatus::Unknown;
 
-        // A certified decision whose cert is no longer usable (expired/revoked/unverifiable)
-        // must not keep presenting as certified, whatever state the ledger row is in.
-        if ($status === HalalStatus::Certified && ($certificate === null || ! $certificate->isUsable())) {
+        // A certified decision whose RECORDED cert is no longer usable (expired/revoked/
+        // unverifiable) must not keep presenting as certified. A certified decision confirmed by
+        // an admin without recording a certificate stays certified (no expiry is known).
+        if ($status === HalalStatus::Certified && $certificate !== null && ! $certificate->isUsable()) {
             $status = HalalStatus::Unknown;
         }
 

@@ -13,6 +13,7 @@ use App\Models\RestaurantSubmission;
 use App\Models\User;
 use App\Services\AdminAuditLogger;
 use App\Support\Halal\CertificateStatus;
+use App\Support\Halal\CertificationAuthority;
 use App\Support\Halal\HalalDecisionMethod;
 use App\Support\Halal\HalalEvidenceSource;
 use App\Support\Halal\HalalHeuristicResult;
@@ -145,6 +146,11 @@ class HalalVerificationService
      */
     public function recordRegistryResult(Restaurant $restaurant, CertificateData $certificate, User $admin): RestaurantHalalVerification
     {
+        // A registry/directory check is about a specific certificate — it needs its identity.
+        if ($certificate->authority === null || $certificate->certificateNumber === null) {
+            throw ValidationException::withMessages(['certificate_number' => 'A directory check needs the authority and certificate number.']);
+        }
+
         return DB::transaction(function () use ($restaurant, $certificate, $admin) {
             $locked = $this->lock($restaurant->canonicalRestaurant());
             $current = $this->active($locked);
@@ -158,7 +164,7 @@ class HalalVerificationService
                 'status' => HalalStatus::Certified,
                 'evidence_source' => HalalEvidenceSource::OfficialRegistry,
                 'decision_method' => HalalDecisionMethod::RegistryVerified,
-                'evidence_summary' => 'Checked against the '.$certificate->authority->label().' registry.',
+                'evidence_summary' => 'Checked against the '.$certificate->authority?->label().' registry.',
             ], $certificate, registryChecked: true);
 
             $this->auditLogger->log($admin, 'halal.registry_verified', $locked, null, [
@@ -206,7 +212,7 @@ class HalalVerificationService
     {
         if ($status === HalalStatus::Certified && $certificate === null) {
             throw ValidationException::withMessages([
-                'certificate' => 'A certified status needs verified certificate details (authority, number, expiry, verification method).',
+                'certificate' => 'A certified status needs an explicit confirmation (certificate details are optional).',
             ]);
         }
     }
@@ -231,7 +237,7 @@ class HalalVerificationService
         ?CertificateData $certificate = null,
         bool $registryChecked = false,
     ): RestaurantHalalVerification {
-        $certificateRow = $certificate ? $this->upsertCertificate($restaurant, $certificate, $registryChecked) : null;
+        $certificateRow = $certificate?->hasCertificateRecord() ? $this->upsertCertificate($restaurant, $certificate, $registryChecked) : null;
 
         $verification = RestaurantHalalVerification::create([
             ...$attributes,
@@ -270,7 +276,8 @@ class HalalVerificationService
         return RestaurantHalalCertificate::updateOrCreate(
             [
                 'restaurant_id' => $restaurant->id,
-                'authority' => $data->authority,
+                // Authority unknown but a number recorded: file it under "other".
+                'authority' => $data->authority ?? CertificationAuthority::Other,
                 'certificate_number' => $data->certificateNumber,
             ],
             array_filter([

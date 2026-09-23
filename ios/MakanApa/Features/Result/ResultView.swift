@@ -78,7 +78,9 @@ struct ResultView: View {
                         address: nil,
                         foodCategory: pick.foodCategory,
                         priceLevel: pick.priceLevel,
-                        distanceKm: pick.distanceKm
+                        distanceKm: pick.distanceKm,
+                        latitude: pick.latitude,
+                        longitude: pick.longitude
                     ),
                     prefillShowMenuSection: true
                 )
@@ -716,17 +718,38 @@ struct ResultView: View {
 
     // MARK: - Reroll
 
+    /// Same visual language as the first search (PreferenceLoadingView): animated mascot,
+    /// rounded display headline, one quiet Cancel — rerolling shouldn't look like a different app.
     private var rerollingContent: some View {
-        VStack(spacing: 20) {
-            MascotView(mood: .thinking, caption: Copy.rerollHeadline, size: 80)
-            ThinkingChecklist(lines: [Copy.rerollLine1, Copy.rerollLine2, Copy.rerollLine3])
+        VStack(spacing: 24) {
+            AnimatedMakanMascot()
+            VStack(spacing: 10) {
+                Text(Copy.rerollHeadline)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .tracking(-0.8)
+                    .foregroundStyle(Color.kicap)
+                    .accessibilityAddTraits(.isHeader)
+                Text("\(Copy.rerollLine1). \(Copy.rerollLine2).")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.kicap.opacity(0.65))
+            }
+            .multilineTextAlignment(.center)
+            HStack(spacing: 10) {
+                ProgressView().tint(Color.pandan).accessibilityHidden(true)
+                Text(Copy.rerollLine3)
+                    .font(.footnote)
+                    .foregroundStyle(Color.kicap.opacity(0.65))
+            }
+            .accessibilityElement(children: .combine)
             Button(action: cancelReroll) {
                 Text("Cancel")
                     .font(.makanBody(13))
                     .foregroundStyle(.secondary)
+                    .frame(minHeight: 44)
             }
         }
-        .padding(.top, 40)
+        .padding(.top, 24)
+        .padding(.horizontal, 32)
     }
 
     private func startReroll() {
@@ -757,6 +780,8 @@ struct ResultView: View {
 
     // MARK: - No result
 
+    /// "Try again" with the same filters just returns the same nothing — offer the two things
+    /// that actually change the outcome: a wider search, or different preferences.
     private var noResultContent: some View {
         VStack(spacing: 16) {
             MascotView(mood: .sad, size: 72)
@@ -765,15 +790,25 @@ struct ResultView: View {
                     .font(.makanDisplay(24))
                     .foregroundStyle(Color.kicap)
                     .multilineTextAlignment(.center)
-                Text(Copy.noResultDetail)
+                Text("Nothing matched within \(viewModel.maxDistanceKm.formatted()) km. Go a bit further, or loosen the filters.")
                     .font(.makanBody(14))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            MakanPrimaryButton(title: Copy.tryAgain) {
-                Task { await viewModel.retry() }
+            if let wider = viewModel.widerDistanceKm {
+                MakanPrimaryButton(title: "Search within \(wider.formatted()) km") {
+                    Task { await viewModel.searchWider() }
+                }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+            Button {
+                router.pop()
+            } label: {
+                Text("Change preferences")
+                    .font(.makanBody(15))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(minHeight: 44)
+            }
         }
     }
 

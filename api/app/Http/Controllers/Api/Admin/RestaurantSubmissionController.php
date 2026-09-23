@@ -68,6 +68,7 @@ class RestaurantSubmissionController extends Controller
             'certificate.expiresAt' => ['nullable', 'date'],
             'certificate.issuedAt' => ['nullable', 'date'],
             'certificate.verificationMethod' => ['nullable', Rule::enum(CertificateVerificationMethod::class)],
+            'certificate.confirmed' => ['nullable', 'boolean'],
         ]);
 
         $restaurant = $this->moderation->approve($submission, $request->user(), $request->boolean('releaseToGoogle'), array_filter([
@@ -79,6 +80,7 @@ class RestaurantSubmissionController extends Controller
                 'expires_at' => $halal['certificate']['expiresAt'] ?? null,
                 'issued_at' => $halal['certificate']['issuedAt'] ?? null,
                 'verification_method' => $halal['certificate']['verificationMethod'] ?? null,
+                'confirmed' => $halal['certificate']['confirmed'] ?? false,
             ] : null,
         ]));
 

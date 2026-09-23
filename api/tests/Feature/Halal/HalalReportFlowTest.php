@@ -77,11 +77,11 @@ class HalalReportFlowTest extends TestCase
         $this->assertSame(HalalReviewState::PendingReview, $fresh->halal_review_state);
         $this->assertSame(HalalStatus::Unknown, $fresh->halal_status);
 
-        // Approving certified without verified certificate details fails.
+        // Approving certified without the admin's confirmation fails (details are optional).
         $admin = $this->makeAdmin();
         try {
             $this->moderation()->approve(RestaurantSubmission::find($id), $admin);
-            $this->fail('Certified approval without certificate details must fail.');
+            $this->fail('Certified approval without confirmation must fail.');
         } catch (ValidationException) {
         }
         $this->assertSame('pending', RestaurantSubmission::find($id)->status);

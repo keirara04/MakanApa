@@ -63,16 +63,15 @@ class HalalAdminPanelTest extends TestCase
         ]);
         app(RestaurantPhotoUploadService::class)->storePending($report, UploadedFile::fake()->image('c.jpg'), 'halal_cert', $report->user_id);
 
-        // Checklist unticked -> validation errors, nothing recorded.
+        // Confirmation unticked -> validation error, nothing recorded.
         Livewire::test(ViewRestaurantSubmission::class, ['record' => $report->id])
             ->callAction('approveHalal', data: ['resolved_status' => 'certified'])
-            ->assertHasActionErrors(['check_number', 'check_premise', 'check_expiry']);
+            ->assertHasActionErrors(['confirmed']);
         $this->assertSame('pending', $report->fresh()->status);
 
+        // Confirmed; the reporter's prefilled details are kept (they're optional, not required).
         Livewire::test(ViewRestaurantSubmission::class, ['record' => $report->id])
-            ->callAction('approveHalal', data: [
-                'resolved_status' => 'certified', 'check_number' => true, 'check_premise' => true, 'check_expiry' => true,
-            ])
+            ->callAction('approveHalal', data: ['resolved_status' => 'certified', 'confirmed' => true])
             ->assertHasNoActionErrors();
 
         $this->assertSame('approved', $report->fresh()->status);
@@ -96,5 +95,23 @@ class HalalAdminPanelTest extends TestCase
             ->assertHasNoActionErrors();
 
         $this->assertSame(HalalStatus::NonHalal, $restaurant->fresh()->halal_status);
+    }
+
+    public function test_admin_can_certify_from_restaurant_page_without_certificate_details(): void
+    {
+        $this->actingAs($this->makeAdmin(), 'web');
+        $restaurant = $this->makeRestaurant();
+
+        Livewire::test(EditRestaurant::class, ['record' => $restaurant->id])
+            ->callAction('halalOverride', data: ['status' => 'certified', 'reason' => 'Known certified, no copy of cert', 'verification_method' => 'admin_attestation'])
+            ->assertHasActionErrors(['confirmed']);
+
+        Livewire::test(EditRestaurant::class, ['record' => $restaurant->id])
+            ->callAction('halalOverride', data: ['status' => 'certified', 'confirmed' => true, 'reason' => 'Known certified, no copy of cert', 'verification_method' => 'admin_attestation'])
+            ->assertHasNoActionErrors();
+
+        $fresh = $restaurant->fresh();
+        $this->assertSame(HalalStatus::Certified, $fresh->halal_status);
+        $this->assertNull($fresh->halal_active_certificate_id);
     }
 }

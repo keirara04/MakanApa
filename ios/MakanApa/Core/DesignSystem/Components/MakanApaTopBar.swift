@@ -8,12 +8,7 @@ struct MakanApaTopBar: View {
     var body: some View {
         HStack(spacing: 12) {
             if let onBack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.kicap)
-                }
-                .accessibilityLabel("Back")
+                CircleBackButton(action: onBack)
             }
 
             (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))

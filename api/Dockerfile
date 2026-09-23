@@ -34,6 +34,9 @@ RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-av
     && sed -ri -e "s!/var/www/!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+COPY docker/php/hardening.ini /usr/local/etc/php/conf.d/hardening.ini
+COPY docker/apache/zz-hardening.conf /etc/apache2/conf-available/zz-hardening.conf
+RUN a2enconf zz-hardening
 
 WORKDIR /var/www/html
 

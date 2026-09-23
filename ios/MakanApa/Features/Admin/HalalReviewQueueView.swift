@@ -61,10 +61,10 @@ private struct HalalReportReviewView: View {
     @State private var authority: CertificationAuthority = .jakim
     @State private var certificateNumber = ""
     @State private var expiresAt = Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now
-    @State private var method = "manual_directory_check"
-    @State private var checkedNumber = false
-    @State private var checkedPremise = false
-    @State private var checkedExpiry = false
+    @State private var method = "admin_attestation"
+    @State private var confirmedCertified = false
+    @State private var recordAuthority = true
+    @State private var knowsExpiry = false
     @State private var summary = ""
     @State private var note = ""
     @State private var isProcessing = false
@@ -72,8 +72,7 @@ private struct HalalReportReviewView: View {
 
     private var canApprove: Bool {
         guard !isProcessing else { return false }
-        guard resolved == .certified else { return true }
-        return !certificateNumber.trimmingCharacters(in: .whitespaces).isEmpty && checkedNumber && checkedPremise && checkedExpiry
+        return resolved != .certified || confirmedCertified
     }
 
     var body: some View {
@@ -124,25 +123,32 @@ private struct HalalReportReviewView: View {
 
             if resolved == .certified {
                 Section {
-                    Picker("Authority", selection: $authority) {
-                        ForEach(CertificationAuthority.allCases) { Text($0.label).tag($0) }
+                    Toggle("I confirm this premise holds a valid halal certificate", isOn: $confirmedCertified)
+                    Toggle("Record the authority", isOn: $recordAuthority)
+                    if recordAuthority {
+                        Picker("Authority", selection: $authority) {
+                            ForEach(CertificationAuthority.allCases) { Text($0.label).tag($0) }
+                        }
                     }
-                    TextField("Certificate number", text: $certificateNumber)
+                    TextField("Certificate number (optional)", text: $certificateNumber)
                         .textInputAutocapitalization(.characters)
-                    DatePicker("Expires", selection: $expiresAt, in: Date.now..., displayedComponents: .date)
-                    Picker("Verified via", selection: $method) {
+                    Toggle("I know the expiry date", isOn: $knowsExpiry)
+                    if knowsExpiry {
+                        DatePicker("Expires", selection: $expiresAt, in: Date.now..., displayedComponents: .date)
+                    }
+                    Picker("How did you confirm it?", selection: $method) {
+                        Text("Confirmed by admin").tag("admin_attestation")
                         Text("Public directory").tag("manual_directory_check")
                         Text("Registry lookup").tag("registry")
-                        Text("Certificate photo only").tag("document_only")
+                        Text("Certificate photo").tag("document_only")
                     }
                     if let registry = report.halal?.registryUrl, let url = URL(string: registry) {
                         Link("Open authority directory", destination: url)
                     }
-                    Toggle("Number matches directory / photo", isOn: $checkedNumber)
-                    Toggle("Certificate is for THIS premise", isOn: $checkedPremise)
-                    Toggle("Expiry matches certificate", isOn: $checkedExpiry)
                 } header: {
-                    Text("Verify certificate")
+                    Text("Certification")
+                } footer: {
+                    Text("Only the confirmation is required. Without an expiry date, the place stays certified until an admin changes it.")
                 }
             }
 
@@ -185,9 +191,10 @@ private struct HalalReportReviewView: View {
                 resolvedStatus: resolved,
                 evidenceSummary: summary.isEmpty ? nil : summary,
                 certificate: resolved == .certified ? AdminHalalCertificateBody(
-                    authority: authority,
-                    certificateNumber: certificateNumber.trimmingCharacters(in: .whitespaces),
-                    expiresAt: HalalDates.apiDate(expiresAt),
+                    confirmed: confirmedCertified,
+                    authority: recordAuthority ? authority : nil,
+                    certificateNumber: certificateNumber.trimmingCharacters(in: .whitespaces).isEmpty ? nil : certificateNumber.trimmingCharacters(in: .whitespaces),
+                    expiresAt: knowsExpiry ? HalalDates.apiDate(expiresAt) : nil,
                     verificationMethod: method
                 ) : nil
             ))

@@ -17,9 +17,12 @@ struct PreferenceView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !isThinking {
-                PreferenceProgressHeader(step: step) {
-                    if step == 0 { router.pop() } else { goBack() }
-                }
+                PreferenceProgressHeader(
+                    step: step,
+                    answers: [selectedMoodLabel, selectedBudgetShortLabel, nil],
+                    onBack: { if step == 0 { router.pop() } else { goBack() } },
+                    onJump: jump(to:)
+                )
             }
 
             Group {
@@ -125,6 +128,9 @@ struct PreferenceView: View {
             },
             onAnything: {
                 viewModel.cravingSelection = .anything
+            },
+            onSubmitCustom: {
+                if canContinueMood { advance() }
             }
         )
     }
@@ -191,10 +197,15 @@ struct PreferenceView: View {
     /// Makan Brain lenses — an explicit "how do I want to decide today", instead of the app
     /// guessing (e.g. assuming month-end means broke). Optional; tap again to clear.
     private var lensRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Today I want…")
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Today I want…")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+                Text("Optional. Tells MakanApa how to decide, not just what to filter.")
+                    .font(.caption)
+                    .foregroundStyle(Color.kicap.opacity(0.5))
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Lens.allCases) { lens in
@@ -202,20 +213,27 @@ struct PreferenceView: View {
                         Button {
                             viewModel.lens = selected ? nil : lens
                         } label: {
-                            Text("\(lens.emoji) \(lens.label(community: communityName))")
-                                .font(.makanBody(13))
-                                .foregroundStyle(selected ? .white : Color.kicap)
-                                .padding(.horizontal, 12)
-                                .frame(minHeight: 36)
-                                .background(selected ? Color.sambalRed : Color.kicap.opacity(0.06))
-                                .clipShape(Capsule())
+                            HStack(spacing: 6) {
+                                Text(lens.emoji).accessibilityHidden(true)
+                                Text(lens.label(community: communityName))
+                            }
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(Color.kicap)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 44)
+                            .background(selected ? Color.sambalRed.opacity(0.07) : .white.opacity(0.72), in: Capsule())
+                            .overlay {
+                                Capsule().strokeBorder(selected ? Color.sambalRed : Color.kicap.opacity(0.07), lineWidth: selected ? 1.5 : 1)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressCompressStyle())
                         .accessibilityAddTraits(selected ? .isSelected : [])
                     }
                 }
+                .padding(.vertical, 2)
             }
         }
+        .padding(.top, 4)
         .sensoryFeedback(.selection, trigger: viewModel.lens)
     }
 
@@ -280,6 +298,16 @@ struct PreferenceView: View {
         thinkingTask?.cancel()
         thinkingTask = nil
         isThinking = false
+    }
+
+    private func jump(to target: Int) {
+        guard target < step else { return }
+        goingForward = false
+        step = target
+    }
+
+    private var selectedBudgetShortLabel: String {
+        SoloViewModel.budgetOptions.first { $0.tier == viewModel.budgetMax }?.amount ?? "Any budget"
     }
 
     private func advance() {

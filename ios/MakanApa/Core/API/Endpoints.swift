@@ -193,6 +193,10 @@ struct ExistingPlaceResult: Decodable, Identifiable, Equatable {
     let foodCategory: String?
     let priceLevel: Int?
     let distanceKm: Double?
+    /// The place's canonical location — an edit can't move it, but the submission still carries it.
+    /// Optional so an older backend still decodes.
+    var latitude: Double? = nil
+    var longitude: Double? = nil
 }
 
 struct GooglePlaceCandidate: Decodable, Identifiable, Equatable {
@@ -377,10 +381,12 @@ struct AdminHalalEvidence: Decodable, Equatable {
     let priorityExplanation: String?
 }
 
+/// Every detail is optional; `confirmed` is the admin's explicit attestation that the place is certified.
 struct AdminHalalCertificateBody: Encodable {
-    let authority: CertificationAuthority
-    let certificateNumber: String
-    let expiresAt: String
+    let confirmed: Bool
+    let authority: CertificationAuthority?
+    let certificateNumber: String?
+    let expiresAt: String?
     let verificationMethod: String
 }
 

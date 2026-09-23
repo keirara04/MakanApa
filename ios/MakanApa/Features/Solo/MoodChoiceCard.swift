@@ -1,8 +1,12 @@
 import SwiftUI
 
+/// Compact craving row: photo beside the text, full width, so title and subtext always read in
+/// full (a 2-column grid truncated them mid-word) — same shape family as the budget/distance
+/// PreferenceChoiceRows, just denser. Ten fit in about 1.5 screen-heights instead of five.
 struct MoodChoiceCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var cardHeight = 154
+    @ScaledMetric(relativeTo: .body) private var cardHeight = 64
+    @ScaledMetric(relativeTo: .body) private var imageSize = 44
 
     let option: SoloViewModel.MoodOption
     let isSelected: Bool
@@ -10,44 +14,41 @@ struct MoodChoiceCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    Image(option.illustration)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 48, height: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .accessibilityHidden(true)
-                    Spacer(minLength: 0)
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 21, weight: .regular))
-                        .foregroundStyle(isSelected ? Color.sambalRed : Color.kicap.opacity(0.16))
-                        .accessibilityHidden(true)
-                }
-                VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 14) {
+                Image(option.illustration)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: imageSize, height: imageSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(option.label)
-                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .font(.system(.headline, design: .rounded, weight: .bold))
                     Text(option.subtext)
                         .font(.footnote)
-                        .foregroundStyle(Color.kicap.opacity(0.68))
+                        .foregroundStyle(Color.kicap.opacity(0.65))
                         .fixedSize(horizontal: false, vertical: true)
-                        .frame(minHeight: 32, alignment: .topLeading)
                 }
+                Spacer(minLength: 0)
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 21))
+                    .foregroundStyle(isSelected ? Color.sambalRed : Color.kicap.opacity(0.16))
+                    .accessibilityHidden(true)
             }
             .foregroundStyle(Color.kicap)
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(minHeight: cardHeight)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, minHeight: cardHeight, alignment: .leading)
             .background(isSelected ? Color.sambalRed.opacity(0.07) : .white.opacity(0.72),
-                        in: RoundedRectangle(cornerRadius: 22))
+                        in: RoundedRectangle(cornerRadius: 18))
             .overlay {
-                RoundedRectangle(cornerRadius: 22)
+                RoundedRectangle(cornerRadius: 18)
                     .strokeBorder(isSelected ? Color.sambalRed : Color.kicap.opacity(0.07),
                                   lineWidth: isSelected ? 1.5 : 1)
             }
-            .contentShape(RoundedRectangle(cornerRadius: 22))
+            .contentShape(RoundedRectangle(cornerRadius: 18))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressCompressStyle())
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isSelected)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(option.label), \(option.subtext)")

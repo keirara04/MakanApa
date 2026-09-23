@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureSuperadmin;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // without trusting it, Laravel thinks every request is HTTP and generates http:// URLs
         // (e.g. signed photo URLs), which iOS App Transport Security then blocks.
         $middleware->trustProxies(at: '*');
+
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,

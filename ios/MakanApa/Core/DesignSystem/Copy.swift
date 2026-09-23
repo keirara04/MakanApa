@@ -134,7 +134,7 @@ enum Copy {
     static let communityPostsDeleteTitle = "Delete this post?"
     static let communityPostsGenericError = "Couldn't post that right now. Try again in a bit."
     static let communityPostsGuidelines = "Keep it friendly and about food. No links, ads or personal attacks."
-    static let supportEmail = "support@hakeemiridza.com"
+    static let supportEmail = "hakeemiridza@gmail.com"
 
     static let communityAddPlaceMenuItem = "Add a place"
     static let communityAddPlaceCTA = "Know a good spot? Add it →"
@@ -149,8 +149,8 @@ enum Copy {
     static let communityAddManually = "Add it manually →"
     static let communityDetailsTitle = "Details"
     static let communityLocationStepTitle = "Location"
-    static let communityUseCurrentLocation = "📍 Use my current location"
-    static let communityChooseOnMap = "🗺 Choose on map"
+    static let communityUseCurrentLocation = "Use my current location"
+    static let communityChooseOnMap = "Choose on map"
     static let communityLocationReadyDetail = "We'll use where you are right now. This place should be somewhere nearby."
     static let communityLocationImmutable = "Set when this place was added. Location can't be changed."
     static let communityConfirmLocation = "Confirm this location"
@@ -168,7 +168,7 @@ enum Copy {
     static let communityUpdateSubmission = "Update submission"
     static let communityCancelSubmission = "Cancel submission"
 
-    static let communityStepFormat = "Step %d of 3 · %@"
+    static let communityStepFormat = "Step %d of %d · %@"
     static let communityDetailsHeadline = "Tell us about this place"
     static let communitySpendFooter = "Usually around how much per person?"
     static let communitySpendErrorInline = "Enter an estimated spend per person."

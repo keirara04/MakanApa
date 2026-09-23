@@ -1,11 +1,25 @@
 import CoreLocation
+import MapKit
 import PhotosUI
 import SwiftUI
 
 private enum AddPlaceStep: Int, CaseIterable {
     case search, details, location, review, success
+
+    var title: String {
+        switch self {
+        case .search: "Find"
+        case .details: "Details"
+        case .location: "Location"
+        case .review: "Review"
+        case .success: ""
+        }
+    }
 }
 
+/// Add a place / suggest an edit. Every step shares the same frame so the flow reads as one
+/// thing: progress header → step heading → content → one pinned primary action (plus an
+/// optional secondary), with Back on the left once there's somewhere to go back to.
 struct AddPlaceFlow: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.dismiss) private var dismiss
@@ -18,12 +32,15 @@ struct AddPlaceFlow: View {
     var prefillShowMenuSection = false
 
     @State private var step: AddPlaceStep = .search
+    @State private var goingForward = true
+    @State private var confirmingDiscard = false
 
     // Search
     @State private var searchQuery = ""
     @State private var searchResults: PlaceSearchResponse?
     @State private var isSearching = false
     @State private var searchError: String?
+    @FocusState private var searchFocused: Bool
 
     // Selection / submission shape
     @State private var submissionType: SubmissionType = .newPlace
@@ -49,8 +66,8 @@ struct AddPlaceFlow: View {
     // Details step progressive disclosure
     @State private var showingMoreDetails = false
     @State private var showingMenuSection = false
-    @State private var showingAddMenuItem = false
     @State private var showSpendError = false
+    @State private var triedContinue = false
 
     // Original values, snapshotted at selection time, diffed at submit time to build changedFields
     @State private var originalName = ""
@@ -69,8 +86,12 @@ struct AddPlaceFlow: View {
     @State private var showingMapPicker = false
 
     // Draft submission (created at the top of Review, so photos have a real ID to attach to
-    // before "Submit for review" — see the draft->pending lifecycle change)
+    // before "Submit for review" — see the draft->pending lifecycle change). The fingerprints
+    // detect edits made after going Back from Review, so the draft is updated (details) or
+    // recreated (location) instead of silently submitting stale data.
     @State private var draftSubmissionId: Int?
+    @State private var draftDetailsFingerprint: String?
+    @State private var draftLocationFingerprint: String?
     @State private var isCreatingDraft = false
     @State private var draftError: String?
 
@@ -83,12 +104,18 @@ struct AddPlaceFlow: View {
     @State private var submitError: String?
     @State private var createdSubmission: MySubmission?
 
+    private static let categorySuggestions = ["Mamak", "Nasi campur", "Kopitiam", "Cafe", "Western", "Chinese", "Indian", "Warung", "Dessert", "Street food"]
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            VStack(spacing: 0) {
                 if step != .success {
-                    stepIndicator
+                    progressHeader
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
                 }
+
                 Group {
                     switch step {
                     case .search: searchStep
@@ -98,18 +125,30 @@ struct AddPlaceFlow: View {
                     case .success: successStep
                     }
                 }
-                .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .trailing)))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .transition(stepTransition)
+                .id(step)
             }
-            .padding(16)
             .background(Color.nasiCream.ignoresSafeArea())
-            .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2), value: step)
-            .navigationTitle(step == .success ? "" : Copy.communitySearchTitle)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.22), value: step)
+            .navigationTitle(step == .success ? "" : navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if step != .success {
-                        Button("Cancel") { dismiss() }
+            .toolbar { toolbarContent }
+            .interactiveDismissDisabled(isDirty && step != .success)
+            .confirmationDialog("Discard this place?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                Button("Discard", role: .destructive) { discardAndDismiss() }
+                Button("Keep editing", role: .cancel) {}
+            } message: {
+                Text("What you've filled in so far won't be saved.")
+            }
+            .sheet(isPresented: $showingMapPicker) {
+                MapPinPickerView(initialCoordinate: pinnedCoordinate ?? currentCoordinate) { coordinate in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        latitude = coordinate.latitude
+                        longitude = coordinate.longitude
+                        locationSource = .mapPin
                     }
+                    showingMapPicker = false
                 }
             }
         }
@@ -120,191 +159,346 @@ struct AddPlaceFlow: View {
         }
     }
 
-    // MARK: - Step indicator
+    // MARK: - Frame shared by every step
 
-    private var stepIndicator: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(String(format: Copy.communityStepFormat, currentVisibleIndex + 1, stepTitle))
-                .font(.makanBody(12))
-                .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                ForEach(Array(visibleSteps.enumerated()), id: \.offset) { index, s in
-                    Capsule()
-                        .fill(index <= currentVisibleIndex ? Color.sambalRed : Color.kicap.opacity(0.15))
-                        .frame(height: 4)
-                        .animation(.easeOut(duration: 0.18), value: step)
+    private var navigationTitle: String {
+        submissionType == .editPlace ? "Suggest an edit" : Copy.communitySearchTitle
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            if step != .success {
+                if canGoBack {
+                    Button {
+                        goBack()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                            .labelStyle(.titleAndIcon)
+                    }
+                } else {
+                    Button("Cancel") { requestCancel() }
                 }
+            }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            if step != .success && canGoBack {
+                Button("Cancel") { requestCancel() }
             }
         }
     }
 
+    private var stepTransition: AnyTransition {
+        if reduceMotion { return .opacity }
+        return .asymmetric(
+            insertion: .opacity.combined(with: .move(edge: goingForward ? .trailing : .leading)),
+            removal: .opacity
+        )
+    }
+
+    /// Search only counts as a step when the user actually searched — the "Know the menu?" edit
+    /// entry starts at Details, so its progress is 3 steps, not 4 with a skipped first one.
     private var visibleSteps: [AddPlaceStep] {
-        [.details, .location, .review]
+        prefillExisting == nil ? [.search, .details, .location, .review] : [.details, .location, .review]
     }
 
     private var currentVisibleIndex: Int {
         visibleSteps.firstIndex(of: step) ?? 0
     }
 
-    private var stepTitle: String {
-        switch step {
-        case .details: return "Details"
-        case .location: return "Location"
-        case .review: return "Review"
-        default: return ""
+    private var canGoBack: Bool {
+        currentVisibleIndex > 0
+    }
+
+    private var progressHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(format: Copy.communityStepFormat, currentVisibleIndex + 1, visibleSteps.count, step.title))
+                .font(.makanBody(12))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                ForEach(Array(visibleSteps.enumerated()), id: \.offset) { index, _ in
+                    Capsule()
+                        .fill(index <= currentVisibleIndex ? Color.sambalRed : Color.kicap.opacity(0.12))
+                        .frame(height: 4)
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: step)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Step \(currentVisibleIndex + 1) of \(visibleSteps.count), \(step.title)")
+    }
+
+    private func stepHeading(_ title: String, _ subtitle: String?) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.makanDisplay(22))
+                .foregroundStyle(Color.kicap)
+                .accessibilityAddTraits(.isHeader)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.makanBody(14))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The one pinned action area every step uses.
+    private func actionBar(
+        _ title: String,
+        enabled: Bool = true,
+        loading: Bool = false,
+        hint: String? = nil,
+        secondary: SecondaryAction? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(spacing: 8) {
+            if let hint, !enabled {
+                Text(hint)
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
+                    .transition(.opacity)
+            }
+            Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                action()
+            } label: {
+                ZStack {
+                    Text(title).opacity(loading ? 0 : 1)
+                    if loading { ProgressView().tint(.white) }
+                }
+                .font(.makanBody(16).weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(enabled ? Color.sambalRed : Color.sambalRed.opacity(0.35))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(PressCompressStyle())
+            .disabled(!enabled || loading)
+
+            if let secondary {
+                Button(secondary.title, action: secondary.action)
+                    .font(.makanBody(14))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(minHeight: 36)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(Color.nasiCream.shadow(.drop(color: Color.kicap.opacity(0.06), radius: 8, y: -4)))
+    }
+
+    private func go(to next: AddPlaceStep) {
+        goingForward = next.rawValue > step.rawValue
+        withAnimation { step = next }
+    }
+
+    private func goBack() {
+        guard canGoBack else { return }
+        go(to: visibleSteps[currentVisibleIndex - 1])
+    }
+
+    /// Only ask "discard?" when there's real work to lose — opening the edit flow and backing
+    /// straight out shouldn't nag.
+    private var isDirty: Bool {
+        if draftSubmissionId != nil || !uploadedPhotos.isEmpty { return true }
+        if submissionType == .editPlace { return !computeChangedFields().isEmpty || !notes.isEmpty }
+        return googlePlaceId != nil || !trimmedName.isEmpty
+    }
+
+    private func requestCancel() {
+        if isDirty {
+            confirmingDiscard = true
+        } else {
+            dismiss()
         }
     }
 
-    // MARK: - Search step
+    /// Cancels any draft already created, so abandoning the flow doesn't leave it for the pruner.
+    private func discardAndDismiss() {
+        if let draftSubmissionId {
+            Task { _ = try? await APIClient.cancelSubmission(id: draftSubmissionId) }
+        }
+        dismiss()
+    }
+
+    // MARK: - Step 1: Find
 
     private var searchStep: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(Copy.communitySearchSubtitle)
-                    .font(.makanBody(14))
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 20) {
+                stepHeading("Find the place", Copy.communitySearchSubtitle)
 
-                HStack {
-                    TextField(Copy.communitySearchPlaceholder, text: $searchQuery)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { Task { await search() } }
-                    Button {
-                        Task { await search() }
-                    } label: {
-                        if isSearching {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "magnifyingglass")
-                        }
-                    }
-                    .disabled(searchQuery.trimmingCharacters(in: .whitespaces).count < 2 || isSearching)
-                }
+                searchField
 
                 if let searchError {
-                    Text(searchError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
+                    InlineMessage(text: searchError, isError: true)
                 }
 
-                Group {
-                    if let results = searchResults {
-                        if !results.existing.isEmpty {
-                            sectionLabel(Copy.communitySearchExistingLabel)
+                if let results = searchResults {
+                    if !results.existing.isEmpty {
+                        resultSection(Copy.communitySearchExistingLabel) {
                             ForEach(results.existing) { place in
-                                existingResultRow(place)
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                            }
-                        }
-                        if !results.google.isEmpty {
-                            sectionLabel(Copy.communitySearchGoogleLabel)
-                            ForEach(results.google) { candidate in
-                                googleResultRow(candidate)
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
+                                PlaceResultRow(
+                                    title: place.name,
+                                    subtitle: [place.foodCategory, place.address].compactMap { $0 }.first,
+                                    badge: "Suggest an edit",
+                                    systemImage: "pencil",
+                                    tint: .kunyit
+                                ) { selectExisting(place) }
                             }
                         }
                     }
+                    if !results.google.isEmpty {
+                        resultSection(Copy.communitySearchGoogleLabel) {
+                            ForEach(results.google) { candidate in
+                                PlaceResultRow(
+                                    title: candidate.name,
+                                    subtitle: candidate.foodCategory,
+                                    badge: "Add",
+                                    systemImage: "plus",
+                                    tint: .sambalRed
+                                ) { selectGoogleCandidate(candidate) }
+                            }
+                        }
+                    }
+                    if results.existing.isEmpty && results.google.isEmpty && !isSearching {
+                        Text("No matches for “\(searchQuery.trimmingCharacters(in: .whitespaces))”.")
+                            .font(.makanBody(14))
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.18), value: searchResults)
 
                 cantFindCard
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.18), value: searchResults)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .task(id: searchQuery) { await debouncedSearch() }
+        .onAppear { if searchResults == nil { searchFocused = true } }
     }
 
-    private func sectionLabel(_ text: String) -> some View {
-        Text(text.uppercased())
-            .font(.makanBody(11))
-            .foregroundStyle(.secondary)
-            .tracking(0.5)
-            .padding(.top, 8)
-    }
-
-    private func existingResultRow(_ place: ExistingPlaceResult) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(place.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
-            if let category = place.foodCategory {
-                Text(category).font(.makanBody(12)).foregroundStyle(.secondary)
-            }
-            Button("Suggest an edit →") {
-                selectExisting(place)
-            }
-            .font(.makanBody(13))
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-
-    private func googleResultRow(_ candidate: GooglePlaceCandidate) -> some View {
-        Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
-                selectGoogleCandidate(candidate)
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(candidate.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
-                if let category = candidate.foodCategory {
-                    Text(category).font(.makanBody(12)).foregroundStyle(.secondary)
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(Copy.communitySearchPlaceholder, text: $searchQuery)
+                .font(.makanBody(16))
+                .focused($searchFocused)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .onSubmit { Task { await search() } }
+            if isSearching {
+                ProgressView()
+            } else if !searchQuery.isEmpty {
+                Button {
+                    searchQuery = ""
+                    searchResults = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
+                .accessibilityLabel("Clear search")
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .fieldChrome(isFocused: searchFocused)
+    }
+
+    private func resultSection(_ title: String, @ViewBuilder rows: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionLabel(text: title)
+            rows()
         }
     }
 
     private var cantFindCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(Copy.communityCantFindHeadline)
-                .font(.makanBody(16))
-                .foregroundStyle(Color.kicap)
-            Text(Copy.communityCantFindDetail)
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
-            Button(Copy.communityAddManually) {
-                selectManual()
+        Button {
+            selectManual()
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 20))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(Copy.communityCantFindHeadline)
+                        .font(.makanBody(16))
+                        .foregroundStyle(Color.kicap)
+                    Text(Copy.communityCantFindDetail)
+                        .font(.makanBody(13))
+                        .foregroundStyle(.secondary)
+                    Text(Copy.communityAddManually)
+                        .font(.makanBody(14).weight(.semibold))
+                        .foregroundStyle(Color.sambalRed)
+                        .padding(.top, 4)
+                }
+                Spacer(minLength: 0)
             }
-            .font(.makanBody(14))
-            .padding(.top, 4)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.kunyit.opacity(0.15))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.kunyit.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.top, 12)
+        .buttonStyle(PressCompressStyle())
+    }
+
+    /// Search as you type (after a short pause) — the magnifier button needed an extra tap and
+    /// wasn't discoverable. `.task(id:)` cancels the previous run on every keystroke.
+    private func debouncedSearch() async {
+        let term = searchQuery.trimmingCharacters(in: .whitespaces)
+        guard term.count >= 2 else {
+            if term.isEmpty { searchResults = nil }
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(450))
+        guard !Task.isCancelled else { return }
+        await search()
     }
 
     @MainActor
     private func search() async {
+        let term = searchQuery.trimmingCharacters(in: .whitespaces)
+        guard term.count >= 2 else { return }
         isSearching = true
         searchError = nil
         defer { isSearching = false }
         do {
-            searchResults = try await APIClient.searchCommunityPlaces(
-                query: searchQuery, latitude: currentCoordinate?.latitude, longitude: currentCoordinate?.longitude
+            let results = try await APIClient.searchCommunityPlaces(
+                query: term, latitude: currentCoordinate?.latitude, longitude: currentCoordinate?.longitude
             )
+            guard !Task.isCancelled else { return }
+            searchResults = results
         } catch {
-            searchError = "Couldn't search right now."
+            guard !Task.isCancelled else { return }
+            searchError = "Couldn't search right now. Check your connection and try again."
         }
     }
 
     private func selectExisting(_ place: ExistingPlaceResult) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         submissionType = .editPlace
         sourceType = .manual
+        googlePlaceId = nil
         restaurantId = place.id
         setFields(
             name: place.name, foodCategory: place.foodCategory ?? "", averageSpend: spendString(for: place.priceLevel),
             address: place.address ?? "", phone: "", instagram: "", tiktok: "", website: "", menu: []
         )
         snapshotOriginals()
+        // An edit never moves the place, but the submission still needs its coordinates.
         locationSource = .currentLocation
-        latitude = nil
-        longitude = nil
-        withAnimation { step = .details }
+        latitude = place.latitude
+        longitude = place.longitude
+        resetDraft()
+        go(to: .details)
     }
 
     private func selectGoogleCandidate(_ candidate: GooglePlaceCandidate) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         submissionType = .newPlace
         sourceType = .google
         googlePlaceId = candidate.googlePlaceId
@@ -317,20 +511,24 @@ struct AddPlaceFlow: View {
         locationSource = .google
         latitude = candidate.latitude
         longitude = candidate.longitude
-        withAnimation { step = .details }
+        resetDraft()
+        go(to: .details)
     }
 
     private func selectManual() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         submissionType = .newPlace
         sourceType = .manual
         googlePlaceId = nil
         restaurantId = nil
-        setFields(name: "", foodCategory: "", averageSpend: "", address: "", phone: "", instagram: "", tiktok: "", website: "", menu: [])
+        let typed = searchQuery.trimmingCharacters(in: .whitespaces)
+        setFields(name: typed, foodCategory: "", averageSpend: "", address: "", phone: "", instagram: "", tiktok: "", website: "", menu: [])
         snapshotOriginals()
         locationSource = .currentLocation
         latitude = nil
         longitude = nil
-        withAnimation { step = .details }
+        resetDraft()
+        go(to: .details)
     }
 
     private func setFields(name: String, foodCategory: String, averageSpend: String, address: String, phone: String, instagram: String, tiktok: String, website: String, menu: [MenuItem]) {
@@ -344,6 +542,8 @@ struct AddPlaceFlow: View {
         self.websiteUrl = website
         self.menuItems = menu
         self.notes = ""
+        triedContinue = false
+        showSpendError = false
     }
 
     private func snapshotOriginals() {
@@ -392,218 +592,225 @@ struct AddPlaceFlow: View {
         }
     }
 
-    // MARK: - Details step
+    // MARK: - Step 2: Details
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespaces) }
 
     private var detailsStep: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(Copy.communityDetailsHeadline)
-                    .font(.makanDisplay(19))
-                    .foregroundStyle(Color.kicap)
+            VStack(alignment: .leading, spacing: 24) {
+                stepHeading(
+                    submissionType == .editPlace ? "What should change?" : Copy.communityDetailsHeadline,
+                    submissionType == .editPlace ? "Fix anything that's wrong or missing — only what you change gets reviewed." : "Just the basics. Everything else is optional."
+                )
 
-                VStack(alignment: .leading, spacing: 16) {
-                    LabeledTextField(label: "Place name", text: $name)
-                    LabeledTextField(label: "Category", text: $foodCategory, placeholder: "e.g. Mamak")
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("EXPECTED SPEND / PERSON")
-                            .font(.makanBody(11)).foregroundStyle(.secondary).tracking(0.5)
+                VStack(alignment: .leading, spacing: 18) {
+                    FormField(label: "Place name", isRequired: true, error: triedContinue && trimmedName.isEmpty ? "Add a name so people can find it." : nil) {
+                        TextField("e.g. Restoran Nasi Kandar Pelita", text: $name)
+                            .textInputAutocapitalization(.words)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        FormField(label: "Category") {
+                            TextField("e.g. Mamak", text: $foodCategory)
+                                .textInputAutocapitalization(.words)
+                        }
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(Self.categorySuggestions, id: \.self) { suggestion in
+                                    let selected = foodCategory.caseInsensitiveCompare(suggestion) == .orderedSame
+                                    Button {
+                                        foodCategory = selected ? "" : suggestion
+                                    } label: {
+                                        Text(suggestion)
+                                            .font(.makanBody(13))
+                                            .foregroundStyle(selected ? .white : Color.kicap)
+                                            .padding(.horizontal, 12)
+                                            .frame(minHeight: 32)
+                                            .background(selected ? Color.sambalRed : Color.white)
+                                            .overlay(Capsule().stroke(Color.kicap.opacity(selected ? 0 : 0.1), lineWidth: 1))
+                                            .clipShape(Capsule())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityAddTraits(selected ? .isSelected : [])
+                                }
+                            }
+                        }
+                    }
+
+                    FormField(
+                        label: "Spend per person",
+                        footer: showSpendError ? nil : Copy.communitySpendFooter,
+                        error: showSpendError ? Copy.communitySpendErrorInline : nil
+                    ) {
                         HStack(spacing: 6) {
-                            Text("RM").font(.makanBody(16)).foregroundStyle(.secondary)
-                            TextField("", text: $averageSpend)
+                            Text("RM").foregroundStyle(.secondary)
+                            TextField("15", text: $averageSpend)
                                 .keyboardType(.decimalPad)
-                                .font(.makanBody(16))
                                 .onChange(of: averageSpend) { _, _ in showSpendError = false }
                         }
-                        Divider()
-                        Text(showSpendError ? Copy.communitySpendErrorInline : Copy.communitySpendFooter)
-                            .font(.makanBody(12))
-                            .foregroundStyle(showSpendError ? Color.sambalRed : .secondary)
                     }
                 }
 
-                disclosureRow(
-                    isExpanded: $showingMoreDetails, title: Copy.communityAddMoreDetailsTitle, subtitle: Copy.communityAddMoreDetailsSubtitle
-                ) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        LabeledTextField(label: "Address", text: $address)
-                        LabeledTextField(label: "Phone", text: $phone).keyboardType(.phonePad)
-                        LabeledTextField(label: "Instagram handle", text: $instagramHandle).textInputAutocapitalization(.never)
-                        LabeledTextField(label: "TikTok handle", text: $tiktokHandle).textInputAutocapitalization(.never)
-                        LabeledTextField(label: "Website", text: $websiteUrl).keyboardType(.URL).textInputAutocapitalization(.never)
-                        Text(Copy.communityBlankIsFine)
-                            .font(.makanBody(12))
-                            .foregroundStyle(.secondary)
+                VStack(spacing: 12) {
+                    DisclosureCard(
+                        isExpanded: $showingMoreDetails,
+                        systemImage: "info.circle",
+                        title: Copy.communityAddMoreDetailsTitle,
+                        subtitle: Copy.communityAddMoreDetailsSubtitle,
+                        filledCount: [address, phone, instagramHandle, tiktokHandle, websiteUrl].filter { !$0.isEmpty }.count
+                    ) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            FormField(label: "Address") { TextField("Street, area", text: $address) }
+                            FormField(label: "Phone") { TextField("012-345 6789", text: $phone).keyboardType(.phonePad) }
+                            FormField(label: "Instagram") {
+                                TextField("@handle", text: $instagramHandle).textInputAutocapitalization(.never).autocorrectionDisabled()
+                            }
+                            FormField(label: "TikTok") {
+                                TextField("@handle", text: $tiktokHandle).textInputAutocapitalization(.never).autocorrectionDisabled()
+                            }
+                            FormField(label: "Website") {
+                                TextField("https://", text: $websiteUrl).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                            }
+                            Text(Copy.communityBlankIsFine)
+                                .font(.makanBody(12))
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                }
 
-                disclosureRow(
-                    isExpanded: $showingMenuSection, title: Copy.communityAddMenuTitle, subtitle: Copy.communityAddMenuSubtitle
-                ) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(menuItems) { item in
-                            HStack {
-                                Text(item.name).font(.makanBody(14))
-                                Spacer()
-                                if let price = item.price {
-                                    Text("RM\(price, specifier: "%.2f")").font(.makanBody(13)).foregroundStyle(.secondary)
-                                }
-                                Button {
-                                    withAnimation(.easeOut(duration: 0.18)) {
-                                        menuItems.removeAll { $0.id == item.id }
+                    DisclosureCard(
+                        isExpanded: $showingMenuSection,
+                        systemImage: "menucard",
+                        title: Copy.communityAddMenuTitle,
+                        subtitle: Copy.communityAddMenuSubtitle,
+                        filledCount: menuItems.count
+                    ) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(menuItems) { item in
+                                HStack {
+                                    Text(item.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
+                                    Spacer()
+                                    if let price = item.price {
+                                        Text("RM\(price, specifier: "%.2f")").font(.makanBody(14)).foregroundStyle(.secondary)
                                     }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                                    Button {
+                                        withAnimation(.easeOut(duration: 0.18)) {
+                                            menuItems.removeAll { $0.id == item.id }
+                                        }
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 32, height: 32)
+                                    }
+                                    .accessibilityLabel("Remove \(item.name)")
                                 }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                Divider()
                             }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-
-                        if showingAddMenuItem {
                             AddMenuItemRow { newItem in
-                                withAnimation(.easeOut(duration: 0.18)) {
-                                    menuItems.append(newItem)
-                                    showingAddMenuItem = false
-                                }
+                                withAnimation(.easeOut(duration: 0.18)) { menuItems.append(newItem) }
                             }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        } else {
-                            Button("+ \(Copy.communityAddMenuItemCTA)") {
-                                withAnimation(.easeOut(duration: 0.18)) { showingAddMenuItem = true }
-                            }
-                            .font(.makanBody(14))
                         }
                     }
                 }
 
-                LabeledTextField(label: "Notes", text: $notes, placeholder: "Anything else worth knowing?")
-            }
-            .padding(.bottom, 8)
-        }
-        .safeAreaInset(edge: .bottom) {
-            Button("Continue") {
-                if name.trimmingCharacters(in: .whitespaces).isEmpty {
-                    return
+                FormField(label: "Notes for the reviewer", footer: "Optional") {
+                    TextField("Anything else worth knowing?", text: $notes, axis: .vertical)
+                        .lineLimit(2...4)
                 }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            actionBar("Continue", enabled: !trimmedName.isEmpty, hint: "Add a name to continue") {
+                triedContinue = true
+                guard !trimmedName.isEmpty else { return }
                 if !averageSpend.isEmpty && Double(averageSpend) == nil {
                     withAnimation { showSpendError = true }
                     return
                 }
-                withAnimation { step = .location }
-            }
-            .font(.makanBody(15))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.sambalRed.opacity(0.4) : Color.sambalRed)
-            .clipShape(Capsule())
-            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-            .padding(.top, 8)
-            .background(Color.nasiCream)
-        }
-    }
-
-    private func disclosureRow(isExpanded: Binding<Bool>, title: String, subtitle: String, @ViewBuilder content: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2)) {
-                    isExpanded.wrappedValue.toggle()
-                }
-            } label: {
-                HStack {
-                    Image(systemName: isExpanded.wrappedValue ? "minus.circle.fill" : "plus.circle.fill")
-                        .foregroundStyle(Color.sambalRed)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(title).font(.makanBody(15)).foregroundStyle(Color.kicap)
-                        Text(subtitle).font(.makanBody(12)).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-            }
-
-            if isExpanded.wrappedValue {
-                content()
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                go(to: .location)
             }
         }
     }
 
-    // MARK: - Location step
+    // MARK: - Step 3: Location
+
+    private var pinnedCoordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 
     private var locationStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            switch submissionType {
-            case .editPlace, .closure, .reopen:
-                locationCard(
-                    icon: "mappin.circle.fill",
-                    title: "📍 Location",
-                    detail: Copy.communityLocationImmutable
+        let isEdit = submissionType != .newPlace
+        let hasPin = pinnedCoordinate != nil
+
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                stepHeading(
+                    isEdit ? "Location stays the same" : (hasPin ? "Is this the right spot?" : "Where is it?"),
+                    isEdit ? Copy.communityLocationImmutable : locationSubtitle
                 )
-                nextButton { withAnimation { step = .review } }
-            default:
-                if sourceType == .google {
-                    locationCard(
-                        icon: "mappin.circle.fill",
-                        title: "📍 Location from Google",
-                        detail: "This is where Google says the place is."
-                    )
-                    Button("Looks right") { withAnimation { step = .review } }
-                        .font(.makanBody(14))
+
+                if let coordinate = pinnedCoordinate {
+                    LocationPreview(coordinate: coordinate, name: trimmedName)
+                    if !isEdit {
+                        Label(locationSourceLabel, systemImage: locationSourceIcon)
+                            .font(.makanBody(13))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if isEdit {
+                    InlineMessage(text: "We couldn't load this place's location. Go back and pick it from search again.", isError: true)
                 } else {
-                    manualLocationChoice
+                    VStack(spacing: 12) {
+                        LocationOptionButton(
+                            systemImage: "location.fill",
+                            title: Copy.communityUseCurrentLocation,
+                            subtitle: "Best if you're at the place right now"
+                        ) { useCurrentLocation() }
+                        LocationOptionButton(
+                            systemImage: "map",
+                            title: Copy.communityChooseOnMap,
+                            subtitle: "Drag the map to drop a pin"
+                        ) { showingMapPicker = true }
+                    }
                 }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if isEdit || hasPin {
+                actionBar(
+                    isEdit ? "Continue" : "Looks right",
+                    enabled: hasPin,
+                    secondary: isEdit ? nil : SecondaryAction(title: sourceType == .google ? "Adjust pin" : "Change location") { showingMapPicker = true }
+                ) { go(to: .review) }
             }
         }
     }
 
-    private func locationCard(icon: String, title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.makanBody(15)).foregroundStyle(Color.kicap)
-            Text(detail).font(.makanBody(13)).foregroundStyle(.secondary)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    private var locationSubtitle: String {
+        if pinnedCoordinate == nil { return "Pin it so people can actually find it." }
+        return sourceType == .google ? "This is where Google says the place is." : Copy.communityLocationReadyDetail
     }
 
-    private var manualLocationChoice: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if latitude != nil && longitude != nil {
-                locationCard(icon: "checkmark.circle.fill", title: "✓ Location ready", detail: Copy.communityLocationReadyDetail)
-                nextButton { withAnimation { step = .review } }
-            } else {
-                Button(Copy.communityUseCurrentLocation) {
-                    useCurrentLocation()
-                }
-                .font(.makanBody(15))
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                Button(Copy.communityChooseOnMap) {
-                    showingMapPicker = true
-                }
-                .font(.makanBody(15))
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-        }
-        .sheet(isPresented: $showingMapPicker) {
-            MapPinPickerView(initialCoordinate: currentCoordinate) { coordinate in
-                latitude = coordinate.latitude
-                longitude = coordinate.longitude
-                locationSource = .mapPin
-                showingMapPicker = false
-            }
+    private var locationSourceLabel: String {
+        switch locationSource {
+        case .google: "Location from Google"
+        case .mapPin: "Pinned on the map"
+        default: "Your current location"
         }
     }
 
-    private func nextButton(_ action: @escaping () -> Void) -> some View {
-        Button("Next", action: action)
-            .font(.makanBody(15))
+    private var locationSourceIcon: String {
+        switch locationSource {
+        case .google: "globe"
+        case .mapPin: "mappin"
+        default: "location.fill"
+        }
     }
 
     private func useCurrentLocation() {
@@ -611,7 +818,7 @@ struct AddPlaceFlow: View {
             locationService.requestLocation()
             return
         }
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             latitude = coordinate.latitude
             longitude = coordinate.longitude
             locationSource = .currentLocation
@@ -626,114 +833,109 @@ struct AddPlaceFlow: View {
         return nil
     }
 
-    // MARK: - Review step
+    // MARK: - Step 4: Review
 
     private var reviewStep: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(name).font(.makanDisplay(18)).foregroundStyle(Color.kicap)
-                    HStack(spacing: 8) {
-                        if !foodCategory.isEmpty { Text(foodCategory) }
-                        if !averageSpend.isEmpty { Text("≈ RM\(averageSpend)/person") }
+            VStack(alignment: .leading, spacing: 20) {
+                stepHeading("Looks good?", "Check everything before it goes to review.")
+
+                ReviewCard(title: "Details", onEdit: { go(to: .details) }) {
+                    ReviewRow(label: "Name", value: trimmedName)
+                    ReviewRow(label: "Category", value: foodCategory.isEmpty ? nil : foodCategory)
+                    ReviewRow(label: "Spend", value: averageSpend.isEmpty ? nil : "≈ RM\(averageSpend) / person")
+                    ReviewRow(label: "Address", value: address.isEmpty ? nil : address)
+                    ReviewRow(label: "Contact", value: [phone, instagramHandle, tiktokHandle, websiteUrl].filter { !$0.isEmpty }.joined(separator: " · ").nilIfEmpty)
+                    ReviewRow(label: "Menu", value: menuItems.isEmpty ? nil : "\(menuItems.count) item\(menuItems.count == 1 ? "" : "s")")
+                    if submissionType == .editPlace {
+                        ReviewRow(label: "Changes", value: computeChangedFields().isEmpty ? "Nothing changed yet" : "\(computeChangedFields().count) field\(computeChangedFields().count == 1 ? "" : "s")")
                     }
-                    .font(.makanBody(13))
-                    .foregroundStyle(.secondary)
-                    if !address.isEmpty {
-                        Text(address).font(.makanBody(13)).foregroundStyle(.secondary)
+                }
+
+                ReviewCard(title: "Location", onEdit: submissionType == .newPlace ? { go(to: .location) } : nil) {
+                    if let coordinate = pinnedCoordinate {
+                        LocationPreview(coordinate: coordinate, name: trimmedName, height: 120)
                     }
-                    Text(sourceType == .google ? "Found on Google" : "Added manually")
-                        .font(.makanBody(12))
+                    Text(submissionType == .newPlace ? locationSourceLabel : "Unchanged")
+                        .font(.makanBody(13))
                         .foregroundStyle(.secondary)
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                if let draftError {
-                    Text(draftError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
-                }
-
-                if isCreatingDraft {
-                    HStack {
-                        ProgressView()
-                        Text("Preparing…").foregroundStyle(.secondary)
+                ReviewCard(title: "Photos", subtitle: "Optional · up to 5") {
+                    if isCreatingDraft {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Getting things ready…").font(.makanBody(13)).foregroundStyle(.secondary)
+                        }
+                    } else if draftSubmissionId != nil {
+                        photosRow
+                    } else if let draftError {
+                        InlineMessage(text: draftError, isError: true)
+                        Button("Try again") { Task { await syncDraft() } }
+                            .font(.makanBody(14))
+                            .foregroundStyle(Color.sambalRed)
                     }
-                } else if draftSubmissionId != nil {
-                    photosSection
                 }
 
                 if let submitError {
-                    Text(submitError).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
+                    InlineMessage(text: submitError, isError: true)
                 }
-
-                Button {
-                    Task { await submitForReview() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView()
-                    } else {
-                        Text(Copy.communitySubmitForReview)
-                    }
-                }
-                .font(.makanBody(15))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.sambalRed)
-                .clipShape(Capsule())
-                .disabled(isSubmitting || draftSubmissionId == nil || latitude == nil || longitude == nil)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .safeAreaInset(edge: .bottom) {
+            actionBar(
+                Copy.communitySubmitForReview,
+                enabled: draftSubmissionId != nil && pinnedCoordinate != nil && !uploadedPhotos.contains(where: \.isUploading),
+                loading: isSubmitting || isCreatingDraft,
+                hint: uploadedPhotos.contains(where: \.isUploading) ? "Waiting for photos to finish uploading…" : nil
+            ) {
+                Task { await submitForReview() }
             }
         }
-        .task {
-            if draftSubmissionId == nil {
-                await createDraft()
-            }
-        }
+        .task { await syncDraft() }
     }
 
-    private var photosSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Photos (optional)").font(.makanBody(13)).foregroundStyle(.secondary)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(uploadedPhotos) { photo in
-                        ZStack {
-                            Image(uiImage: photo.thumbnail)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 72, height: 72)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            if photo.isUploading {
-                                ProgressView().tint(.white)
-                            } else {
-                                VStack {
-                                    HStack {
-                                        Spacer()
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(Color.pandan)
-                                            .background(Circle().fill(.white))
-                                    }
-                                    Spacer()
+    private var photosRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(uploadedPhotos) { photo in
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: photo.thumbnail)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 76, height: 76)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay {
+                                if photo.isUploading {
+                                    RoundedRectangle(cornerRadius: 12).fill(.black.opacity(0.35))
+                                    ProgressView().tint(.white)
                                 }
-                                .padding(4)
                             }
+                        if !photo.isUploading {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(Color.pandan)
+                                .background(Circle().fill(.white))
+                                .padding(4)
                         }
-                        .frame(width: 72, height: 72)
-                        .transition(.opacity)
                     }
+                    .frame(width: 76, height: 76)
+                    .transition(.opacity)
+                }
 
-                    if uploadedPhotos.count < 5 {
-                        PhotosPicker(selection: $photoPickerItems, maxSelectionCount: 5 - uploadedPhotos.count, matching: .images) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 20))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 72, height: 72)
-                                .background(Color.kicap.opacity(0.06))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                if uploadedPhotos.count < 5 {
+                    PhotosPicker(selection: $photoPickerItems, maxSelectionCount: 5 - uploadedPhotos.count, matching: .images) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "camera.fill").font(.system(size: 18))
+                            Text("Add").font(.makanBody(11))
                         }
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(width: 76, height: 76)
+                        .background(Color.sambalRed.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .accessibilityLabel("Add photos")
                 }
             }
         }
@@ -754,7 +956,7 @@ struct AddPlaceFlow: View {
             let resized = image.resizedIfNeeded(maxDimension: 1600)
             guard let jpegData = resized.jpegData(compressionQuality: 0.85) else { continue }
 
-            var state = UploadedPhotoState(thumbnail: resized, isUploading: true, uploadedId: nil)
+            let state = UploadedPhotoState(thumbnail: resized, isUploading: true, uploadedId: nil)
             let stateId = state.id
             uploadedPhotos.append(state)
 
@@ -773,6 +975,57 @@ struct AddPlaceFlow: View {
         }
     }
 
+    // MARK: - Draft lifecycle
+
+    private var detailsFingerprint: String {
+        [trimmedName, address, foodCategory, averageSpend, phone, instagramHandle, tiktokHandle, websiteUrl, notes,
+         menuItems.map { "\($0.name)|\($0.price ?? -1)" }.joined(separator: ",")].joined(separator: "¦")
+    }
+
+    private var locationFingerprint: String {
+        "\(latitude ?? 0),\(longitude ?? 0),\(locationSource.rawValue)"
+    }
+
+    private func resetDraft() {
+        if let draftSubmissionId {
+            Task { _ = try? await APIClient.cancelSubmission(id: draftSubmissionId) }
+        }
+        draftSubmissionId = nil
+        draftDetailsFingerprint = nil
+        draftLocationFingerprint = nil
+        uploadedPhotos = []
+        draftError = nil
+        submitError = nil
+    }
+
+    /// Creates the draft on first arrival at Review; afterwards keeps it in step with whatever
+    /// the user changed after going Back — details are PATCHed, a moved pin recreates it (the
+    /// update endpoint can't move a location).
+    @MainActor
+    private func syncDraft() async {
+        if draftSubmissionId != nil && draftLocationFingerprint != locationFingerprint {
+            resetDraft()
+        }
+        if let id = draftSubmissionId {
+            guard draftDetailsFingerprint != detailsFingerprint else { return }
+            isCreatingDraft = true
+            defer { isCreatingDraft = false }
+            do {
+                _ = try await APIClient.updateSubmission(id: id, UpdateSubmissionRequestBody(
+                    name: trimmedName, address: address.nilIfEmpty, foodCategory: foodCategory.nilIfEmpty,
+                    priceLevel: derivedPriceLevel, phone: phone.nilIfEmpty, instagramHandle: instagramHandle.nilIfEmpty,
+                    tiktokHandle: tiktokHandle.nilIfEmpty, websiteUrl: websiteUrl.nilIfEmpty,
+                    menuItems: menuItems.isEmpty ? nil : menuItems, notes: notes.nilIfEmpty, changedFields: computeChangedFields()
+                ))
+                draftDetailsFingerprint = detailsFingerprint
+            } catch {
+                draftError = "Couldn't save your changes. Try again in a bit."
+            }
+            return
+        }
+        await createDraft()
+    }
+
     @MainActor
     private func createDraft() async {
         guard let latitude, let longitude else { return }
@@ -782,20 +1035,22 @@ struct AddPlaceFlow: View {
 
         let body = CreateSubmissionRequestBody(
             submissionType: submissionType, sourceType: sourceType, googlePlaceId: googlePlaceId,
-            restaurantId: restaurantId, name: name.trimmingCharacters(in: .whitespaces),
-            address: address.isEmpty ? nil : address, foodCategory: foodCategory.isEmpty ? nil : foodCategory,
-            priceLevel: derivedPriceLevel, phone: phone.isEmpty ? nil : phone,
-            instagramHandle: instagramHandle.isEmpty ? nil : instagramHandle,
-            tiktokHandle: tiktokHandle.isEmpty ? nil : tiktokHandle,
-            websiteUrl: websiteUrl.isEmpty ? nil : websiteUrl,
+            restaurantId: restaurantId, name: trimmedName,
+            address: address.nilIfEmpty, foodCategory: foodCategory.nilIfEmpty,
+            priceLevel: derivedPriceLevel, phone: phone.nilIfEmpty,
+            instagramHandle: instagramHandle.nilIfEmpty,
+            tiktokHandle: tiktokHandle.nilIfEmpty,
+            websiteUrl: websiteUrl.nilIfEmpty,
             menuItems: menuItems.isEmpty ? nil : menuItems,
             latitude: latitude, longitude: longitude, locationSource: locationSource,
-            notes: notes.isEmpty ? nil : notes, changedFields: computeChangedFields()
+            notes: notes.nilIfEmpty, changedFields: computeChangedFields()
         )
 
         do {
             let response = try await APIClient.createSubmission(body)
             draftSubmissionId = response.submission.id
+            draftDetailsFingerprint = detailsFingerprint
+            draftLocationFingerprint = locationFingerprint
         } catch APIError.unauthorized {
             AuthStore.shared.handleUnauthorized()
         } catch {
@@ -805,6 +1060,7 @@ struct AddPlaceFlow: View {
 
     @MainActor
     private func submitForReview() async {
+        await syncDraft()
         guard let submissionId = draftSubmissionId else { return }
         isSubmitting = true
         submitError = nil
@@ -813,7 +1069,8 @@ struct AddPlaceFlow: View {
         do {
             let response = try await APIClient.submitSubmission(id: submissionId)
             createdSubmission = response.submission
-            withAnimation { step = .success }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            go(to: .success)
         } catch APIError.unauthorized {
             AuthStore.shared.handleUnauthorized()
         } catch {
@@ -821,37 +1078,71 @@ struct AddPlaceFlow: View {
         }
     }
 
-    // MARK: - Success step
+    // MARK: - Done
 
     private var successStep: some View {
         VStack(spacing: 16) {
             Spacer()
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 48))
+                .font(.system(size: 64))
                 .foregroundStyle(Color.pandan)
-            Text(Copy.communitySubmissionSuccessHeadline)
-                .font(.makanDisplay(20))
+                .symbolEffect(.bounce, value: step)
+                .accessibilityHidden(true)
+            Text(submissionType == .editPlace ? "Edit sent for review!" : Copy.communitySubmissionSuccessHeadline)
+                .font(.makanDisplay(24))
                 .foregroundStyle(Color.kicap)
+                .multilineTextAlignment(.center)
             if let createdSubmission {
                 Text(createdSubmission.name)
-                    .font(.makanBody(15))
-                    .foregroundStyle(.secondary)
+                    .font(.makanBody(16))
+                    .foregroundStyle(Color.kicap.opacity(0.8))
             }
             Text(Copy.communitySubmissionSuccessDetail)
-                .font(.makanBody(13))
+                .font(.makanBody(14))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+            Text("You'll get a notification once it's reviewed. Track it anytime in My places.")
+                .font(.makanBody(12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
             Spacer()
-            Button("Done") { dismiss() }
-                .font(.makanBody(15))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.sambalRed)
-                .clipShape(Capsule())
         }
-        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .safeAreaInset(edge: .bottom) {
+            actionBar(
+                "Done",
+                secondary: prefillExisting == nil ? SecondaryAction(title: "Add another place", action: startOver) : nil
+            ) { dismiss() }
+        }
     }
+
+    private func startOver() {
+        draftSubmissionId = nil
+        draftDetailsFingerprint = nil
+        draftLocationFingerprint = nil
+        uploadedPhotos = []
+        createdSubmission = nil
+        searchQuery = ""
+        searchResults = nil
+        restaurantId = nil
+        googlePlaceId = nil
+        submissionType = .newPlace
+        setFields(name: "", foodCategory: "", averageSpend: "", address: "", phone: "", instagram: "", tiktok: "", website: "", menu: [])
+        latitude = nil
+        longitude = nil
+        showingMoreDetails = false
+        showingMenuSection = false
+        go(to: .search)
+    }
+}
+
+// MARK: - Shared pieces
+
+private struct SecondaryAction {
+    let title: String
+    let action: () -> Void
 }
 
 private struct UploadedPhotoState: Identifiable {
@@ -861,23 +1152,295 @@ private struct UploadedPhotoState: Identifiable {
     var uploadedId: Int?
 }
 
-/// Label stays visible above the value instead of disappearing once the field has content —
-/// the earlier draft relied on placeholder text alone, so a filled-in value (e.g. a bare "20")
-/// lost all context about what it represented.
-private struct LabeledTextField: View {
+private extension String {
+    var nilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+/// One text-field look for the whole flow: white rounded field, hairline border that turns
+/// sambal-red when focused or in error.
+private struct FieldChrome: ViewModifier {
+    var isFocused = false
+    var isError = false
+
+    func body(content: Content) -> some View {
+        content
+            .font(.makanBody(16))
+            .padding(.horizontal, 14)
+            .frame(minHeight: 48)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isError ? Color.sambalRed : (isFocused ? Color.sambalRed.opacity(0.6) : Color.kicap.opacity(0.12)), lineWidth: isFocused || isError ? 1.5 : 1)
+            )
+    }
+}
+
+private extension View {
+    func fieldChrome(isFocused: Bool = false, isError: Bool = false) -> some View {
+        modifier(FieldChrome(isFocused: isFocused, isError: isError))
+    }
+}
+
+/// Label always visible above the value (a bare "20" loses its meaning once the placeholder
+/// is gone), optional required marker, footer or inline error below.
+private struct FormField<Field: View>: View {
     let label: String
-    @Binding var text: String
-    var placeholder: String = ""
+    var isRequired = false
+    var footer: String?
+    var error: String?
+    @ViewBuilder var field: () -> Field
+    @FocusState private var focused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
-                .font(.makanBody(11))
-                .foregroundStyle(.secondary)
-                .tracking(0.5)
-            TextField(placeholder, text: $text)
-                .font(.makanBody(16))
-            Divider()
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 2) {
+                Text(label)
+                    .font(.makanBody(13).weight(.semibold))
+                    .foregroundStyle(Color.kicap.opacity(0.8))
+                if isRequired {
+                    Text("*").foregroundStyle(Color.sambalRed).accessibilityLabel("required")
+                }
+            }
+            field()
+                .focused($focused)
+                .padding(.vertical, 2)
+                .fieldChrome(isFocused: focused, isError: error != nil)
+            if let error {
+                Label(error, systemImage: "exclamationmark.circle.fill")
+                    .font(.makanBody(12))
+                    .foregroundStyle(Color.sambalRed)
+            } else if let footer {
+                Text(footer)
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct SectionLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text.uppercased())
+            .font(.makanBody(11).weight(.semibold))
+            .foregroundStyle(.secondary)
+            .tracking(0.6)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
+private struct InlineMessage: View {
+    let text: String
+    var isError = false
+
+    var body: some View {
+        Label(text, systemImage: isError ? "exclamationmark.circle.fill" : "info.circle")
+            .font(.makanBody(13))
+            .foregroundStyle(isError ? Color.sambalRed : .secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// Every search result, existing or Google, is the same fully tappable row — only the badge says
+/// what tapping does.
+private struct PlaceResultRow: View {
+    let title: String
+    let subtitle: String?
+    let badge: String
+    let systemImage: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.makanBody(16))
+                        .foregroundStyle(Color.kicap)
+                        .multilineTextAlignment(.leading)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.makanBody(13))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                Label(badge, systemImage: systemImage)
+                    .font(.makanBody(12).weight(.semibold))
+                    .foregroundStyle(tint == .kunyit ? Color.kicap : tint)
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 28)
+                    .background(tint.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(PressCompressStyle())
+        .accessibilityHint(badge)
+    }
+}
+
+private struct DisclosureCard<Content: View>: View {
+    @Binding var isExpanded: Bool
+    let systemImage: String
+    let title: String
+    let subtitle: String
+    var filledCount = 0
+    @ViewBuilder var content: () -> Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button {
+                withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 18))
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.makanBody(15)).foregroundStyle(Color.kicap)
+                        Text(filledCount > 0 ? "\(filledCount) added" : subtitle)
+                            .font(.makanBody(12))
+                            .foregroundStyle(filledCount > 0 ? Color.pandan : .secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+
+            if isExpanded {
+                content()
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+private struct LocationOptionButton: View {
+    let systemImage: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(width: 40, height: 40)
+                    .background(Color.sambalRed.opacity(0.1))
+                    .clipShape(Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.makanBody(16)).foregroundStyle(Color.kicap)
+                    Text(subtitle).font(.makanBody(13)).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(PressCompressStyle())
+    }
+}
+
+/// Static map with the pin — shows *where*, instead of a text card claiming a location is set.
+private struct LocationPreview: View {
+    let coordinate: CLLocationCoordinate2D
+    let name: String
+    var height: CGFloat = 180
+
+    var body: some View {
+        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, span: MKCoordinateSpan(latitudeDelta: 0.004, longitudeDelta: 0.004))), interactionModes: []) {
+            Marker(name.isEmpty ? "Here" : name, coordinate: coordinate)
+                .tint(Color.sambalRed)
+        }
+        .id("\(coordinate.latitude),\(coordinate.longitude)")
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .allowsHitTesting(false)
+        .accessibilityLabel("Map showing the pinned location")
+    }
+}
+
+private struct ReviewCard<Content: View>: View {
+    let title: String
+    var subtitle: String?
+    var onEdit: (() -> Void)?
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    SectionLabel(text: title)
+                    if let subtitle {
+                        Text(subtitle).font(.makanBody(12)).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                if let onEdit {
+                    Button("Edit", action: onEdit)
+                        .font(.makanBody(14))
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(minHeight: 32)
+                        .accessibilityLabel("Edit \(title.lowercased())")
+                }
+            }
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+private struct ReviewRow: View {
+    let label: String
+    let value: String?
+
+    var body: some View {
+        if let value {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .font(.makanBody(13))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 76, alignment: .leading)
+                Text(value)
+                    .font(.makanBody(15))
+                    .foregroundStyle(Color.kicap)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 }
@@ -887,21 +1450,32 @@ private struct AddMenuItemRow: View {
 
     @State private var name = ""
     @State private var price = ""
+    @FocusState private var nameFocused: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             TextField("Dish name", text: $name)
-            TextField("RM", text: $price)
-                .keyboardType(.decimalPad)
-                .frame(width: 60)
+                .focused($nameFocused)
+                .fieldChrome(isFocused: nameFocused)
+            HStack(spacing: 4) {
+                Text("RM").foregroundStyle(.secondary)
+                TextField("0.00", text: $price).keyboardType(.decimalPad)
+            }
+            .frame(width: 96)
+            .fieldChrome()
             Button {
-                onAdd(MenuItem(name: name, price: Double(price)))
+                onAdd(MenuItem(name: name.trimmingCharacters(in: .whitespaces), price: Double(price)))
                 name = ""
                 price = ""
+                nameFocused = true
             } label: {
                 Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.kicap.opacity(0.2) : Color.sambalRed)
+                    .frame(width: 44, height: 44)
             }
             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            .accessibilityLabel("Add dish")
         }
     }
 }

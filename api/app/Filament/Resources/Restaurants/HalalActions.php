@@ -11,6 +11,7 @@ use App\Support\Halal\CertificateVerificationMethod;
 use App\Support\Halal\CertificationAuthority;
 use App\Support\Halal\HalalStatus;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -34,16 +35,23 @@ class HalalActions
             ->color('warning')
             ->visible(fn (Restaurant $record) => $record->merged_into_restaurant_id === null)
             ->modalDescription('Records an administrator override in the halal ledger. It replaces any current decision, including automatic ones, and a reason is required.')
-            ->fillForm(fn (Restaurant $record) => ['status' => $record->effectiveHalalStatus()->value, 'verification_method' => CertificateVerificationMethod::ManualDirectoryCheck->value])
+            ->fillForm(fn (Restaurant $record) => ['status' => $record->effectiveHalalStatus()->value, 'verification_method' => CertificateVerificationMethod::AdminAttestation->value])
             ->schema([
                 Select::make('status')
                     ->options(collect(HalalStatus::cases())->mapWithKeys(fn (HalalStatus $s) => [$s->value => $s->label()]))
                     ->required()
                     ->live(),
-                Section::make('Verified certificate')
+                Section::make('Certification')
+                    ->description('Confirm the certification. Certificate details are optional.')
                     ->visible(fn (Get $get) => $get('status') === HalalStatus::Certified->value)
                     ->columns(2)
-                    ->schema(self::certificateFields()),
+                    ->schema([
+                        Checkbox::make('confirmed')
+                            ->label('I confirm this premise holds a valid halal certificate')
+                            ->accepted()
+                            ->columnSpanFull(),
+                        ...self::certificateFields(required: false),
+                    ]),
                 Textarea::make('reason')->label('Reason (admin-only)')->required()->maxLength(500),
             ])
             ->action(function (Restaurant $record, array $data) {
@@ -65,7 +73,7 @@ class HalalActions
         return Action::make('registryCheck')
             ->label('Re-check in directory')
             ->icon('heroicon-o-magnifying-glass')
-            ->visible(fn (RestaurantHalalCertificate $record) => $record->isUsable())
+            ->visible(fn (RestaurantHalalCertificate $record) => $record->isUsable() && $record->certificate_number !== null)
             ->fillForm(fn (RestaurantHalalCertificate $record) => [
                 'authority' => $record->authority->value,
                 'certificate_number' => $record->certificate_number,
@@ -75,7 +83,7 @@ class HalalActions
                 'premise_name' => $record->premise_name,
                 'verification_method' => CertificateVerificationMethod::ManualDirectoryCheck->value,
             ])
-            ->schema(self::certificateFields())
+            ->schema(self::certificateFields(required: true))
             ->action(function (RestaurantHalalCertificate $record, array $data) {
                 app(HalalVerificationService::class)->recordRegistryResult($record->restaurant, CertificateData::fromArray($data), auth()->user());
             })
@@ -96,26 +104,34 @@ class HalalActions
             ->successNotificationTitle('Certificate revoked');
     }
 
-    /** @return array<int, mixed> */
-    public static function certificateFields(): array
+    /**
+     * @param  bool  $required  true for a directory re-check (needs the certificate identity);
+     *                          false when an admin simply confirms certification
+     * @return array<int, mixed>
+     */
+    public static function certificateFields(bool $required): array
     {
+        $optional = $required ? '' : ' (optional)';
+
         return [
             Select::make('authority')
+                ->label('Authority'.$optional)
                 ->options(collect(CertificationAuthority::cases())->mapWithKeys(fn ($a) => [$a->value => $a->label()]))
-                ->required()
+                ->required($required)
                 ->live(),
-            TextInput::make('certificate_number')->required()->maxLength(60),
-            DatePicker::make('expires_at')->label('Expires')->required()->afterOrEqual('today'),
-            DatePicker::make('issued_at')->label('Issued'),
-            TextInput::make('holder_name')->label('Holder name'),
-            TextInput::make('premise_name')->label('Premise'),
+            TextInput::make('certificate_number')->label('Certificate number'.$optional.', admin-only')->required($required)->maxLength(60),
+            DatePicker::make('expires_at')->label('Expires'.$optional)->required($required)->afterOrEqual('today'),
+            DatePicker::make('issued_at')->label('Issued (optional)'),
+            TextInput::make('holder_name')->label('Holder name (optional)'),
+            TextInput::make('premise_name')->label('Premise (optional)'),
             Select::make('verification_method')
+                ->label('How did you confirm it?')
                 ->options(collect(CertificateVerificationMethod::cases())->mapWithKeys(fn ($m) => [$m->value => $m->label()]))
                 ->required()
                 ->columnSpanFull(),
             Text::make(fn (Get $get) => ($url = app(HalalRegistry::class)->directoryUrl(CertificationAuthority::tryFrom((string) $get('authority'))))
                 ? new HtmlString('Directory: <a href="'.e($url).'" target="_blank" rel="noopener" class="underline">'.e($url).'</a>')
-                : 'No public directory configured for this authority.')
+                : '')
                 ->columnSpanFull(),
         ];
     }
