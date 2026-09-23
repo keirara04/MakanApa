@@ -12,9 +12,20 @@
 				<string>makanapa</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.716777967048-ngnbed6cpvcppn14nipvbsv87690hie0</string>
+			</array>
+		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>716777967048-ngnbed6cpvcppn14nipvbsv87690hie0.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>716777967048-u35g4gpmpu7ef5pum225uqj73lgg0rqb.apps.googleusercontent.com</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
+		<string>nmap</string>
 		<string>whatsapp</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
