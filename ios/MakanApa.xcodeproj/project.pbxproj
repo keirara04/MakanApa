@@ -39,6 +39,7 @@
 		3E0EDC09944456EDDD444A2C /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901B1D09195E987A9470A2FE /* AuthStore.swift */; };
 		3E8DE33D3356F80A466AC3EC /* DeepLinkDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4B05FD9815AA34474506BF /* DeepLinkDestination.swift */; };
 		43C55E9AD74179E3DC1DE054 /* CommunityThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7AEBE72C522964BAC587B79 /* CommunityThreadView.swift */; };
+		4643FA13D9305B08DBD2AF19 /* LoginTickerRibbon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA72B632CF63B9E9ABE9495E /* LoginTickerRibbon.swift */; };
 		4730308CB3367F92A89F444F /* HalalVerificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D1C96C2C6A8BE347C682F28 /* HalalVerificationSection.swift */; };
 		49A9D5312A3B3822B8EED335 /* CommunityPostPresentations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A923D5B0BA60CA5578E2243 /* CommunityPostPresentations.swift */; };
 		4A71EC8E18AC411685F3D2C7 /* AddPlaceFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BC629126DE45C9890BE705 /* AddPlaceFlow.swift */; };
@@ -78,6 +79,7 @@
 		8943264B97E2A61A5D50F61B /* MakanApaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09287437BC53CD13153BE4A7 /* MakanApaApp.swift */; };
 		8A891FFE93ED86605C07CEC5 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459312E9025F68024DF77A1 /* HomeView.swift */; };
 		92D98D0DB07949E5A6122AB4 /* BetaCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB3284A147544F68D5E08AB /* BetaCredentialStore.swift */; };
+		93520BA5E6F73E45CEA0F9BA /* LoginHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AAE5484917F2C6DE66841A /* LoginHeroView.swift */; };
 		9B7D280E572E3B226CE9D607 /* HalalReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79444CE29C2BD0DE458CDCCC /* HalalReportSheet.swift */; };
 		9D519BDB0E0C46DAA439E5B5 /* MapPinPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */; };
 		9F8FEBCEF0D562AFB788192D /* PreferenceProgressHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */; };
@@ -127,6 +129,7 @@
 		F51D55233EFCF7AFBD415418 /* ContextPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B277232B312330DA019B4E /* ContextPreferences.swift */; };
 		F5E07FD375DE84B3144965B9 /* CommunityPostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A6A6E61A39CC07D554C2B68 /* CommunityPostsView.swift */; };
 		F6CDE2BDC9BE7E69F196212E /* SearchSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F5EEA272FBFA4D8CB571AB /* SearchSession.swift */; };
+		F9CFC5965AB803A3B4E92A4A /* GlyphRevealRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE521DA8C293F6D2C63E40DF /* GlyphRevealRenderer.swift */; };
 		F9EF69508E474E7D86507081 /* NearbyAreaPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85ECF82BD7C14C52881E2C11 /* NearbyAreaPanel.swift */; };
 		FA3F54141E484DB188AB3822 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 00CB700906F64060AE286E78 /* GoogleSignInSwift */; };
 		FA6D6507FA7C4D24A5904DF7 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1C6F81AA004B2DABE13679 /* AppleNonce.swift */; };
@@ -196,6 +199,7 @@
 		71EA539C4A8192A886E0B977 /* LoginView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		729D8427BD8EF410E03874B2 /* MascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotView.swift; sourceTree = "<group>"; };
 		7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationID.swift; sourceTree = "<group>"; };
+		75AAE5484917F2C6DE66841A /* LoginHeroView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginHeroView.swift; sourceTree = "<group>"; };
 		75B500351219E2E63A2DBE4C /* NotificationPrimingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationPrimingView.swift; sourceTree = "<group>"; };
 		75DD8BE9D9B48BB2AF3243AD /* LocationPermissionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionView.swift; sourceTree = "<group>"; };
 		77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = Settings/SettingsView.swift; sourceTree = "<group>"; };
@@ -235,8 +239,10 @@
 		C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodSelectionView.swift; sourceTree = "<group>"; };
 		C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanChoiceTile.swift; sourceTree = "<group>"; };
 		C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaTopBar.swift; sourceTree = "<group>"; };
+		CA72B632CF63B9E9ABE9495E /* LoginTickerRibbon.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginTickerRibbon.swift; sourceTree = "<group>"; };
 		CA943B15A88F864024FFA281 /* PricePresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricePresentation.swift; sourceTree = "<group>"; };
 		CE0082C1305A8EE0006B8569 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		CE521DA8C293F6D2C63E40DF /* GlyphRevealRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GlyphRevealRenderer.swift; sourceTree = "<group>"; };
 		D062D7B1DB437BC7FDEEE032 /* DiscoveryMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoveryMode.swift; sourceTree = "<group>"; };
 		D1E9FE9C5F94D0131435D595 /* DeepLinkTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
 		D4D4501106F57021B3FF71A7 /* AdminUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AdminUsersView.swift; sourceTree = "<group>"; };
@@ -599,6 +605,9 @@
 				58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */,
 				F32808D1CB6615EAE682CC84 /* LoginMascotPose.swift */,
 				8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */,
+				75AAE5484917F2C6DE66841A /* LoginHeroView.swift */,
+				CA72B632CF63B9E9ABE9495E /* LoginTickerRibbon.swift */,
+				CE521DA8C293F6D2C63E40DF /* GlyphRevealRenderer.swift */,
 			);
 			path = Auth;
 			sourceTree = "<group>";
@@ -868,6 +877,9 @@
 				F6CDE2BDC9BE7E69F196212E /* SearchSession.swift in Sources */,
 				E5515202BB69E04EF0CAE0B7 /* NearbySearchPanel.swift in Sources */,
 				E653E69EE4296D7E82312CE1 /* SendToGengButton.swift in Sources */,
+				93520BA5E6F73E45CEA0F9BA /* LoginHeroView.swift in Sources */,
+				4643FA13D9305B08DBD2AF19 /* LoginTickerRibbon.swift in Sources */,
+				F9CFC5965AB803A3B4E92A4A /* GlyphRevealRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -888,7 +900,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
@@ -917,7 +929,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
