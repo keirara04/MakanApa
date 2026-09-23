@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\AccountDeletion;
+use App\Models\CommunityPost;
 use App\Models\RestaurantPhoto;
 use App\Models\User;
 use App\Services\Auth\AppleTokenExchangeService;
+use App\Services\Community\CommunityPostService;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -16,7 +18,7 @@ use RuntimeException;
  */
 class UserAccountDeletionService
 {
-    public function __construct(private AppleTokenExchangeService $appleExchange) {}
+    public function __construct(private AppleTokenExchangeService $appleExchange, private CommunityPostService $communityPosts) {}
 
     public function delete(User $user): void
     {
@@ -36,7 +38,14 @@ class UserAccountDeletionService
         // reversible moderation delete, but self-service deletion is a genuine, permanent
         // removal (matches what the privacy policy promises). AccountDeletion above is the only
         // trace meant to survive this.
+        // Community posts/reactions/reports go with the user via cascadeOnDelete (a personal post
+        // is removed, not de-attributed — same reasoning as photos below). Replies they left on
+        // other people's posts are cascaded away too, so those parents' reply_count is recounted.
+        $repliedParentIds = CommunityPost::withTrashed()->where('user_id', $user->id)->whereNotNull('parent_id')->distinct()->pluck('parent_id');
+
         $user->forceDelete();
+
+        CommunityPost::whereIn('id', $repliedParentIds)->get()->each(fn (CommunityPost $parent) => $this->communityPosts->recountReplies($parent));
     }
 
     /**

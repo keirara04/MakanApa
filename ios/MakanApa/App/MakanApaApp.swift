@@ -110,6 +110,9 @@ struct MakanApaApp: App {
         switch destination {
         case .submission:
             selectedTab = .community
+        case .communityPost(let id):
+            selectedTab = .community
+            pendingDeepLink.communityPostId = id
         case .release, .account:
             selectedTab = .decide
         }

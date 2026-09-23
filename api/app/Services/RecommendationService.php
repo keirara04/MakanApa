@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Services\Craving\CravingIntent;
 use App\Support\FoodTaxonomy;
+use App\Support\Halal\HalalStatus;
 use App\Support\ScoreWeights;
 use App\Support\Vibe;
 
@@ -89,6 +90,17 @@ class RecommendationService
         }
 
         return 0;
+    }
+
+    /** Reads the effective status Restaurant::toRecommendationArray() already resolved (expiry applied). */
+    public static function isNonHalal(array $restaurant): bool
+    {
+        return ($restaurant['halal_status'] ?? HalalStatus::Unknown->value) === HalalStatus::NonHalal->value;
+    }
+
+    private static function halalConfidenceComponent(array $restaurant): float
+    {
+        return (HalalStatus::tryFrom($restaurant['halal_status'] ?? '') ?? HalalStatus::Unknown)->confidence();
     }
 
     private static function distanceComponent(float $distanceKm, float $maxDistanceKm): float
@@ -297,6 +309,11 @@ class RecommendationService
             if ($distanceKm > $preference['maxDistanceKm']) {
                 continue;
             }
+            // Halal-only hides confirmed non-halal places only — `unknown` stays in (with a
+            // "help verify" badge), since missing evidence isn't evidence of non-halal.
+            if (($preference['halalOnly'] ?? false) && self::isNonHalal($restaurant)) {
+                continue;
+            }
             $eligible[] = ['restaurant' => $restaurant, 'distanceKm' => $distanceKm];
         }
 
@@ -409,6 +426,16 @@ class RecommendationService
             $components['personalFit'] = self::personalFitComponent($restaurant, $installationHistory);
             foreach (ScoreWeights::personalFitOverlay() as $weight) {
                 $activeWeights[] = [$weight, $components['personalFit']];
+            }
+        }
+
+        // Tie-breaker only (see ScoreWeights::halalOverlay()): with halal-only on, verified
+        // evidence nudges ordering among otherwise-similar candidates but never beats a
+        // better craving/mood match — the relevance tier gate in topCandidates() still rules.
+        if ($preference['halalOnly'] ?? false) {
+            $components['halalConfidence'] = self::halalConfidenceComponent($restaurant);
+            foreach (ScoreWeights::halalOverlay() as $weight) {
+                $activeWeights[] = [$weight, $components['halalConfidence']];
             }
         }
 

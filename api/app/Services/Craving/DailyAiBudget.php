@@ -12,7 +12,14 @@ use Illuminate\Support\Facades\Cache;
  */
 class DailyAiBudget
 {
-    public function __construct(private readonly int $dailyLimit) {}
+    /**
+     * @param  string  $scope  separate counter per consumer (e.g. `judgment:halal_triage`); the
+     *                         default keeps the original craving counter key unchanged.
+     */
+    public function __construct(
+        private readonly int $dailyLimit,
+        private readonly string $scope = 'openrouter_calls',
+    ) {}
 
     /**
      * Atomically increments today's counter and reports whether this call is still within
@@ -33,6 +40,6 @@ class DailyAiBudget
 
     private function cacheKey(): string
     {
-        return 'openrouter_calls:'.now()->format('Y-m-d');
+        return $this->scope.':'.now()->format('Y-m-d');
     }
 }

@@ -27,6 +27,7 @@ class NearbyRequest extends FormRequest
             'mode' => ['nullable', Rule::enum(DiscoveryMode::class)],
             'vibe' => ['nullable', Rule::enum(Vibe::class)],
             'installationId' => ['nullable', 'string', 'max:100'],
+            'halal' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -13,7 +13,11 @@ struct MySubmissionsView: View {
             ForEach(submissions) { submission in
                 VStack(alignment: .leading, spacing: 6) {
                     Text(submission.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
-                    if let category = submission.foodCategory {
+                    if submission.submissionType == .halalReport {
+                        Text(halalSubtitle(for: submission)).font(.makanBody(12)).foregroundStyle(.secondary)
+                    } else if submission.submissionType == .ownerClaim {
+                        Text("Ownership claim").font(.makanBody(12)).foregroundStyle(.secondary)
+                    } else if let category = submission.foodCategory {
                         Text(category).font(.makanBody(12)).foregroundStyle(.secondary)
                     }
                     statusLabel(for: submission)
@@ -25,6 +29,14 @@ struct MySubmissionsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }
+    }
+
+    private func halalSubtitle(for submission: MySubmission) -> String {
+        let claim = submission.halalClaim?.pickerLabel ?? "Halal"
+        if let resolved = submission.halalResolvedStatus, resolved != submission.halalClaim {
+            return "Halal report: \(claim) · reviewed as \(resolved.pickerLabel)"
+        }
+        return "Halal report: \(claim)"
     }
 
     @ViewBuilder

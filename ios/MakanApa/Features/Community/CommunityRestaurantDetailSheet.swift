@@ -10,6 +10,7 @@ struct CommunityRestaurantDetailSheet: View {
 
     @State private var details: PlaceDetails?
     @State private var isLoading = true
+    @State private var communityPosts: [CommunityPost] = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -25,8 +26,16 @@ struct CommunityRestaurantDetailSheet: View {
                 } else if let details, details.photos.isEmpty, !isLoading {
                     QuickAddPhotoRow(restaurantId: item.id)
                 }
+                if !communityPosts.isEmpty {
+                    communitySaysSection
+                }
                 if let details {
                     aboutSection(details)
+                }
+                if let halal = details?.halal {
+                    HalalVerificationSection(restaurantId: item.id, restaurantName: item.name, halal: halal) {
+                        Task { await loadDetails() }
+                    }
                 }
                 if let details, !details.menuItems.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -50,6 +59,56 @@ struct CommunityRestaurantDetailSheet: View {
             .animation(reduceMotion ? .easeOut(duration: 0.12) : .easeOut(duration: 0.2), value: isLoading)
         }
         .task { await loadDetails() }
+        .task { await loadCommunityPosts() }
+    }
+
+    /// Read-only — no reactions/menus here (this sheet has no navigation stack to open a thread
+    /// in). Hidden entirely for unaffiliated users, whose board is always empty anyway.
+    private var communitySaysSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionHeader(String(format: Copy.communityPostsSectionFormat, communityShortName.uppercased()))
+            ForEach(communityPosts) { post in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(AvatarCharacter(key: post.author.avatarKey).imageName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 22, height: 22)
+                            .clipShape(Circle())
+                            .accessibilityHidden(true)
+                        Text(post.author.name)
+                            .font(.makanBody(12))
+                            .foregroundStyle(Color.kicap)
+                        if let date = post.createdDate {
+                            Text("· \(date, format: .relative(presentation: .named, unitsStyle: .abbreviated))")
+                                .font(.makanBody(12))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Text(post.body)
+                        .font(.makanBody(13))
+                        .foregroundStyle(Color.kicap.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var communityShortName: String {
+        guard case .authenticated(let user) = AuthStore.shared.session else { return "your community" }
+        return (user.affiliationType == "university" ? user.university : user.area) ?? "your community"
+    }
+
+    @MainActor
+    private func loadCommunityPosts() async {
+        guard case .authenticated(let user) = AuthStore.shared.session,
+              user.affiliationType == "university" || user.affiliationType == "area" else { return }
+        communityPosts = (try? await APIClient.communityPosts(restaurantId: item.id, limit: 2).posts) ?? []
     }
 
     private var header: some View {

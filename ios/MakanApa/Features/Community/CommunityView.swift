@@ -10,6 +10,10 @@ struct CommunityView: View {
     @State private var showingAddPlace = false
     @State private var showingMyPlaces = false
     @State private var showingCommunityAssignment = false
+    @State private var postStore = CommunityPostStore()
+    @State private var postInteractions = CommunityPostInteractions()
+    @State private var showingAllPosts = false
+    @State private var pendingDeepLink = PendingDeepLink.shared
 
     var body: some View {
         Group {
@@ -37,6 +41,12 @@ struct CommunityView: View {
         .background(Color.nasiCream.ignoresSafeArea())
         .onAppear { Task { await attemptLoad() } }
         .onChange(of: locationService.state) { _, _ in Task { await attemptLoad() } }
+        .onChange(of: pendingDeepLink.communityPostId, initial: true) { _, postId in
+            // Tapped a reply/reaction push — open that thread on top of the Community tab.
+            guard let postId else { return }
+            postInteractions.threadTarget = postStore.find(postId) ?? CommunityPost.placeholder(id: postId)
+            pendingDeepLink.communityPostId = nil
+        }
     }
 
     private var content: some View {
@@ -50,11 +60,19 @@ struct CommunityView: View {
                     if !feed.newInArea.isEmpty {
                         newInAreaSection(feed.newInArea)
                     }
+                    if isAffiliated {
+                        postsSection
+                    }
                     if feed.trending.isEmpty {
                         if feed.newInArea.isEmpty {
                             emptyState
                         }
                     } else {
+                        Text("🔥 TRENDING")
+                            .font(.makanBody(12))
+                            .foregroundStyle(.secondary)
+                            .tracking(1)
+                            .accessibilityAddTraits(.isHeader)
                         ForEach(Array(feed.trending.enumerated()), id: \.element.id) { index, item in
                             CommunityTrendingCard(rank: index + 1, item: item) {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -69,6 +87,13 @@ struct CommunityView: View {
             .padding(16)
         }
         .refreshable { await attemptLoad() }
+        .navigationDestination(isPresented: $showingAllPosts) {
+            CommunityPostsView(store: postStore, communityName: communityShortName)
+        }
+        .navigationDestination(item: $postInteractions.threadTarget) { post in
+            CommunityThreadView(postId: post.id, store: postStore)
+        }
+        .communityPostPresentations(postInteractions, store: postStore)
         .sheet(item: $selectedItem) { item in
             CommunityRestaurantDetailSheet(item: item)
                 .presentationDetents([.medium, .large])
@@ -179,6 +204,64 @@ struct CommunityView: View {
             return String(format: Copy.communitySubtitleAreaFormat, area)
         }
         return Copy.communitySubtitlePublic
+    }
+
+    // MARK: - What KU is saying
+
+    private var isAffiliated: Bool {
+        currentAffiliationType == "university" || currentAffiliationType == "area"
+    }
+
+    private var communityShortName: String {
+        (currentAffiliationType == "university" ? currentUniversity : currentArea) ?? "your community"
+    }
+
+    private var postsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(String(format: Copy.communityPostsSectionFormat, communityShortName.uppercased()))
+                    .font(.makanBody(12))
+                    .foregroundStyle(.secondary)
+                    .tracking(1)
+                Spacer()
+                if !postStore.posts.isEmpty {
+                    Button(Copy.communityPostsSeeAll) { showingAllPosts = true }
+                        .font(.makanBody(13))
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(minHeight: 32)
+                }
+            }
+
+            if postStore.isLoading && !postStore.hasLoaded {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.kicap.opacity(0.06))
+                    .frame(height: 110)
+            } else if postStore.posts.isEmpty {
+                CommunityPostsEmptyState(store: postStore, communityName: communityShortName) {
+                    postInteractions.isComposingNew = true
+                }
+            } else {
+                ForEach(postStore.posts.prefix(3)) { post in
+                    CommunityPostRow(post: post) { tap in
+                        Task { await postStore.react(tap.post, with: tap.type) }
+                    }
+                }
+                if postStore.canPost {
+                    Button {
+                        postInteractions.isComposingNew = true
+                    } label: {
+                        Label(Copy.communityPostsShareCTA, systemImage: "square.and.pencil")
+                            .font(.makanBody(14))
+                            .foregroundStyle(Color.sambalRed)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(Color.sambalRed.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.bottom, 6)
     }
 
     // MARK: - New in your area
@@ -293,7 +376,9 @@ struct CommunityView: View {
     @MainActor
     private func attemptLoad() async {
         if viewModel.isUniversityUser || viewModel.isAreaUser {
+            async let posts: Void = postStore.load()
             await viewModel.load(coordinate: currentCoordinate)
+            await posts
         } else if case .authorized(let coordinate) = locationService.state {
             await viewModel.load(coordinate: coordinate)
         }

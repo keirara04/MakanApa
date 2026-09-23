@@ -18,6 +18,8 @@
         </include>
     </source>
     <php>
+        <!-- Filament/Livewire page tests accumulate memory across the full suite; 128M (PHP default) is no longer enough. -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
@@ -34,6 +36,9 @@
         <env name="PLACES_PROVIDER" value="fixture"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!-- Tests never call OpenRouter for real: an empty key selects NullJudgmentEngine unless a test opts in with Http::fake(). -->
+        <env name="OPENROUTER_API_KEY" value=""/>
+        <env name="JUDGMENT_RETRY_BACKOFF_MS" value="0"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

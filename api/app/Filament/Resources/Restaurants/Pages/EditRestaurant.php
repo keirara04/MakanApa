@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Restaurants\Pages;
 
+use App\Filament\Resources\Restaurants\HalalActions;
 use App\Filament\Resources\Restaurants\RestaurantActions;
 use App\Filament\Resources\Restaurants\RestaurantResource;
 use Filament\Resources\Pages\EditRecord;
@@ -17,6 +18,7 @@ class EditRestaurant extends EditRecord
             RestaurantActions::deactivate(),
             RestaurantActions::reopen(),
             RestaurantActions::merge(),
+            HalalActions::override(),
         ];
     }
 }

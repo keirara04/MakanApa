@@ -6,6 +6,8 @@ use App\Filament\Resources\Restaurants\Pages\CreateRestaurant;
 use App\Filament\Resources\Restaurants\Pages\EditRestaurant;
 use App\Filament\Resources\Restaurants\Pages\ListRestaurants;
 use App\Filament\Resources\Restaurants\RelationManagers\FieldOverridesRelationManager;
+use App\Filament\Resources\Restaurants\RelationManagers\HalalCertificatesRelationManager;
+use App\Filament\Resources\Restaurants\RelationManagers\HalalVerificationsRelationManager;
 use App\Filament\Resources\Restaurants\RelationManagers\MenuItemsRelationManager;
 use App\Filament\Resources\Restaurants\RelationManagers\PhotosRelationManager;
 use App\Filament\Resources\Restaurants\Schemas\RestaurantForm;
@@ -41,6 +43,8 @@ class RestaurantResource extends Resource
             MenuItemsRelationManager::class,
             PhotosRelationManager::class,
             FieldOverridesRelationManager::class,
+            HalalVerificationsRelationManager::class,
+            HalalCertificatesRelationManager::class,
         ];
     }
 

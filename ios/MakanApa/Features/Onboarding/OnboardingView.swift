@@ -11,7 +11,7 @@ struct OnboardingView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let pageCount = 3
+    private let pageCount = 4
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +24,9 @@ struct OnboardingView: View {
                         .transition(pageTransition)
                 } else if page == 1 {
                     OnboardingLocationPage(onContinue: advance)
+                        .transition(pageTransition)
+                } else if page == 2 {
+                    OnboardingHalalPage(onContinue: advance)
                         .transition(pageTransition)
                 } else {
                     OnboardingTastePage(onFinish: finish)
@@ -187,6 +190,36 @@ private struct OnboardingLocationPage: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation(Motion.playful) { showConfirmation = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onContinue() }
+    }
+}
+
+/// Asked once, up front — a dietary requirement shouldn't be buried in Settings. Changeable
+/// anytime with the "Muslim-friendly" chip on the Nearby map.
+private struct OnboardingHalalPage: View {
+    let onContinue: () -> Void
+
+    var body: some View {
+        OnboardingPageLayout(
+            content: {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 72))
+                    .foregroundStyle(Color.pandan)
+                    .accessibilityHidden(true)
+                    .frame(height: 150)
+            },
+            headline: "Do you only eat halal?",
+            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Muslim-friendly chip on the map.",
+            primaryTitle: "Yes, halal only",
+            primaryAction: {
+                HalalPreference.isOn = true
+                onContinue()
+            },
+            secondaryTitle: "No, show everything",
+            secondaryAction: {
+                HalalPreference.isOn = false
+                onContinue()
+            }
+        )
     }
 }
 

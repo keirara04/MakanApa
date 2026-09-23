@@ -218,6 +218,8 @@ enum SubmissionType: String, Codable {
     case editPlace = "edit_place"
     case closure
     case reopen
+    case halalReport = "halal_report"
+    case ownerClaim = "owner_claim"
 }
 
 struct MenuItem: Codable, Equatable, Identifiable {
@@ -293,6 +295,9 @@ struct MySubmission: Decodable, Identifiable, Equatable {
     let tiktokHandle: String?
     let websiteUrl: String?
     let menuItems: [MenuItem]?
+    let halalClaim: HalalStatus?
+    let halalResolvedStatus: HalalStatus?
+    let halalComment: String?
     let status: String
     let reviewNote: String?
     let createdAt: String
@@ -350,7 +355,39 @@ struct AdminSubmission: Decodable, Identifiable, Equatable {
     let restaurantId: Int?
     let submitter: AdminSubmissionSubmitter
     let possibleDuplicate: PossibleDuplicate?
+    let halal: AdminHalalEvidence?
+    let contactPhone: String?
     let createdAt: String
+}
+
+/// Admin-only view of a halal report — includes the certificate number the public payload never shows.
+struct AdminHalalEvidence: Decodable, Equatable {
+    let claim: HalalStatus?
+    let comment: String?
+    let certificationAuthority: CertificationAuthority?
+    let certificateNumber: String?
+    let certificateExpiresAt: String?
+    let currentStatus: HalalStatus?
+    let reviewPriority: Int
+    let duplicatePhoto: Bool
+    let registryUrl: String?
+    /// Advisory AI triage badges ("Mentions certificate 0.92", "Likely spam 0.81") — the admin still decides.
+    let aiBadges: [String]?
+    /// "base 50, verified owner +20, ai strong evidence +10 → 80"
+    let priorityExplanation: String?
+}
+
+struct AdminHalalCertificateBody: Encodable {
+    let authority: CertificationAuthority
+    let certificateNumber: String
+    let expiresAt: String
+    let verificationMethod: String
+}
+
+struct AdminApproveHalalRequestBody: Encodable {
+    let resolvedStatus: HalalStatus
+    let evidenceSummary: String?
+    let certificate: AdminHalalCertificateBody?
 }
 
 struct AdminSubmissionListResponse: Decodable {
@@ -473,6 +510,7 @@ struct SoloRecommendationRequestBody: Encodable {
     let mode: DiscoveryMode?
     let vibe: Vibe?
     let installationId: String?
+    let halal: Bool
 }
 
 struct RecommendationResponse: Decodable, Equatable {
@@ -521,6 +559,8 @@ struct RecommendationResponse: Decodable, Equatable {
         /// confidence threshold (PresentsRecommendation::communityTagBadge()) — absent, not a
         /// low-confidence guess, below that bar.
         let communityTag: CommunityTag?
+        /// Optional so an older backend (or a decode of a cached response) never breaks the result screen.
+        let halal: HalalInfo?
     }
 
     /// Whether the typed craving (if any) matched something nearby — decoded but not yet
@@ -563,6 +603,7 @@ struct NearbyPlace: Decodable, Equatable, Identifiable {
     let latitude: Double
     let longitude: Double
     let openStatus: String
+    let halal: HalalSummary?
 }
 
 struct NearbyPlacesResponse: Decodable {
@@ -649,6 +690,7 @@ struct NearbyPickRequestBody: Encodable {
     let mode: DiscoveryMode?
     let vibe: Vibe?
     let installationId: String?
+    let halal: Bool
 }
 
 struct SaveRequestBody: Encodable {
@@ -692,6 +734,7 @@ struct PlaceDetails: Decodable, Equatable {
     let websiteUrl: String?
     let menuItems: [MenuItem]
     let communityPhotos: [String]
+    let halal: HalalInfo?
 }
 
 struct AppSessionStartRequestBody: Encodable {
@@ -731,11 +774,26 @@ struct NotificationPreferences: Codable, Equatable {
     var communitySubmissions: Bool
     var accountAdmin: Bool
     var releaseAnnouncements: Bool
+    var communityReplies: Bool
+    var communityReactions: Bool
 
     private enum CodingKeys: String, CodingKey {
         case communitySubmissions = "community_submissions"
         case accountAdmin = "account_admin"
         case releaseAnnouncements = "release_announcements"
+        case communityReplies = "community_replies"
+        case communityReactions = "community_reactions"
+    }
+
+    // decodeIfPresent for the community keys — an older API build that predates community
+    // posts omits them, and that must not make the whole Notifications section disappear.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        communitySubmissions = try container.decode(Bool.self, forKey: .communitySubmissions)
+        accountAdmin = try container.decode(Bool.self, forKey: .accountAdmin)
+        releaseAnnouncements = try container.decode(Bool.self, forKey: .releaseAnnouncements)
+        communityReplies = try container.decodeIfPresent(Bool.self, forKey: .communityReplies) ?? true
+        communityReactions = try container.decodeIfPresent(Bool.self, forKey: .communityReactions) ?? false
     }
 }
 
@@ -747,10 +805,329 @@ struct UpdateNotificationPreferencesRequestBody: Encodable {
     var communitySubmissions: Bool? = nil
     var accountAdmin: Bool? = nil
     var releaseAnnouncements: Bool? = nil
+    var communityReplies: Bool? = nil
+    var communityReactions: Bool? = nil
 
     private enum CodingKeys: String, CodingKey {
         case communitySubmissions = "community_submissions"
         case accountAdmin = "account_admin"
         case releaseAnnouncements = "release_announcements"
+        case communityReplies = "community_replies"
+        case communityReactions = "community_reactions"
     }
+}
+
+// MARK: - Halal trust
+
+/// Public halal status. Wording is NEVER derived from this on-device — always render the
+/// server's `HalalDisplay` (backend `HalalPresenter` owns the semantics).
+enum HalalStatus: String, Codable, CaseIterable, Identifiable {
+    case certified
+    case muslimFriendly = "muslim_friendly"
+    case nonHalal = "non_halal"
+    case unknown
+
+    var id: String { rawValue }
+
+    /// Only for the report form's picker and admin UI — not a badge.
+    var pickerLabel: String {
+        switch self {
+        case .certified: "Halal (has certificate)"
+        case .muslimFriendly: "Muslim-friendly (no cert)"
+        case .nonHalal: "Not halal"
+        case .unknown: "Unknown"
+        }
+    }
+
+    static let claimable: [HalalStatus] = [.certified, .muslimFriendly, .nonHalal]
+}
+
+enum CertificationAuthority: String, Codable, CaseIterable, Identifiable {
+    case jakim
+    case stateIslamicCouncil = "state_islamic_council"
+    case muis
+    case bpjph
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .jakim: "JAKIM"
+        case .stateIslamicCouncil: "State Islamic council (JAIN/MAIN)"
+        case .muis: "MUIS"
+        case .bpjph: "BPJPH"
+        case .other: "Other"
+        }
+    }
+}
+
+struct HalalDisplay: Decodable, Equatable {
+    let shortLabel: String
+    let longLabel: String
+    /// certified | friendly | neutral | warning | non_halal
+    let tone: String
+    /// help_verify | help_reverify | nil
+    let action: String?
+    /// Absent on map markers (compact payload).
+    let verificationLabel: String?
+
+    var invitesReport: Bool { action != nil }
+}
+
+/// Compact marker/list shape.
+struct HalalSummary: Decodable, Equatable {
+    let status: HalalStatus
+    let display: HalalDisplay
+}
+
+struct HalalVerificationInfo: Decodable, Equatable {
+    let method: String
+    let evidenceSource: String
+    let authority: CertificationAuthority?
+    let verifiedAt: String?
+    let expiresAt: String?
+    let registryCheckedAt: String?
+}
+
+struct HalalReportPhoto: Decodable, Equatable, Identifiable {
+    let id: Int
+    let url: String
+    let photoType: String
+}
+
+struct HalalPublicReport: Decodable, Equatable, Identifiable {
+    let id: Int
+    let claim: HalalStatus?
+    let resolvedStatus: HalalStatus?
+    let isCurrent: Bool
+    let comment: String?
+    let userName: String
+    let approvedAt: String?
+    let photos: [HalalReportPhoto]
+}
+
+/// Full detail-sheet shape.
+struct HalalInfo: Decodable, Equatable {
+    let status: HalalStatus
+    /// clear | under_review
+    let reviewState: String
+    let display: HalalDisplay
+    let verification: HalalVerificationInfo?
+    let reports: [HalalPublicReport]
+    let historyCount: Int
+    /// The signed-in user's own latest vouch on this place (open, or decided in the last 30 days).
+    let myReport: HalalMyReport?
+}
+
+struct HalalMyReport: Decodable, Equatable {
+    let id: Int
+    /// draft | pending | changes_requested | approved | rejected
+    let status: String
+    let claim: HalalStatus?
+    let reviewNote: String?
+}
+
+struct HalalHistoryEntry: Decodable, Equatable, Identifiable {
+    let id: Int
+    let status: HalalStatus
+    let state: String
+    let method: String
+    let evidenceSource: String
+    let authority: CertificationAuthority?
+    let summary: String?
+    let effectiveFrom: String?
+    let effectiveUntil: String?
+}
+
+struct HalalHistoryResponse: Decodable {
+    let entries: [HalalHistoryEntry]
+    let nextPage: Int?
+}
+
+struct CreateHalalReportRequestBody: Encodable {
+    let claim: HalalStatus
+    let comment: String?
+    let certificationAuthority: CertificationAuthority?
+    let certificateNumber: String?
+    let certificateExpiresAt: String?
+}
+
+struct HalalReportSubmission: Decodable, Equatable {
+    let id: Int
+    let restaurantId: Int?
+    let status: String
+    let halalClaim: HalalStatus?
+    let halalComment: String?
+    let reviewNote: String?
+}
+
+struct HalalReportResponse: Decodable {
+    let submission: HalalReportSubmission
+}
+
+struct CreateOwnerClaimRequestBody: Encodable {
+    let contactPhone: String
+    let notes: String?
+}
+
+struct OwnerClaimResponse: Decodable {
+    struct Submission: Decodable { let id: Int; let status: String }
+    let submission: Submission
+}
+
+struct UpdateHalalPreferenceRequestBody: Encodable {
+    let halalPreference: Bool
+}
+
+// MARK: - Community posts ("What KU is saying")
+
+enum CommunityReactionType: String, Codable, CaseIterable, Identifiable {
+    case up
+    case fire
+    case drool
+
+    var id: String { rawValue }
+
+    var emoji: String {
+        switch self {
+        case .up: "👍"
+        case .fire: "🔥"
+        case .drool: "🤤"
+        }
+    }
+
+    var accessibilityName: String {
+        switch self {
+        case .up: "Thumbs up"
+        case .fire: "Fire"
+        case .drool: "Drooling"
+        }
+    }
+}
+
+enum CommunityReportReason: String, Codable, CaseIterable, Identifiable {
+    case spam
+    case offensive
+    case harassment
+    case misleading
+    case other
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .spam: "Spam or advertising"
+        case .offensive: "Offensive or hateful"
+        case .harassment: "Harassment or bullying"
+        case .misleading: "False or misleading"
+        case .other: "Something else"
+        }
+    }
+}
+
+struct CommunityPostAuthor: Decodable, Equatable, Hashable {
+    /// nil once the author's account is deleted — there's nobody left to block.
+    let id: Int?
+    let name: String
+    let avatarKey: String?
+}
+
+struct CommunityPostPlace: Decodable, Equatable, Hashable {
+    let id: Int
+    let name: String
+    let foodCategory: String?
+}
+
+struct CommunityPost: Decodable, Identifiable, Equatable, Hashable {
+    let id: Int
+    let parentId: Int?
+    let body: String
+    let createdAt: String
+    let author: CommunityPostAuthor
+    let isMine: Bool
+    let restaurant: CommunityPostPlace?
+    var reactionCount: Int
+    var reactions: [String: Int]
+    var myReaction: CommunityReactionType?
+    var replyCount: Int
+    /// Top-level posts in a feed page carry their newest replies inline; nil everywhere else.
+    var replies: [CommunityPost]?
+
+    var createdDate: Date? {
+        CommunityPost.isoFormatter.date(from: createdAt) ?? CommunityPost.isoFormatterNoFraction.date(from: createdAt)
+    }
+
+    func count(for reaction: CommunityReactionType) -> Int {
+        reactions[reaction.rawValue] ?? 0
+    }
+
+    private nonisolated(unsafe) static let isoFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private nonisolated(unsafe) static let isoFormatterNoFraction = ISO8601DateFormatter()
+}
+
+struct CommunityPostsResponse: Decodable {
+    let posts: [CommunityPost]
+    let nextCursor: String?
+    let canPost: Bool
+    let cannotPostReason: String?
+}
+
+struct CommunityThreadResponse: Decodable {
+    let post: CommunityPost
+    let replies: [CommunityPost]
+    let nextCursor: String?
+    let canReply: Bool
+}
+
+struct CreateCommunityPostRequestBody: Encodable {
+    let body: String
+    let restaurantId: Int?
+    let parentId: Int?
+}
+
+struct CommunityPostResponse: Decodable {
+    let post: CommunityPost
+}
+
+struct CommunityReactionRequestBody: Encodable {
+    let type: CommunityReactionType
+}
+
+struct CommunityReactionResponse: Decodable {
+    let myReaction: CommunityReactionType?
+    let reactionCount: Int
+    let reactions: [String: Int]
+}
+
+struct CommunityReportRequestBody: Encodable {
+    let reason: CommunityReportReason
+    let note: String?
+}
+
+struct CommunityReportResponse: Decodable {
+    let reported: Bool
+}
+
+struct CommunityDeletePostResponse: Decodable {
+    let deleted: Bool
+}
+
+struct BlockUserResponse: Decodable {
+    let blocked: Bool
+}
+
+struct BlockedUser: Decodable, Identifiable, Equatable {
+    let id: Int
+    let name: String
+    let avatarKey: String?
+}
+
+struct BlockedUsersResponse: Decodable {
+    let users: [BlockedUser]
 }

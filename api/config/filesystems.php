@@ -60,6 +60,36 @@ return [
             'report' => false,
         ],
 
+        // DigitalOcean Spaces, single bucket shared by both — pending submission photos never
+        // web-reachable (default ACL = private), approved restaurant photos public-read.
+        // restaurant_photos.pending_disk / .public_disk pick between them.
+        'spaces_private' => [
+            'driver' => 's3',
+            'key' => env('DO_SPACES_KEY'),
+            'secret' => env('DO_SPACES_SECRET'),
+            'region' => env('DO_SPACES_REGION'),
+            'bucket' => env('DO_SPACES_BUCKET'),
+            'endpoint' => env('DO_SPACES_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'spaces_public' => [
+            'driver' => 's3',
+            'key' => env('DO_SPACES_KEY'),
+            'secret' => env('DO_SPACES_SECRET'),
+            'region' => env('DO_SPACES_REGION'),
+            'bucket' => env('DO_SPACES_BUCKET'),
+            'url' => env('DO_SPACES_CDN_URL', env('DO_SPACES_URL')),
+            'endpoint' => env('DO_SPACES_ENDPOINT'),
+            'use_path_style_endpoint' => false,
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

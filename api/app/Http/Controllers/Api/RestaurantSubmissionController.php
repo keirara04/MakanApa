@@ -7,6 +7,7 @@ use App\Http\Requests\StoreRestaurantSubmissionRequest;
 use App\Models\Restaurant;
 use App\Models\RestaurantPhoto;
 use App\Models\RestaurantSubmission;
+use App\Services\Halal\HalalReportService;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\RecommendationService;
@@ -129,10 +130,26 @@ class RestaurantSubmissionController extends Controller
     }
 
     /** draft -> pending. This is what "Submit for review" actually calls, after any optional photos are attached. */
-    public function submit(Request $request, RestaurantSubmission $submission): JsonResponse
+    public function submit(Request $request, RestaurantSubmission $submission, HalalReportService $halalReports): JsonResponse
     {
         abort_if($submission->user_id !== $request->user()->id, 403, 'You can only submit your own submissions.');
+
+        // Halal reports resubmit from changes_requested through this same endpoint (evidence is
+        // re-attached via photos, not the generic field-edit update()), and carry evidence rules.
+        if ($submission->isHalalReport()) {
+            abort_if(! in_array($submission->status, self::EDITABLE_STATUSES, true), 422, 'This submission has already been submitted.');
+            $halalReports->submit($submission);
+
+            return response()->json(['submission' => $this->present($submission)]);
+        }
+
         abort_if($submission->status !== 'draft', 422, 'This submission has already been submitted.');
+        abort_if(
+            $submission->submission_type === 'owner_claim'
+                && ! RestaurantPhoto::where('restaurant_submission_id', $submission->id)->exists(),
+            422,
+            'Add a photo of your business licence or signboard so we can verify ownership.'
+        );
 
         $submission->update(['status' => 'pending']);
 
@@ -207,7 +224,7 @@ class RestaurantSubmissionController extends Controller
 
         $data = $request->validate([
             'photo' => ['required', 'image', 'max:'.Config::get('restaurant_photos.max_size_kb')],
-            'photoType' => ['nullable', 'in:storefront,food,menu,other'],
+            'photoType' => ['nullable', 'in:'.implode(',', RestaurantPhoto::TYPES)],
         ]);
 
         $photo = $uploader->storePending($submission, $request->file('photo'), $data['photoType'] ?? 'other', $request->user()->id);
@@ -267,6 +284,11 @@ class RestaurantSubmissionController extends Controller
             'tiktokHandle' => $submission->tiktok_handle,
             'websiteUrl' => $submission->website_url,
             'menuItems' => $submission->menu_items,
+            'halalClaim' => $submission->halal_claim?->value,
+            'halalResolvedStatus' => $submission->halal_resolved_status?->value,
+            'halalComment' => $submission->halal_comment,
+            'certificationAuthority' => $submission->certification_authority?->value,
+            'certificateExpiresAt' => $submission->certificate_expires_at?->toDateString(),
             'status' => $submission->status,
             'reviewNote' => $submission->review_note,
             'createdAt' => $submission->created_at?->toIso8601String(),

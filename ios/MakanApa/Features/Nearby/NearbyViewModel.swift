@@ -42,6 +42,15 @@ final class NearbyViewModel {
     var openNowFilter = false {
         didSet { persistFilters() }
     }
+    /// "Muslim-friendly" chip — the app-wide Halal-only preference (HalalPreference), not a
+    /// Nearby-only filter: it also shapes solo picks and rerolls, and syncs to the account.
+    /// Hides confirmed non-halal places server-side; unverified places stay, badged.
+    var halalFilter = HalalPreference.isOn {
+        didSet {
+            guard didLoadFilters, halalFilter != oldValue else { return }
+            Task { @MainActor [halalFilter] in HalalPreference.set(halalFilter) }
+        }
+    }
     var budgetMaxFilter: Int? {
         didSet { persistFilters() }
     }
@@ -108,6 +117,7 @@ final class NearbyViewModel {
         let minRating: Double?
         let mode: DiscoveryMode
         let vibe: Vibe?
+        let halal: Bool
     }
 
     /// The view fires an unstructured `Task { await viewModel.viewportSettled(...) }` on every
@@ -135,6 +145,7 @@ final class NearbyViewModel {
         openNowFilter = defaults.bool(forKey: Self.openNowKey)
         budgetMaxFilter = defaults.object(forKey: Self.budgetMaxKey) as? Int
         minRatingFilter = defaults.object(forKey: Self.minRatingKey) as? Double
+        halalFilter = HalalPreference.isOn
         discoveryMode = (defaults.string(forKey: Self.discoveryModeKey)).flatMap(DiscoveryMode.init) ?? .normal
         vibe = (defaults.string(forKey: Self.vibeKey)).flatMap(Vibe.init)
         // Self-heals a persisted state from before this invariant existed (mode=normal with a
@@ -199,7 +210,8 @@ final class NearbyViewModel {
     private func search(_ viewport: MapViewport) async {
         let key = NearbyQueryKey(
             viewport: viewport, openNow: openNowFilter, budgetMax: budgetMaxFilter,
-            minRating: minRatingFilter, mode: discoveryMode, vibe: vibe
+            minRating: minRatingFilter, mode: discoveryMode, vibe: vibe,
+            halal: halalFilter
         )
         // Already have fresh data for exactly this query — e.g. a redundant "Search this area"
         // tap after nothing actually moved. `lastSucceededQueryKey` only updates on success
@@ -314,7 +326,8 @@ final class NearbyViewModel {
         highlightedSearchPlaceId = restaurantId
         return NearbyPlace(
             id: restaurantId, name: result.name, rating: result.rating, priceLevel: result.priceLevel,
-            latitude: result.latitude, longitude: result.longitude, openStatus: result.openStatus ?? "unknown"
+            latitude: result.latitude, longitude: result.longitude, openStatus: result.openStatus ?? "unknown",
+            halal: nil
         )
     }
 

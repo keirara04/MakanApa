@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\Halal\HalalReviewState;
+use App\Support\Halal\HalalStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'opening_hours', 'is_active', 'provider', 'provider_place_id', 'last_synced_at',
     'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count', 'google_types',
     'source_submission_id', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
-    'merged_into_restaurant_id',
+    'merged_into_restaurant_id', 'halal_status', 'halal_review_state', 'halal_active_verification_id',
+    'halal_active_certificate_id', 'halal_verified_at', 'halal_expires_at', 'halal_open_report_count',
+    'halal_ai_hint',
 ])]
 class Restaurant extends Model
 {
@@ -27,7 +31,65 @@ class Restaurant extends Model
             'google_types' => 'array',
             'is_active' => 'boolean',
             'last_synced_at' => 'datetime',
+            'halal_status' => HalalStatus::class,
+            'halal_review_state' => HalalReviewState::class,
+            'halal_verified_at' => 'datetime',
+            'halal_expires_at' => 'date',
+            'halal_ai_hint' => 'array',
         ];
+    }
+
+    public function halalVerifications(): HasMany
+    {
+        return $this->hasMany(RestaurantHalalVerification::class);
+    }
+
+    public function halalCertificates(): HasMany
+    {
+        return $this->hasMany(RestaurantHalalCertificate::class);
+    }
+
+    public function activeHalalVerification(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantHalalVerification::class, 'halal_active_verification_id');
+    }
+
+    public function activeHalalCertificate(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantHalalCertificate::class, 'halal_active_certificate_id');
+    }
+
+    public function owners(): HasMany
+    {
+        return $this->hasMany(RestaurantOwner::class);
+    }
+
+    /** True once a certified snapshot's cert expiry has passed — read-time, independent of halal:lifecycle. */
+    public function isHalalCertificateExpired(): bool
+    {
+        return $this->halal_status === HalalStatus::Certified
+            && $this->halal_expires_at !== null
+            && $this->halal_expires_at->lt(today());
+    }
+
+    /** A lapsed certificate (expired at read time, or already processed by halal:lifecycle). */
+    public function needsHalalReverification(): bool
+    {
+        return $this->isHalalCertificateExpired()
+            || $this->halal_review_state === HalalReviewState::ReverifyRequired;
+    }
+
+    /**
+     * The status every filter/ranking/presentation path must use — never raw `halal_status`.
+     * An expired certificate degrades to Unknown so a late lifecycle job can't keep it "Halal".
+     */
+    public function effectiveHalalStatus(): HalalStatus
+    {
+        if ($this->isHalalCertificateExpired()) {
+            return HalalStatus::Unknown;
+        }
+
+        return $this->halal_status ?? HalalStatus::Unknown;
     }
 
     public function cuisines(): BelongsToMany
@@ -128,6 +190,13 @@ class Restaurant extends Model
             'instagram_handle' => $this->instagram_handle,
             'tiktok_handle' => $this->tiktok_handle,
             'website_url' => $this->website_url,
+            // Effective (expiry-applied) status — every filter/ranking path reads this key, never
+            // the raw column. Authority/reverify feed HalalPresenter::summaryFromArray() for markers.
+            'halal_status' => $this->effectiveHalalStatus()->value,
+            'halal_authority' => $this->halal_active_certificate_id !== null
+                ? $this->activeHalalCertificate?->authority?->value
+                : null,
+            'halal_reverify' => $this->needsHalalReverification(),
         ];
     }
 

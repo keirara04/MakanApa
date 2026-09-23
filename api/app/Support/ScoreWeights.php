@@ -43,6 +43,15 @@ final class ScoreWeights
         return ['personalFit' => 15];
     }
 
+    /**
+     * Only while the halal-only filter is on. Deliberately tiny — a tie-breaker among similar
+     * candidates, never enough to overpower the user's actual food preference.
+     */
+    public static function halalOverlay(): array
+    {
+        return ['halalConfidence' => 2];
+    }
+
     /** Curated grid tags (Nasi Kandar/Quick/Healthy/... chips) — unchanged from the original scoring model. */
     public static function forMoodTags(): array
     {

@@ -15,6 +15,8 @@ struct AuthUser: Codable, Equatable {
     /// yet). Not rendered anywhere yet — carried through now so a future "UKM ✓" verified badge
     /// doesn't need another auth-response shape change.
     let affiliationVerificationStatus: String?
+    /// Optional: absent from older cached payloads / older backends.
+    let halalPreference: Bool?
 
     var isSuperadmin: Bool { role == "superadmin" }
 }
@@ -23,6 +25,11 @@ enum SessionState: Equatable {
     case loading
     case authenticated(AuthUser)
     case unauthenticated
+
+    var isAuthenticated: Bool {
+        if case .authenticated = self { return true }
+        return false
+    }
 }
 
 /// Both /auth/apple and /auth/google resolve to one of these two shapes — see
@@ -42,7 +49,14 @@ enum SocialLoginOutcome {
 final class AuthStore {
     static let shared = AuthStore()
 
-    private(set) var session: SessionState = .loading
+    private(set) var session: SessionState = .loading {
+        didSet {
+            // Sign-in (not every profile refresh): align the local Halal-only choice with the account.
+            if case .authenticated(let user) = session, !oldValue.isAuthenticated {
+                HalalPreference.reconcile(with: user)
+            }
+        }
+    }
 
     private init() {}
 

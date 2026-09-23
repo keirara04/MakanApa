@@ -6,7 +6,10 @@ use App\Models\DeviceToken;
 use App\Models\NotificationDelivery;
 use App\Services\Craving\CravingResolver;
 use App\Services\Craving\DailyAiBudget;
-use App\Services\Craving\OpenRouterIntentParser;
+use App\Services\Craving\JudgmentIntentParser;
+use App\Services\Judgment\JudgmentEngine;
+use App\Services\Judgment\NullJudgmentEngine;
+use App\Services\Judgment\OpenRouterJudgmentEngine;
 use App\Services\Push\ApnAuthProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\ChannelManager;
@@ -39,9 +42,17 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new CravingResolver(
-                new OpenRouterIntentParser($apiKey, config('services.openrouter.model')),
+                new JudgmentIntentParser($this->app->make(JudgmentEngine::class)),
                 new DailyAiBudget((int) config('services.openrouter.daily_limit')),
             );
+        });
+
+        // The Judgment System reuses the OpenRouter key. No key = every judgment is simply
+        // unavailable (NullJudgmentEngine) and every consumer takes its no-AI path.
+        $this->app->singleton(JudgmentEngine::class, function () {
+            $apiKey = config('services.openrouter.api_key');
+
+            return empty($apiKey) ? new NullJudgmentEngine : new OpenRouterJudgmentEngine($apiKey);
         });
 
         // Overrides laravel-notification-channels/apn's own binding (Pushok\AuthProvider\Token) —
@@ -105,6 +116,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Also a password-check endpoint (for password accounts) — keyed by user id so a
         // password-guessing loop against one account can't be spread across other users' quota.
+        // Daily cap on halal evidence reports per account — trust abuse, not just API abuse.
+        RateLimiter::for('halal-reports', fn ($request) => Limit::perDay(20)->by($request->user()?->id ?: $request->ip()));
+
+        // Community posts + replies publish instantly — a daily cap bounds how much a single
+        // account can flood a board before reports/admins catch up.
+        RateLimiter::for('community-posts', fn ($request) => Limit::perDay(50)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('delete-account', function ($request) {
             return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip());
         });

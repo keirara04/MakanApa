@@ -2,22 +2,36 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
 		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.716777967048-ngnbed6cpvcppn14nipvbsv87690hie0</string>
-			</array>
+			<key>10.123.171.118</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
 		</dict>
-	</array>
-	<key>GIDClientID</key>
-	<string>716777967048-ngnbed6cpvcppn14nipvbsv87690hie0.apps.googleusercontent.com</string>
-	<key>GIDServerClientID</key>
-	<string>716777967048-u35g4gpmpu7ef5pum225uqj73lgg0rqb.apps.googleusercontent.com</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>nmap</string>
-	</array>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>MakanApa talks to its own dev server on your local network while testing.</string>
 </dict>
 </plist>

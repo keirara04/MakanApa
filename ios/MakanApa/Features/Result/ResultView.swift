@@ -172,6 +172,10 @@ struct ResultView: View {
                         menuNudge
                     }
 
+                    if let halal = pick.halal {
+                        HalalVerificationSection(restaurantId: pick.id, restaurantName: pick.name, halal: halal)
+                    }
+
                     if !pick.reviews.isEmpty {
                         reviewsSection(for: pick)
                     }
@@ -354,6 +358,11 @@ struct ResultView: View {
             }
 
             openStatusRow(pick.openStatus, closesAt: pick.closesAt)
+
+            if let halal = pick.halal {
+                HalalBadge(display: halal.display)
+                    .padding(.top, 2)
+            }
         }
     }
 

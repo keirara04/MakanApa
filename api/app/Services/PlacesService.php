@@ -2,17 +2,22 @@
 
 namespace App\Services;
 
+use App\Jobs\SecondOpinionNonHalal;
 use App\Models\Cuisine;
 use App\Models\PlaceSyncArea;
 use App\Models\Restaurant;
 use App\Models\RestaurantFieldOverride;
 use App\Models\Tag;
 use App\Services\Craving\CravingIntent;
+use App\Services\Halal\HalalVerificationService;
+use App\Services\Judgment\Definitions\NonHalalSecondOpinionGate;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\Places\ProviderPlace;
 use App\Support\DiscoveryMode;
+use App\Support\Halal\HalalHeuristic;
+use App\Support\Halal\HalalStatus;
 use App\Support\Vibe;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
@@ -58,7 +63,10 @@ class PlacesService
     /** Below this many local matches, searchPlaces() also asks Google — keeps MakanApa's own data first-class by construction (it's always searched, always returned first) rather than by rank-boosting alone, while still calling Google on every keystroke when our own data already has enough to show. */
     private const GOOGLE_FALLBACK_MIN_LOCAL_RESULTS = 8;
 
-    public function __construct(private readonly PlaceNormalizer $normalizer) {}
+    public function __construct(
+        private readonly PlaceNormalizer $normalizer,
+        private readonly HalalVerificationService $halalVerifications,
+    ) {}
 
     /** Set by nearbyRestaurants() when a craving is present, for RecommendationController's debug payload only. */
     private array $lastCandidateCounts = [];
@@ -610,7 +618,33 @@ class PlacesService
         );
         $restaurant->tags()->sync($tagIds);
 
+        $this->applyHalalHeuristic($restaurant);
+
         return $restaurant;
+    }
+
+    /**
+     * Cheap in-memory evaluation first; only touches the ledger (row lock + transaction) when
+     * there's something to assert or a previous automatic non_halal to retract. The verification
+     * service itself refuses to overwrite any human-reviewed decision.
+     */
+    private function applyHalalHeuristic(Restaurant $restaurant): void
+    {
+        $result = HalalHeuristic::evaluate([
+            'name' => $restaurant->name,
+            'signature_dish' => $restaurant->signature_dish,
+            'food_category' => $restaurant->food_category,
+            'google_types' => $restaurant->google_types,
+        ]);
+
+        if ($result->likelyNonHalal || $restaurant->halal_status === HalalStatus::NonHalal) {
+            $this->halalVerifications->recordHeuristic($restaurant, $result);
+            $restaurant->refresh();
+        } elseif (NonHalalSecondOpinionGate::shouldAsk($restaurant, $result)) {
+            // Weak-only keyword match with enough context: queue an AI second opinion. Admin
+            // review hint only — never a status change.
+            SecondOpinionNonHalal::dispatchIfDue($restaurant);
+        }
     }
 
     /**
@@ -686,7 +720,8 @@ class PlacesService
                 'is_active', 'provider', 'provider_place_id', 'food_category', 'signature_dish',
                 'google_types', 'phone', 'instagram_handle', 'tiktok_handle', 'website_url',
                 'user_rating_count', 'impressions_count', 'accepted_count', 'rejected_count',
+                'halal_status', 'halal_review_state', 'halal_expires_at', 'halal_active_certificate_id',
             ])
-            ->with(['cuisines:id,slug', 'tags:id,name']);
+            ->with(['cuisines:id,slug', 'tags:id,name', 'activeHalalCertificate:id,authority']);
     }
 }

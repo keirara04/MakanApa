@@ -3,14 +3,19 @@
 namespace App\Filament\Resources\RestaurantSubmissions\Schemas;
 
 use App\Models\Restaurant;
+use App\Models\RestaurantPhoto;
 use App\Models\RestaurantSubmission;
+use App\Services\Halal\HalalReportService;
 use App\Services\RestaurantSubmissionModerationService;
+use App\Support\Halal\TriageBadges;
 use App\Support\RestaurantField;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class RestaurantSubmissionInfolist
 {
@@ -36,7 +41,47 @@ class RestaurantSubmissionInfolist
                         TextEntry::make('review_note')->label('Review note')->placeholder('—')->columnSpanFull(),
                     ]),
 
+                Section::make('Halal evidence')
+                    ->icon('heroicon-o-check-badge')
+                    ->visible(fn (RestaurantSubmission $record) => $record->isHalalReport())
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('halal_claim')->label('Claim')->badge()->formatStateUsing(fn ($state) => $state?->label()),
+                        TextEntry::make('current_halal_status')->label('Current status')
+                            ->state(fn (RestaurantSubmission $record) => Restaurant::find($record->restaurant_id)?->effectiveHalalStatus()->label() ?? '—'),
+                        TextEntry::make('halal_comment')->label('Public comment')->placeholder('—')->columnSpanFull(),
+                        TextEntry::make('certification_authority')->label('Authority (reporter)')->formatStateUsing(fn ($state) => $state?->label())->placeholder('—'),
+                        TextEntry::make('certificate_number')->label('Certificate no. (reporter)')->placeholder('—'),
+                        TextEntry::make('certificate_expires_at')->label('Expiry (reporter)')->date()->placeholder('—'),
+                        TextEntry::make('review_priority')->label('Review priority')
+                            ->helperText(fn (RestaurantSubmission $record) => TriageBadges::priorityExplanation($record->review_priority_breakdown)),
+                        TextEntry::make('ai_triage')->label('AI triage (advisory)')->columnSpanFull()
+                            ->state(fn (RestaurantSubmission $record) => array_column(TriageBadges::badges($record->triage), 'label') ?: ['Not available'])
+                            ->badge()
+                            ->color(fn (string $state, RestaurantSubmission $record) => collect(TriageBadges::badges($record->triage))->firstWhere('label', $state)['tone'] ?? 'gray'),
+                        TextEntry::make('evidence_flags')->label('Flags')->columnSpanFull()
+                            ->state(fn (RestaurantSubmission $record) => app(HalalReportService::class)->hasDuplicatePhoto($record)
+                                ? 'Duplicate photo — the same image was attached to another submission.'
+                                : 'None')
+                            ->color(fn (string $state) => $state === 'None' ? 'gray' : 'danger'),
+                        ImageEntry::make('evidence_photos')->label('Evidence photos')->columnSpanFull()
+                            ->state(fn (RestaurantSubmission $record) => self::photoDataUris($record))
+                            ->imageHeight(220),
+                    ]),
+
+                Section::make('Ownership claim')
+                    ->visible(fn (RestaurantSubmission $record) => $record->submission_type === 'owner_claim')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('contact_phone')->label('Contact phone'),
+                        TextEntry::make('notes')->placeholder('—'),
+                        ImageEntry::make('proof_photos')->label('Proof photos')->columnSpanFull()
+                            ->state(fn (RestaurantSubmission $record) => self::photoDataUris($record))
+                            ->imageHeight(220),
+                    ]),
+
                 Section::make('Submitted details')
+                    ->visible(fn (RestaurantSubmission $record) => ! in_array($record->submission_type, ['halal_report', 'owner_claim'], true))
                     ->columns(2)
                     ->schema([
                         TextEntry::make('name'),
@@ -66,6 +111,29 @@ class RestaurantSubmissionInfolist
                     ->visible(fn (RestaurantSubmission $record) => $record->restaurant_id !== null && ! empty($record->changed_fields))
                     ->schema(fn (RestaurantSubmission $record) => self::comparisonEntries($record)),
             ]);
+    }
+
+    /**
+     * Pending evidence lives on the private disk with no public URL, so the panel inlines it —
+     * moderators must SEE the certificate to verify it. Bounded by max_per_submission photos.
+     *
+     * @return list<string>
+     */
+    private static function photoDataUris(RestaurantSubmission $record): array
+    {
+        return RestaurantPhoto::where('restaurant_submission_id', $record->id)
+            ->get()
+            ->map(function (RestaurantPhoto $photo) {
+                if ($url = $photo->publicUrl()) {
+                    return $url;
+                }
+                $disk = Storage::disk($photo->disk);
+
+                return $disk->exists($photo->path) ? 'data:image/jpeg;base64,'.base64_encode($disk->get($photo->path)) : null;
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private static function duplicateHint(RestaurantSubmission $record): ?array

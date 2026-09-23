@@ -358,6 +358,10 @@ class AuthController extends Controller
             $user->avatar_key = $data['avatarKey'];
         }
 
+        if (array_key_exists('halalPreference', $data)) {
+            $user->halal_preference = $data['halalPreference'];
+        }
+
         $user->save();
 
         return response()->json(['user' => $this->presentUser($user)]);
@@ -372,6 +376,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'name' => $user->name,
             'avatarKey' => $user->avatar_key,
+            'halalPreference' => (bool) $user->halal_preference,
             'role' => $user->role,
             'status' => $user->status,
             'affiliationType' => $user->affiliation?->type,

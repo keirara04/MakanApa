@@ -7,6 +7,7 @@ enum PushDestination: Equatable {
     case submission(id: Int)
     case release(version: String?)
     case account
+    case communityPost(id: Int)
 
     init?(userInfo: [AnyHashable: Any]) {
         guard let type = userInfo["type"] as? String else { return nil }
@@ -19,6 +20,9 @@ enum PushDestination: Equatable {
             self = .release(version: userInfo["version"] as? String)
         case "account_admin":
             self = .account
+        case "community_post_replied", "community_post_reacted":
+            guard let id = (userInfo["postId"] as? NSNumber)?.intValue else { return nil }
+            self = .communityPost(id: id)
         default:
             return nil
         }
@@ -34,6 +38,9 @@ final class PendingDeepLink {
     static let shared = PendingDeepLink()
 
     var destination: PushDestination?
+    /// Set when a community reply/reaction push is tapped; `CommunityView` opens that thread
+    /// and clears it.
+    var communityPostId: Int?
 
     private init() {}
 }

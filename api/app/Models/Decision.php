@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id', 'university_id', 'area_id', 'client_token', 'mode', 'latitude', 'longitude', 'budget_max',
-    'max_distance', 'selected_restaurant_id', 'discovery_mode', 'vibe', 'installation_id',
+    'max_distance', 'selected_restaurant_id', 'discovery_mode', 'vibe', 'installation_id', 'halal_only',
 ])]
 class Decision extends Model
 {
     const UPDATED_AT = null;
+
+    protected function casts(): array
+    {
+        return [
+            'halal_only' => 'boolean',
+        ];
+    }
 
     public function user(): BelongsTo
     {

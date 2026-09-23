@@ -174,6 +174,12 @@ struct NearbyView: View {
     private var primaryRibbon: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
+                // First in the rail: a standing dietary preference, not a browsing chip — so
+                // Reset deliberately leaves it alone.
+                filterChip(label: "Muslim-friendly", isOn: viewModel.halalFilter) {
+                    viewModel.halalFilter.toggle()
+                    rerunSearch()
+                }
                 filterChip(label: "Open now", isOn: viewModel.openNowFilter) {
                     viewModel.openNowFilter.toggle()
                     rerunSearch()
@@ -729,6 +735,10 @@ struct NearbyView: View {
                         }
                         .font(.makanBody(13))
                         .foregroundStyle(.secondary)
+
+                        if let halal = viewModel.placeDetails?.halal?.display ?? place.halal?.display {
+                            HalalBadge(display: halal)
+                        }
                     }
 
                     Spacer()
@@ -746,6 +756,14 @@ struct NearbyView: View {
                         .padding(.vertical, 14)
                         .background(Color.sambalRed)
                         .clipShape(Capsule())
+                }
+
+                // Right under Directions, not buried below the menu: vouching is the main way
+                // Nearby places get a halal status, so it has to be seen.
+                if let halal = viewModel.placeDetails?.halal, viewModel.placeDetails?.id == place.id {
+                    HalalVerificationSection(restaurantId: place.id, restaurantName: place.name, halal: halal) {
+                        Task { await viewModel.loadDetails(for: place) }
+                    }
                 }
 
                 if viewModel.isLoadingDetails {

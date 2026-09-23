@@ -2,12 +2,20 @@
 
 namespace App\Services;
 
+use App\Models\AiJudgment;
 use App\Models\Restaurant;
 use App\Models\RestaurantFieldOverride;
 use App\Models\RestaurantMenuItem;
+use App\Models\RestaurantOwner;
 use App\Models\RestaurantSubmission;
 use App\Models\User;
 use App\Notifications\CommunitySubmissionDecided;
+use App\Notifications\HalalReportDecided;
+use App\Notifications\OwnerClaimDecided;
+use App\Services\Halal\CertificateData;
+use App\Services\Halal\HalalReportService;
+use App\Services\Halal\HalalVerificationService;
+use App\Support\Halal\HalalStatus;
 use App\Support\RestaurantField;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,11 +28,20 @@ use Illuminate\Support\Str;
  */
 class RestaurantSubmissionModerationService
 {
-    public function __construct(private readonly AdminAuditLogger $auditLogger) {}
+    public function __construct(
+        private readonly AdminAuditLogger $auditLogger,
+        private readonly HalalVerificationService $halalVerifications,
+        private readonly HalalReportService $halalReports,
+    ) {}
 
-    public function approve(RestaurantSubmission $submission, User $admin, bool $releaseToGoogle = false): Restaurant
+    /**
+     * @param  array{resolved_status?: string, certificate?: array, evidence_summary?: string}  $halal
+     *                                                                                                  halal_report only: the moderator's resolved status (defaults to the claim) and,
+     *                                                                                                  for `certified`, the moderator-verified certificate (see CertificateData).
+     */
+    public function approve(RestaurantSubmission $submission, User $admin, bool $releaseToGoogle = false, array $halal = []): Restaurant
     {
-        return DB::transaction(function () use ($submission, $admin, $releaseToGoogle) {
+        return DB::transaction(function () use ($submission, $admin, $releaseToGoogle, $halal) {
             /** @var RestaurantSubmission $locked */
             $locked = RestaurantSubmission::whereKey($submission->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->status === 'pending', 422, 'Submission is no longer pending.');
@@ -34,6 +51,8 @@ class RestaurantSubmissionModerationService
                 'edit_place' => $this->approveEdit($locked, $admin->id),
                 'closure' => $this->approveClosure($locked, $admin->id),
                 'reopen' => $this->approveReopen($locked, $releaseToGoogle, $admin->id),
+                'halal_report' => $this->approveHalalReport($locked, $admin, $halal),
+                'owner_claim' => $this->approveOwnerClaim($locked, $admin),
                 default => abort(422, 'Unknown submission type.'),
             };
 
@@ -49,7 +68,7 @@ class RestaurantSubmissionModerationService
                 'restaurant_id' => $restaurant->id,
             ]);
 
-            $locked->user?->notify(new CommunitySubmissionDecided($locked, 'approved'));
+            $this->notifyDecision($locked, 'approved');
 
             return $restaurant;
         });
@@ -88,7 +107,7 @@ class RestaurantSubmissionModerationService
 
             $this->auditLogger->log($admin, 'submission.reject', $locked, reason: $reviewNote);
 
-            $locked->user?->notify(new CommunitySubmissionDecided($locked, 'rejected', $reviewNote));
+            $this->notifyDecision($locked, 'rejected', $reviewNote);
         });
     }
 
@@ -106,6 +125,11 @@ class RestaurantSubmissionModerationService
             ]);
 
             $this->auditLogger->log($admin, 'submission.request_changes', $locked, reason: $reviewNote);
+
+            // Only the halal/owner types notify here — pre-existing types keep their behaviour.
+            if (in_array($locked->submission_type, ['halal_report', 'owner_claim'], true)) {
+                $this->notifyDecision($locked, 'changes_requested', $reviewNote);
+            }
         });
     }
 
@@ -233,6 +257,65 @@ class RestaurantSubmissionModerationService
         $this->materializeMenu($restaurant, $submission);
 
         return $restaurant;
+    }
+
+    /**
+     * Halal evidence -> a moderator decision in the verification ledger. The reporter's claim
+     * is never mutated; what the moderator actually concluded is stored alongside it.
+     */
+    private function approveHalalReport(RestaurantSubmission $submission, User $admin, array $halal): Restaurant
+    {
+        $resolved = isset($halal['resolved_status'])
+            ? HalalStatus::from($halal['resolved_status'])
+            : $submission->halal_claim;
+        abort_if($resolved === null || $resolved === HalalStatus::Unknown, 422, 'Choose the status this evidence supports.');
+
+        $certificate = $resolved === HalalStatus::Certified
+            ? CertificateData::fromArray($halal['certificate'] ?? [])
+            : null;
+
+        $this->halalVerifications->recordModeratorDecision($submission, $resolved, $admin, $certificate, $halal['evidence_summary'] ?? null);
+        $submission->update(['halal_resolved_status' => $resolved]);
+
+        return Restaurant::findOrFail($submission->restaurant_id)->canonicalRestaurant();
+    }
+
+    /** Ownership is a verified link only — it never grants direct edit rights, just evidence provenance. */
+    private function approveOwnerClaim(RestaurantSubmission $submission, User $admin): Restaurant
+    {
+        $restaurant = Restaurant::findOrFail($submission->restaurant_id)->canonicalRestaurant();
+        abort_if($submission->user_id === null, 422, 'The claimant account no longer exists.');
+
+        RestaurantOwner::updateOrCreate(
+            ['restaurant_id' => $restaurant->id, 'user_id' => $submission->user_id],
+            [
+                'status' => 'verified',
+                'verified_by' => $admin->id,
+                'verified_at' => now(),
+                'claim_submission_id' => $submission->id,
+            ]
+        );
+
+        return $restaurant;
+    }
+
+    private function notifyDecision(RestaurantSubmission $submission, string $decision, ?string $reviewNote = null): void
+    {
+        match ($submission->submission_type) {
+            'halal_report' => $submission->user?->notify(new HalalReportDecided($submission, $decision, $reviewNote)),
+            'owner_claim' => $submission->user?->notify(new OwnerClaimDecided($submission, $decision, $reviewNote)),
+            default => $submission->user?->notify(new CommunitySubmissionDecided($submission, $decision, $reviewNote)),
+        };
+
+        if ($submission->submission_type === 'halal_report') {
+            $this->halalReports->afterDecision($submission, $decision);
+            // Calibration label for the advisory triage (only outcome/outcome_at are ever updated).
+            AiJudgment::recordOutcome('halal_triage', $submission, [
+                'decision' => $decision,
+                'claim' => $submission->halal_claim?->value,
+                'resolved' => $submission->halal_resolved_status?->value,
+            ]);
+        }
     }
 
     private function approveEdit(RestaurantSubmission $submission, int $adminId): Restaurant

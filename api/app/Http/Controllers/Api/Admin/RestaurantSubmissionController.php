@@ -6,11 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Restaurant;
 use App\Models\RestaurantPhoto;
 use App\Models\RestaurantSubmission;
+use App\Services\Halal\HalalReportService;
+use App\Services\Halal\Registry\HalalRegistry;
 use App\Services\RestaurantPhotoPromotionService;
 use App\Services\RestaurantSubmissionModerationService;
+use App\Support\Halal\CertificateVerificationMethod;
+use App\Support\Halal\CertificationAuthority;
+use App\Support\Halal\TriageBadges;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\Rule;
 
 /**
  * Thin HTTP wrapper around RestaurantSubmissionModerationService — all actual moderation logic
@@ -26,8 +32,10 @@ class RestaurantSubmissionController extends Controller
     {
         $status = $request->query('status', 'pending');
 
+        // `type=halal_report` powers the iOS halal review queue — highest priority first.
         $submissions = RestaurantSubmission::where('status', $status)
-            ->with(['user', 'university'])
+            ->when($request->query('type'), fn ($q, $type) => $q->where('submission_type', $type)->orderByDesc('review_priority'))
+            ->with(['user', 'university', 'restaurant'])
             ->orderBy('created_at')
             ->get();
 
@@ -51,11 +59,35 @@ class RestaurantSubmissionController extends Controller
 
     public function approve(Request $request, RestaurantSubmission $submission, RestaurantPhotoPromotionService $photoPromotion): JsonResponse
     {
-        $restaurant = $this->moderation->approve($submission, $request->user(), $request->boolean('releaseToGoogle'));
+        $halal = $request->validate([
+            'resolvedStatus' => ['nullable', Rule::in(['certified', 'muslim_friendly', 'non_halal'])],
+            'evidenceSummary' => ['nullable', 'string', 'max:500'],
+            'certificate' => ['nullable', 'array'],
+            'certificate.authority' => ['nullable', Rule::enum(CertificationAuthority::class)],
+            'certificate.certificateNumber' => ['nullable', 'string', 'max:60'],
+            'certificate.expiresAt' => ['nullable', 'date'],
+            'certificate.issuedAt' => ['nullable', 'date'],
+            'certificate.verificationMethod' => ['nullable', Rule::enum(CertificateVerificationMethod::class)],
+        ]);
+
+        $restaurant = $this->moderation->approve($submission, $request->user(), $request->boolean('releaseToGoogle'), array_filter([
+            'resolved_status' => $halal['resolvedStatus'] ?? null,
+            'evidence_summary' => $halal['evidenceSummary'] ?? null,
+            'certificate' => isset($halal['certificate']) ? [
+                'authority' => $halal['certificate']['authority'] ?? null,
+                'certificate_number' => $halal['certificate']['certificateNumber'] ?? null,
+                'expires_at' => $halal['certificate']['expiresAt'] ?? null,
+                'issued_at' => $halal['certificate']['issuedAt'] ?? null,
+                'verification_method' => $halal['certificate']['verificationMethod'] ?? null,
+            ] : null,
+        ]));
 
         // Filesystem work happens outside the DB transaction on purpose — see
         // RestaurantPhotoPromotionService's doc comment for why.
-        $photoPromotion->promote($submission->fresh(), $restaurant);
+        // Owner-claim proof (licence, IC) is private evidence — never promoted to public photos.
+        if ($submission->submission_type !== 'owner_claim') {
+            $photoPromotion->promote($submission->fresh(), $restaurant);
+        }
 
         return response()->json(['approved' => true, 'restaurantId' => $restaurant->id]);
     }
@@ -128,6 +160,21 @@ class RestaurantSubmissionController extends Controller
                 'university' => $submission->university?->short_name,
             ],
             'possibleDuplicate' => $this->moderation->duplicateHint($submission),
+            'halal' => $submission->isHalalReport() ? [
+                'claim' => $submission->halal_claim?->value,
+                'comment' => $submission->halal_comment,
+                'certificationAuthority' => $submission->certification_authority?->value,
+                'certificateNumber' => $submission->certificate_number,
+                'certificateExpiresAt' => $submission->certificate_expires_at?->toDateString(),
+                'currentStatus' => $submission->restaurant?->effectiveHalalStatus()->value,
+                'reviewPriority' => $submission->review_priority,
+                'duplicatePhoto' => app(HalalReportService::class)->hasDuplicatePhoto($submission),
+                'registryUrl' => app(HalalRegistry::class)->directoryUrl($submission->certification_authority),
+                // Advisory only — the admin still decides.
+                'aiBadges' => array_column(TriageBadges::badges($submission->triage), 'label'),
+                'priorityExplanation' => TriageBadges::priorityExplanation($submission->review_priority_breakdown),
+            ] : null,
+            'contactPhone' => $submission->submission_type === 'owner_claim' ? $submission->contact_phone : null,
             'createdAt' => $submission->created_at?->toIso8601String(),
         ];
     }

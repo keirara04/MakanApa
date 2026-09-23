@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api\Concerns;
 
 use App\Models\DecisionRecommendation;
+use App\Models\Restaurant;
 use App\Models\RestaurantMenuItem;
 use App\Models\RestaurantPhoto;
 use App\Models\RestaurantVibeVote;
+use App\Services\Halal\HalalPresenter;
 use App\Services\Places\GooglePlacesProvider;
 use App\Support\CommunityTag;
 use App\Support\DiscoveryMode;
 use App\Support\RecommendationHeadline;
 use App\Support\Vibe;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -96,12 +99,27 @@ trait PresentsRecommendation
                 ->all(),
             'communityPhotos' => RestaurantPhoto::where('restaurant_id', $restaurantId)
                 ->where('is_active', true)
+                ->where('photo_type', '!=', 'halal_cert')
                 ->get()
                 ->map(fn (RestaurantPhoto $photo) => $photo->publicUrl())
                 ->filter()
                 ->values()
                 ->all(),
+            'halal' => app(HalalPresenter::class)->present(Restaurant::findOrFail($restaurantId), request()->user()),
         ];
+    }
+
+    /**
+     * Request `halal` param wins when sent (lets iOS apply a just-toggled preference instantly);
+     * otherwise the signed-in user's stored preference.
+     */
+    private function resolveHalalOnly(Request $request, array $data): bool
+    {
+        if (array_key_exists('halal', $data) && $data['halal'] !== null) {
+            return (bool) $data['halal'];
+        }
+
+        return (bool) $request->user()?->halal_preference;
     }
 
     /**

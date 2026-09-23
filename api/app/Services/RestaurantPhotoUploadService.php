@@ -21,6 +21,9 @@ class RestaurantPhotoUploadService
 {
     public function storePending(RestaurantSubmission $submission, UploadedFile $file, string $photoType, int $uploadedBy): RestaurantPhoto
     {
+        // Hash of the ORIGINAL bytes (pre-re-encode) — re-encoding is deterministic per input,
+        // but hashing the upload itself is what flags the same evidence image submitted twice.
+        $contentHash = hash_file('sha256', $file->getRealPath());
         [$reencoded, $width, $height] = $this->reencode($file->getRealPath());
 
         $disk = Config::get('restaurant_photos.pending_disk');
@@ -37,6 +40,7 @@ class RestaurantPhotoUploadService
             'height' => $height,
             'size_bytes' => strlen($reencoded),
             'uploaded_by' => $uploadedBy,
+            'content_hash' => $contentHash,
         ]);
     }
 

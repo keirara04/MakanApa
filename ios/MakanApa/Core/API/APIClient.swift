@@ -23,7 +23,8 @@ enum APIClient {
         let body = SoloRecommendationRequestBody(
             latitude: latitude, longitude: longitude, budgetMax: budgetMax,
             maxDistanceKm: maxDistanceKm, moods: moods, craving: craving,
-            mode: mode, vibe: vibe, installationId: InstallationID.current
+            mode: mode, vibe: vibe, installationId: InstallationID.current,
+            halal: HalalPreference.isOn
         )
         return try await post("recommendations/solo", body: body)
     }
@@ -51,6 +52,7 @@ enum APIClient {
         if let minRating { query.append(URLQueryItem(name: "minRating", value: String(minRating))) }
         if let mode { query.append(URLQueryItem(name: "mode", value: mode.rawValue)) }
         if let vibe { query.append(URLQueryItem(name: "vibe", value: vibe.rawValue)) }
+        query.append(URLQueryItem(name: "halal", value: HalalPreference.isOn ? "1" : "0"))
         return try await get("places/nearby", query: query)
     }
 
@@ -78,7 +80,8 @@ enum APIClient {
         let body = NearbyPickRequestBody(
             latitude: latitude, longitude: longitude, viewport: viewport, visiblePlaceIds: visiblePlaceIds,
             openNow: openNow, budgetMax: budgetMax, minRating: minRating,
-            mode: mode, vibe: vibe, installationId: InstallationID.current
+            mode: mode, vibe: vibe, installationId: InstallationID.current,
+            halal: HalalPreference.isOn
         )
         return try await post("places/nearby/pick", body: body)
     }
@@ -151,6 +154,26 @@ enum APIClient {
         try await patch("me/profile", body: UpdateMyProfileRequestBody(name: name, avatarKey: avatarKey))
     }
 
+    static func updateHalalPreference(_ isOn: Bool) async throws -> MeResponse {
+        try await patch("me/profile", body: UpdateHalalPreferenceRequestBody(halalPreference: isOn))
+    }
+
+    // MARK: - Halal trust
+
+    /// Opens (or returns the caller's existing open) halal report draft. Evidence photos go
+    /// through `uploadSubmissionPhoto`, then `submitSubmission` sends it for review.
+    static func createHalalReport(restaurantId: Int, _ body: CreateHalalReportRequestBody) async throws -> HalalReportResponse {
+        try await post("restaurants/\(restaurantId)/halal-reports", body: body)
+    }
+
+    static func createOwnerClaim(restaurantId: Int, _ body: CreateOwnerClaimRequestBody) async throws -> OwnerClaimResponse {
+        try await post("restaurants/\(restaurantId)/owner-claim", body: body)
+    }
+
+    static func halalHistory(restaurantId: Int, page: Int = 1) async throws -> HalalHistoryResponse {
+        try await get("restaurants/\(restaurantId)/halal/history", query: [URLQueryItem(name: "page", value: String(page))])
+    }
+
     // MARK: - Admin
 
     static func listBetaUsers() async throws -> AdminUserListResponse {
@@ -182,6 +205,53 @@ enum APIClient {
         if let latitude { query.append(URLQueryItem(name: "latitude", value: String(latitude))) }
         if let longitude { query.append(URLQueryItem(name: "longitude", value: String(longitude))) }
         return try await get("community/feed", query: query)
+    }
+
+    // MARK: - Community posts
+
+    static func communityPosts(restaurantId: Int? = nil, cursor: String? = nil, limit: Int? = nil) async throws -> CommunityPostsResponse {
+        var query: [URLQueryItem] = []
+        if let restaurantId { query.append(URLQueryItem(name: "restaurantId", value: String(restaurantId))) }
+        if let cursor { query.append(URLQueryItem(name: "cursor", value: cursor)) }
+        if let limit { query.append(URLQueryItem(name: "limit", value: String(limit))) }
+        return try await get("community/posts", query: query)
+    }
+
+    static func communityThread(postId: Int, cursor: String? = nil) async throws -> CommunityThreadResponse {
+        var query: [URLQueryItem] = []
+        if let cursor { query.append(URLQueryItem(name: "cursor", value: cursor)) }
+        return try await get("community/posts/\(postId)", query: query)
+    }
+
+    static func createCommunityPost(body: String, restaurantId: Int?, parentId: Int?) async throws -> CommunityPostResponse {
+        try await sendSurfacingMessage(
+            "POST", "community/posts",
+            body: CreateCommunityPostRequestBody(body: body, restaurantId: restaurantId, parentId: parentId)
+        )
+    }
+
+    static func deleteCommunityPost(id: Int) async throws -> CommunityDeletePostResponse {
+        try await delete("community/posts/\(id)")
+    }
+
+    static func reactToCommunityPost(id: Int, type: CommunityReactionType) async throws -> CommunityReactionResponse {
+        try await post("community/posts/\(id)/react", body: CommunityReactionRequestBody(type: type))
+    }
+
+    static func reportCommunityPost(id: Int, reason: CommunityReportReason, note: String?) async throws -> CommunityReportResponse {
+        try await sendSurfacingMessage("POST", "community/posts/\(id)/report", body: CommunityReportRequestBody(reason: reason, note: note))
+    }
+
+    static func blockUser(id: Int) async throws -> BlockUserResponse {
+        try await post("users/\(id)/block", body: EmptyBody())
+    }
+
+    static func unblockUser(id: Int) async throws -> BlockUserResponse {
+        try await delete("users/\(id)/block")
+    }
+
+    static func blockedUsers() async throws -> BlockedUsersResponse {
+        try await get("me/blocks", query: [])
     }
 
     // MARK: - Community places (submissions)
@@ -237,6 +307,17 @@ enum APIClient {
 
     static func adminApproveSubmission(id: Int) async throws -> AdminApproveResponse {
         try await post("admin/community/submissions/\(id)/approve", body: EmptyBody())
+    }
+
+    static func adminApproveHalalReport(id: Int, _ body: AdminApproveHalalRequestBody) async throws -> AdminApproveResponse {
+        try await post("admin/community/submissions/\(id)/approve", body: body)
+    }
+
+    static func adminListHalalQueue() async throws -> AdminSubmissionListResponse {
+        try await get("admin/community/submissions", query: [
+            URLQueryItem(name: "status", value: "pending"),
+            URLQueryItem(name: "type", value: "halal_report"),
+        ])
     }
 
     static func adminLinkSubmission(id: Int, restaurantId: Int) async throws -> AdminLinkResponse {
@@ -417,6 +498,40 @@ enum APIClient {
         request.httpBody = try encoder.encode(body)
 
         let (data, httpResponse) = try await send(request)
+        try validate(httpResponse)
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    private struct ServerErrorBody: Decodable {
+        let message: String?
+        let errors: [String: [String]]?
+    }
+
+    /// Like `post`, but a 4xx with a readable body becomes `APIError.rejected` carrying the
+    /// server's message — for writes whose rejection the user needs to understand (e.g. the
+    /// community content filter: "Links aren't allowed…"), not just a generic failure.
+    private static func sendSurfacingMessage<Body: Encodable, Response: Decodable>(
+        _ method: String, _ path: String, body: Body
+    ) async throws -> Response {
+        var request = URLRequest(url: APIConfig.baseURL.appendingPathComponent(path))
+        request.httpMethod = method
+        request.timeoutInterval = 15
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        await attachAuthorization(to: &request)
+        request.httpBody = try encoder.encode(body)
+
+        let (data, httpResponse) = try await send(request)
+        if (400..<500).contains(httpResponse.statusCode), httpResponse.statusCode != 401,
+           let errorBody = try? decoder.decode(ServerErrorBody.self, from: data),
+           let message = errorBody.errors?.values.first?.first ?? errorBody.message, !message.isEmpty {
+            throw APIError.rejected(statusCode: httpResponse.statusCode, message: message)
+        }
         try validate(httpResponse)
 
         do {

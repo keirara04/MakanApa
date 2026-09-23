@@ -9,6 +9,7 @@ use App\Http\Requests\NearbyRequest;
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
+use App\Services\Halal\HalalPresenter;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
@@ -45,6 +46,7 @@ class NearbyController extends Controller
         private readonly PlacesService $placesService,
         private readonly RecommendationService $recommendationService,
         private readonly PlaceNormalizer $normalizer,
+        private readonly HalalPresenter $halalPresenter,
     ) {}
 
     public function index(NearbyRequest $request): JsonResponse
@@ -52,9 +54,16 @@ class NearbyController extends Controller
         $data = $request->validated();
         $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
         $vibe = Vibe::fromRequest($data['vibe'] ?? null);
+        $data['halalOnly'] = $this->resolveHalalOnly($request, $data);
 
         try {
             $restaurants = $this->restaurantsInViewport($data, $mode, $vibe);
+            // Unlike the Open now/Budget/Rating chips, Halal only DOES filter the map: it's a
+            // standing dietary requirement, not a browsing chip, and the map is a discovery
+            // surface too — a user who set it must never see non-halal pins.
+            if ($data['halalOnly']) {
+                $restaurants = $this->withoutNonHalal($restaurants);
+            }
         } catch (RequestException $e) {
             Log::error('Places provider request failed', ['error' => $e->getMessage()]);
 
@@ -79,12 +88,14 @@ class NearbyController extends Controller
         $viewport = $this->insetViewport($data['viewport']);
         $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
         $vibe = Vibe::fromRequest($data['vibe'] ?? null);
+        $halalOnly = $this->resolveHalalOnly($request, $data);
 
         try {
             $authoritative = $this->applyHardFilters($this->restaurantsInViewport($viewport, $mode, $vibe), [
                 'openNow' => $data['openNow'] ?? null,
                 'budgetMax' => $data['budgetMax'] ?? null,
                 'minRating' => $data['minRating'] ?? null,
+                'halalOnly' => $halalOnly,
             ]);
         } catch (Throwable $e) {
             Log::error('Places lookup failed', ['error' => $e->getMessage()]);
@@ -109,6 +120,7 @@ class NearbyController extends Controller
             'maxDistanceKm' => $this->maxCornerDistanceKm($viewport, $data['latitude'], $data['longitude']) + 0.01,
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
+            'halalOnly' => $halalOnly,
         ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
         $ranked = $this->recommendationService->topCandidates($candidates, $preference, limit: count($candidates) ?: 1);
@@ -130,6 +142,7 @@ class NearbyController extends Controller
             'discovery_mode' => $mode->value,
             'vibe' => $vibe?->value,
             'installation_id' => $data['installationId'] ?? null,
+            'halal_only' => $halalOnly,
         ]);
 
         foreach ($ranked as $rank => $candidate) {
@@ -220,6 +233,9 @@ class NearbyController extends Controller
                 && $restaurant['price_level'] > $filters['budgetMax']) {
                 return false;
             }
+            if (($filters['halalOnly'] ?? false) && RecommendationService::isNonHalal($restaurant)) {
+                return false;
+            }
             if (($filters['minRating'] ?? null) !== null
                 && ($restaurant['rating'] === null || $restaurant['rating'] < $filters['minRating'])) {
                 return false;
@@ -290,6 +306,11 @@ class NearbyController extends Controller
         return array_slice($shaped, 0, self::AREA_SUMMARY_TOP_N);
     }
 
+    private function withoutNonHalal(array $restaurants): array
+    {
+        return array_values(array_filter($restaurants, fn (array $r) => ! RecommendationService::isNonHalal($r)));
+    }
+
     private function presentMarker(array $restaurant): array
     {
         return [
@@ -300,6 +321,7 @@ class NearbyController extends Controller
             'latitude' => $restaurant['latitude'],
             'longitude' => $restaurant['longitude'],
             'openStatus' => $restaurant['open_status'],
+            'halal' => $this->halalPresenter->summaryFromArray($restaurant),
         ];
     }
 

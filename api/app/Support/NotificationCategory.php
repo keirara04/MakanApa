@@ -14,20 +14,29 @@ final class NotificationCategory
 
     public const RELEASE_ANNOUNCEMENTS = 'release_announcements';
 
+    public const COMMUNITY_REPLIES = 'community_replies';
+
+    public const COMMUNITY_REACTIONS = 'community_reactions';
+
     public const ALL = [
         self::COMMUNITY_SUBMISSIONS,
         self::ACCOUNT_ADMIN,
         self::RELEASE_ANNOUNCEMENTS,
+        self::COMMUNITY_REPLIES,
+        self::COMMUNITY_REACTIONS,
     ];
 
     // Transactional categories the user expects by default once notifications are enabled.
     public const DEFAULT_TRUE = [
         self::COMMUNITY_SUBMISSIONS,
         self::ACCOUNT_ADMIN,
+        self::COMMUNITY_REPLIES,
     ];
 
     // Marketing/engagement categories require an explicit opt-in (see the onboarding priming screen).
+    // Reactions are high-volume and low-signal — opt-in, unlike replies.
     public const DEFAULT_FALSE = [
         self::RELEASE_ANNOUNCEMENTS,
+        self::COMMUNITY_REACTIONS,
     ];
 }

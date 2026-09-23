@@ -43,6 +43,20 @@ struct SettingsView: View {
                                     updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(accountAdmin: newValue))
                                 }
                             ))
+                            Toggle("Replies to your posts", isOn: Binding(
+                                get: { preferences.communityReplies },
+                                set: { newValue in
+                                    notificationPreferences?.communityReplies = newValue
+                                    updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(communityReplies: newValue))
+                                }
+                            ))
+                            Toggle("Reactions to your posts", isOn: Binding(
+                                get: { preferences.communityReactions },
+                                set: { newValue in
+                                    notificationPreferences?.communityReactions = newValue
+                                    updateNotificationPreferences(UpdateNotificationPreferencesRequestBody(communityReactions: newValue))
+                                }
+                            ))
                             Toggle("News & new releases", isOn: Binding(
                                 get: { preferences.releaseAnnouncements },
                                 set: { newValue in
@@ -77,6 +91,16 @@ struct SettingsView: View {
                                 }
                             }
                             NavigationLink {
+                                HalalReviewQueueView()
+                            } label: {
+                                HStack {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .foregroundStyle(Color.sambalRed)
+                                    Text("Halal Reviews")
+                                        .foregroundStyle(Color.kicap)
+                                }
+                            }
+                            NavigationLink {
                                 CommunityRequestsView()
                             } label: {
                                 HStack {
@@ -85,6 +109,21 @@ struct SettingsView: View {
                                     Text("Community Requests")
                                         .foregroundStyle(Color.kicap)
                                 }
+                            }
+                        }
+                    }
+                }
+
+                if case .authenticated = authStore.session {
+                    Section("Community") {
+                        NavigationLink {
+                            BlockedUsersView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "hand.raised.fill")
+                                    .foregroundStyle(Color.sambalRed)
+                                Text("Blocked users")
+                                    .foregroundStyle(Color.kicap)
                             }
                         }
                     }
@@ -177,6 +216,18 @@ struct SettingsView: View {
                         Spacer()
                         Text(appVersionLabel)
                             .foregroundStyle(.secondary)
+                    }
+                    if let url = URL(string: "mailto:\(Copy.supportEmail)?subject=MakanApa%20support") {
+                        Link(destination: url) {
+                            HStack {
+                                Text("Contact & report a problem")
+                                    .foregroundStyle(Color.kicap)
+                                Spacer()
+                                Text(Copy.supportEmail)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
                     }
                     if let url = URL(string: Copy.privacyPolicyURL) {
                         Link(destination: url) {

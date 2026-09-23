@@ -7,6 +7,7 @@ use App\Services\Craving\CravingResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\FakesJudgments;
 use Tests\TestCase;
 
 /**
@@ -16,7 +17,7 @@ use Tests\TestCase;
  */
 class RecommendationSoloCravingTest extends TestCase
 {
-    use RefreshDatabase;
+    use FakesJudgments, RefreshDatabase;
 
     private const LAT = 2.928400;
 
@@ -50,9 +51,7 @@ class RecommendationSoloCravingTest extends TestCase
             '*searchText*' => Http::response(['places' => [
                 $this->googlePlace('icecream-1', 'Inside Scoop', ['ice_cream_shop']),
             ]]),
-            'openrouter.ai/*' => Http::response(['choices' => [
-                ['message' => ['content' => json_encode(['category' => 'dessert', 'subcategory' => 'ice_cream', 'confidence' => 0.91])]],
-            ]]),
+            'openrouter.ai/*' => $this->judgmentResponse($this->cravingAnswer('ice_cream', 0.91)),
         ]);
     }
 
@@ -98,7 +97,7 @@ class RecommendationSoloCravingTest extends TestCase
 
     public function test_ai_resolved_craving_picks_ice_cream_shop_over_burger(): void
     {
-        config(['services.openrouter.api_key' => 'fake-openrouter-key']);
+        $this->enableJudgments();
         $this->app->forgetInstance(CravingResolver::class);
         $this->fakeGoogleWithBurgerAndIceCream();
 
@@ -115,7 +114,7 @@ class RecommendationSoloCravingTest extends TestCase
 
     public function test_ai_failure_degrades_gracefully_to_normal_recommendations(): void
     {
-        config(['services.openrouter.api_key' => 'fake-openrouter-key']);
+        $this->enableJudgments();
         $this->app->forgetInstance(CravingResolver::class);
 
         Http::fake([

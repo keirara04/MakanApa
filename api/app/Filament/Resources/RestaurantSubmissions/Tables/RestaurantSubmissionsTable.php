@@ -19,6 +19,16 @@ class RestaurantSubmissionsTable
                     ->badge(),
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('halal_claim')
+                    ->label('Halal claim')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state?->label())
+                    ->placeholder('—')
+                    ->toggleable(),
+                TextColumn::make('review_priority')
+                    ->label('Priority')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state) => match ($state) {
@@ -47,9 +57,20 @@ class RestaurantSubmissionsTable
                         'changes_requested' => 'Changes requested',
                     ])
                     ->default('pending'),
+                SelectFilter::make('submission_type')
+                    ->label('Type')
+                    ->options([
+                        'new_place' => 'New place',
+                        'edit_place' => 'Edit place',
+                        'closure' => 'Closure',
+                        'reopen' => 'Reopen',
+                        'halal_report' => 'Halal report',
+                        'owner_claim' => 'Owner claim',
+                    ]),
             ])
             ->recordActions([
                 SubmissionActions::approve(),
+                SubmissionActions::approveHalal(),
                 SubmissionActions::reject(),
                 SubmissionActions::requestChanges(),
                 SubmissionActions::link(),

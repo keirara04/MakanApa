@@ -10,8 +10,10 @@ use App\Http\Controllers\Api\AppSessionController;
 use App\Http\Controllers\Api\AreaController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\CommunityRequestController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\HalalController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\NotificationController;
@@ -79,6 +81,20 @@ Route::prefix('v1')->group(function () {
             Route::patch('me/profile', [AuthController::class, 'updateProfile']);
         });
 
+        // Community posts ("What KU is saying"). Reads share the feed's local-DB budget; writes
+        // publish instantly with no review step, so they get tight per-action limits instead.
+        Route::middleware('throttle:120,1')->group(function () {
+            Route::get('community/posts', [CommunityPostController::class, 'index']);
+            Route::get('community/posts/{post}', [CommunityPostController::class, 'show']);
+            Route::get('me/blocks', [CommunityPostController::class, 'blocks']);
+        });
+        Route::post('community/posts', [CommunityPostController::class, 'store'])->middleware(['throttle:10,1', 'throttle:community-posts']);
+        Route::delete('community/posts/{post}', [CommunityPostController::class, 'destroy'])->middleware('throttle:30,1');
+        Route::post('community/posts/{post}/react', [CommunityPostController::class, 'react'])->middleware('throttle:60,1');
+        Route::post('community/posts/{post}/report', [CommunityPostController::class, 'report'])->middleware('throttle:10,1');
+        Route::post('users/{user}/block', [CommunityPostController::class, 'block'])->middleware('throttle:10,1');
+        Route::delete('users/{user}/block', [CommunityPostController::class, 'unblock'])->middleware('throttle:10,1');
+
         // "My university/area isn't listed" — a rare, deliberate action, same throttle class
         // as community/submissions store below.
         Route::post('community/requests', [CommunityRequestController::class, 'store'])->middleware('throttle:5,1');
@@ -119,6 +135,12 @@ Route::prefix('v1')->group(function () {
         Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1');
         Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:5,1');
         Route::post('restaurants/{restaurant}/photos/quick-add', [RestaurantSubmissionController::class, 'quickAddPhoto'])->middleware('throttle:5,1');
+
+        // Halal trust: evidence reports + ownership claims enter moderation like any submission.
+        // Burst throttle plus a daily cap (`halal-reports`) against report spam.
+        Route::post('restaurants/{restaurant}/halal-reports', [HalalController::class, 'storeReport'])->middleware(['throttle:5,1', 'throttle:halal-reports']);
+        Route::post('restaurants/{restaurant}/owner-claim', [HalalController::class, 'storeOwnerClaim'])->middleware('throttle:3,1');
+        Route::get('restaurants/{restaurant}/halal/history', [HalalController::class, 'history'])->middleware('throttle:60,1');
 
         Route::prefix('admin')->middleware('superadmin')->group(function () {
             Route::get('users', [AdminUserController::class, 'index']);

@@ -17,6 +17,7 @@ use App\Services\PlacesService;
 use App\Services\RecommendationService;
 use App\Support\CommunityTag;
 use App\Support\DiscoveryMode;
+use App\Support\Halal\HalalStatus;
 use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -49,6 +50,7 @@ class RecommendationController extends Controller
 
         $mode = DiscoveryMode::fromRequest($data['mode'] ?? null);
         $vibe = Vibe::fromRequest($data['vibe'] ?? null);
+        $halalOnly = $this->resolveHalalOnly($request, $data);
 
         try {
             $restaurants = $this->placesService->nearbyRestaurants(
@@ -72,6 +74,7 @@ class RecommendationController extends Controller
             'maxDistanceKm' => $data['maxDistanceKm'],
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
+            'halalOnly' => $halalOnly,
         ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
         $result = $this->recommendationService->recommend($restaurants, $preference);
@@ -92,6 +95,7 @@ class RecommendationController extends Controller
             'discovery_mode' => $mode->value,
             'vibe' => $vibe?->value,
             'installation_id' => $data['installationId'] ?? null,
+            'halal_only' => $halalOnly,
         ]);
 
         foreach ($data['moods'] ?? [] as $mood) {
@@ -143,13 +147,19 @@ class RecommendationController extends Controller
         // different "next" row, and both mark their own pick shown_at, leaving two rows
         // simultaneously "current" (one permanently orphaned). The Google enrichment call is
         // deliberately kept outside the transaction so a slow network call doesn't hold the lock.
-        $next = DB::transaction(function () use ($decision) {
+        // Re-applied at reroll time against each restaurant's CURRENT status: the stored pool may
+        // predate the user switching halal-only on, or a restaurant being verified non-halal
+        // mid-session — neither may leak a non-halal place back out.
+        $halalOnly = $decision->halal_only || (bool) $request->user()?->halal_preference;
+
+        $next = DB::transaction(function () use ($decision, $halalOnly) {
             $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->lockForUpdate()->get();
 
             // Excludes rows already rejected by an earlier reroll — pick()'s own exclusion only
             // covers the single "current" candidate, so without this filter a restaurant
             // rejected two rerolls ago stays eligible and can resurface once the pool thins out.
-            $eligibleRows = $rows->reject(fn (DecisionRecommendation $row) => $row->rejected_at !== null);
+            $eligibleRows = $rows->reject(fn (DecisionRecommendation $row) => $row->rejected_at !== null
+                || ($halalOnly && $row->restaurant->effectiveHalalStatus() === HalalStatus::NonHalal));
 
             $candidates = $eligibleRows->map(function (DecisionRecommendation $row) use ($decision) {
                 $restaurantData = $row->restaurant->toRecommendationArray();

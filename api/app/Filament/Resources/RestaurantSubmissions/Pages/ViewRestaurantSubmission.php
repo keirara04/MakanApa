@@ -17,6 +17,7 @@ class ViewRestaurantSubmission extends ViewRecord
             SubmissionActions::reject(),
             SubmissionActions::link(),
             SubmissionActions::approve(),
+            SubmissionActions::approveHalal(),
         ];
     }
 }

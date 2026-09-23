@@ -9,10 +9,13 @@ use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'restaurant_id', 'restaurant_submission_id', 'disk', 'path', 'photo_type',
-    'width', 'height', 'size_bytes', 'uploaded_by', 'is_active',
+    'width', 'height', 'size_bytes', 'uploaded_by', 'is_active', 'content_hash',
 ])]
 class RestaurantPhoto extends Model
 {
+    /** `halal_cert` photos live in the halal section only — never the general community gallery. */
+    public const TYPES = ['storefront', 'food', 'menu', 'other', 'halal_cert'];
+
     protected function casts(): array
     {
         return [
