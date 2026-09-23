@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api\Concerns;
 
+use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\RestaurantMenuItem;
 use App\Models\RestaurantPhoto;
 use App\Models\RestaurantVibeVote;
+use App\Services\Brain\BrainPresenter;
+use App\Services\Brain\BrainStateFactory;
 use App\Services\Halal\HalalPresenter;
 use App\Services\Places\GooglePlacesProvider;
 use App\Support\CommunityTag;
@@ -167,8 +170,19 @@ trait PresentsRecommendation
             'vibe' => Vibe::fromRequest($vibeValue),
             'communityPrior' => Config::get('recommendation.community_prior', ['success_rate' => 0.5, 'weight' => 10]),
             'knownChains' => Config::get('recommendation.known_chains', []),
-            'installationHistory' => $this->resolveInstallationHistory($installationId),
+            // Makan Brain replaces this 20-row history query with Selera Memory (one row).
+            'installationHistory' => BrainStateFactory::enabled() ? null : $this->resolveInstallationHistory($installationId),
         ];
+    }
+
+    /** The v2 extra keys on a recommendation — reasons, deciding factor, fit, trace, context. */
+    private function brainPayload(Decision $decision, ?DecisionRecommendation $row, bool $withTrace, ?array $rejected = null, ?string $lead = null): array
+    {
+        if ($row === null || ! $decision->isBrainDecision() || $row->reason_facts === null) {
+            return [];
+        }
+
+        return BrainPresenter::forRow($decision, $row, $withTrace, $rejected, $lead);
     }
 
     /**

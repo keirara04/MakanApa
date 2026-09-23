@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\AuthorizesDecisionToken;
 use App\Http\Controllers\Api\Concerns\PresentsRecommendation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SoloRecommendationRequest;
@@ -10,6 +11,10 @@ use App\Models\DecisionPreference;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\RestaurantVibeVote;
+use App\Services\Brain\BrainStateFactory;
+use App\Services\Brain\ExplorationPolicy;
+use App\Services\Brain\MakanBrain;
+use App\Services\Brain\TasteEventRecorder;
 use App\Services\Craving\CravingIntent;
 use App\Services\Craving\CravingResolver;
 use App\Services\Places\PlaceNormalizer;
@@ -30,13 +35,16 @@ use Throwable;
 
 class RecommendationController extends Controller
 {
-    use PresentsRecommendation;
+    use AuthorizesDecisionToken, PresentsRecommendation;
 
     public function __construct(
         private readonly PlacesService $placesService,
         private readonly RecommendationService $recommendationService,
         private readonly PlaceNormalizer $normalizer,
         private readonly CravingResolver $cravingResolver,
+        private readonly BrainStateFactory $brainStates,
+        private readonly MakanBrain $brain,
+        private readonly TasteEventRecorder $recorder,
     ) {}
 
     public function solo(SoloRecommendationRequest $request): JsonResponse
@@ -77,11 +85,8 @@ class RecommendationController extends Controller
             'halalOnly' => $halalOnly,
         ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
-        $result = $this->recommendationService->recommend($restaurants, $preference);
-
         $clientToken = Str::random(40);
-
-        $decision = Decision::create([
+        $attributes = [
             'user_id' => $request->user()?->id,
             'university_id' => $request->user()?->universityId(),
             'area_id' => $request->user()?->areaId(),
@@ -91,11 +96,21 @@ class RecommendationController extends Controller
             'longitude' => $data['longitude'],
             'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $data['maxDistanceKm'],
-            'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
             'discovery_mode' => $mode->value,
             'vibe' => $vibe?->value,
             'installation_id' => $data['installationId'] ?? null,
             'halal_only' => $halalOnly,
+        ];
+
+        if (BrainStateFactory::enabled()) {
+            return $this->soloWithBrain($request, $data, $restaurants, $preference, $attributes, $cravingIntent);
+        }
+
+        $result = $this->recommendationService->recommend($restaurants, $preference);
+
+        $decision = Decision::create([
+            ...$attributes,
+            'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
         ]);
 
         foreach ($data['moods'] ?? [] as $mood) {
@@ -138,6 +153,52 @@ class RecommendationController extends Controller
         return response()->json($response);
     }
 
+    /**
+     * Makan Brain v2: Selera Memory + Moment Pulse + Context, diversity, adaptive exploration,
+     * and a persisted Decision Trace. Same response shape as v1 plus optional brain keys.
+     */
+    private function soloWithBrain(SoloRecommendationRequest $request, array $data, array $restaurants, array $preference, array $attributes, ?CravingIntent $cravingIntent): JsonResponse
+    {
+        $brain = $this->brainStates->make(
+            $request->user(), $data['installationId'] ?? null, (float) $data['latitude'], (float) $data['longitude'],
+            $preference['halalOnly'], $data['budgetMax'] ?? null, $data['lens'] ?? null, $data['ignoreContext'] ?? [],
+            $cravingIntent, $data['moods'] ?? [],
+        );
+        $preference['brain'] = $brain;
+
+        $result = $this->brain->decide($restaurants, $preference, $attributes, $request->user());
+        $decision = $result['decision'];
+
+        foreach ($data['moods'] ?? [] as $mood) {
+            DecisionPreference::create(['decision_id' => $decision->id, 'preference_type' => 'mood', 'value' => $mood]);
+        }
+
+        $response = [
+            'decisionId' => $decision->id,
+            'clientToken' => $attributes['client_token'],
+            'algorithmVersion' => $decision->algorithm_version,
+            'recommendation' => $result['winner'] ? [
+                ...$this->presentCandidate($result['winner'], $this->enrichWinner($result['winner']['restaurant'])),
+                ...$this->brainPayload($decision, $result['winnerRow'], withTrace: true),
+            ] : null,
+            'craving' => $result['craving'],
+        ];
+
+        if (config('recommendation.debug')) {
+            $response['debug'] = [
+                'candidateCount' => $this->placesService->lastCandidateCounts(),
+                'funnel' => $result['funnel'],
+                'explorationLevel' => $decision->exploration_level,
+                'weights' => $decision->weight_snapshot,
+                'context' => $decision->context_snapshot,
+                'pickScoreBreakdown' => $result['winnerRow']?->breakdown,
+                'reasonFacts' => $result['winnerRow']?->reason_facts,
+            ];
+        }
+
+        return response()->json($response);
+    }
+
     public function reroll(Request $request, Decision $decision): JsonResponse
     {
         $this->authorizeDecision($request, $decision);
@@ -151,6 +212,10 @@ class RecommendationController extends Controller
         // predate the user switching halal-only on, or a restaurant being verified non-halal
         // mid-session — neither may leak a non-halal place back out.
         $halalOnly = $decision->halal_only || (bool) $request->user()?->halal_preference;
+
+        if ($decision->isBrainDecision()) {
+            return $this->rerollWithBrain($request, $decision, $halalOnly);
+        }
 
         $next = DB::transaction(function () use ($decision, $halalOnly) {
             $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->lockForUpdate()->get();
@@ -202,6 +267,75 @@ class RecommendationController extends Controller
         ]);
     }
 
+    /**
+     * v2 reroll: next pick from the stored pool (softmax at the decision's exploration level, or
+     * the safest option once decision fatigue kicks in), stored reason facts plus a "not feeling
+     * X?" acknowledgement, and a weak Moment Pulse signal against what was rejected.
+     */
+    private function rerollWithBrain(Request $request, Decision $decision, bool $halalOnly): JsonResponse
+    {
+        $fatigue = $this->brain->sessionActions($decision) + 1 >= (int) config('brain.fatigue_threshold', 5);
+
+        [$next, $current] = DB::transaction(function () use ($decision, $halalOnly, $fatigue) {
+            $rows = $decision->recommendations()->with('restaurant.cuisines', 'restaurant.tags')->orderBy('score_rank')->lockForUpdate()->get();
+            $current = $rows->first(fn (DecisionRecommendation $row) => $row->shown_at !== null && $row->rejected_at === null && $row->accepted_at === null);
+
+            $eligible = $rows->reject(fn (DecisionRecommendation $row) => $row->rejected_at !== null
+                || $row->id === $current?->id
+                || ($halalOnly && $row->restaurant->effectiveHalalStatus() === HalalStatus::NonHalal))->values();
+
+            $pool = $eligible->map(fn (DecisionRecommendation $row) => [
+                'restaurant' => $row->restaurant->toRecommendationArray(),
+                'score' => (float) $row->score,
+                'relevanceTier' => (int) ($row->breakdown['tier'] ?? 2),
+            ])->all();
+
+            $pick = ExplorationPolicy::pick($pool, (float) ($decision->exploration_level ?? 0), $fatigue);
+            $next = $pick['index'] !== null ? $eligible[$pick['index']] : null;
+
+            if ($current) {
+                $current->update(['rejected_at' => now()]);
+                Restaurant::whereKey($current->restaurant_id)->increment('rejected_count');
+            }
+            if ($next) {
+                $next->update(['shown_at' => now()]);
+                Restaurant::whereKey($next->restaurant_id)->increment('impressions_count');
+            }
+            if ($fatigue && ! $decision->fatigue_mode) {
+                $decision->update(['fatigue_mode' => true]);
+            }
+
+            return [$next, $current];
+        });
+
+        if ($current) {
+            $this->recorder->reroll($decision, $current, $request->user());
+        }
+
+        if (! $next) {
+            return response()->json(['recommendation' => null]);
+        }
+
+        $candidate = [
+            'restaurant' => $next->restaurant->toRecommendationArray(),
+            'distanceKm' => (float) ($next->breakdown['facts']['distanceKm'] ?? RecommendationService::distanceKm(
+                (float) $decision->latitude, (float) $decision->longitude, (float) $next->restaurant->latitude, (float) $next->restaurant->longitude
+            )),
+        ];
+
+        return response()->json([
+            'recommendation' => [
+                ...$this->presentCandidate($candidate, $this->enrichWinner($candidate['restaurant'])),
+                ...$this->brainPayload(
+                    $decision, $next, withTrace: false,
+                    rejected: ['category' => $current?->breakdown['facts']['category'] ?? null],
+                    lead: $fatigue ? 'Okay lah, enough choosing 😭 — this is the safest bet' : null,
+                ),
+                'fatigue' => $fatigue,
+            ],
+        ]);
+    }
+
     public function accept(Request $request, Decision $decision): JsonResponse
     {
         $this->authorizeDecision($request, $decision);
@@ -224,6 +358,10 @@ class RecommendationController extends Controller
 
             return $current;
         });
+
+        if ($accepted && BrainStateFactory::enabled()) {
+            $this->recorder->accept($decision, $accepted, $request->user());
+        }
 
         return response()->json(['accepted' => (bool) $accepted]);
     }
@@ -259,6 +397,10 @@ class RecommendationController extends Controller
             'vibe' => $data['vibe'],
         ]);
 
+        if (BrainStateFactory::enabled()) {
+            $this->recorder->vibeTag($decision, $target, $request->user(), $data['vibe'] instanceof CommunityTag ? $data['vibe']->value : (string) $data['vibe']);
+        }
+
         return response()->json(['tagged' => true]);
     }
 
@@ -291,20 +433,5 @@ class RecommendationController extends Controller
         }
 
         return $debug;
-    }
-
-    /**
-     * A decision's sequential integer ID is otherwise the only handle a client has — without
-     * this check, any logged-in beta user could enumerate IDs and reroll/accept someone else's
-     * in-progress decision. `client_token` is an opaque secret handed back once, in solo()'s
-     * response, and must be echoed on every subsequent call for that decision.
-     */
-    private function authorizeDecision(Request $request, Decision $decision): void
-    {
-        $token = $request->header('X-Decision-Token');
-        abort_unless(
-            $decision->client_token !== null && $token !== null && hash_equals($decision->client_token, $token),
-            403
-        );
     }
 }

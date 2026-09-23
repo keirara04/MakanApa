@@ -45,4 +45,14 @@ final class RecommendationHeadline
 
         return ! empty($restaurant['cuisines'][0]) ? strtoupper($restaurant['cuisines'][0]).'.' : 'MAKAN.';
     }
+
+    /** Human label for a food_category ("fast_food" → "Fast Food"), used in Makan Brain copy. */
+    public static function categoryLabel(?string $category): ?string
+    {
+        if ($category === null || $category === '') {
+            return null;
+        }
+
+        return self::CATEGORY_LABELS[$category] ?? ucwords(str_replace('_', ' ', $category));
+    }
 }

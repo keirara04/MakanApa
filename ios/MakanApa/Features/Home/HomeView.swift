@@ -47,6 +47,9 @@ struct HomeView: View {
             }
             .padding(.top, 12)
 
+            ContextStrip()
+                .padding(.horizontal)
+
             VStack(spacing: 16) {
                 Button {
                     if case .authorized = locationService.state {

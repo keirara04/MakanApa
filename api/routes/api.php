@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\CommunityRequestController;
+use App\Http\Controllers\Api\DecisionBrainController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\HalalController;
 use App\Http\Controllers\Api\HealthController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\PlaceSearchController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\RestaurantController;
 use App\Http\Controllers\Api\RestaurantSubmissionController;
+use App\Http\Controllers\Api\SeleraController;
 use App\Http\Controllers\Api\UniversityController;
 use Illuminate\Support\Facades\Route;
 
@@ -122,6 +124,25 @@ Route::prefix('v1')->group(function () {
 
         Route::post('decisions/{decision}/accept', [RecommendationController::class, 'accept']);
         Route::post('decisions/{decision}/vibe-tag', [RecommendationController::class, 'vibeTag']);
+        // Makan Brain — per-decision actions work only off the stored pool (no Places calls), so
+        // they share the cheap-write throttle class; all decision-token authorized.
+        Route::middleware('throttle:30,1')->group(function () {
+            Route::post('decisions/{decision}/tune', [DecisionBrainController::class, 'tune']);
+            Route::get('decisions/{decision}/what-if', [DecisionBrainController::class, 'whatIf']);
+            Route::post('decisions/{decision}/choose', [DecisionBrainController::class, 'choose']);
+            Route::post('decisions/{decision}/why-not', [DecisionBrainController::class, 'whyNot']);
+        });
+        Route::post('decisions/{decision}/interactions', [DecisionBrainController::class, 'interaction'])->middleware('throttle:60,1');
+        Route::middleware('throttle:60,1')->group(function () {
+            Route::get('context', [SeleraController::class, 'context']);
+            Route::get('me/selera', [SeleraController::class, 'show']);
+        });
+        Route::middleware('throttle:20,1')->group(function () {
+            Route::post('me/selera/traits/{trait}/feedback', [SeleraController::class, 'feedback']);
+            Route::delete('me/selera/traits/{trait}', [SeleraController::class, 'mute']);
+            Route::post('me/selera/reset', [SeleraController::class, 'reset']);
+        });
+
         Route::post('restaurants/{restaurant}/save', [RestaurantController::class, 'save']);
         Route::post('restaurants/{restaurant}/unsave', [RestaurantController::class, 'unsave']);
 

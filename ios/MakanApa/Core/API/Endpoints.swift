@@ -511,6 +511,9 @@ struct SoloRecommendationRequestBody: Encodable {
     let vibe: Vibe?
     let installationId: String?
     let halal: Bool
+    /// Makan Brain: explicit "how do I want to decide" lens + context signals the user switched off.
+    var lens: Lens? = nil
+    var ignoreContext: [String]? = nil
 }
 
 struct RecommendationResponse: Decodable, Equatable {
@@ -561,6 +564,16 @@ struct RecommendationResponse: Decodable, Equatable {
         let communityTag: CommunityTag?
         /// Optional so an older backend (or a decode of a cached response) never breaks the result screen.
         let halal: HalalInfo?
+
+        // Makan Brain (algorithmVersion v2) — all optional: absent on v1 decisions / older backends.
+        let reasons: [PickReason]?
+        let decidingFactor: String?
+        let fit: PickFit?
+        let thinkingTrace: [String]?
+        let context: [ContextSignal]?
+        let hasWhatIf: Bool?
+        let canTune: Bool?
+        let fatigue: Bool?
     }
 
     /// Whether the typed craving (if any) matched something nearby — decoded but not yet
@@ -691,6 +704,9 @@ struct NearbyPickRequestBody: Encodable {
     let vibe: Vibe?
     let installationId: String?
     let halal: Bool
+    /// Makan Brain: explicit "how do I want to decide" lens + context signals the user switched off.
+    var lens: Lens? = nil
+    var ignoreContext: [String]? = nil
 }
 
 struct SaveRequestBody: Encodable {
@@ -1130,4 +1146,221 @@ struct BlockedUser: Decodable, Identifiable, Equatable {
 
 struct BlockedUsersResponse: Decodable {
     let users: [BlockedUser]
+}
+
+// MARK: - Makan Brain
+
+/// Explicit "how do I want to decide today" intent — mirrors App\Support\Lens.
+enum Lens: String, Codable, CaseIterable, Identifiable {
+    case cheapToday = "cheap_today"
+    case treatMyself = "treat_myself"
+    case quickOne = "quick_one"
+    case surpriseMe = "surprise_me"
+    case communityFavs = "community_favs"
+
+    var id: String { rawValue }
+
+    var emoji: String {
+        switch self {
+        case .cheapToday: "💸"
+        case .treatMyself: "✨"
+        case .quickOne: "⚡"
+        case .surpriseMe: "🎲"
+        case .communityFavs: "🔥"
+        }
+    }
+
+    func label(community: String?) -> String {
+        switch self {
+        case .cheapToday: "Cheap today"
+        case .treatMyself: "Treat myself"
+        case .quickOne: "Quick one"
+        case .surpriseMe: "Surprise me"
+        case .communityFavs: community.map { "\($0) favourites" } ?? "Local favourites"
+        }
+    }
+}
+
+enum PickFit: String, Codable {
+    case strong, good, wildcard
+
+    var label: String {
+        switch self {
+        case .strong: "Strong fit"
+        case .good: "Good fit"
+        case .wildcard: "Wildcard"
+        }
+    }
+}
+
+struct PickReason: Decodable, Equatable, Hashable {
+    /// match | edge | moment — one reason per family at most.
+    let family: String
+    let key: String
+    let icon: String
+    let text: String
+}
+
+struct ContextSignal: Decodable, Equatable, Hashable, Identifiable {
+    let key: String
+    let label: String
+    let icon: String
+    let active: Bool
+    let ignored: Bool
+    let confidence: Double
+    let stale: Bool
+
+    var id: String { key }
+}
+
+struct ContextResponse: Decodable {
+    let mealSlot: String
+    let signals: [ContextSignal]
+}
+
+enum TuneDirection: String, Codable, CaseIterable, Identifiable {
+    case closer, cheaper, safer, adventurous
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .closer: "Closer"
+        case .cheaper: "Cheaper"
+        case .safer: "Safer bet"
+        case .adventurous: "More adventurous"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .closer: "location.fill"
+        case .cheaper: "banknote"
+        case .safer: "checkmark.shield"
+        case .adventurous: "sparkles"
+        }
+    }
+}
+
+struct TuneRequestBody: Encodable {
+    let direction: TuneDirection
+}
+
+struct SearchWiderAdjustment: Decodable, Equatable {
+    let distanceKm: Double
+    let budgetMax: Int?
+}
+
+struct TuneResponse: Decodable {
+    let recommendation: RecommendationResponse.Recommendation?
+    let canSearchWider: Bool?
+    let message: String?
+    let suggestedAdjustment: SearchWiderAdjustment?
+}
+
+struct WhatIfEntry: Decodable, Identifiable, Equatable {
+    struct Winner: Decodable, Equatable {
+        let id: Int
+        let name: String?
+    }
+
+    let component: String
+    let label: String
+    let winner: Winner
+
+    var id: String { component }
+}
+
+struct WhatIfResponse: Decodable {
+    let whatIf: [WhatIfEntry]
+}
+
+struct ChooseRequestBody: Encodable {
+    let restaurantId: Int
+}
+
+enum WhyNotReason: String, Codable, CaseIterable, Identifiable {
+    case tooFar = "too_far"
+    case tooPricey = "too_pricey"
+    case notFeelingIt = "not_feeling_it"
+    case ateRecently = "ate_recently"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .tooFar: "Too far"
+        case .tooPricey: "Too pricey"
+        case .notFeelingIt: "Not feeling it"
+        case .ateRecently: "Ate recently"
+        }
+    }
+}
+
+/// Optional second layer under "Not feeling it" — `justNotToday` only nudges today, while
+/// `dontLikeCuisine` teaches long-term Selera.
+enum WhyNotDetail: String, Codable, CaseIterable, Identifiable {
+    case tooHeavy = "too_heavy"
+    case tooSimilar = "too_similar"
+    case dontLikeCuisine = "dont_like_cuisine"
+    case justNotToday = "just_not_today"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .tooHeavy: "Too heavy"
+        case .tooSimilar: "Too similar"
+        case .dontLikeCuisine: "Don't like this cuisine"
+        case .justNotToday: "Just not today"
+        }
+    }
+}
+
+struct WhyNotRequestBody: Encodable {
+    let reason: WhyNotReason
+    let detail: WhyNotDetail?
+}
+
+struct InteractionRequestBody: Encodable {
+    let type: String
+}
+
+struct RecordedResponse: Decodable {
+    let recorded: Bool
+}
+
+struct SeleraTrait: Decodable, Identifiable, Equatable {
+    let key: String
+    let icon: String
+    let label: String
+    /// emerging | medium | strong
+    let strength: String
+    let evidence: String
+
+    var id: String { key }
+}
+
+struct SeleraConstraint: Decodable, Identifiable, Equatable {
+    let key: String
+    let label: String
+    let icon: String
+    let value: Bool?
+    /// "settings" | "each_decision"
+    let editIn: String
+
+    var id: String { key }
+}
+
+struct SeleraResponse: Decodable, Equatable {
+    /// starting | learning | knowing | strong
+    let stage: String
+    let signalCount: Int
+    let traits: [SeleraTrait]
+    let constraints: [SeleraConstraint]
+}
+
+struct SeleraFeedbackRequestBody: Encodable {
+    /// not_really | more | less
+    let kind: String
 }

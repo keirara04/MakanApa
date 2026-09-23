@@ -41,6 +41,9 @@
         <env name="JUDGMENT_RETRY_BACKOFF_MS" value="0"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
+        <!-- Makan Brain off by default so every pre-brain test keeps exercising exactly the v1 algorithm; brain tests opt in. Weather never hits the network from tests. -->
+        <env name="BRAIN_ENABLED" value="false"/>
+        <env name="BRAIN_WEATHER_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>

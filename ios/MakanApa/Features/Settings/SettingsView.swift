@@ -115,6 +115,19 @@ struct SettingsView: View {
                 }
 
                 if case .authenticated = authStore.session {
+                    Section("You") {
+                        NavigationLink {
+                            SeleraView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(Color.sambalRed)
+                                Text("Your Selera")
+                                    .foregroundStyle(Color.kicap)
+                            }
+                        }
+                    }
+
                     Section("Community") {
                         NavigationLink {
                             BlockedUsersView()

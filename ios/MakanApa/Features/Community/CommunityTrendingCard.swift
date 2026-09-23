@@ -1,18 +1,5 @@
 import SwiftUI
 
-/// Very small press-scale, distinct from `PressCompressStyle` (0.96, used for large primary CTAs)
-/// — a trending row is a smaller, denser tap target and shouldn't compress as dramatically.
-private struct CardPressStyle: ButtonStyle {
-    var reduceMotion: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(reduceMotion ? 1.0 : (configuration.isPressed ? 0.985 : 1.0))
-            .opacity(reduceMotion && configuration.isPressed ? 0.85 : 1.0)
-            .animation(.easeOut(duration: 0.09), value: configuration.isPressed)
-    }
-}
-
 struct CommunityTrendingCard: View {
     let rank: Int
     let item: CommunityFeedItem
@@ -27,7 +14,8 @@ struct CommunityTrendingCard: View {
                 Text("\(rank)")
                     .font(.makanDisplay(rank <= 3 ? 20 : 15))
                     .foregroundStyle(rank <= 3 ? Color.sambalRed : .secondary)
-                    .frame(width: 28, alignment: .leading)
+                    .frame(width: 38, height: 38)
+                    .background(Color.sambalRed.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
@@ -73,16 +61,21 @@ struct CommunityTrendingCard: View {
                     .padding(.top, 2)
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.kicap.opacity(0.35))
+                    .padding(.top, 12)
             }
-            .padding(14)
+            .padding(18)
             .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+            .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(Color.kicap.opacity(0.06)))
+            .shadow(color: Color.kicap.opacity(0.04), radius: 12, y: 4)
         }
-        .buttonStyle(CardPressStyle(reduceMotion: reduceMotion))
+        .buttonStyle(CommunityPressStyle())
         .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 6)
+        .offset(y: appeared || reduceMotion ? 0 : 6)
         .onAppear {
             let delay = reduceMotion ? 0 : Double(min(rank - 1, 3)) * 0.03
             withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.22).delay(delay)) {

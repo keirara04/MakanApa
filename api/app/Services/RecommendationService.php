@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Services\Brain\DecisionBrainState;
+use App\Services\Brain\SeleraScorer;
 use App\Services\Craving\CravingIntent;
 use App\Support\FoodTaxonomy;
 use App\Support\Halal\HalalStatus;
@@ -25,6 +27,14 @@ class RecommendationService
 {
     /** Rank weights for weighted-random pick among the top 5 candidates. */
     private const RANK_WEIGHTS = [0.40, 0.25, 0.17, 0.11, 0.07];
+
+    /**
+     * Counts from the most recent eligibleRestaurants() call — what the hard gates removed.
+     * Feeds Makan Brain's thinking trace ("Removed 7 closed → …"); computed inline, no extra pass.
+     *
+     * @var array<string, int>
+     */
+    private array $lastFunnel = [];
 
     public static function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
@@ -287,19 +297,26 @@ class RecommendationService
     public function eligibleRestaurants(array $restaurants, array $preference): array
     {
         $eligible = [];
+        $funnel = ['checked' => count($restaurants), 'inactive' => 0, 'over_budget' => 0, 'closed' => 0, 'too_far' => 0, 'non_halal' => 0];
 
         foreach ($restaurants as $restaurant) {
             if (! ($restaurant['is_active'] ?? true)) {
+                $funnel['inactive']++;
+
                 continue;
             }
             // null budgetMax means "Anything lah" — no price filter, not "cheapest only".
             if (isset($restaurant['price_level']) && $preference['budgetMax'] !== null
                 && $restaurant['price_level'] > $preference['budgetMax']) {
+                $funnel['over_budget']++;
+
                 continue;
             }
             // OPEN / CLOSED / UNKNOWN — only CLOSED excludes. UNKNOWN (no opening-hours data) is
             // included unpenalized; missing data isn't evidence a restaurant is unavailable.
             if (($restaurant['open_status'] ?? 'unknown') === 'closed') {
+                $funnel['closed']++;
+
                 continue;
             }
             $distanceKm = self::distanceKm(
@@ -307,17 +324,30 @@ class RecommendationService
                 $restaurant['latitude'], $restaurant['longitude']
             );
             if ($distanceKm > $preference['maxDistanceKm']) {
+                $funnel['too_far']++;
+
                 continue;
             }
             // Halal-only hides confirmed non-halal places only — `unknown` stays in (with a
             // "help verify" badge), since missing evidence isn't evidence of non-halal.
             if (($preference['halalOnly'] ?? false) && self::isNonHalal($restaurant)) {
+                $funnel['non_halal']++;
+
                 continue;
             }
             $eligible[] = ['restaurant' => $restaurant, 'distanceKm' => $distanceKm];
         }
 
+        $funnel['eligible'] = count($eligible);
+        $this->lastFunnel = $funnel;
+
         return $eligible;
+    }
+
+    /** @return array<string, int> */
+    public function lastFunnel(): array
+    {
+        return $this->lastFunnel;
     }
 
     public function score(array $restaurant, array $preference, float $distanceKm): float
@@ -421,8 +451,17 @@ class RecommendationService
             }
         }
 
+        $brain = $preference['brain'] ?? null;
         $installationHistory = $preference['installationHistory'] ?? null;
-        if (! empty($installationHistory)) {
+        if ($brain instanceof DecisionBrainState) {
+            // Makan Brain: Selera Memory + Moment Pulse replace the v1 mode-match personalFit.
+            if ($brain->hasPersonalSignal()) {
+                $components['personalFit'] = SeleraScorer::fit($brain, $restaurant);
+                foreach (ScoreWeights::personalFitOverlay() as $weight) {
+                    $activeWeights[] = [$weight, $components['personalFit']];
+                }
+            }
+        } elseif (! empty($installationHistory)) {
             $components['personalFit'] = self::personalFitComponent($restaurant, $installationHistory);
             foreach (ScoreWeights::personalFitOverlay() as $weight) {
                 $activeWeights[] = [$weight, $components['personalFit']];
@@ -439,6 +478,53 @@ class RecommendationService
             }
         }
 
+        // Keys for every [weight, component] pair so far — v1 pushes anonymous pairs, so rebuild
+        // the keyed view from $components (each key's weights summed) for the Decision Trace.
+        $weightsByKey = self::keyedWeights($activeWeights, $components, $weights, $mode, $vibe ?? null, $brain, $installationHistory, $preference);
+
+        if ($brain instanceof DecisionBrainState) {
+            // Novelty guard: only once there's a history to be novel against (or a lens/tune asks for it).
+            $noveltyWeight = 0.0;
+            if (SeleraScorer::hasRecent($brain)) {
+                $noveltyWeight = (float) config('brain.weights.novelty', 8) * (1 + 0.5 * max(0, min(2, $brain->pulse->noveltyDrive)));
+            }
+            $noveltyWeight += $brain->extraWeights['novelty'] ?? 0;
+            if ($noveltyWeight > 0) {
+                $components['novelty'] = SeleraScorer::novelty($brain, $restaurant);
+                $activeWeights[] = [$noveltyWeight, $components['novelty']];
+                $weightsByKey['novelty'] = ($weightsByKey['novelty'] ?? 0) + $noveltyWeight;
+            }
+
+            // Context·confidence, lens and tune overlays — additive weight on named components.
+            foreach ($brain->extraWeights as $key => $weight) {
+                if ($key === 'novelty' || $weight <= 0) {
+                    continue;
+                }
+                $value = $components[$key] ?? self::componentValue($key, $restaurant, $preference, $distanceKm);
+                if ($value === null) {
+                    continue;
+                }
+                $components[$key] = $value;
+                $activeWeights[] = [$weight, $value];
+                $weightsByKey[$key] = ($weightsByKey[$key] ?? 0) + $weight;
+            }
+
+            // A lens can switch a component off entirely (treat_myself → cheapEatsFit).
+            foreach ($brain->disabledComponents as $key) {
+                unset($weightsByKey[$key]);
+            }
+
+            // Brain decisions score straight from the keyed view, so a stored breakdown always
+            // reproduces the exact score (Tune / What-if / causal factor depend on that).
+            return [
+                'final' => self::finalFrom($components, $weightsByKey),
+                'weights' => $weights,
+                'components' => $components,
+                'relevanceTier' => $relevanceTier,
+                'activeWeights' => $weightsByKey,
+            ];
+        }
+
         $totalWeight = array_sum(array_column($activeWeights, 0));
         $final = 0.0;
         if ($totalWeight > 0) {
@@ -447,7 +533,126 @@ class RecommendationService
             }
         }
 
-        return ['final' => $final, 'weights' => $weights, 'components' => $components, 'relevanceTier' => $relevanceTier];
+        return [
+            'final' => $final,
+            'weights' => $weights,
+            'components' => $components,
+            'relevanceTier' => $relevanceTier,
+            'activeWeights' => $weightsByKey,
+        ];
+    }
+
+    /**
+     * Keyed view of the weights scoreBreakdown() actually applied — rebuilt from the same inputs,
+     * so Tune / What-if / causal deciding factor can re-rank stored candidates by arithmetic alone.
+     *
+     * @return array<string, float>
+     */
+    private static function keyedWeights(array $activeWeights, array $components, array $weights, $mode, $vibe, $brain, $installationHistory, array $preference): array
+    {
+        $keyed = [];
+        foreach (['mood', 'relevance', 'cuisine', 'budget', 'distance', 'rating'] as $key) {
+            if (array_key_exists($key, $components) && isset($weights[$key])) {
+                $keyed[$key] = (float) $weights[$key];
+            }
+        }
+        if ($mode !== null) {
+            foreach (ScoreWeights::discoveryOverlay($mode) as $key => $weight) {
+                if ($weight > 0 && array_key_exists($key, $components)) {
+                    $keyed[$key] = ($keyed[$key] ?? 0) + $weight;
+                }
+            }
+        }
+        if ($vibe instanceof Vibe && array_key_exists('vibeRelevance', $components)) {
+            $keyed['vibeRelevance'] = array_sum(ScoreWeights::vibeOverlay($vibe));
+        }
+        if (array_key_exists('personalFit', $components)) {
+            $keyed['personalFit'] = (float) array_sum(ScoreWeights::personalFitOverlay());
+        }
+        if (array_key_exists('halalConfidence', $components)) {
+            $keyed['halalConfidence'] = (float) array_sum(ScoreWeights::halalOverlay());
+        }
+
+        return $keyed;
+    }
+
+    /**
+     * One component by name, for overlays that weight a component the base table didn't
+     * activate (context: rain → distance; tune: cheaper → cheapEatsFit; …). Null = unknown key.
+     */
+    public static function componentValue(string $key, array $restaurant, array $preference, float $distanceKm): ?float
+    {
+        return match ($key) {
+            'distance' => self::distanceComponent($distanceKm, (float) $preference['maxDistanceKm']),
+            'rating' => self::ratingComponent($restaurant['rating'] ?? null),
+            'cheapEatsFit' => self::cheapEatsFitComponent($restaurant),
+            'lateNightFit' => self::lateNightFitComponent($restaurant),
+            'popularityBonus' => self::popularityBonusComponent($restaurant['user_rating_count'] ?? null),
+            'reviewVolumeBonus' => self::reviewVolumeBonusComponent($restaurant['user_rating_count'] ?? null),
+            'cafeRelevance' => self::cafeRelevanceComponent($restaurant),
+            'community' => self::communityScoreComponent($restaurant, $preference['communityPrior'] ?? ['success_rate' => 0.5, 'weight' => 10]),
+            'openCertainty' => self::openCertaintyComponent($restaurant),
+            'halalConfidence' => self::halalConfidenceComponent($restaurant),
+            'novelty' => ($preference['brain'] ?? null) instanceof DecisionBrainState ? SeleraScorer::novelty($preference['brain'], $restaurant) : null,
+            default => null,
+        };
+    }
+
+    /** Open right now = certain; unknown hours = a real risk at Friday prayers / supper / sahur. */
+    private static function openCertaintyComponent(array $restaurant): float
+    {
+        return match ($restaurant['open_status'] ?? 'unknown') {
+            'open' => 1.0,
+            'closed' => 0.0,
+            default => 0.6,
+        };
+    }
+
+    /**
+     * Re-score stored component values under different weights — Tune, What-if and the causal
+     * deciding factor all go through this, never through a fresh scoreBreakdown().
+     *
+     * @param  array<string, float>  $components
+     * @param  array<string, float>  $weights
+     */
+    public static function finalFrom(array $components, array $weights): float
+    {
+        $total = 0.0;
+        $sum = 0.0;
+        foreach ($weights as $key => $weight) {
+            if ($weight <= 0 || ! array_key_exists($key, $components)) {
+                continue;
+            }
+            $total += $weight;
+            $sum += $weight * $components[$key];
+        }
+
+        return $total > 0 ? $sum / $total * 100 : 0.0;
+    }
+
+    /**
+     * Every eligible candidate, scored, breakdown kept, sorted tier-then-score. Makan Brain's
+     * entry point — diversity and exploration run over this, not over a pre-truncated top 5.
+     *
+     * @return array<int, array{restaurant: array, score: float, relevanceTier: int, distanceKm: float, breakdown: array}>
+     */
+    public function rankAll(array $restaurants, array $preference): array
+    {
+        $scored = array_map(function ($pair) use ($preference) {
+            $breakdown = $this->scoreBreakdown($pair['restaurant'], $preference, $pair['distanceKm']);
+
+            return [
+                'restaurant' => $pair['restaurant'],
+                'score' => $breakdown['final'],
+                'relevanceTier' => $breakdown['relevanceTier'],
+                'distanceKm' => $pair['distanceKm'],
+                'breakdown' => $breakdown,
+            ];
+        }, $this->eligibleRestaurants($restaurants, $preference));
+
+        usort($scored, fn ($a, $b) => [$b['relevanceTier'], $b['score']] <=> [$a['relevanceTier'], $a['score']]);
+
+        return $scored;
     }
 
     /**
@@ -533,7 +738,7 @@ class RecommendationService
      * @param  array<int, array{restaurant: array<string, mixed>, score: float}>  $candidates
      * @return array{query: string, matched: bool, resolvedAs: ?string, source: string, confidence: float}|null
      */
-    private function cravingMatchStatus(array $candidates, ?CravingIntent $intent): ?array
+    public function cravingMatchStatus(array $candidates, ?CravingIntent $intent): ?array
     {
         if ($intent === null || trim($intent->raw) === '') {
             return null;

@@ -7,6 +7,7 @@ struct CommunityView: View {
     @State private var viewModel = CommunityViewModel()
     @State private var selectedItem: CommunityFeedItem?
     @State private var headerAppeared = false
+    @State private var pillBounce = false
     @State private var showingAddPlace = false
     @State private var showingMyPlaces = false
     @State private var showingCommunityAssignment = false
@@ -51,7 +52,7 @@ struct CommunityView: View {
 
     private var content: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 22) {
                 header
 
                 if viewModel.isLoading && viewModel.feed == nil {
@@ -68,10 +69,9 @@ struct CommunityView: View {
                             emptyState
                         }
                     } else {
-                        Text("🔥 TRENDING")
-                            .font(.makanBody(12))
-                            .foregroundStyle(.secondary)
-                            .tracking(1)
+                        Label("Trending around you", systemImage: "chart.line.uptrend.xyaxis")
+                            .font(.system(.headline, design: .rounded))
+                            .foregroundStyle(Color.kicap)
                             .accessibilityAddTraits(.isHeader)
                         ForEach(Array(feed.trending.enumerated()), id: \.element.id) { index, item in
                             CommunityTrendingCard(rank: index + 1, item: item) {
@@ -84,8 +84,11 @@ struct CommunityView: View {
                     errorState(for: apiError)
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 32)
         }
+        .scrollIndicators(.hidden)
         .refreshable { await attemptLoad() }
         .navigationDestination(isPresented: $showingAllPosts) {
             CommunityPostsView(store: postStore, communityName: communityShortName)
@@ -116,56 +119,110 @@ struct CommunityView: View {
 
     // MARK: - Header
 
+    /// A compact navigation row and a generous, locally relevant headline.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("COMMUNITY")
-                    .font(.makanBody(11))
-                    .foregroundStyle(.secondary)
-                    .tracking(1)
-                Spacer()
-                Button {
-                    showingCommunityAssignment = true
-                } label: {
-                    HStack(spacing: 4) {
-                        CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity, area: currentArea)
-                        Text(currentAffiliationType == nil ? Copy.communityAssignCommunityCTA : Copy.communityChangeCommunityCTA)
-                            .font(.makanBody(11))
-                            .foregroundStyle(Color.sambalRed)
-                    }
-                }
-                .buttonStyle(.plain)
-                Menu {
-                    Button {
-                        showingAddPlace = true
-                    } label: {
-                        Label(Copy.communityAddPlaceMenuItem, systemImage: "plus")
-                    }
-                    Button {
-                        showingMyPlaces = true
-                    } label: {
-                        Label(Copy.communityMyPlacesMenuItem, systemImage: "list.bullet")
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color.sambalRed)
-                }
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(alignment: .center, spacing: 10) {
+                Label("Community", systemImage: "person.2.fill")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(Color.kicap.opacity(0.7))
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                communityPill
+                addMenu
             }
-            Text(headline)
-                .font(.makanDisplay(22))
-                .foregroundStyle(Color.kicap)
-            Text(subtitle)
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
+            .headerEntrance(visible: headerAppeared, delay: 0, reduceMotion: reduceMotion)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(headline)
+                    .font(.system(.largeTitle, design: .rounded, weight: .heavy))
+                    .tracking(-1.1)
+                    .foregroundStyle(Color.kicap)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .headerEntrance(visible: headerAppeared, delay: 0.06, reduceMotion: reduceMotion)
+                Text(subtitle)
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(Color.kicap.opacity(0.62))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .headerEntrance(visible: headerAppeared, delay: 0.12, reduceMotion: reduceMotion)
+            }
         }
-        .opacity(headerAppeared ? 1 : 0)
-        .offset(y: headerAppeared ? 0 : 8)
+        .padding(.top, 4)
+        .padding(.bottom, 6)
         .onAppear {
-            withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.22)) {
-                headerAppeared = true
+            headerAppeared = true
+        }
+    }
+
+    /// Current community as one compact pill (tag + chevron). When the affiliation changes
+    /// (university ↔ area ↔ public) the tag slides out/in and the pill gives a small bounce.
+    private var communityPill: some View {
+        let badge = CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity, area: currentArea)
+
+        return Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showingCommunityAssignment = true
+        } label: {
+            HStack(spacing: 5) {
+                badge
+                    .lineLimit(1)
+                    .fixedSize()
+                    .id(badge.label)
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .push(from: .bottom).combined(with: .opacity),
+                        removal: .push(from: .top).combined(with: .opacity)
+                    ))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(Color.sambalRed)
+            }
+            .padding(.leading, 5)
+            .padding(.trailing, 9)
+            .padding(.vertical, 5)
+            .background(Color.white, in: Capsule())
+            .overlay(Capsule().stroke(Color.kicap.opacity(0.08), lineWidth: 1))
+            .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
+            .clipShape(Capsule())
+            .scaleEffect(pillBounce ? 1.06 : 1)
+            .frame(minHeight: 44)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(CommunityPressStyle())
+        .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.4, dampingFraction: 0.78), value: badge.label)
+        .onChange(of: badge.label) { _, _ in
+            guard !reduceMotion else { return }
+            withAnimation(Motion.quick) {
+                pillBounce = true
+            } completion: {
+                withAnimation(Motion.standard) { pillBounce = false }
             }
         }
+        .accessibilityLabel("Community, \(badge.label). Change community")
+    }
+
+    private var addMenu: some View {
+        Menu {
+            Button {
+                showingAddPlace = true
+            } label: {
+                Label(Copy.communityAddPlaceMenuItem, systemImage: "plus")
+            }
+            Button {
+                showingMyPlaces = true
+            } label: {
+                Label(Copy.communityMyPlacesMenuItem, systemImage: "list.bullet")
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(Color.sambalRed, in: Circle())
+                .shadow(color: Color.sambalRed.opacity(0.3), radius: 4, y: 2)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .accessibilityLabel("Add a place or see your places")
     }
 
     /// Sourced from the session (`AuthStore`), not `viewModel.feed?.community` — a user's
@@ -219,16 +276,16 @@ struct CommunityView: View {
     private var postsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(String(format: Copy.communityPostsSectionFormat, communityShortName.uppercased()))
-                    .font(.makanBody(12))
-                    .foregroundStyle(.secondary)
-                    .tracking(1)
+                Text("What \(communityShortName) is saying")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(Color.kicap)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if !postStore.posts.isEmpty {
                     Button(Copy.communityPostsSeeAll) { showingAllPosts = true }
                         .font(.makanBody(13))
                         .foregroundStyle(Color.sambalRed)
-                        .frame(minHeight: 32)
+                        .frame(minHeight: 44)
                 }
             }
 
@@ -251,13 +308,13 @@ struct CommunityView: View {
                         postInteractions.isComposingNew = true
                     } label: {
                         Label(Copy.communityPostsShareCTA, systemImage: "square.and.pencil")
-                            .font(.makanBody(14))
-                            .foregroundStyle(Color.sambalRed)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(Color.sambalRed.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(Color.sambalRed, in: RoundedRectangle(cornerRadius: 18))
+                            .shadow(color: Color.sambalRed.opacity(0.16), radius: 12, y: 5)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(CommunityPressStyle())
                 }
             }
         }
@@ -268,10 +325,9 @@ struct CommunityView: View {
 
     private func newInAreaSection(_ items: [CommunityFeedItem]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("NEW IN YOUR AREA")
-                .font(.makanBody(11))
-                .foregroundStyle(.secondary)
-                .tracking(1)
+            Text("New in your area")
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(Color.kicap)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -303,20 +359,40 @@ struct CommunityView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Text(Copy.communityEmptyHeadline)
-                .font(.makanBody(16))
-                .foregroundStyle(Color.kicap)
-            Text(Copy.communityEmptyDetail)
-                .font(.makanBody(13))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button(Copy.communityAddPlaceCTA) { showingAddPlace = true }
-                .font(.makanBody(14))
-                .padding(.top, 4)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: "fork.knife.circle")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(width: 54, height: 54)
+                    .background(Color.sambalRed.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Your next favourite starts here")
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundStyle(Color.kicap)
+                    Text("Know a spot worth sharing? Help your community discover it.")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundStyle(Color.kicap.opacity(0.65))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Button { showingAddPlace = true } label: {
+                HStack {
+                    Text("Add a good spot")
+                    Spacer()
+                    Image(systemName: "plus.circle.fill")
+                }
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .foregroundStyle(Color.sambalRed)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(CommunityPressStyle())
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 40)
+        .padding(20)
+        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 24))
+        .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Color.kicap.opacity(0.07)))
         .transition(.opacity)
     }
 
@@ -394,5 +470,30 @@ struct CommunityView: View {
     private func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+/// Staggered fade + rise for the header pieces; Reduce Motion gets a plain quick fade.
+private struct HeaderEntrance: ViewModifier {
+    let visible: Bool
+    let delay: Double
+    let reduceMotion: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible || reduceMotion ? 0 : 10)
+            .animation(
+                reduceMotion
+                    ? .easeOut(duration: 0.12)
+                    : .spring(response: 0.45, dampingFraction: 0.82).delay(delay),
+                value: visible
+            )
+    }
+}
+
+private extension View {
+    func headerEntrance(visible: Bool, delay: Double, reduceMotion: Bool) -> some View {
+        modifier(HeaderEntrance(visible: visible, delay: delay, reduceMotion: reduceMotion))
     }
 }

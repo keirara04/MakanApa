@@ -182,8 +182,46 @@ struct PreferenceView: View {
             ) {
                 viewModel.budgetMax = nil
             }
+
+            lensRow
         }
         .padding(.horizontal, 24)
+    }
+
+    /// Makan Brain lenses — an explicit "how do I want to decide today", instead of the app
+    /// guessing (e.g. assuming month-end means broke). Optional; tap again to clear.
+    private var lensRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Today I want…")
+                .font(.makanBody(13))
+                .foregroundStyle(.secondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Lens.allCases) { lens in
+                        let selected = viewModel.lens == lens
+                        Button {
+                            viewModel.lens = selected ? nil : lens
+                        } label: {
+                            Text("\(lens.emoji) \(lens.label(community: communityName))")
+                                .font(.makanBody(13))
+                                .foregroundStyle(selected ? .white : Color.kicap)
+                                .padding(.horizontal, 12)
+                                .frame(minHeight: 36)
+                                .background(selected ? Color.sambalRed : Color.kicap.opacity(0.06))
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: viewModel.lens)
+    }
+
+    private var communityName: String? {
+        guard case .authenticated(let user) = AuthStore.shared.session else { return nil }
+        return user.university ?? user.area
     }
 
     // MARK: - Step 2: Distance
@@ -209,6 +247,8 @@ struct PreferenceView: View {
                 .font(.footnote)
                 .foregroundStyle(Color.kicap.opacity(0.65))
                 .padding(.horizontal, 4)
+
+            ContextStrip()
         }
         .padding(.horizontal, 24)
     }

@@ -9,6 +9,7 @@ struct NearbyView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = NearbyViewModel()
+    @State private var halalNoticeDismissed = false
     @State private var panelState: NearbyPanelState = .collapsed
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
@@ -49,6 +50,10 @@ struct NearbyView: View {
                         vibeRail
                     }
                 }
+                if viewModel.halalFilter && !halalNoticeDismissed && !isSearchActive {
+                    halalTestingNotice
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 if let apiError = viewModel.apiError {
                     errorBanner(for: apiError)
                 }
@@ -59,6 +64,8 @@ struct NearbyView: View {
                 }
             }
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: isSearchActive)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: viewModel.halalFilter)
+            .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: halalNoticeDismissed)
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: viewModel.discoveryMode)
             .padding(.horizontal, 12)
             .padding(.top, 16)
@@ -178,6 +185,8 @@ struct NearbyView: View {
                 // Reset deliberately leaves it alone.
                 filterChip(label: "Muslim-friendly", isOn: viewModel.halalFilter) {
                     viewModel.halalFilter.toggle()
+                    // Turning it on again always re-shows the testing notice.
+                    if viewModel.halalFilter { halalNoticeDismissed = false }
                     rerunSearch()
                 }
                 filterChip(label: "Open now", isOn: viewModel.openNowFilter) {
@@ -515,6 +524,45 @@ struct NearbyView: View {
     }
 
     // MARK: - Zoom / search-this-area prompts
+
+    /// Shown while the Muslim-friendly chip is on. Halal data is still sparse and partly
+    /// community-sourced, so users are told to double-check before relying on it. Dismiss hides
+    /// it until the chip is next turned on.
+    private var halalTestingNotice: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.kunyit)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Muslim-friendly filter is in testing")
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap)
+                Text("Halal info may be incomplete or out of date. Always double-check at the restaurant (look for the halal certificate) before you eat.")
+                    .font(.makanBody(12))
+                    .foregroundStyle(Color.kicap.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Button {
+                halalNoticeDismissed = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .frame(width: 28, height: 28)
+            }
+            .accessibilityLabel("Dismiss notice")
+        }
+        .padding(.leading, 14)
+        .padding(.trailing, 6)
+        .padding(.vertical, 10)
+        .background(Color.white)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.kunyit.opacity(0.5), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        .accessibilityElement(children: .combine)
+    }
 
     private func errorBanner(for error: APIError) -> some View {
         HStack(spacing: 8) {

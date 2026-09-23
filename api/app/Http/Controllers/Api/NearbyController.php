@@ -9,6 +9,8 @@ use App\Http\Requests\NearbyRequest;
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
+use App\Services\Brain\BrainStateFactory;
+use App\Services\Brain\MakanBrain;
 use App\Services\Halal\HalalPresenter;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
@@ -47,6 +49,8 @@ class NearbyController extends Controller
         private readonly RecommendationService $recommendationService,
         private readonly PlaceNormalizer $normalizer,
         private readonly HalalPresenter $halalPresenter,
+        private readonly BrainStateFactory $brainStates,
+        private readonly MakanBrain $brain,
     ) {}
 
     public function index(NearbyRequest $request): JsonResponse
@@ -123,26 +127,47 @@ class NearbyController extends Controller
             'halalOnly' => $halalOnly,
         ], $this->discoveryPreferenceExtras($data['mode'] ?? null, $data['vibe'] ?? null, $data['installationId'] ?? null));
 
-        $ranked = $this->recommendationService->topCandidates($candidates, $preference, limit: count($candidates) ?: 1);
-        $winner = $this->recommendationService->pick($ranked);
-
         // Mirrors RecommendationController::solo(): the Decision row is created either way, so
         // reroll/accept always have a consistent handle — a "nobody qualified" result isn't
         // an error, it's a normal (if disappointing) outcome of the filters the user picked.
         $clientToken = Str::random(40);
-
-        $decision = Decision::create([
+        $attributes = [
             'mode' => 'nearby',
             'client_token' => $clientToken,
             'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
             'budget_max' => $data['budgetMax'] ?? null,
             'max_distance' => $preference['maxDistanceKm'],
-            'selected_restaurant_id' => $winner['restaurant']['id'] ?? null,
             'discovery_mode' => $mode->value,
             'vibe' => $vibe?->value,
             'installation_id' => $data['installationId'] ?? null,
             'halal_only' => $halalOnly,
+        ];
+
+        if (BrainStateFactory::enabled()) {
+            $preference['brain'] = $this->brainStates->make(
+                $request->user(), $data['installationId'] ?? null, (float) $data['latitude'], (float) $data['longitude'],
+                $halalOnly, $data['budgetMax'] ?? null, $data['lens'] ?? null, $data['ignoreContext'] ?? [], null, [],
+            );
+            $result = $this->brain->decide($candidates, $preference, $attributes, $request->user());
+
+            return response()->json([
+                'decisionId' => $result['decision']->id,
+                'clientToken' => $clientToken,
+                'algorithmVersion' => $result['decision']->algorithm_version,
+                'recommendation' => $result['winner'] ? [
+                    ...$this->presentCandidate($result['winner'], $this->enrichWinner($result['winner']['restaurant'])),
+                    ...$this->brainPayload($result['decision'], $result['winnerRow'], withTrace: true),
+                ] : null,
+            ]);
+        }
+
+        $ranked = $this->recommendationService->topCandidates($candidates, $preference, limit: count($candidates) ?: 1);
+        $winner = $this->recommendationService->pick($ranked);
+
+        $decision = Decision::create([
+            ...$attributes,
+            'selected_restaurant_id' => $winner['restaurant']['id'] ?? null,
         ]);
 
         foreach ($ranked as $rank => $candidate) {

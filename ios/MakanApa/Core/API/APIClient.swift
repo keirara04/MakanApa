@@ -18,13 +18,14 @@ enum APIClient {
 
     static func recommendSolo(
         latitude: Double, longitude: Double, budgetMax: Int?, maxDistanceKm: Double,
-        moods: [String], craving: String? = nil, mode: DiscoveryMode? = nil, vibe: Vibe? = nil
+        moods: [String], craving: String? = nil, mode: DiscoveryMode? = nil, vibe: Vibe? = nil, lens: Lens? = nil
     ) async throws -> RecommendationResponse {
         let body = SoloRecommendationRequestBody(
             latitude: latitude, longitude: longitude, budgetMax: budgetMax,
             maxDistanceKm: maxDistanceKm, moods: moods, craving: craving,
             mode: mode, vibe: vibe, installationId: InstallationID.current,
-            halal: HalalPreference.isOn
+            halal: HalalPreference.isOn,
+            lens: lens, ignoreContext: ContextPreferences.ignoredKeys
         )
         return try await post("recommendations/solo", body: body)
     }
@@ -81,7 +82,8 @@ enum APIClient {
             latitude: latitude, longitude: longitude, viewport: viewport, visiblePlaceIds: visiblePlaceIds,
             openNow: openNow, budgetMax: budgetMax, minRating: minRating,
             mode: mode, vibe: vibe, installationId: InstallationID.current,
-            halal: HalalPreference.isOn
+            halal: HalalPreference.isOn,
+            ignoreContext: ContextPreferences.ignoredKeys
         )
         return try await post("places/nearby/pick", body: body)
     }
@@ -96,6 +98,55 @@ enum APIClient {
 
     static func submitVibeTag(decisionId: Int, clientToken: String, vibe: CommunityTag) async throws -> VibeTagResponse {
         try await post("decisions/\(decisionId)/vibe-tag", body: VibeTagRequestBody(vibe: vibe), clientToken: clientToken)
+    }
+
+    // MARK: - Makan Brain
+
+    static func context(latitude: Double, longitude: Double) async throws -> ContextResponse {
+        var query = [
+            URLQueryItem(name: "latitude", value: String(latitude)),
+            URLQueryItem(name: "longitude", value: String(longitude)),
+        ]
+        for key in ContextPreferences.ignoredKeys {
+            query.append(URLQueryItem(name: "ignore[]", value: key))
+        }
+        return try await get("context", query: query)
+    }
+
+    static func tune(decisionId: Int, clientToken: String, direction: TuneDirection) async throws -> TuneResponse {
+        try await post("decisions/\(decisionId)/tune", body: TuneRequestBody(direction: direction), clientToken: clientToken)
+    }
+
+    static func whatIf(decisionId: Int, clientToken: String) async throws -> WhatIfResponse {
+        try await get("decisions/\(decisionId)/what-if", query: [], clientToken: clientToken)
+    }
+
+    static func choose(decisionId: Int, clientToken: String, restaurantId: Int) async throws -> RerollResponse {
+        try await post("decisions/\(decisionId)/choose", body: ChooseRequestBody(restaurantId: restaurantId), clientToken: clientToken)
+    }
+
+    static func whyNot(decisionId: Int, clientToken: String, reason: WhyNotReason, detail: WhyNotDetail?) async throws -> RecordedResponse {
+        try await post("decisions/\(decisionId)/why-not", body: WhyNotRequestBody(reason: reason, detail: detail), clientToken: clientToken)
+    }
+
+    static func logInteraction(decisionId: Int, clientToken: String, type: String) async throws -> RecordedResponse {
+        try await post("decisions/\(decisionId)/interactions", body: InteractionRequestBody(type: type), clientToken: clientToken)
+    }
+
+    static func selera() async throws -> SeleraResponse {
+        try await get("me/selera", query: [])
+    }
+
+    static func seleraTraitFeedback(key: String, kind: String) async throws -> SeleraResponse {
+        try await post("me/selera/traits/\(key)/feedback", body: SeleraFeedbackRequestBody(kind: kind))
+    }
+
+    static func muteSeleraTrait(key: String) async throws -> SeleraResponse {
+        try await delete("me/selera/traits/\(key)")
+    }
+
+    static func resetSelera() async throws -> SeleraResponse {
+        try await post("me/selera/reset", body: EmptyBody())
     }
 
     // MARK: - Auth
@@ -460,15 +511,18 @@ enum APIClient {
         }
     }
 
-    private static func get<Response: Decodable>(_ path: String, query: [URLQueryItem]) async throws -> Response {
+    private static func get<Response: Decodable>(_ path: String, query: [URLQueryItem], clientToken: String? = nil) async throws -> Response {
         var components = URLComponents(url: APIConfig.baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
-        components?.queryItems = query
+        components?.queryItems = query.isEmpty ? nil : query
         guard let url = components?.url else { throw APIError.invalidResponse }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let clientToken {
+            request.setValue(clientToken, forHTTPHeaderField: "X-Decision-Token")
+        }
         await attachAuthorization(to: &request)
 
         let (data, httpResponse) = try await send(request)

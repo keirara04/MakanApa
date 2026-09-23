@@ -44,6 +44,10 @@ struct HalalVerificationSection: View {
                 HalalReportCard(report: report)
             }
 
+            Text("In testing — halal info may be incomplete. Always double-check at the restaurant.")
+                .font(.makanBody(11))
+                .foregroundStyle(.secondary)
+
             HStack(spacing: 16) {
                 if halal.historyCount > 1 {
                     // Sheet, not NavigationLink — detail sheets aren't always inside a NavigationStack.

@@ -208,7 +208,7 @@ private struct OnboardingHalalPage: View {
                     .frame(height: 150)
             },
             headline: "Do you only eat halal?",
-            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Muslim-friendly chip on the map.",
+            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Muslim-friendly chip on the map. This is still in testing, so always double-check at the restaurant.",
             primaryTitle: "Yes, halal only",
             primaryAction: {
                 HalalPreference.isOn = true

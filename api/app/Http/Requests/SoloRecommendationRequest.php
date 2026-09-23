@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Services\Brain\ContextEngine;
 use App\Support\DiscoveryMode;
+use App\Support\Lens;
 use App\Support\Vibe;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -29,6 +31,10 @@ class SoloRecommendationRequest extends FormRequest
             'vibe' => ['nullable', Rule::enum(Vibe::class)],
             'installationId' => ['nullable', 'string', 'max:100'],
             'halal' => ['nullable', 'boolean'],
+            // Makan Brain: explicit "how do I want to decide" lens + context signals the user switched off.
+            'lens' => ['nullable', Rule::enum(Lens::class)],
+            'ignoreContext' => ['nullable', 'array'],
+            'ignoreContext.*' => ['string', Rule::in(ContextEngine::SIGNALS)],
         ];
     }
 

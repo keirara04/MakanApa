@@ -34,13 +34,15 @@ struct CommunityPostRow: View {
         let type: CommunityReactionType
     }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(CommunityPostInteractions.self) private var interactions
 
     var body: some View {
-        VStack(alignment: .leading, spacing: style == .reply ? 6 : 10) {
+        VStack(alignment: .leading, spacing: style == .reply ? 8 : 16) {
             header
             Text(post.body)
-                .font(.makanBody(style == .reply ? 14 : 15))
+                .font(.system(style == .reply ? .subheadline : .body, design: .rounded))
+                .lineSpacing(3)
                 .foregroundStyle(Color.kicap)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
@@ -49,16 +51,29 @@ struct CommunityPostRow: View {
                 placePill(place)
             }
 
+            if style != .reply {
+                Rectangle()
+                    .fill(Color.kicap.opacity(0.06))
+                    .frame(height: 1)
+                    .accessibilityHidden(true)
+            }
+
             footer
 
             if style == .card, let replies = post.replies, !replies.isEmpty {
                 replyPreview(replies)
             }
         }
-        .padding(style == .reply ? 0 : 14)
+        .padding(style == .reply ? 0 : 20)
         .background(style == .reply ? Color.clear : Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(color: .black.opacity(style == .reply ? 0 : 0.05), radius: 6, y: 2)
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay {
+            if style != .reply {
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(Color.kicap.opacity(0.06))
+            }
+        }
+        .shadow(color: Color.kicap.opacity(style == .reply ? 0 : 0.04), radius: 16, y: 6)
         .contentShape(Rectangle())
         .onTapGesture {
             if style == .card { interactions.threadTarget = post }
@@ -80,7 +95,7 @@ struct CommunityPostRow: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 4) {
                     Text(post.author.name)
-                        .font(.makanBody(style == .reply ? 13 : 14))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(Color.kicap)
                         .lineLimit(1)
                     if post.isMine {
@@ -101,7 +116,7 @@ struct CommunityPostRow: View {
         }
     }
 
-    private var avatarSize: CGFloat { style == .reply ? 26 : 34 }
+    private var avatarSize: CGFloat { style == .reply ? 28 : 40 }
 
     private var moreMenu: some View {
         Menu {
@@ -158,11 +173,11 @@ struct CommunityPostRow: View {
             }
             .font(.makanBody(13))
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .frame(minHeight: 44)
             .background(Color.nasiCream)
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CommunityPressStyle())
         .accessibilityLabel("Tagged place: \(place.name)")
     }
 
@@ -184,11 +199,11 @@ struct CommunityPostRow: View {
                     }
                     .font(.makanBody(13))
                     .foregroundStyle(.secondary)
-                    .frame(minHeight: 36)
+                    .frame(minHeight: 44)
                     .padding(.horizontal, 6)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(CommunityPressStyle())
                 .accessibilityLabel(post.replyCount > 0 ? "\(post.replyCount) replies. Reply" : "Reply")
             }
         }
@@ -212,14 +227,15 @@ struct CommunityPostRow: View {
             }
             .font(.makanBody(style == .reply ? 12 : 13))
             .padding(.horizontal, 9)
-            .frame(minHeight: style == .reply ? 28 : 32)
+            .frame(minHeight: 44)
             .background(isSelected ? Color.sambalRed.opacity(0.12) : Color.kicap.opacity(0.05))
             .overlay(Capsule().stroke(isSelected ? Color.sambalRed.opacity(0.5) : .clear, lineWidth: 1))
             .clipShape(Capsule())
             .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
-        .animation(.easeOut(duration: 0.15), value: count)
+        .buttonStyle(CommunityPressStyle())
+        .animation(reduceMotion ? nil : Motion.standard, value: count)
+        .animation(reduceMotion ? nil : Motion.quick, value: isSelected)
         .accessibilityLabel("\(type.accessibilityName), \(count)")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -238,7 +254,7 @@ struct CommunityPostRow: View {
                         .foregroundStyle(Color.sambalRed)
                         .frame(minHeight: 32)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(CommunityPressStyle())
             }
         }
         .padding(.leading, 12)

@@ -20,6 +20,11 @@ struct ResultView: View {
     @State private var revealedReasonCount = 0
     @State private var showVibePrompt = false
     @State private var showingAddMenu = false
+    @State private var showTrace = false
+    @State private var showingWhatIf = false
+    @State private var whatIfEntries: [WhatIfEntry] = []
+    @State private var whatIfLoading = false
+    @State private var isTuning = false
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
 
@@ -53,6 +58,12 @@ struct ResultView: View {
             if !hasNoError {
                 UINotificationFeedbackGenerator().notificationOccurred(.error)
             }
+        }
+        .sheet(isPresented: $showingWhatIf) {
+            WhatIfSheet(entries: whatIfEntries, isLoading: whatIfLoading) { entry in
+                Task { await viewModel.choose(restaurantId: entry.winner.id) }
+            }
+            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showVibePrompt) {
             vibePromptSheet
@@ -134,11 +145,17 @@ struct ResultView: View {
     private func resultContent(for pick: RecommendationResponse.Recommendation) -> some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text(Copy.resultIntro)
-                    .font(.makanBody(15))
-                    .foregroundStyle(.secondary)
-                    .opacity(showIntro ? 1 : 0)
-                    .animation(.easeOut(duration: 0.2), value: showIntro)
+                if showTrace, let trace = pick.thinkingTrace, !trace.isEmpty {
+                    ThinkingTraceView(lines: trace)
+                        .padding(.horizontal, 24)
+                        .transition(.opacity)
+                } else {
+                    Text(pick.fatigue == true ? "Okay lah, enough choosing 😭" : Copy.resultIntro)
+                        .font(.makanBody(15))
+                        .foregroundStyle(.secondary)
+                        .opacity(showIntro ? 1 : 0)
+                        .animation(.easeOut(duration: 0.2), value: showIntro)
+                }
 
                 MascotView(mood: .celebrate, size: 64)
                     .opacity(showMascot ? 1 : 0)
@@ -157,6 +174,11 @@ struct ResultView: View {
                         .font(.makanBody(16))
                         .foregroundStyle(.secondary)
                         .opacity(showHeadline ? 1 : 0)
+
+                    if let fit = pick.fit {
+                        FitBadge(fit: fit)
+                            .opacity(showHeadline ? 1 : 0)
+                    }
                 }
 
                 VStack(spacing: 16) {
@@ -164,7 +186,27 @@ struct ResultView: View {
 
                     nameBlock(for: pick)
 
-                    reasonChips
+                    if let reasons = pick.reasons, !reasons.isEmpty {
+                        KenapaNiSection(
+                            reasons: reasons,
+                            decidingFactor: pick.decidingFactor,
+                            revealedCount: revealedReasonCount,
+                            hasWhatIf: pick.hasWhatIf == true,
+                            onWhatIf: openWhatIf
+                        )
+                    } else {
+                        reasonChips
+                    }
+
+                    if let from = viewModel.rerolledAwayFrom {
+                        VStack(spacing: 4) {
+                            Text("Skipped \(from)")
+                                .font(.makanBody(12))
+                                .foregroundStyle(.secondary)
+                            WhyNotChips { reason, detail in viewModel.sendWhyNot(reason, detail: detail) }
+                        }
+                        .padding(.vertical, 4)
+                    }
 
                     if !pick.menuItems.isEmpty {
                         menuSection(for: pick)
@@ -199,6 +241,16 @@ struct ResultView: View {
                     .animation(Motion.playful, value: acceptSettle)
 
                     feedbackRow
+
+                    if let adjustment = viewModel.searchWider {
+                        SearchWiderBanner(message: viewModel.searchWiderMessage ?? "Nothing better nearby. Search a bit wider?", adjustment: adjustment) {
+                            Task { await viewModel.acceptSearchWider() }
+                        }
+                    } else if viewModel.canTune {
+                        TuneRow(used: viewModel.tunesUsed) { direction in tune(direction) }
+                            .disabled(isTuning)
+                            .opacity(isTuning ? 0.5 : 1)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -416,9 +468,15 @@ struct ResultView: View {
 
     /// Reveals reason chips one at a time rather than all together — small enough to feel
     /// intentional (this restaurant was matched, not just returned), not a real delay.
+    /// Server reasons when this is a Makan Brain pick, else the v1 input-echo chips.
+    private var reasonCount: Int {
+        let server = viewModel.currentPick?.reasons?.count ?? 0
+        return server > 0 ? server : currentReasonChips().count
+    }
+
     private func revealReasonChips() async {
         revealedReasonCount = 0
-        let count = currentReasonChips().count
+        let count = reasonCount
         for index in 0..<count {
             try? await Task.sleep(for: .milliseconds(90))
             guard !Task.isCancelled else { return }
@@ -625,10 +683,19 @@ struct ResultView: View {
         guard viewModel.currentPick != nil else { return }
 
         if reduceMotion {
+            showTrace = false
             showIntro = true; showMascot = true; showHeadline = true; showInfo = true; showCTA = true
-            revealedReasonCount = currentReasonChips().count
+            revealedReasonCount = reasonCount
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return
+        }
+
+        // Real thinking trace first (only on a fresh decision — reroll/tune results carry none).
+        if let trace = viewModel.currentPick?.thinkingTrace, !trace.isEmpty {
+            showTrace = true
+            try? await Task.sleep(for: ThinkingTraceView.duration(for: trace))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) { showTrace = false }
         }
 
         showIntro = true
@@ -752,6 +819,32 @@ struct ResultView: View {
         }
     }
 
+    // MARK: - Makan Brain actions
+
+    private func openWhatIf() {
+        viewModel.logInteraction("reasons_expanded")
+        whatIfEntries = []
+        whatIfLoading = true
+        showingWhatIf = true
+        Task {
+            whatIfEntries = await viewModel.whatIf()
+            whatIfLoading = false
+        }
+    }
+
+    private func tune(_ direction: TuneDirection) {
+        isTuning = true
+        Task {
+            let moved = await viewModel.tune(direction)
+            isTuning = false
+            if moved {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } else {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func walkingMinutes(for distanceKm: Double) -> Int {
@@ -759,6 +852,7 @@ struct ResultView: View {
     }
 
     private func openInMaps(_ recommendation: RecommendationResponse.Recommendation) {
+        viewModel.logInteraction("directions_opened")
         Task {
             await viewModel.acceptCurrentPick()
         }

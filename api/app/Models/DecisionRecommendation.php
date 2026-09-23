@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['decision_id', 'restaurant_id', 'rank', 'score', 'shown_at', 'accepted_at', 'rejected_at'])]
+#[Fillable(['decision_id', 'restaurant_id', 'rank', 'score', 'shown_at', 'accepted_at', 'rejected_at', 'breakdown', 'score_rank', 'selection_probability', 'selected', 'reason_facts', 'reject_reason'])]
 class DecisionRecommendation extends Model
 {
     public $timestamps = false;
@@ -18,6 +18,10 @@ class DecisionRecommendation extends Model
             'shown_at' => 'datetime',
             'accepted_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'breakdown' => 'array',
+            'reason_facts' => 'array',
+            'selected' => 'boolean',
+            'selection_probability' => 'float',
         ];
     }
 

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\RestaurantVibeVote;
+use App\Services\Community\CommunityPickStats;
 use App\Services\RecommendationService;
 use App\Support\CommunityTag;
 use Illuminate\Http\JsonResponse;
@@ -44,29 +44,8 @@ class CommunityController extends Controller
         $config = Config::get('recommendation.community_feed');
         $windowStart = now()->subDays($config['window_days']);
 
-        $query = DecisionRecommendation::query()
-            ->join('decisions', 'decisions.id', '=', 'decision_recommendations.decision_id')
-            ->whereNotNull('decision_recommendations.accepted_at')
-            ->where('decision_recommendations.accepted_at', '>=', $windowStart)
-            ->whereNotNull('decisions.user_id');
-
-        if ($isUniversity) {
-            $query->where('decisions.university_id', $user->universityId());
-        } elseif ($isArea) {
-            $query->where('decisions.area_id', $user->areaId());
-        } else {
-            $radiusKm = (float) $config['public_radius_km'];
-            $latDelta = $radiusKm / 111.0;
-            $lonDelta = $radiusKm / (111.0 * max(cos(deg2rad($lat)), 0.01));
-
-            // whereNull both — an area- or university-affiliated decision must never leak into
-            // the Public radius feed just because it happens to be geographically close.
-            $query->whereNull('decisions.university_id')
-                ->whereNull('decisions.area_id')
-                ->join('restaurants', 'restaurants.id', '=', 'decision_recommendations.restaurant_id')
-                ->whereBetween('restaurants.latitude', [$lat - $latDelta, $lat + $latDelta])
-                ->whereBetween('restaurants.longitude', [$lon - $lonDelta, $lon + $lonDelta]);
-        }
+        $query = app(CommunityPickStats::class)->acceptedQuery($user, $windowStart, $lat, $lon);
+        $radiusKm = (float) $config['public_radius_km'];
 
         $aggregates = $query
             ->selectRaw('decision_recommendations.restaurant_id as restaurant_id')
