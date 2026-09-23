@@ -41,22 +41,23 @@ class NotificationDeliveryStatusTest extends TestCase
         return $user;
     }
 
-    private function broadcast(): NotificationDelivery
+    /** Broadcasts go to every user in the database, so read back only this test's recipient. */
+    private function broadcastTo(User $user): NotificationDelivery
     {
         app(NotificationBroadcastService::class)->broadcast(
             new AccountAdminNotice('Heads up', 'Something changed'),
             ['category' => 'account_admin'],
         );
 
-        return NotificationDelivery::sole();
+        return NotificationDelivery::where('user_id', $user->id)->sole();
     }
 
     public function test_delivery_is_marked_sent_when_apns_accepts_the_push(): void
     {
-        $this->userWithDevice();
+        $user = $this->userWithDevice();
         $this->fakeApns(new Response(200, '', '', self::TOKEN));
 
-        $delivery = $this->broadcast();
+        $delivery = $this->broadcastTo($user);
 
         $this->assertSame('sent', $delivery->status);
         $this->assertNotNull($delivery->sent_at);
@@ -64,22 +65,22 @@ class NotificationDeliveryStatusTest extends TestCase
 
     public function test_delivery_is_marked_skipped_when_the_user_has_no_device_token(): void
     {
-        User::factory()->create();
+        $user = User::factory()->create();
 
-        $delivery = $this->broadcast();
+        $delivery = $this->broadcastTo($user);
 
         $this->assertSame('skipped_no_token', $delivery->status);
     }
 
     public function test_rejected_push_stays_failed_with_the_apns_reason(): void
     {
-        $this->userWithDevice();
+        $user = $this->userWithDevice();
         $this->fakeApns(new Response(400, '', '{"reason":"BadDeviceToken"}', self::TOKEN));
 
-        $delivery = $this->broadcast();
+        $delivery = $this->broadcastTo($user);
 
         $this->assertSame('failed', $delivery->status);
         $this->assertSame('BadDeviceToken', $delivery->error);
-        $this->assertNotNull(DeviceToken::sole()->invalidated_at);
+        $this->assertNotNull(DeviceToken::where('token', self::TOKEN)->sole()->invalidated_at);
     }
 }
