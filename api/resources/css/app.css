@@ -12,8 +12,31 @@
     src: url('/fonts/caveat/caveat-latin-700.woff2') format('woff2');
 }
 
+/* Tall hand-drawn capitals for the landing page's headings, nav and margin notes (SIL OFL). */
+@font-face {
+    font-family: 'Amatic SC';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/fonts/amatic-sc/amatic-sc-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Amatic SC';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('/fonts/amatic-sc/amatic-sc-latin-700.woff2') format('woff2');
+}
+
 @theme {
     --font-hand: 'Caveat', 'Marker Felt', 'Comic Sans MS', cursive;
+    --font-display: 'Amatic SC', 'Caveat', 'Marker Felt', cursive;
+
+    /* Sketchbook paper: the page, a lighter sheet for cards, and a darker fold for rules. */
+    --color-paper: #f4efe6;
+    --color-paper-50: #fbf8f2;
+    --color-paper-200: #e6ded0;
 
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
@@ -77,4 +100,293 @@ html[data-lang='en'] .lang-ms {
             scroll-behavior: auto;
         }
     }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Sketchbook kit for the marketing pages. Everything decorative here degrades to plain, fully
+   visible content: the hidden "before" states only apply once the layout has added `.js` to
+   <html>, and Reduce Motion skips straight to the final state.
+   ------------------------------------------------------------------------------------------ */
+
+/* Faint paper grain, generated in-page (no image request). */
+.paper-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@layer components {
+    /* Hand-drawn box: two wobbly strokes (SVG filters #sketch-a/#sketch-b in the layout) laid
+       slightly off each other, like a pen going round twice. Colour/radius via custom props. */
+    .sketch {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .sketch::before,
+    .sketch::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        z-index: -1;
+        pointer-events: none;
+        border: 2px solid var(--sketch-color, var(--color-ink));
+        border-radius: var(--sketch-radius, 6px);
+        background: var(--sketch-fill, transparent);
+        filter: url(#sketch-a);
+    }
+
+    .sketch::after {
+        inset: -2px -7px -6px -2px;
+        border-width: 1.25px;
+        background: none;
+        opacity: 0.5;
+        filter: url(#sketch-b);
+    }
+
+    /* Masking tape holding photos and cards to the page. */
+    .tape {
+        position: absolute;
+        z-index: 2;
+        width: 6.5rem;
+        height: 1.6rem;
+        background: color-mix(in srgb, var(--color-kunyit) 38%, rgb(255 255 255 / 0.35));
+        box-shadow: 0 1px 2px rgb(43 28 20 / 0.12);
+        clip-path: polygon(0 8%, 4% 0, 9% 10%, 14% 0, 86% 0, 91% 12%, 96% 0, 100% 10%, 100% 92%, 95% 100%, 90% 88%, 85% 100%, 14% 100%, 9% 90%, 4% 100%, 0 90%);
+        pointer-events: none;
+    }
+
+    /* Bracketed nav item, Tiago Fragoso style: grows and tilts when hovered or current. */
+    .bracket-link {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        transform-origin: 50% 60%;
+        transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), color 160ms ease;
+    }
+
+    .bracket-link:hover,
+    .bracket-link[data-active] {
+        transform: scale(1.18) rotate(-3deg);
+        color: var(--color-sambal-600);
+    }
+}
+
+/* Load-in for the hero, one line after another. */
+@keyframes sketch-rise {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+        filter: blur(6px);
+    }
+}
+
+.js .hero-in {
+    animation: sketch-rise 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 110ms);
+}
+
+/* Scroll reveal: fades up, then settles; staggered with --i. */
+.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(26px);
+    transition:
+        opacity 800ms ease,
+        transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+.js [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+}
+
+/* Frames "draw" themselves left to right once revealed. */
+.js [data-reveal].sketch::before,
+.js [data-reveal].sketch::after {
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 1100ms cubic-bezier(0.65, 0, 0.35, 1);
+    transition-delay: calc(var(--i, 0) * 90ms + 150ms);
+}
+
+.js [data-reveal].sketch.is-in::before,
+.js [data-reveal].sketch.is-in::after {
+    clip-path: inset(0 0 0 0);
+}
+
+/* Doodles (arrows, circles, underlines) are stroked with pathLength="1", so one dash of
+   length 1 can be pulled along the whole line. */
+.js .draw :is(path, line, polyline, ellipse) {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset var(--draw-dur, 900ms) cubic-bezier(0.65, 0, 0.35, 1) var(--draw-delay, 250ms);
+}
+
+.js .draw.is-in :is(path, line, polyline, ellipse) {
+    stroke-dashoffset: 0;
+}
+
+@keyframes sketch-bob {
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+    50% {
+        transform: translateY(-9px) rotate(2deg);
+    }
+}
+
+.animate-sketch-bob {
+    animation: sketch-bob 4.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .js .hero-in,
+    .animate-sketch-bob {
+        animation: none;
+    }
+
+    .js [data-reveal],
+    .js [data-reveal].sketch::before,
+    .js [data-reveal].sketch::after,
+    .js .draw :is(path, line, polyline, ellipse) {
+        opacity: 1;
+        transform: none;
+        clip-path: none;
+        stroke-dashoffset: 0;
+        transition: none;
+    }
+
+    .bracket-link {
+        transition: color 160ms ease;
+    }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   First-visit intro (home page only). The overlay is display:none unless the head script opted
+   this visit in by adding `intro-active` to <html> — so no-JS visitors, crawlers, Reduce Motion,
+   Data Saver and returning visitors never see it.
+   ------------------------------------------------------------------------------------------ */
+.intro {
+    display: none;
+}
+
+html.intro-active .intro {
+    display: flex;
+}
+
+html.intro-active,
+html.intro-active body {
+    overflow: hidden;
+}
+
+/* Hold the hero's load-in until the curtain lifts, so it plays for the visitor, not under paper. */
+html.intro-active .hero-in {
+    animation-play-state: paused;
+}
+
+.intro {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: translate 950ms cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* Torn bottom edge that trails the page as it lifts away. */
+.intro-tear {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    width: 100%;
+    height: 34px;
+    color: var(--color-paper);
+    filter: drop-shadow(0 6px 6px rgb(43 28 20 / 0.12));
+}
+
+.intro.is-leaving {
+    translate: 0 calc(-100% - 40px);
+}
+
+/* Slot-machine reel of dishes: two copies of the list, scrolled half its height on a loop. */
+.intro-reel {
+    height: 1.3em;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+    transition:
+        opacity 280ms ease,
+        translate 380ms cubic-bezier(0.5, 0, 0.75, 0);
+}
+
+.intro-reel ul {
+    animation: intro-spin 1.05s linear infinite;
+    filter: blur(0.4px);
+}
+
+.intro-reel li {
+    height: 1.3em;
+}
+
+.intro.is-landing [data-intro-skip] {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes intro-spin {
+    to {
+        transform: translateY(-50%);
+    }
+}
+
+.intro-final {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    translate: 0 45%;
+    scale: 0.85;
+    transition:
+        opacity 300ms ease 120ms,
+        translate 620ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms,
+        scale 620ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms;
+}
+
+.intro.is-landing .intro-reel {
+    opacity: 0;
+    translate: 0 -60%;
+}
+
+.intro.is-landing .intro-final {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+}
+
+/* Mascot: idles while "thinking", swaps to the celebrate pose when the pick lands. */
+.intro-mascot img {
+    transition:
+        opacity 260ms ease,
+        scale 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.intro-mascot .is-picked {
+    opacity: 0;
+    scale: 0.8;
+}
+
+.intro.is-landing .intro-mascot .is-thinking {
+    opacity: 0;
+}
+
+.intro.is-landing .intro-mascot .is-picked {
+    opacity: 1;
+    scale: 1.08;
+}
+
+.intro-progress path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 400ms ease-out;
 }
