@@ -24,6 +24,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnChannel;
 use Pushok\AuthProviderInterface;
+use Pushok\Response;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -143,14 +144,24 @@ class AppServiceProvider extends ServiceProvider
         // the only signal that nothing was actually delivered. Filtered to the apn channel
         // specifically: notifications also go out via the 'database' channel (in-app inbox),
         // which fires its own NotificationSent event under the same Context and would otherwise
-        // race with/overwrite this row's real push-delivery outcome.
+        // race with/overwrite this row's real push-delivery outcome. NotificationSent carries the
+        // name via() returned ('apn'), not the channel class — only ApnChannel's own per-token
+        // NotificationFailed events use the class name.
         Event::listen(function (NotificationSent $event) {
-            if ($event->channel !== ApnChannel::class) {
+            if ($event->channel !== 'apn') {
                 return;
             }
 
             $deliveryId = Context::get('notification_delivery_id');
             if ($deliveryId === null) {
+                return;
+            }
+
+            // ApnChannel returns every token's response, rejections included (already recorded
+            // as failed by the listener below) — only an accepted push counts as sent.
+            $accepted = collect($event->response ?? [])
+                ->contains(fn (Response $response) => $response->getStatusCode() === Response::APNS_SUCCESS);
+            if ($event->response !== null && ! $accepted) {
                 return;
             }
 

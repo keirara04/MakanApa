@@ -7,7 +7,23 @@ import UserNotifications
 final class PushNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
+        registerIfAlreadyAllowed()
         return true
+    }
+
+    /// The priming sheet only asks once, so a registration that failed then (or a token Apple
+    /// rotated since) would never reach the backend again. Re-registering on every launch once
+    /// permission exists is Apple's recommended pattern and costs nothing when nothing changed.
+    private func registerIfAlreadyAllowed() {
+        Task { @MainActor in
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            switch settings.authorizationStatus {
+            case .authorized, .provisional, .ephemeral:
+                UIApplication.shared.registerForRemoteNotifications()
+            default:
+                break
+            }
+        }
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
