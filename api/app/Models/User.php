@@ -59,6 +59,11 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
             ->all();
     }
 
+    public function mealNudgeState(): HasOne
+    {
+        return $this->hasOne(MealNudgeState::class);
+    }
+
     public function wantsNotification(string $category): bool
     {
         $preferences = $this->notification_preferences ?? [];

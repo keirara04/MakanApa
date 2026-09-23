@@ -377,6 +377,10 @@ struct NotificationSettingsView: View {
         ScrollView {
             VStack(spacing: 20) {
                 if let preferences {
+                    SettingsCard(title: "Makan") {
+                        toggle("Mealtime picks", "A pick near you at lunch or dinner · max 1 a day", icon: "fork.knife", tint: .sambalRed,
+                               value: preferences.mealtimeNudges) { $0.mealtimeNudges = $1 } body: { UpdateNotificationPreferencesRequestBody(mealtimeNudges: $0) }
+                    }
                     SettingsCard(title: "Your places") {
                         toggle("Submission updates", "When a place you added is reviewed", icon: "checkmark.bubble.fill", tint: .pandan,
                                value: preferences.communitySubmissions) { $0.communitySubmissions = $1 } body: { UpdateNotificationPreferencesRequestBody(communitySubmissions: $0) }

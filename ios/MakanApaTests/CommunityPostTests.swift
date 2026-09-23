@@ -59,8 +59,8 @@ final class CommunityPostTests: XCTestCase {
     }
 
     func testCommunityPushPayloadsRouteToThread() {
-        XCTAssertEqual(PushDestination(userInfo: ["type": "community_post_replied", "postId": NSNumber(value: 42)]), .communityPost(id: 42))
-        XCTAssertEqual(PushDestination(userInfo: ["type": "community_post_reacted", "postId": NSNumber(value: 7)]), .communityPost(id: 7))
-        XCTAssertNil(PushDestination(userInfo: ["type": "community_post_replied"]))
+        XCTAssertEqual(DeepLinkDestination(userInfo: ["type": "community_post_replied", "postId": NSNumber(value: 42)]), .communityPost(id: 42))
+        XCTAssertEqual(DeepLinkDestination(userInfo: ["type": "community_post_reacted", "postId": NSNumber(value: 7)]), .communityPost(id: 7))
+        XCTAssertNil(DeepLinkDestination(userInfo: ["type": "community_post_replied"]))
     }
 }

@@ -77,6 +77,16 @@ enum APIClient {
         return try await get("places/search", query: items)
     }
 
+    /// Mealtime nudge funnel: opened | place_opened | makan_sini | quick_pick_started.
+    static func nudgeEvent(nudgeId: Int, event: String) async throws -> RecordedResponse {
+        try await post("me/nudges/\(nudgeId)/events", body: NudgeEventRequestBody(event: event))
+    }
+
+    /// First step of the share funnel ("Send to geng" tapped) — fire-and-forget.
+    static func shareStarted(restaurantId: Int) async throws -> RecordedResponse {
+        try await post("restaurants/\(restaurantId)/share-events", body: EmptyBody())
+    }
+
     /// "Makan sini" — records the user's own pick as an accepted decision. Idempotent on
     /// `clientChoiceId`, so the caller reuses the same id when retrying.
     static func chooseRestaurant(id: Int, body: ChooseRestaurantRequestBody) async throws -> ChooseRestaurantResponse {

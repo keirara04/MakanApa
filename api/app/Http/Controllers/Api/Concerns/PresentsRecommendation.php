@@ -15,6 +15,7 @@ use App\Services\Places\GooglePlacesProvider;
 use App\Support\CommunityTag;
 use App\Support\DiscoveryMode;
 use App\Support\RecommendationHeadline;
+use App\Support\ShareLinks;
 use App\Support\Vibe;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -68,6 +69,7 @@ trait PresentsRecommendation
         return [
             'id' => $restaurant['id'],
             'name' => $restaurant['name'],
+            'shareUrl' => ShareLinks::place($restaurant['id'], $restaurant['name']),
             'headline' => RecommendationHeadline::for($restaurant),
             'foodCategory' => $restaurant['food_category'] ?? null,
             'latitude' => $restaurant['latitude'],

@@ -63,10 +63,20 @@ struct MakanApaApp: App {
                 await authStore.bootstrap()
             }
             .onOpenURL { url in
+                // makanapa://place/… from a shared page's "Open in MakanApa" button.
+                if let destination = DeepLinkDestination(url: url) {
+                    pendingDeepLink.destination = destination
+                    return
+                }
                 // Google's sign-in sheet completes via a redirect back into the app through the
                 // reversed-client-id URL scheme registered in Info.plist — the SDK needs this
                 // callback to resolve the in-flight sign-in Task, otherwise it hangs forever.
                 GIDSignIn.sharedInstance.handle(url)
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                // A shared https://…/p/{id} link tapped in WhatsApp etc. (universal link).
+                guard let url = activity.webpageURL, let destination = DeepLinkDestination(url: url) else { return }
+                pendingDeepLink.destination = destination
             }
             .onChange(of: scenePhase) { _, newPhase in
                 // Only tracked once actually signed in — a logged-out person opening/closing
@@ -103,14 +113,34 @@ struct MakanApaApp: App {
     /// decides what it means for navigation. No per-submission detail screen exists yet, so
     /// `.submission` lands on the Community tab (My Submissions is reachable from there) rather
     /// than a specific detail push.
-    private func handle(_ destination: PushDestination) {
+    private func handle(_ destination: DeepLinkDestination) {
         switch destination {
         case .submission:
             selectedTab = .community
         case .communityPost(let id):
             selectedTab = .community
             pendingDeepLink.communityPostId = id
-        case .release, .account:
+        case .place(let id, let source):
+            // One path for every entry point: Nearby opens the place's sheet (see openPlace).
+            selectedTab = .nearby
+            pendingDeepLink.placeRequest = PlaceOpenRequest(restaurantId: id, source: source)
+        case .mealNudge(let nudgeId, let restaurantId):
+            Task { _ = try? await APIClient.nudgeEvent(nudgeId: nudgeId, event: "opened") }
+            if let restaurantId {
+                selectedTab = .nearby
+                pendingDeepLink.placeRequest = PlaceOpenRequest(restaurantId: restaurantId, source: .nudge, nudgeId: nudgeId)
+            } else {
+                // Generic nudge: straight into a one-tap pick.
+                selectedTab = .decide
+                decideRouter.popToRoot()
+                pendingDeepLink.quickPickRequest = QuickPickRequest(nudgeId: nudgeId)
+            }
+        case .quickPick(let nudgeId):
+            selectedTab = .decide
+            decideRouter.popToRoot()
+            pendingDeepLink.quickPickRequest = QuickPickRequest(nudgeId: nudgeId)
+        case .release, .account, .decision, .gengRoom:
+            // decision / gengRoom are reserved until those screens exist.
             selectedTab = .decide
         }
     }

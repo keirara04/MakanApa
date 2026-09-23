@@ -277,7 +277,8 @@ struct NearbySearchResultsPanel: View {
 struct SearchResultRow: View {
     let result: PlaceSearchResult
     let query: String
-    var compact = false
+    /// Content only, no card background — for embedding inside another card.
+    var bare = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -322,11 +323,11 @@ struct SearchResultRow: View {
                     .labelStyle(.titleAndIcon)
             }
         }
-        .padding(12)
-        .frame(maxWidth: compact ? 280 : .infinity, alignment: .leading)
-        .background(Color.white)
+        .padding(bare ? 0 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(bare ? Color.clear : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
+        .shadow(color: .black.opacity(bare ? 0 : 0.06), radius: 4, y: 2)
         .accessibilityElement(children: .combine)
     }
 
@@ -361,42 +362,96 @@ struct SearchResultRow: View {
     }
 }
 
-/// Map mode's bottom strip: the same results in the same order, one card per pin.
+/// Map mode's bottom strip — the same results in the same order, one card per pin, paging like
+/// Google Maps: swiping to a card highlights and pans to its pin (`onFocus`), tapping a pin
+/// scrolls here, and tapping a card opens the place (`onOpen`).
 struct SearchResultsCarousel: View {
     let session: SearchSession
-    let onSelect: (PlaceSearchResult) -> Void
+    let onFocus: (PlaceSearchResult) -> Void
+    let onOpen: (PlaceSearchResult) -> Void
+
+    @State private var scrolledId: String?
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 10) {
-                    ForEach(Array(session.results.enumerated()), id: \.element.id) { index, result in
-                        Button {
-                            onSelect(result)
-                        } label: {
-                            HStack(alignment: .top, spacing: 8) {
-                                Text("\(index + 1)")
-                                    .font(.makanBody(12).weight(.heavy))
-                                    .foregroundStyle(index == 0 || result.id == session.selectedResultId ? .white : Color.kicap)
-                                    .frame(width: 22, height: 22)
-                                    .background(index == 0 || result.id == session.selectedResultId ? Color.sambalRed : Color.kicap.opacity(0.08))
-                                    .clipShape(Circle())
-                                SearchResultRow(result: result, query: session.query, compact: true)
-                            }
-                        }
-                        .buttonStyle(SearchResultPressStyle())
-                        .id(result.id)
+        ScrollView(.horizontal, showsIndicators: false) {
+            // Plain HStack, not Lazy: a lazy stack estimates its height before measuring every
+            // card, so the strip came out shorter than the tallest card and clipped its top.
+            // Results are capped server-side, so building them all is cheap.
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(Array(session.results.enumerated()), id: \.element.id) { index, result in
+                    Button {
+                        onOpen(result)
+                    } label: {
+                        SearchResultCard(
+                            result: result, rank: index + 1, query: session.query,
+                            isHighlighted: result.id == (session.selectedResultId ?? session.results.first?.id)
+                        )
                     }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-            }
-            .onAppear {
-                if let selected = session.selectedResultId {
-                    proxy.scrollTo(selected, anchor: .center)
+                    .buttonStyle(SearchResultPressStyle())
+                    .containerRelativeFrame(.horizontal) { width, _ in width * 0.86 }
+                    .id(result.id)
                 }
             }
+            .scrollTargetLayout()
+            // Room for the card shadows — the scroll view would otherwise clip them flat.
+            .padding(.vertical, 10)
         }
+        .contentMargins(.horizontal, 16, for: .scrollContent)
+        .scrollClipDisabled()
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $scrolledId, anchor: .center)
+        // A horizontal ScrollView is greedy vertically — without this it takes the whole screen
+        // height and centers the cards mid-map.
+        .fixedSize(horizontal: false, vertical: true)
+        .onAppear { scrolledId = session.selectedResultId ?? session.results.first?.id }
+        .onChange(of: scrolledId) { _, id in
+            guard let id, id != session.selectedResultId, let result = session.results.first(where: { $0.id == id }) else { return }
+            onFocus(result)
+        }
+        .onChange(of: session.selectedResultId) { _, id in
+            // A pin tap selected something — bring its card into view.
+            guard let id, id != scrolledId else { return }
+            withAnimation(Motion.standard) { scrolledId = id }
+        }
+    }
+}
+
+/// One carousel card: rank badge matching the pin, the row content, and a clear "open" cue.
+private struct SearchResultCard: View {
+    let result: PlaceSearchResult
+    let rank: Int
+    let query: String
+    let isHighlighted: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text("\(rank)")
+                .font(.makanBody(13).weight(.heavy))
+                .foregroundStyle(isHighlighted ? .white : Color.kicap)
+                .frame(width: 28, height: 28)
+                .background(isHighlighted ? Color.sambalRed : Color.kicap.opacity(0.08))
+                .clipShape(Circle())
+                .accessibilityHidden(true)
+
+            SearchResultRow(result: result, query: query, bare: true)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.kicap.opacity(0.35))
+        }
+        .padding(12)
+        // Every card the height of the tallest, so the strip doesn't jump while swiping.
+        .frame(maxHeight: .infinity)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(isHighlighted ? Color.sambalRed.opacity(0.6) : .clear, lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Result \(rank), \(result.name)")
+        .accessibilityHint("Opens this place")
     }
 }
 

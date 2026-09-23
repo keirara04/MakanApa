@@ -29,3 +29,6 @@ Schedule::command('judgments:prune')->daily();
 // anything due every minute. Requires the scheduler itself to actually be running in production
 // (`php artisan schedule:work`, or cron calling `schedule:run` every minute) — not automatic.
 Schedule::command('notifications:dispatch-scheduled')->everyMinute();
+
+// Mealtime nudges (opt-in, max one a day): only users whose next_nudge_at has passed are touched.
+Schedule::command('nudges:dispatch')->everyFiveMinutes()->withoutOverlapping();

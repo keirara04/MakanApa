@@ -28,8 +28,11 @@ struct NearbyMapView: UIViewRepresentable {
     var temporarySearchCoordinate: CLLocationCoordinate2D? = nil
     /// Show all on map: one numbered pin per search result, in list order. Empty otherwise.
     var searchPins: [SearchPin] = []
-    /// Bumped to fit the camera around every `searchPins` coordinate.
+    /// Bumped to fit the camera around the top few `searchPins`.
     var fitSearchPinsRequestId: Int = 0
+    /// Pan (keeping the current zoom) to a result the user swiped to or tapped in map mode.
+    var panTarget: CLLocationCoordinate2D? = nil
+    var panRequestId: Int = 0
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
     var onSearchPinTapped: (String) -> Void = { _ in }
@@ -44,7 +47,7 @@ struct NearbyMapView: UIViewRepresentable {
         // Maps Platform ToS require it stay visible and unobscured, so this shifts it clear of
         // the "Around here" pill/sheet rather than hiding it (matches the 130pt the recenter
         // button in NearbyView clears the same UI by).
-        mapView.padding = UIEdgeInsets(top: 0, left: 0, bottom: 130, right: 0)
+        mapView.padding = Self.browsePadding
         if let target = initialCameraTarget {
             mapView.camera = GMSCameraPosition(target: target, zoom: 15)
         }
@@ -74,17 +77,42 @@ struct NearbyMapView: UIViewRepresentable {
         context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
         context.coordinator.syncSearchPins(searchPins, on: mapView)
 
+        // In map mode the search capsule covers the top and the carousel the bottom — shift the
+        // map's own "center" into the clear band between them, so fitting and panning put pins
+        // where the user can actually see them (Google's logo moves up with it, still visible).
+        let padding = searchPins.isEmpty
+            ? Self.browsePadding
+            : UIEdgeInsets(top: 90, left: 0, bottom: 150, right: 0)
+        if mapView.padding != padding {
+            mapView.padding = padding
+        }
+
         if fitSearchPinsRequestId != context.coordinator.lastHandledFitId, !searchPins.isEmpty {
             context.coordinator.lastHandledFitId = fitSearchPinsRequestId
-            if searchPins.count == 1, let only = searchPins.first {
+            // Frame the best few results (plus whichever is selected) at a comfortable zoom,
+            // not all of them — fitting a 6 km spread zooms out until pins pile up on each other.
+            let focused = searchPins.filter { $0.rank <= Self.fitResultCount || $0.isSelected }
+            if focused.count == 1, let only = focused.first {
                 mapView.animate(to: GMSCameraPosition(target: only.coordinate, zoom: 16))
             } else {
-                let bounds = searchPins.reduce(GMSCoordinateBounds()) { $0.includingCoordinate($1.coordinate) }
-                // Clear of the search capsule on top and the result carousel at the bottom.
-                mapView.animate(with: GMSCameraUpdate.fit(bounds, with: UIEdgeInsets(top: 150, left: 48, bottom: 230, right: 48)))
+                let bounds = focused.reduce(GMSCoordinateBounds()) { $0.includingCoordinate($1.coordinate) }
+                if let fitted = mapView.camera(for: bounds, insets: UIEdgeInsets(top: 40, left: 44, bottom: 40, right: 44)) {
+                    // A tight cluster shouldn't zoom in past street level.
+                    mapView.animate(to: GMSCameraPosition(target: fitted.target, zoom: min(fitted.zoom, 17)))
+                }
             }
         }
+
+        if panRequestId != context.coordinator.lastHandledPanId, let target = panTarget {
+            context.coordinator.lastHandledPanId = panRequestId
+            mapView.animate(toLocation: target)
+        }
     }
+
+    /// The browse-mode padding set in makeUIView — Google's attribution clears the area panel.
+    private static let browsePadding = UIEdgeInsets(top: 0, left: 0, bottom: 130, right: 0)
+    /// How many of the top results Show all on map frames.
+    private static let fitResultCount = 5
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped, onSearchPinTapped: onSearchPinTapped)
@@ -96,6 +124,7 @@ struct NearbyMapView: UIViewRepresentable {
         var lastHandledRecenterId = 0
         var lastHandledFocusId = 0
         var lastHandledFitId = 0
+        var lastHandledPanId = 0
 
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
@@ -483,13 +512,13 @@ enum SearchPinRenderer {
         let key = Key(rank: rank, isTop: isTop, isSelected: isSelected)
         if let cached = cache[key] { return cached }
 
-        let diameter: CGFloat = isSelected ? 38 : 30
+        let diameter: CGFloat = isSelected ? 40 : 28
         let ring: CGFloat = isSelected ? 4 : 2
         let sambal = UIColor(named: "SambalRed") ?? .systemRed
         let kicap = UIColor(named: "Kicap") ?? .darkText
         let fill = isTop || isSelected ? sambal : UIColor.white
         let textColor = isTop || isSelected ? UIColor.white : kicap
-        let font = UIFont.systemFont(ofSize: isSelected ? 16 : 13, weight: .heavy)
+        let font = UIFont.systemFont(ofSize: isSelected ? 17 : 12, weight: .heavy)
         let size = CGSize(width: diameter + 4, height: diameter + 4)
 
         let image = UIGraphicsImageRenderer(size: size).image { context in

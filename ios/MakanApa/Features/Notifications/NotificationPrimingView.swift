@@ -11,6 +11,7 @@ struct NotificationPrimingView: View {
     let onFinished: () -> Void
 
     @State private var wantsReleaseAnnouncements = false
+    @State private var wantsMealtimePicks = false
 
     var body: some View {
         VStack(spacing: 28) {
@@ -41,6 +42,10 @@ struct NotificationPrimingView: View {
                     Text("Optional")
                         .font(.makanBody(13))
                         .foregroundStyle(.secondary)
+                    Toggle("Mealtime picks · max 1 a day", isOn: $wantsMealtimePicks)
+                        .font(.makanBody(14))
+                        .foregroundStyle(Color.kicap)
+                        .tint(.sambalRed)
                     Toggle("MakanApa news & new releases", isOn: $wantsReleaseAnnouncements)
                         .font(.makanBody(14))
                         .foregroundStyle(Color.kicap)
@@ -92,9 +97,12 @@ struct NotificationPrimingView: View {
     /// Only reachable signed in now, but kept defensive: with no session the choice is simply
     /// dropped — the backend defaults release_announcements to false, matching this screen.
     private func persistReleasePreferenceIfAuthenticated() async {
-        guard case .authenticated = AuthStore.shared.session, wantsReleaseAnnouncements else { return }
+        guard case .authenticated = AuthStore.shared.session, wantsReleaseAnnouncements || wantsMealtimePicks else { return }
         _ = try? await APIClient.updateNotificationPreferences(
-            UpdateNotificationPreferencesRequestBody(releaseAnnouncements: true)
+            UpdateNotificationPreferencesRequestBody(
+                releaseAnnouncements: wantsReleaseAnnouncements ? true : nil,
+                mealtimeNudges: wantsMealtimePicks ? true : nil
+            )
         )
     }
 }

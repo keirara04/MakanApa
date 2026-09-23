@@ -25,4 +25,10 @@ return [
 
     'app_download_label' => env('APP_DOWNLOAD_LABEL', 'Join the beta on TestFlight'),
 
+    // Shared place links (/p/{id}-{slug}). Kept out of search engines until public launch.
+    'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', false),
+
+    // "<TeamID>.<bundle id>" for apple-app-site-association (universal links into the app).
+    'apple_app_id' => env('APPLE_APP_ID', '46798S8ZQT.com.keirara.makanapa'),
+
 ];

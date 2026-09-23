@@ -18,6 +18,7 @@ use App\Services\RecommendationService;
 use App\Support\AreaPersonality;
 use App\Support\DiscoveryMode;
 use App\Support\Halal\HalalEligibility;
+use App\Support\ShareLinks;
 use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
@@ -209,6 +210,9 @@ class NearbyController extends Controller
         return response()->json([
             'id' => $data['id'],
             'name' => $data['name'],
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'shareUrl' => ShareLinks::place($data['id'], $data['name']),
             'foodCategory' => $data['food_category'],
             'rating' => $data['rating'],
             'priceLevel' => $data['price_level'],

@@ -18,12 +18,16 @@ final class NotificationCategory
 
     public const COMMUNITY_REACTIONS = 'community_reactions';
 
+    /** "Lunch dah?" — at most one a day, see config/nudges.php. */
+    public const MEALTIME_NUDGES = 'mealtime_nudges';
+
     public const ALL = [
         self::COMMUNITY_SUBMISSIONS,
         self::ACCOUNT_ADMIN,
         self::RELEASE_ANNOUNCEMENTS,
         self::COMMUNITY_REPLIES,
         self::COMMUNITY_REACTIONS,
+        self::MEALTIME_NUDGES,
     ];
 
     // Transactional categories the user expects by default once notifications are enabled.
@@ -38,5 +42,6 @@ final class NotificationCategory
     public const DEFAULT_FALSE = [
         self::RELEASE_ANNOUNCEMENTS,
         self::COMMUNITY_REACTIONS,
+        self::MEALTIME_NUDGES,
     ];
 }

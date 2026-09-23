@@ -204,6 +204,16 @@ struct ResultView: View {
                     .scaleEffect(acceptSettle ? 1.0 : 1.03)
                     .animation(Motion.playful, value: acceptSettle)
 
+                    if let shareUrl = pick.shareUrl {
+                        SendToGengButton(
+                            restaurantId: pick.id,
+                            shareUrl: shareUrl,
+                            message: SendToGengButton.message(name: pick.name, whereText: pick.foodCategory.map { $0.replacingOccurrences(of: "_", with: " ").capitalized }, distanceKm: pick.distanceKm)
+                        ) {
+                            viewModel.logInteraction("shared")
+                        }
+                    }
+
                     feedbackRow
 
                     if let adjustment = viewModel.searchWider {

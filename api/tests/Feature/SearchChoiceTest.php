@@ -75,6 +75,17 @@ class SearchChoiceTest extends TestCase
         $this->assertSame(1, Decision::count());
     }
 
+    public function test_the_entry_point_is_recorded_with_the_choice(): void
+    {
+        $restaurant = $this->makeRestaurant();
+
+        $this->postJson("/api/v1/restaurants/{$restaurant->id}/choose", [
+            'clientChoiceId' => (string) Str::uuid(), 'openedFrom' => 'share',
+        ])->assertCreated();
+
+        $this->assertSame(['openedFrom' => 'share'], Decision::sole()->search_context);
+    }
+
     public function test_inactive_restaurant_cannot_be_chosen(): void
     {
         $this->choose($this->makeRestaurant(['is_active' => false]), (string) Str::uuid())->assertNotFound();

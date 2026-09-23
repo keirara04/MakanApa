@@ -580,6 +580,8 @@ struct RecommendationResponse: Decodable, Equatable {
         let hasWhatIf: Bool?
         let canTune: Bool?
         let fatigue: Bool?
+        /// Server-built share link ("Send to geng"). Optional for older backends.
+        let shareUrl: String?
     }
 
     /// Whether the typed craving (if any) matched something nearby — decoded but not yet
@@ -692,13 +694,14 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
     let groupSize: Int
     let latitude: Double
     let longitude: Double
+    let shareUrl: String?
 
     var id: String { restaurantId.map(String.init) ?? googlePlaceId ?? name }
 
     private enum CodingKeys: String, CodingKey {
         case provenance, id, restaurantId, googlePlaceId, name, address, category, cuisine, distanceKm
         case priceLevel, rating, openStatus, closesAt, halal, isCommunityFind, groupKey, groupSize
-        case latitude, longitude
+        case latitude, longitude, shareUrl
     }
 
     init(from decoder: Decoder) throws {
@@ -722,6 +725,7 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
         groupSize = try c.decodeIfPresent(Int.self, forKey: .groupSize) ?? 1
         latitude = try c.decode(Double.self, forKey: .latitude)
         longitude = try c.decode(Double.self, forKey: .longitude)
+        shareUrl = try c.decodeIfPresent(String.self, forKey: .shareUrl)
     }
 
     /// The canonical marker/sheet shape — so the sheet's first paint already has the right open
@@ -764,6 +768,12 @@ struct ChooseRestaurantRequestBody: Encodable {
     let latitude: Double?
     let longitude: Double?
     let search: SearchContext?
+    /// share | nudge | search | community | recommendation | nearby
+    let openedFrom: String?
+}
+
+struct NudgeEventRequestBody: Encodable {
+    let event: String
 }
 
 struct ChooseRestaurantResponse: Decodable {
@@ -823,6 +833,10 @@ typealias NearbyPickResponse = RecommendationResponse
 struct PlaceDetails: Decodable, Equatable {
     let id: Int
     let name: String
+    /// Optional: older backends didn't send them. Needed to open a place from a link.
+    let latitude: Double?
+    let longitude: Double?
+    let shareUrl: String?
     let foodCategory: String?
     let rating: Double?
     let priceLevel: Int?
@@ -880,6 +894,7 @@ struct NotificationPreferences: Codable, Equatable {
     var releaseAnnouncements: Bool
     var communityReplies: Bool
     var communityReactions: Bool
+    var mealtimeNudges: Bool
 
     private enum CodingKeys: String, CodingKey {
         case communitySubmissions = "community_submissions"
@@ -887,6 +902,7 @@ struct NotificationPreferences: Codable, Equatable {
         case releaseAnnouncements = "release_announcements"
         case communityReplies = "community_replies"
         case communityReactions = "community_reactions"
+        case mealtimeNudges = "mealtime_nudges"
     }
 
     // decodeIfPresent for the community keys — an older API build that predates community
@@ -898,6 +914,7 @@ struct NotificationPreferences: Codable, Equatable {
         releaseAnnouncements = try container.decode(Bool.self, forKey: .releaseAnnouncements)
         communityReplies = try container.decodeIfPresent(Bool.self, forKey: .communityReplies) ?? true
         communityReactions = try container.decodeIfPresent(Bool.self, forKey: .communityReactions) ?? false
+        mealtimeNudges = try container.decodeIfPresent(Bool.self, forKey: .mealtimeNudges) ?? false
     }
 }
 
@@ -911,6 +928,7 @@ struct UpdateNotificationPreferencesRequestBody: Encodable {
     var releaseAnnouncements: Bool? = nil
     var communityReplies: Bool? = nil
     var communityReactions: Bool? = nil
+    var mealtimeNudges: Bool? = nil
 
     private enum CodingKeys: String, CodingKey {
         case communitySubmissions = "community_submissions"
@@ -918,6 +936,7 @@ struct UpdateNotificationPreferencesRequestBody: Encodable {
         case releaseAnnouncements = "release_announcements"
         case communityReplies = "community_replies"
         case communityReactions = "community_reactions"
+        case mealtimeNudges = "mealtime_nudges"
     }
 }
 

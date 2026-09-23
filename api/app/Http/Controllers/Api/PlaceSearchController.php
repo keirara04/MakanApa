@@ -7,6 +7,7 @@ use App\Models\SearchMiss;
 use App\Services\Halal\HalalPresenter;
 use App\Services\PlacesService;
 use App\Support\RecommendationHeadline;
+use App\Support\ShareLinks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -121,6 +122,7 @@ class PlaceSearchController extends Controller
             'closesAt' => $result['closes_at'] ?? null,
             'halal' => $this->halalPresenter->summaryFromArray($result),
             'isCommunityFind' => $result['is_community_find'] ?? false,
+            'shareUrl' => isset($result['id']) ? ShareLinks::place($result['id'], $result['name']) : null,
             'groupKey' => $result['group_key'] ?? null,
             'groupSize' => $result['group_size'] ?? 1,
 

@@ -94,6 +94,11 @@ final class NearbyViewModel {
     private(set) var searchSession: SearchSession?
     private(set) var isSearching = false
     private(set) var searchError: APIError?
+    /// How the open place sheet was reached (share link, nudge, search, …) — sent with
+    /// "Makan sini" so every entry point is attributed the same way. Nil = browsing the map.
+    private(set) var openedPlaceSource: PlaceOpenSource?
+    /// The mealtime nudge that opened the current sheet, if any — its funnel gets the sheet's actions.
+    private(set) var openedNudgeId: Int?
     /// The search result the open place sheet came from — its address/closing time/branches
     /// paint the sheet immediately. Nil when the sheet was opened from a marker or the panel.
     private(set) var selectedSearchResult: PlaceSearchResult?
@@ -105,8 +110,11 @@ final class NearbyViewModel {
     /// The selected search result's coordinate — drives the map's one-off "focus" recenter.
     var focusCoordinate: CLLocationCoordinate2D?
     var focusRequestId = 0
-    /// Bumped to make the map fit every result pin (Show all on map).
+    /// Bumped to make the map fit the top result pins (Show all on map).
     private(set) var fitResultsRequestId = 0
+    /// A gentle pan (no zoom change) to a result swiped to in the carousel or tapped on the map.
+    private(set) var panCoordinate: CLLocationCoordinate2D?
+    private(set) var panRequestId = 0
 
     private var searchTask: Task<Void, Never>?
     /// Only the newest request may write results — an older, slower response is dropped.
@@ -126,7 +134,8 @@ final class NearbyViewModel {
             SearchPin(
                 id: result.id, rank: index + 1,
                 coordinate: CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude),
-                isTop: index == 0, isSelected: result.id == session.selectedResultId
+                // The selected pin is the red one; #1 only stands out until something is selected.
+                isTop: index == 0 && session.selectedResultId == nil, isSelected: result.id == session.selectedResultId
             )
         }
     }
@@ -408,6 +417,8 @@ final class NearbyViewModel {
         searchSession?.selectedResultId = result.id
         if let query = searchSession?.query { RecentSearchStore.record(query) }
         selectedSearchResult = result
+        openedPlaceSource = .search
+        openedNudgeId = nil
 
         expectProgrammaticMove(.searchSelection)
         focusCoordinate = CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude)
@@ -447,14 +458,68 @@ final class NearbyViewModel {
     @MainActor
     func clearSelectedSearchResult() {
         selectedSearchResult = nil
+        openedPlaceSource = nil
+        openedNudgeId = nil
+    }
+
+    /// One flow for every "open this place" entry point that isn't a map tap — a shared link, a
+    /// mealtime nudge, and later Geng/community links: fetch details, give it a pin, focus the
+    /// camera and open its sheet. Returns nil (and sets `apiError`) if it can't be opened.
+    @MainActor
+    func openPlace(_ request: PlaceOpenRequest) async -> NearbyPlace? {
+        do {
+            let details = try await APIClient.placeDetails(restaurantId: request.restaurantId)
+            guard let latitude = details.latitude, let longitude = details.longitude else { return nil }
+            let place = NearbyPlace(
+                id: details.id, name: details.name, rating: details.rating, priceLevel: details.priceLevel,
+                latitude: latitude, longitude: longitude, openStatus: details.openStatus, halal: nil
+            )
+
+            selectedSearchResult = nil
+            openedPlaceSource = request.source
+            openedNudgeId = request.nudgeId
+            if let nudgeId = request.nudgeId {
+                Task { _ = try? await APIClient.nudgeEvent(nudgeId: nudgeId, event: "place_opened") }
+            }
+            if !places.contains(where: { $0.id == place.id }) {
+                places.append(place)
+            }
+            expectProgrammaticMove(.programmatic)
+            focusCoordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            focusRequestId += 1
+            highlightedSearchPlaceId = place.id
+            winnerPlaceId = nil
+            placeDetails = details
+            selectedPlace = place
+            return place
+        } catch let error as APIError {
+            apiError = error
+            return nil
+        } catch {
+            apiError = .transport(error)
+            return nil
+        }
     }
 
     @MainActor
     func showAllResultsOnMap() {
-        guard searchSession?.results.isEmpty == false else { return }
+        guard let first = searchSession?.results.first else { return }
         searchSession?.presentation = .map
+        if searchSession?.selectedResultId == nil {
+            searchSession?.selectedResultId = first.id
+        }
         expectProgrammaticMove(.showAllResults)
         fitResultsRequestId += 1
+    }
+
+    /// Map mode: highlight a result's pin and pan to it, without opening it.
+    @MainActor
+    func focusSearchResult(_ result: PlaceSearchResult) {
+        guard searchSession?.selectedResultId != result.id else { return }
+        searchSession?.selectedResultId = result.id
+        expectProgrammaticMove(.showAllResults)
+        panCoordinate = CLLocationCoordinate2D(latitude: result.latitude, longitude: result.longitude)
+        panRequestId += 1
     }
 
     @MainActor
@@ -494,7 +559,8 @@ final class NearbyViewModel {
             clientChoiceId: choiceId,
             installationId: InstallationID.current,
             latitude: userLocation?.latitude, longitude: userLocation?.longitude,
-            search: fromSearch.map { .init(query: $0.query, radiusKm: $0.radiusKm, source: $0.source) }
+            search: fromSearch.map { .init(query: $0.query, radiusKm: $0.radiusKm, source: $0.source) },
+            openedFrom: (openedPlaceSource ?? .nearby).rawValue
         )
 
         do {
@@ -509,6 +575,9 @@ final class NearbyViewModel {
             PendingVibePromptStore.shared.recordAccept(
                 decisionId: response.decisionId, clientToken: response.clientToken, restaurantName: place.name
             )
+            if let nudgeId = openedNudgeId {
+                Task { _ = try? await APIClient.nudgeEvent(nudgeId: nudgeId, event: "makan_sini") }
+            }
             return response
         } catch let error as APIError {
             choiceStates[place.id] = .failed

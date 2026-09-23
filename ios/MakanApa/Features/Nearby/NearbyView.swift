@@ -24,6 +24,7 @@ struct NearbyView: View {
     @State private var showingAddPlace = false
     @State private var showNotificationPriming = false
     @State private var recentSearches = RecentSearchStore.queries
+    @State private var pendingDeepLink = PendingDeepLink.shared
     private var preferences = PlacePreferencesStore.shared
 
     private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
@@ -68,10 +69,13 @@ struct NearbyView: View {
                 if let apiError = viewModel.apiError {
                     errorBanner(for: apiError)
                 }
-                if viewModel.isZoomedTooFarOut {
-                    zoomPrompt
-                } else if viewModel.showSearchThisArea {
-                    searchThisAreaPill
+                // Neither applies while browsing search results — the pins are what's on the map.
+                if !isSearchActive {
+                    if viewModel.isZoomedTooFarOut {
+                        zoomPrompt
+                    } else if viewModel.showSearchThisArea {
+                        searchThisAreaPill
+                    }
                 }
             }
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: isSearchActive)
@@ -106,9 +110,11 @@ struct NearbyView: View {
             if isSearchActive, isShowingResultsOnMap, let session = viewModel.searchSession {
                 VStack {
                     Spacer()
-                    SearchResultsCarousel(session: session) { result in
-                        Task { await selectSearchResult(result) }
-                    }
+                    SearchResultsCarousel(
+                        session: session,
+                        onFocus: { viewModel.focusSearchResult($0) },
+                        onOpen: { result in Task { await selectSearchResult(result) } }
+                    )
                 }
                 .padding(.bottom, 8)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -140,6 +146,13 @@ struct NearbyView: View {
             }
         }
         .animation(Motion.standard, value: viewModel.selectedPlace == nil)
+        .onChange(of: pendingDeepLink.placeRequest, initial: true) { _, request in
+            // A shared link or nudge asked for a place — same sheet as any other entry point.
+            guard let request else { return }
+            pendingDeepLink.placeRequest = nil
+            if isSearchActive { closeSearch() }
+            Task { _ = await viewModel.openPlace(request) }
+        }
         .sheet(item: $viewModel.selectedPlace) { place in
             placeSheet(for: place)
                 .presentationDetents([.medium, .large])
@@ -169,6 +182,8 @@ struct NearbyView: View {
             temporarySearchCoordinate: viewModel.temporarySearchCoordinate,
             searchPins: viewModel.searchPins,
             fitSearchPinsRequestId: viewModel.fitResultsRequestId,
+            panTarget: viewModel.panCoordinate,
+            panRequestId: viewModel.panRequestId,
             onCameraIdle: { viewport, zoom in
                 currentViewport = viewport
                 currentZoom = zoom
@@ -178,8 +193,10 @@ struct NearbyView: View {
                 selectPlace(place)
             },
             onSearchPinTapped: { resultId in
+                // Like Google Maps: a pin tap highlights it and brings its card up; the card opens it.
                 guard let result = viewModel.searchSession?.results.first(where: { $0.id == resultId }) else { return }
-                Task { await selectSearchResult(result) }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                viewModel.focusSearchResult(result)
             }
         )
     }
@@ -858,6 +875,32 @@ struct NearbyView: View {
                             .clipShape(Capsule())
                     }
                     makanSiniButton(for: place)
+                }
+
+                if viewModel.openedPlaceSource == .nudge {
+                    // A nudge suggested this — one tap to let MakanApa pick something else instead.
+                    Button {
+                        let nudgeId = viewModel.openedNudgeId
+                        viewModel.selectedPlace = nil
+                        PendingDeepLink.shared.destination = .quickPick(nudgeId: nudgeId)
+                    } label: {
+                        Label("Pick something else", systemImage: "sparkles")
+                            .font(.makanBody(13))
+                            .foregroundStyle(Color.sambalRed)
+                            .frame(minHeight: 36)
+                    }
+                }
+
+                if let shareUrl = details?.shareUrl ?? summary?.shareUrl {
+                    SendToGengButton(
+                        restaurantId: place.id,
+                        shareUrl: shareUrl,
+                        message: SendToGengButton.message(
+                            name: place.name,
+                            whereText: summary?.address ?? summary?.category,
+                            distanceKm: nil
+                        )
+                    )
                 }
 
                 // Right under the actions, not buried below the menu: vouching is the main way

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MarketingEvent;
 use App\Models\Restaurant;
 use App\Models\RestaurantSave;
 use App\Services\SearchChoiceService;
@@ -50,6 +51,7 @@ class RestaurantController extends Controller
             'search.query' => ['nullable', 'string', 'max:100'],
             'search.radiusKm' => ['nullable', 'numeric', 'between:1,25'],
             'search.source' => ['nullable', 'in:local,google,mixed'],
+            'openedFrom' => ['nullable', 'in:share,nudge,search,community,recommendation,nearby'],
         ]);
 
         $result = $choices->choose($request->user(), $restaurant, $data['clientChoiceId'], [
@@ -59,6 +61,7 @@ class RestaurantController extends Controller
             'query' => $data['search']['query'] ?? null,
             'radiusKm' => isset($data['search']['radiusKm']) ? (float) $data['search']['radiusKm'] : null,
             'source' => $data['search']['source'] ?? null,
+            'openedFrom' => $data['openedFrom'] ?? null,
         ]);
 
         return response()->json([
@@ -66,6 +69,21 @@ class RestaurantController extends Controller
             'clientToken' => $result['decision']->client_token,
             'created' => $result['created'],
         ], $result['created'] ? 201 : 200);
+    }
+
+    /**
+     * The first step of the share funnel — "Send to geng" tapped in the app. The rest
+     * (view / open app / get app) is counted by the public share page itself.
+     */
+    public function shareStarted(Restaurant $restaurant): JsonResponse
+    {
+        MarketingEvent::create([
+            'event' => MarketingEvent::SHARE_STARTED,
+            'source' => 'share',
+            'restaurant_id' => $restaurant->id,
+        ]);
+
+        return response()->json(['recorded' => true], 201);
     }
 
     public function unsave(Request $request, Restaurant $restaurant): JsonResponse

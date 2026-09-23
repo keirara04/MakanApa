@@ -18,6 +18,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var isQuickPicking = false
     @State private var vibeFollowUp: PendingVibePrompt?
+    @State private var pendingDeepLink = PendingDeepLink.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var quickPickTask: Task<Void, Never>?
 
@@ -62,6 +63,15 @@ struct HomeView: View {
             .presentationDetents([.height(260)])
         }
         .onAppear { checkVibeFollowUp() }
+        .onChange(of: pendingDeepLink.quickPickRequest, initial: true) { _, request in
+            // A generic mealtime nudge (or "Pick something else") asked for a one-tap pick.
+            guard let request else { return }
+            pendingDeepLink.quickPickRequest = nil
+            if let nudgeId = request.nudgeId {
+                Task { _ = try? await APIClient.nudgeEvent(nudgeId: nudgeId, event: "quick_pick_started") }
+            }
+            startQuickPick()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { checkVibeFollowUp() }
         }

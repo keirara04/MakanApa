@@ -28,7 +28,7 @@ class SearchChoiceService
     public function __construct(private readonly TasteEventRecorder $recorder) {}
 
     /**
-     * @param  array{query?: ?string, radiusKm?: ?float, source?: ?string, latitude?: ?float, longitude?: ?float, installationId?: ?string}  $context
+     * @param  array{query?: ?string, radiusKm?: ?float, source?: ?string, openedFrom?: ?string, latitude?: ?float, longitude?: ?float, installationId?: ?string}  $context
      * @return array{decision: Decision, created: bool}
      */
     public function choose(?User $user, Restaurant $restaurant, string $clientChoiceId, array $context): array
@@ -62,6 +62,8 @@ class SearchChoiceService
                         'query' => $context['query'] ?? null,
                         'radiusKm' => $context['radiusKm'] ?? null,
                         'source' => $context['source'] ?? null,
+                        // share | nudge | search | … — how the user reached the place they chose.
+                        'openedFrom' => $context['openedFrom'] ?? null,
                     ], fn ($value) => $value !== null),
                 ]);
 

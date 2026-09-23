@@ -2,7 +2,7 @@ import UIKit
 import UserNotifications
 
 /// Bridges UIKit's push notification callbacks into the SwiftUI app via `UIApplicationDelegateAdaptor`.
-/// Stays dumb on purpose: registers the device token and reports which `PushDestination` was
+/// Stays dumb on purpose: registers the device token and reports which `DeepLinkDestination` was
 /// tapped — it never decides what either of those things should *do* in the app.
 final class PushNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -46,7 +46,7 @@ final class PushNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNot
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
     ) async {
-        guard let destination = PushDestination(userInfo: response.notification.request.content.userInfo) else { return }
+        guard let destination = DeepLinkDestination(userInfo: response.notification.request.content.userInfo) else { return }
         await MainActor.run {
             PendingDeepLink.shared.destination = destination
         }

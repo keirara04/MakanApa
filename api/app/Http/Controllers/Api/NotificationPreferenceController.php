@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateNotificationPreferencesRequest;
+use App\Services\Nudges\MealNudgeDispatcher;
 use App\Support\NotificationCategory;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,14 +19,23 @@ class NotificationPreferenceController extends Controller
         ]);
     }
 
-    public function update(UpdateNotificationPreferencesRequest $request): JsonResponse
+    public function update(UpdateNotificationPreferencesRequest $request, MealNudgeDispatcher $nudges): JsonResponse
     {
         $user = $request->user();
+        $wantedNudges = $user->wantsNotification(NotificationCategory::MEALTIME_NUDGES);
         $user->notification_preferences = array_merge(
             $this->resolved($user),
             $request->validated(),
         );
         $user->save();
+
+        // Turning mealtime picks on (again) is a clean slate — back-off and any stop are reset.
+        $wantsNudges = $user->wantsNotification(NotificationCategory::MEALTIME_NUDGES);
+        if ($wantsNudges && ! $wantedNudges) {
+            $nudges->optIn($user, CarbonImmutable::now());
+        } elseif (! $wantsNudges && $wantedNudges) {
+            $nudges->optOut($user);
+        }
 
         return response()->json([
             'preferences' => $this->resolved($user),

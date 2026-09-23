@@ -17,10 +17,11 @@
         <meta property="og:title" content="@yield('title', 'MakanApa')">
         <meta property="og:description" content="@yield('description', 'MakanApa: what to eat, decided in seconds.')">
         <meta property="og:url" content="{{ url()->current() }}">
-        <meta property="og:image" content="{{ asset('images/og.png') }}">
+        <meta property="og:image" content="@yield('og_image', asset('images/og.png'))">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta property="og:image:alt" content="MakanApa mascot with the line: Stop deciding. Start makan.">
+        <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa mascot with the line: Stop deciding. Start makan.')">
+        @stack('meta')
         <meta name="twitter:card" content="summary_large_image">
 
         @fonts

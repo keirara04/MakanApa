@@ -3,15 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\MarketingEvent;
+use App\Support\BotUserAgent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MarketingController extends Controller
 {
-    /** Link-preview fetchers and scripts shouldn't inflate the funnel. */
-    private const BOT_PATTERN = '/bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegram|curl|wget|python|headless/i';
-
     public function home(Request $request): View
     {
         if (! $this->isBot($request)) {
@@ -41,6 +39,6 @@ class MarketingController extends Controller
 
     private function isBot(Request $request): bool
     {
-        return (bool) preg_match(self::BOT_PATTERN, (string) $request->userAgent());
+        return BotUserAgent::matches($request->userAgent());
     }
 }

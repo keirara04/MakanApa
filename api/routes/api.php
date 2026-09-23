@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DecisionBrainController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\HalalController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\MealNudgeController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
@@ -61,6 +62,7 @@ Route::prefix('v1')->group(function () {
         Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::patch('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
         Route::get('me/notifications', [NotificationController::class, 'index']);
+        Route::post('me/nudges/{nudge}/events', [MealNudgeController::class, 'event'])->middleware('throttle:30,1,nudge-events');
         Route::post('me/notifications/read-all', [NotificationController::class, 'readAll']);
         Route::post('me/notifications/{notification}/read', [NotificationController::class, 'read']);
         Route::delete('auth/me', [AuthController::class, 'destroy'])->middleware('throttle:delete-account');
@@ -151,6 +153,7 @@ Route::prefix('v1')->group(function () {
         Route::post('restaurants/{restaurant}/unsave', [RestaurantController::class, 'unsave']);
         // "Makan sini" from search — writes an accepted decision; idempotent on clientChoiceId.
         Route::post('restaurants/{restaurant}/choose', [RestaurantController::class, 'choose'])->middleware('throttle:30,1,search-choose');
+        Route::post('restaurants/{restaurant}/share-events', [RestaurantController::class, 'shareStarted'])->middleware('throttle:30,1,share-events');
 
         Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine']);
         Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update']);

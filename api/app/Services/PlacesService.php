@@ -208,6 +208,21 @@ class PlacesService
     }
 
     /**
+     * Restaurants already in MakanApa's database near a point — never syncs from Google, never
+     * costs a Places call. For background work (mealtime nudges) that must stay cheap and
+     * predictable; request-time recommendations use nearbyRestaurants() instead.
+     *
+     * @return array<int, array<string, mixed>> Restaurant::toRecommendationArray() rows
+     */
+    public function localRestaurantsNear(float $latitude, float $longitude, float $radiusKm): array
+    {
+        return array_merge(
+            $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $this->includedTypesFor(null)),
+            $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
+        );
+    }
+
+    /**
      * Restaurant name/food/category/cuisine/dish search, scoped to a radius around the caller's
      * Nearby browse center. MakanApa's own DB is searched first and always included; Google Text
      * Search is a supplemental fallback — automatic only while local strong matches are thin
