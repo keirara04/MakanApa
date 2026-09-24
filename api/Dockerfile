@@ -24,8 +24,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev \
         libzip-dev \
         libicu-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
         unzip \
-    && docker-php-ext-install pdo pdo_pgsql opcache intl \
+    # GD — RestaurantPhotoUploadService decodes/re-encodes every uploaded photo. php:8.4-apache
+    # doesn't ship it, and without it every photo upload 500s (tests pass locally, where PHP has GD).
+    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_pgsql opcache intl gd \
     # phpredis — CACHE_STORE/QUEUE_CONNECTION=redis (see .env.staging.example).
     && pecl install redis \
     && docker-php-ext-enable redis \

@@ -14,6 +14,10 @@ struct OwnerClaimSheet: View {
     @State private var isSending = false
     @State private var errorMessage: String?
     @State private var isDone = false
+    /// Proof already attached to the claim draft — a retry skips these instead of uploading twice.
+    @State private var uploaded: Set<PhotosPickerItem> = []
+
+    private struct UnreadablePhoto: Error {}
 
     var body: some View {
         NavigationStack {
@@ -63,18 +67,23 @@ struct OwnerClaimSheet: View {
                 contactPhone: phone.trimmingCharacters(in: .whitespaces),
                 notes: notes.isEmpty ? nil : notes
             ))
-            for item in proofItems {
+            for item in proofItems where !uploaded.contains(item) {
                 guard let data = try await item.loadTransferable(type: Data.self),
                       let jpeg = UIImage(data: data)?.resizedIfNeeded(maxDimension: 1600).jpegData(compressionQuality: 0.85)
-                else { continue }
+                else { throw UnreadablePhoto() }
                 _ = try await APIClient.uploadSubmissionPhoto(submissionId: claim.submission.id, jpegData: jpeg, photoType: "other")
+                uploaded.insert(item)
             }
             _ = try await APIClient.submitSubmission(id: claim.submission.id)
             isDone = true
         } catch APIError.server(let status) where status == 422 {
             errorMessage = "You already have a claim open for this place, or you're already its owner."
+        } catch APIError.transport {
+            errorMessage = "Couldn't send your claim. Check your connection and try again."
+        } catch is UnreadablePhoto {
+            errorMessage = "Couldn't read one of your photos. Remove it and pick it again."
         } catch {
-            errorMessage = "Couldn't send your claim. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't send your claim. Try again."
         }
     }
 }

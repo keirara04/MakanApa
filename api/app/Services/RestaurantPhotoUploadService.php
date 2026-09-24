@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 /**
@@ -28,7 +29,10 @@ class RestaurantPhotoUploadService
 
         $disk = Config::get('restaurant_photos.pending_disk');
         $path = "restaurant-submissions/{$submission->id}/".Str::uuid().'.jpg';
-        Storage::disk($disk)->put($path, $reencoded);
+        // Disks are configured `throw => false` — a failed write only shows up as `false`.
+        if (! Storage::disk($disk)->put($path, $reencoded)) {
+            throw new RuntimeException("Could not store photo on the {$disk} disk.");
+        }
 
         return RestaurantPhoto::create([
             'restaurant_submission_id' => $submission->id,
@@ -50,8 +54,10 @@ class RestaurantPhotoUploadService
         $maxDimension = (int) Config::get('restaurant_photos.max_dimension_px', 1600);
 
         $image = @imagecreatefromstring(file_get_contents($path));
+        // Passed the `image` rule but GD can't read it (truncated/odd encoding) — a 422 the app
+        // can show, not a 500 it reads as a dropped connection.
         if ($image === false) {
-            throw new RuntimeException('Could not decode uploaded image.');
+            throw ValidationException::withMessages(['photo' => "We couldn't read that photo. Try a different one."]);
         }
 
         $width = imagesx($image);

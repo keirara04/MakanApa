@@ -32,8 +32,18 @@ class RestaurantPhotoPromotionService
         $copied = [];
 
         foreach ($photos as $photo) {
-            $newPath = "restaurants/{$restaurant->id}/".Str::uuid().'.jpg';
             $contents = Storage::disk($photo->disk)->get($photo->path);
+            // Source gone (pending disk wiped by a redeploy, or pruned) — `get` returns null on
+            // these non-throwing disks, and copying that would publish an empty file. Drop the
+            // dead row instead of blocking the approval on a photo nobody can see anyway.
+            if ($contents === null) {
+                Log::warning('Pending photo missing at promotion, dropping it', ['photo' => $photo->id, 'disk' => $photo->disk, 'path' => $photo->path]);
+                $photo->delete();
+
+                continue;
+            }
+
+            $newPath = "restaurants/{$restaurant->id}/".Str::uuid().'.jpg';
             Storage::disk($publicDisk)->put($newPath, $contents);
 
             if (Storage::disk($publicDisk)->size($newPath) !== strlen($contents)) {

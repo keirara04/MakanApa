@@ -1049,6 +1049,19 @@ struct HalalMyReport: Decodable, Equatable {
     let status: String
     let claim: HalalStatus?
     let reviewNote: String?
+    // What the user already sent, so "Finish your vouch" / "Add evidence" reopens prefilled.
+    let comment: String?
+    let certificationAuthority: CertificationAuthority?
+    let certificateNumber: String?
+    let certificateExpiresAt: String?
+    /// Photos already attached server-side — they count toward `maxPhotos` per report.
+    let photoCount: Int?
+    let certPhotoCount: Int?
+    let maxPhotos: Int?
+
+    /// Only an unsent draft or a report sent back for more evidence can be added to; a pending
+    /// one is locked until reviewed, and a decided one means the next vouch starts fresh.
+    var isResumable: Bool { status == "draft" || status == "changes_requested" }
 }
 
 struct HalalHistoryEntry: Decodable, Equatable, Identifiable {

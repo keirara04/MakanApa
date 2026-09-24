@@ -163,7 +163,9 @@ Route::prefix('v1')->group(function () {
         // tighter limit than the general local-DB throttle above since this writes new data
         // that auto-publishes with no review step until an admin acts on it.
         Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1,submissions');
-        Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:5,1,submission-photos');
+        // Above one full report's worth (max_per_submission) so a retry right after a failed
+        // send isn't throttled; the per-submission cap still bounds the total.
+        Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:10,1,submission-photos');
         Route::post('restaurants/{restaurant}/photos/quick-add', [RestaurantSubmissionController::class, 'quickAddPhoto'])->middleware('throttle:5,1,quick-add-photos');
 
         // Halal trust: evidence reports + ownership claims enter moderation like any submission.

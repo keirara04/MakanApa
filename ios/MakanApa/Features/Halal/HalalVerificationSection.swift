@@ -21,7 +21,7 @@ struct HalalVerificationSection: View {
                 .foregroundStyle(.secondary)
                 .tracking(0.5)
 
-            HalalBadge(display: halal.display, size: .regular) { showingReport = true }
+            HalalBadge(display: halal.display, size: .regular) { if canVouch { showingReport = true } }
 
             if let line = halal.display.verificationLabel {
                 Text(line)
@@ -64,7 +64,7 @@ struct HalalVerificationSection: View {
         .background(Color.kicap.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .sheet(isPresented: $showingReport, onDismiss: { onVouched?() }) {
-            HalalReportSheet(restaurantId: restaurantId, restaurantName: restaurantName)
+            HalalReportSheet(restaurantId: restaurantId, restaurantName: restaurantName, existing: halal.myReport)
         }
         .sheet(isPresented: $showingHistory) {
             NavigationStack {
@@ -78,6 +78,9 @@ struct HalalVerificationSection: View {
 }
 
 extension HalalVerificationSection {
+    /// A pending vouch is locked until reviewed — the API would refuse a second one anyway.
+    private var canVouch: Bool { halal.myReport?.status != "pending" }
+
     /// The primary ask when this user hasn't vouched yet — one tap into the vouch sheet.
     private var vouchPrompt: some View {
         Button {
@@ -214,5 +217,7 @@ enum HalalDates {
 
     static func apiDate(_ date: Date) -> String { date.formatted(dateOnly) }
 
-    static func parseForTests(_ raw: String) -> Date? { try? Date(raw, strategy: dateOnly) }
+    static func parse(_ raw: String) -> Date? { try? Date(raw, strategy: dateOnly) }
+
+    static func parseForTests(_ raw: String) -> Date? { parse(raw) }
 }

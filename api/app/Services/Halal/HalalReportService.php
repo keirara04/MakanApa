@@ -10,7 +10,10 @@ use App\Models\RestaurantSubmission;
 use App\Models\User;
 use App\Services\Judgment\JudgmentResult;
 use App\Support\Halal\HalalStatus;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * Community/owner halal evidence intake. Reports are just another community submission type
@@ -20,6 +23,9 @@ use Illuminate\Support\Facades\DB;
 class HalalReportService
 {
     public const OPEN_STATUSES = ['draft', 'pending', 'changes_requested'];
+
+    /** Reports a moderator still has to act on. Drafts never reach the queue — the daily `halal-reports` cap bounds them. */
+    public const IN_REVIEW_STATUSES = ['pending', 'changes_requested'];
 
     public const MAX_OPEN_PER_USER = 10;
 
@@ -32,10 +38,13 @@ class HalalReportService
      * One open report per user per restaurant. The restaurant row lock serializes concurrent
      * creates (two taps, two devices) — a status-dependent "open" can't be a plain unique index.
      * An existing draft/changes_requested report is updated and returned instead of duplicated.
+     * Switching an existing report away from "certified" drops its certificate photos.
      */
     public function open(User $user, Restaurant $restaurant, array $data): RestaurantSubmission
     {
-        return DB::transaction(function () use ($user, $restaurant, $data) {
+        $droppedCertPhotos = collect();
+
+        $submission = DB::transaction(function () use ($user, $restaurant, $data, &$droppedCertPhotos) {
             $restaurant = Restaurant::whereKey($restaurant->canonicalRestaurant()->id)->lockForUpdate()->firstOrFail();
 
             $existing = RestaurantSubmission::where('user_id', $user->id)
@@ -47,9 +56,10 @@ class HalalReportService
             abort_if($existing?->status === 'pending', 422, 'You already have a halal report waiting for review on this place.');
 
             if ($existing === null) {
+                // Abandoned drafts (e.g. a failed upload) don't count — only reports awaiting a moderator.
                 $openCount = RestaurantSubmission::where('user_id', $user->id)
                     ->where('submission_type', 'halal_report')
-                    ->whereIn('status', self::OPEN_STATUSES)
+                    ->whereIn('status', self::IN_REVIEW_STATUSES)
                     ->count();
                 abort_if($openCount >= self::MAX_OPEN_PER_USER, 429, 'You have too many halal reports open. Wait for some to be reviewed first.');
             }
@@ -65,6 +75,15 @@ class HalalReportService
 
             if ($existing) {
                 $existing->update($attributes);
+
+                // A cert photo left from an earlier "certified" attempt would otherwise ride along
+                // as evidence for a claim it doesn't support.
+                if ($attributes['halal_claim'] !== HalalStatus::Certified) {
+                    $droppedCertPhotos = RestaurantPhoto::where('restaurant_submission_id', $existing->id)
+                        ->where('photo_type', 'halal_cert')
+                        ->get(['id', 'disk', 'path']);
+                    RestaurantPhoto::whereKey($droppedCertPhotos->pluck('id'))->delete();
+                }
 
                 return $existing;
             }
@@ -85,6 +104,13 @@ class HalalReportService
                 'status' => 'draft',
             ]);
         });
+
+        // Files go only after the rows are gone for good — a rolled-back delete must still find them.
+        foreach ($droppedCertPhotos as $photo) {
+            Storage::disk($photo->disk)->delete($photo->path);
+        }
+
+        return $submission;
     }
 
     /**
@@ -106,7 +132,7 @@ class HalalReportService
             'Add a comment or at least one photo as evidence.'
         );
 
-        return DB::transaction(function () use ($submission) {
+        DB::transaction(function () use ($submission) {
             $breakdown = $this->priorityBreakdown($submission);
             $submission->update([
                 'status' => 'pending',
@@ -115,13 +141,18 @@ class HalalReportService
             ]);
 
             $this->snapshots->rebuild(Restaurant::findOrFail($submission->restaurant_id));
-
-            // Advisory AI triage runs in the background after commit — the user never waits,
-            // and a queue/AI outage only means "no AI badges", never a failed submission.
-            TriageHalalReport::dispatch($submission->id)->afterCommit();
-
-            return $submission;
         });
+
+        // Advisory AI triage runs in the background once the report is committed — the user never
+        // waits, and a queue/AI outage only means "no AI badges", never a failed submission.
+        try {
+            // Bus::dispatch, not dispatch(): the helper queues from PendingDispatch's destructor.
+            Bus::dispatch(new TriageHalalReport($submission->id));
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return $submission;
     }
 
     /** Called after any moderation decision so the open-report count / review state converge. */

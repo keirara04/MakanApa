@@ -98,6 +98,8 @@ struct AddPlaceFlow: View {
     // Photos
     @State private var photoPickerItems: [PhotosPickerItem] = []
     @State private var uploadedPhotos: [UploadedPhotoState] = []
+    /// Why the last picked photo didn't make it — otherwise a failed upload just vanishes.
+    @State private var photoError: String?
 
     // Submit
     @State private var isSubmitting = false
@@ -898,6 +900,15 @@ struct AddPlaceFlow: View {
     }
 
     private var photosRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            photosScroller
+            if let photoError {
+                InlineMessage(text: photoError, isError: true)
+            }
+        }
+    }
+
+    private var photosScroller: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(uploadedPhotos) { photo in
@@ -948,9 +959,13 @@ struct AddPlaceFlow: View {
     private func handlePickedPhotos(_ items: [PhotosPickerItem]) async {
         guard let submissionId = draftSubmissionId, !items.isEmpty else { return }
         photoPickerItems = []
+        photoError = nil
 
         for item in items {
-            guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else { continue }
+            guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+                photoError = "Couldn't read one of your photos. Try picking it again."
+                continue
+            }
             // Re-encoded to JPEG client-side (resizing if oversized) so HEIC never reaches the
             // backend — the server still independently decodes/re-encodes on receipt regardless.
             let resized = image.resizedIfNeeded(maxDimension: 1600)
@@ -971,6 +986,12 @@ struct AddPlaceFlow: View {
                 }
             } catch {
                 uploadedPhotos.removeAll { $0.id == stateId }
+                switch error as? APIError {
+                case .transport?: photoError = "Photo didn't upload — check your connection and try again."
+                case .rateLimited?: photoError = "Too many photos at once — wait a minute, then add the rest."
+                case let apiError?: photoError = apiError.serverMessage ?? "Photo didn't upload. Try again in a bit."
+                case nil: photoError = "Photo didn't upload. Try again in a bit."
+                }
             }
         }
     }
@@ -994,6 +1015,7 @@ struct AddPlaceFlow: View {
         draftDetailsFingerprint = nil
         draftLocationFingerprint = nil
         uploadedPhotos = []
+        photoError = nil
         draftError = nil
         submitError = nil
     }
@@ -1123,6 +1145,7 @@ struct AddPlaceFlow: View {
         draftDetailsFingerprint = nil
         draftLocationFingerprint = nil
         uploadedPhotos = []
+        photoError = nil
         createdSubmission = nil
         searchQuery = ""
         searchResults = nil

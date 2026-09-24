@@ -237,7 +237,7 @@ enum APIClient {
     /// Opens (or returns the caller's existing open) halal report draft. Evidence photos go
     /// through `uploadSubmissionPhoto`, then `submitSubmission` sends it for review.
     static func createHalalReport(restaurantId: Int, _ body: CreateHalalReportRequestBody) async throws -> HalalReportResponse {
-        try await post("restaurants/\(restaurantId)/halal-reports", body: body)
+        try await sendSurfacingMessage("POST", "restaurants/\(restaurantId)/halal-reports", body: body)
     }
 
     static func createOwnerClaim(restaurantId: Int, _ body: CreateOwnerClaimRequestBody) async throws -> OwnerClaimResponse {
@@ -353,8 +353,10 @@ enum APIClient {
         try await delete("community/submissions/\(id)")
     }
 
+    /// Surfaces the server's evidence-rule rejections ("A certified report needs a photo of the
+    /// halal certificate.") instead of a bare 422.
     static func submitSubmission(id: Int) async throws -> SubmitSubmissionResponse {
-        try await post("community/submissions/\(id)/submit", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "community/submissions/\(id)/submit", body: EmptyBody())
     }
 
     static func uploadSubmissionPhoto(submissionId: Int, jpegData: Data, photoType: String) async throws -> UploadPhotoResponse {
@@ -609,17 +611,22 @@ enum APIClient {
         request.httpBody = try encoder.encode(body)
 
         let (data, httpResponse) = try await send(request)
-        if (400..<500).contains(httpResponse.statusCode), httpResponse.statusCode != 401, httpResponse.statusCode != 429,
-           let errorBody = try? decoder.decode(ServerErrorBody.self, from: data),
-           let message = errorBody.errors?.values.first?.first ?? errorBody.message, !message.isEmpty {
-            throw APIError.rejected(statusCode: httpResponse.statusCode, message: message)
-        }
+        try throwIfRejected(data, httpResponse)
         try validate(httpResponse)
 
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
             throw APIError.decoding(error)
+        }
+    }
+
+    /// A 4xx (other than 401/429, which `validate` owns) whose body carries a readable message.
+    private static func throwIfRejected(_ data: Data, _ httpResponse: HTTPURLResponse) throws {
+        if (400..<500).contains(httpResponse.statusCode), httpResponse.statusCode != 401, httpResponse.statusCode != 429,
+           let errorBody = try? decoder.decode(ServerErrorBody.self, from: data),
+           let message = errorBody.errors?.values.first?.first ?? errorBody.message, !message.isEmpty {
+            throw APIError.rejected(statusCode: httpResponse.statusCode, message: message)
         }
     }
 
@@ -647,7 +654,9 @@ enum APIClient {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
 
+        // Upload rejections ("Maximum photos reached…", unreadable photo) carry a message worth showing.
         let (data, httpResponse) = try await send(request)
+        try throwIfRejected(data, httpResponse)
         try validate(httpResponse)
 
         do {

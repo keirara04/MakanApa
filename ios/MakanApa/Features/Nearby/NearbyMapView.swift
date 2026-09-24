@@ -33,9 +33,15 @@ struct NearbyMapView: UIViewRepresentable {
     /// Pan (keeping the current zoom) to a result the user swiped to or tapped in map mode.
     var panTarget: CLLocationCoordinate2D? = nil
     var panRequestId: Int = 0
+    /// The place whose sheet is open — kept out of clusters like the winner, so a place picked
+    /// from the area panel's list is never hidden inside a count bubble.
+    var selectedPlaceId: Int? = nil
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
     var onSearchPinTapped: (String) -> Void = { _ in }
+    /// Fires just before a cluster tap moves the camera, so the view model can treat the move
+    /// as the app's own and not raise "Search this area" (the places are already loaded).
+    var onClusterCameraMove: () -> Void = {}
 
     func makeUIView(context: Context) -> GMSMapView {
         let options = GMSMapViewOptions()
@@ -72,7 +78,7 @@ struct NearbyMapView: UIViewRepresentable {
 
         context.coordinator.sync(
             places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId,
-            highlightedSearchPlaceId: highlightedSearchPlaceId, on: mapView
+            highlightedSearchPlaceId: highlightedSearchPlaceId, selectedPlaceId: selectedPlaceId, on: mapView
         )
         context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
         context.coordinator.syncSearchPins(searchPins, on: mapView)
@@ -115,7 +121,10 @@ struct NearbyMapView: UIViewRepresentable {
     private static let fitResultCount = 5
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped, onSearchPinTapped: onSearchPinTapped)
+        Coordinator(
+            onCameraIdle: onCameraIdle, onMarkerTapped: onMarkerTapped,
+            onSearchPinTapped: onSearchPinTapped, onClusterCameraMove: onClusterCameraMove
+        )
     }
 
     @MainActor
@@ -129,6 +138,7 @@ struct NearbyMapView: UIViewRepresentable {
         private let onCameraIdle: (MapViewport, Float) -> Void
         private let onMarkerTapped: (NearbyPlace) -> Void
         private let onSearchPinTapped: (String) -> Void
+        private let onClusterCameraMove: () -> Void
         private var searchPinMarkers: [String: GMSMarker] = [:]
         private var lastSearchPins: [SearchPin] = []
         private var markersById: [Int: GMSMarker] = [:]
@@ -146,17 +156,44 @@ struct NearbyMapView: UIViewRepresentable {
         private var pulseDim = false
         private var temporarySearchMarker: GMSMarker?
 
+        // MARK: Clustering state
+        /// Last `places` / protected ids clustering ran against — `sync()` fires on every SwiftUI
+        /// update, so it only reclusters when one of these actually changed.
+        private var clusteredPlaces: [NearbyPlace] = []
+        /// Winner, highlighted search result and open sheet — always standalone markers.
+        private var protectedPlaceIds: Set<Int> = []
+        private var winnerPlaceId: Int?
+        /// Places currently folded into a count bubble (their markers are detached, not removed).
+        private var clusteredPlaceIds: Set<Int> = []
+        private var clusterMarkers: [String: GMSMarker] = [:]
+        private var fan: Fan?
+
+        /// A stacked cluster laid out as a ring of real pills around its spot, with legs back to it.
+        private struct Fan {
+            let zoom: Float
+            let positions: [Int: CLLocationCoordinate2D]
+            let legs: [GMSPolyline]
+        }
+
+        /// Zoom drift an open fan survives — past it the ring no longer matches pill spacing.
+        private static let fanZoomTolerance: Float = 0.25
+        private static let clusterZIndex: Int32 = 5
+        private static let fannedZIndex: Int32 = 6
+
         init(
             onCameraIdle: @escaping (MapViewport, Float) -> Void,
             onMarkerTapped: @escaping (NearbyPlace) -> Void,
-            onSearchPinTapped: @escaping (String) -> Void
+            onSearchPinTapped: @escaping (String) -> Void,
+            onClusterCameraMove: @escaping () -> Void
         ) {
             self.onCameraIdle = onCameraIdle
             self.onMarkerTapped = onMarkerTapped
             self.onSearchPinTapped = onSearchPinTapped
+            self.onClusterCameraMove = onClusterCameraMove
         }
 
         func mapView(_ mapView: GMSMapView, idleAt position: GMSCameraPosition) {
+            applyClustering(on: mapView)
             let bounds = GMSCoordinateBounds(region: mapView.projection.visibleRegion())
             let viewport = MapViewport(
                 north: bounds.northEast.latitude, south: bounds.southWest.latitude,
@@ -170,9 +207,25 @@ struct NearbyMapView: UIViewRepresentable {
                 onSearchPinTapped(pin.id)
                 return true
             }
+            if let cluster = marker.userData as? PlaceCluster {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if cluster.isStacked {
+                    expandFan(cluster, on: mapView)
+                } else {
+                    zoomInto(cluster, on: mapView)
+                }
+                return true
+            }
             guard let place = marker.userData as? NearbyPlace else { return false }
             onMarkerTapped(place)
             return true
+        }
+
+        /// Tapping empty map folds an open fan back into its bubble.
+        func mapView(_ mapView: GMSMapView, didTapAt coordinate: CLLocationCoordinate2D) {
+            guard fan != nil else { return }
+            collapseFan()
+            applyClustering(on: mapView)
         }
 
         /// Numbered result pins for Show all on map — #1 in brand red, the selected one larger,
@@ -200,8 +253,9 @@ struct NearbyMapView: UIViewRepresentable {
 
         func sync(
             places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?,
-            highlightedSearchPlaceId: Int?, on mapView: GMSMapView
+            highlightedSearchPlaceId: Int?, selectedPlaceId: Int?, on mapView: GMSMapView
         ) {
+            self.winnerPlaceId = winnerPlaceId
             let currentIds = Set(places.map(\.id))
 
             for (id, marker) in markersById where !currentIds.contains(id) {
@@ -212,15 +266,27 @@ struct NearbyMapView: UIViewRepresentable {
             for place in places {
                 let isWinner = winnerPlaceId == place.id
                 if let marker = markersById[place.id] {
-                    marker.position = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+                    marker.position = fan?.positions[place.id] ?? place.coordinate
                     marker.userData = place
                     applyIcon(id: place.id, marker: marker, rating: place.rating, isWinner: isWinner)
-                    marker.zIndex = isWinner ? 10 : 0
+                    marker.zIndex = zIndex(for: place.id)
                     applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
                 } else {
                     addMarker(for: place, winnerPlaceId: winnerPlaceId, staggerIndex: newIndex, on: mapView)
                     newIndex += 1
                 }
+            }
+
+            // Before the winner bounce / search highlight below — both need their marker out of
+            // any bubble, and protecting them here is what brings it back.
+            let protectedIds = Set([winnerPlaceId, highlightedSearchPlaceId, selectedPlaceId].compactMap { $0 })
+            if places != clusteredPlaces || protectedIds != protectedPlaceIds {
+                clusteredPlaces = places
+                protectedPlaceIds = protectedIds
+                applyClustering(on: mapView)
+            }
+            for marker in clusterMarkers.values {
+                marker.opacity = winnerPlaceId == nil ? 1.0 : 0.35
             }
 
             if let winnerPlaceId, winnerPlaceId != lastWinnerId, let marker = markersById[winnerPlaceId] {
@@ -294,9 +360,9 @@ struct NearbyMapView: UIViewRepresentable {
             let isWinner = winnerPlaceId == place.id
             let image = RatingBubbleRenderer.icon(rating: place.rating, isWinner: isWinner)
 
-            let marker = GMSMarker(position: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
+            let marker = GMSMarker(position: place.coordinate)
             marker.userData = place
-            marker.zIndex = isWinner ? 10 : 0
+            marker.zIndex = zIndex(for: place.id)
             marker.map = mapView
             markersById[place.id] = marker
             applyOpacity(marker, winnerPlaceId: winnerPlaceId, placeId: place.id)
@@ -322,6 +388,8 @@ struct NearbyMapView: UIViewRepresentable {
 
         private func removeMarker(id: Int, marker: GMSMarker) {
             markersById.removeValue(forKey: id)
+            // Already detached inside a cluster — nothing on screen to animate out.
+            guard marker.map != nil else { return }
             let iconView = iconViewsById[id] ?? activateIconView(id: id, marker: marker, image: marker.icon ?? RatingBubbleRenderer.icon(rating: nil, isWinner: false))
             UIView.animate(withDuration: 0.18, animations: {
                 iconView.alpha = 0
@@ -370,6 +438,167 @@ struct NearbyMapView: UIViewRepresentable {
             iconViewsById.removeValue(forKey: id)
         }
 
+        // MARK: - Clustering
+
+        /// Folds rating pills that would overlap into count bubbles. Runs on every camera idle and
+        /// whenever the places / protected set change — never per camera frame, so a pinch can
+        /// overlap pills for a moment until the camera settles. A pure pan yields the same groups
+        /// (same ids, same markers reused), so reclustering on it changes nothing on screen.
+        private func applyClustering(on mapView: GMSMapView) {
+            let zoom = mapView.camera.zoom
+            if let fan, abs(fan.zoom - zoom) >= Self.fanZoomTolerance
+                || !fan.positions.keys.allSatisfy({ markersById[$0] != nil }) {
+                collapseFan()
+            }
+            // Before first layout the projection maps every place onto one point — everything
+            // would read as stacked. Leave pills as they are; the first idle reclusters.
+            guard mapView.bounds.width > 0, mapView.bounds.height > 0 else { return }
+
+            let fannedIds: Set<Int> = fan.map { Set($0.positions.keys) } ?? []
+            // Unrated places are invisible markers (see RatingBubbleRenderer) — a bubble counting
+            // them would surface exactly the clutter they're hidden to avoid.
+            let inputs = clusteredPlaces.compactMap { place -> ClusterInput? in
+                guard let rating = place.rating, !protectedPlaceIds.contains(place.id),
+                      !fannedIds.contains(place.id) else { return nil }
+                return ClusterInput(
+                    placeId: place.id, rating: rating,
+                    point: mapView.projection.point(for: place.coordinate),
+                    size: RatingBubbleRenderer.icon(rating: rating, isWinner: false).size
+                )
+            }
+            let clusters = MarkerClusterer.clusters(inputs, zoom: zoom) { ClusterBubbleRenderer.icon(count: $0).size }
+
+            clusteredPlaceIds = Set(clusters.flatMap(\.memberIds))
+            for id in markersById.keys {
+                setPlaceMarker(id: id, visible: !clusteredPlaceIds.contains(id), on: mapView)
+            }
+
+            let liveClusterIds = Set(clusters.map(\.id))
+            for (id, marker) in clusterMarkers where !liveClusterIds.contains(id) {
+                marker.map = nil
+                clusterMarkers[id] = nil
+            }
+            for cluster in clusters {
+                let marker = clusterMarkers[cluster.id] ?? GMSMarker()
+                marker.position = mapView.projection.coordinate(for: cluster.point)
+                marker.userData = cluster
+                let icon = ClusterBubbleRenderer.icon(count: cluster.memberIds.count)
+                if marker.icon !== icon {
+                    marker.icon = icon
+                }
+                // Google uses the title as the marker's VoiceOver label; didTap returning true
+                // keeps it from ever opening an info window.
+                marker.title = "\(cluster.memberIds.count) places here"
+                marker.zIndex = Self.clusterZIndex
+                marker.opacity = winnerPlaceId == nil ? 1.0 : 0.35
+                if marker.map == nil {
+                    marker.appearAnimation = .pop
+                    marker.map = mapView
+                }
+                clusterMarkers[cluster.id] = marker
+            }
+        }
+
+        /// The one place that hides or re-shows a place marker for clustering. Hiding a marker
+        /// mid-animation (entrance pop, winner bounce) first drops it back to a static bitmap so no
+        /// stale live `iconView` outlives it; re-showing pops it in, so a split reads as the
+        /// bubble breaking apart.
+        private func setPlaceMarker(id: Int, visible: Bool, on mapView: GMSMapView) {
+            guard let marker = markersById[id] else { return }
+            if visible {
+                guard marker.map == nil else { return }
+                marker.appearAnimation = .pop
+                marker.map = mapView
+            } else {
+                guard marker.map != nil else { return }
+                if let iconView = iconViewsById.removeValue(forKey: id) {
+                    iconView.layer.removeAllAnimations()
+                    marker.iconView = nil
+                    marker.icon = iconView.image
+                }
+                marker.map = nil
+            }
+        }
+
+        /// Frames just this cluster's places — at least one zoom level closer so a tap always
+        /// makes progress, never past `maxExpansionZoom` (a group that still collides there is
+        /// stacked and fans out instead).
+        private func zoomInto(_ cluster: PlaceCluster, on mapView: GMSMapView) {
+            let bounds = cluster.memberIds
+                .compactMap { markersById[$0]?.userData as? NearbyPlace }
+                .reduce(GMSCoordinateBounds()) { $0.includingCoordinate($1.coordinate) }
+            guard let fitted = mapView.camera(for: bounds, insets: UIEdgeInsets(top: 60, left: 60, bottom: 60, right: 60)) else { return }
+            let zoom = min(max(fitted.zoom, mapView.camera.zoom + 1), MarkerClusterer.maxExpansionZoom)
+            onClusterCameraMove()
+            mapView.animate(to: GMSCameraPosition(target: fitted.target, zoom: zoom))
+        }
+
+        /// Lays a stacked cluster's pills out in rings around its spot, each with a thin leg back
+        /// to where it really is. Stays open while the user taps through them (each opens its
+        /// sheet); folds back on a map tap or once the zoom moves.
+        private func expandFan(_ cluster: PlaceCluster, on mapView: GMSMapView) {
+            // One fan at a time — fold the open one back into its bubble first.
+            if fan != nil {
+                collapseFan()
+                applyClustering(on: mapView)
+            }
+            guard let clusterMarker = clusterMarkers.removeValue(forKey: cluster.id),
+                  let current = clusterMarker.userData as? PlaceCluster else { return }
+            clusterMarker.map = nil
+
+            let anchor = mapView.projection.point(for: clusterMarker.position)
+            let members = current.memberIds.compactMap { markersById[$0]?.userData as? NearbyPlace }
+            let sizes = members.map { RatingBubbleRenderer.icon(rating: $0.rating, isWinner: false).size }
+            let offsets = MarkerClusterer.fanOffsets(for: sizes)
+            let legColor = (UIColor(named: "Kicap") ?? .darkText).withAlphaComponent(0.45)
+
+            var positions: [Int: CLLocationCoordinate2D] = [:]
+            var legs: [GMSPolyline] = []
+            for (place, (offset, size)) in zip(members, zip(offsets, sizes)) {
+                // Pills are bottom-anchored — drop the anchor half a pill so the pill's centre
+                // sits on the ring.
+                let position = mapView.projection.coordinate(
+                    for: CGPoint(x: anchor.x + offset.x, y: anchor.y + offset.y + size.height / 2)
+                )
+                positions[place.id] = position
+                markersById[place.id]?.position = position
+                markersById[place.id]?.zIndex = Self.fannedZIndex
+                setPlaceMarker(id: place.id, visible: true, on: mapView)
+
+                let path = GMSMutablePath()
+                path.add(place.coordinate)
+                path.add(position)
+                let leg = GMSPolyline(path: path)
+                leg.strokeWidth = 1.5
+                leg.strokeColor = legColor
+                leg.map = mapView
+                legs.append(leg)
+            }
+            clusteredPlaceIds.subtract(positions.keys)
+            fan = Fan(zoom: mapView.camera.zoom, positions: positions, legs: legs)
+
+            onClusterCameraMove()
+            mapView.animate(toLocation: clusterMarker.position)
+        }
+
+        /// Puts fanned pills back on their real coordinates and drops the legs. Callers recluster
+        /// straight after, which folds them back into their bubble.
+        private func collapseFan() {
+            guard let fan else { return }
+            self.fan = nil
+            fan.legs.forEach { $0.map = nil }
+            for id in fan.positions.keys {
+                guard let marker = markersById[id], let place = marker.userData as? NearbyPlace else { continue }
+                marker.position = place.coordinate
+                marker.zIndex = zIndex(for: id)
+            }
+        }
+
+        private func zIndex(for placeId: Int) -> Int32 {
+            if winnerPlaceId == placeId { return 10 }
+            return fan?.positions[placeId] != nil ? Self.fannedZIndex : 0
+        }
+
         private func applyOpacity(_ marker: GMSMarker, winnerPlaceId: Int?, placeId: Int) {
             if winnerPlaceId != nil {
                 marker.opacity = winnerPlaceId == placeId ? 1.0 : 0.35
@@ -399,7 +628,7 @@ struct NearbyMapView: UIViewRepresentable {
             pulseTimer = Timer.scheduledTimer(withTimeInterval: 0.22, repeats: true) { [weak self] _ in
                 guard let self else { return }
                 self.pulseDim.toggle()
-                for marker in self.markersById.values {
+                for marker in Array(self.markersById.values) + Array(self.clusterMarkers.values) {
                     marker.opacity = self.pulseDim ? 0.5 : 1.0
                 }
             }
@@ -482,6 +711,48 @@ enum RatingBubbleRenderer {
     }
 }
 
+
+/// The count bubble a group of overlapping pills folds into — soy-dark rather than white so it
+/// never reads as one more rating pill, and never red so it can't pass for a "Pick one lah" winner.
+@MainActor
+enum ClusterBubbleRenderer {
+    private static var cache: [Int: UIImage] = [:]
+
+    static func icon(count: Int) -> UIImage {
+        if let cached = cache[count] { return cached }
+
+        let text = "\(count)" as NSString
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 13, weight: .heavy), .foregroundColor: UIColor.white,
+        ]
+        let textSize = text.size(withAttributes: attributes)
+        let ring: CGFloat = 2
+        let shadowInset: CGFloat = 2
+        // A circle up to two digits, stretching to a capsule past that.
+        let bubble = CGSize(width: max(30, textSize.width + 18), height: 30)
+        let size = CGSize(width: bubble.width + shadowInset * 2, height: bubble.height + shadowInset * 2)
+
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            let rect = CGRect(origin: CGPoint(x: shadowInset, y: shadowInset), size: bubble)
+            context.cgContext.setShadow(offset: CGSize(width: 0, height: 1), blur: 3, color: UIColor.black.withAlphaComponent(0.25).cgColor)
+            UIColor.white.setFill()
+            UIBezierPath(roundedRect: rect, cornerRadius: rect.height / 2).fill()
+            context.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
+            let inner = rect.insetBy(dx: ring, dy: ring)
+            (UIColor(named: "Kicap") ?? .darkText).setFill()
+            UIBezierPath(roundedRect: inner, cornerRadius: inner.height / 2).fill()
+            text.draw(at: CGPoint(x: rect.midX - textSize.width / 2, y: rect.midY - textSize.height / 2), withAttributes: attributes)
+        }
+        cache[count] = image
+        return image
+    }
+}
+
+private extension NearbyPlace {
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
 
 /// One search result on the map in Show all on map.
 struct SearchPin: Equatable {

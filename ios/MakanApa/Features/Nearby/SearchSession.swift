@@ -61,6 +61,7 @@ enum MapMoveOrigin: Equatable {
     case searchSelection
     case showAllResults
     case recommendation
+    case clusterExpansion
     case programmatic
 }
 

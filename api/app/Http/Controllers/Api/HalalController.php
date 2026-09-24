@@ -61,9 +61,20 @@ class HalalController extends Controller
         $restaurant = $restaurant->canonicalRestaurant();
 
         abort_if(RestaurantOwner::isVerifiedOwner($user->id, $restaurant->id), 422, 'You are already the verified owner of this place.');
-        abort_if(RestaurantSubmission::where('user_id', $user->id)->where('restaurant_id', $restaurant->id)
-            ->where('submission_type', 'owner_claim')->whereIn('status', HalalReportService::OPEN_STATUSES)->exists(),
-            422, 'You already have an ownership claim open for this place.');
+
+        $open = RestaurantSubmission::where('user_id', $user->id)->where('restaurant_id', $restaurant->id)
+            ->where('submission_type', 'owner_claim')->whereIn('status', HalalReportService::OPEN_STATUSES)->first();
+        abort_if($open && $open->status !== 'draft', 422, 'You already have an ownership claim open for this place.');
+
+        // A draft left by a failed proof upload is resumed, not a 7-day lockout until it's pruned.
+        if ($open) {
+            $open->update([
+                'contact_phone' => trim($data['contactPhone']),
+                'notes' => isset($data['notes']) ? trim($data['notes']) : null,
+            ]);
+
+            return response()->json(['submission' => ['id' => $open->id, 'submissionType' => 'owner_claim', 'status' => 'draft']]);
+        }
 
         $submission = RestaurantSubmission::create([
             'user_id' => $user->id,

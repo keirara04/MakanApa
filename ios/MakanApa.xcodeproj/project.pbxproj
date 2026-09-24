@@ -38,6 +38,7 @@
 		37559DE54E0544F3A2FA9390 /* ImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 995638F5B6AD495CB07DD2A6 /* ImageMemoryCache.swift */; };
 		3E0EDC09944456EDDD444A2C /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 901B1D09195E987A9470A2FE /* AuthStore.swift */; };
 		3E8DE33D3356F80A466AC3EC /* DeepLinkDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4B05FD9815AA34474506BF /* DeepLinkDestination.swift */; };
+		414B11AFE92CE2184CA54890 /* MarkerClusterer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E77089330A19A1DA9617B230 /* MarkerClusterer.swift */; };
 		43C55E9AD74179E3DC1DE054 /* CommunityThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7AEBE72C522964BAC587B79 /* CommunityThreadView.swift */; };
 		4643FA13D9305B08DBD2AF19 /* LoginTickerRibbon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA72B632CF63B9E9ABE9495E /* LoginTickerRibbon.swift */; };
 		4730308CB3367F92A89F444F /* HalalVerificationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D1C96C2C6A8BE347C682F28 /* HalalVerificationSection.swift */; };
@@ -53,12 +54,13 @@
 		577BDF529A8E38456597BAF3 /* LoginMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E5A8FB92CC6C409C32FE910 /* LoginMascotView.swift */; };
 		57B6E5AE416CC7924175DE73 /* InstallationID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7336BA88FE9EFB19BDE9A434 /* InstallationID.swift */; };
 		57E954F13A46B371E00F4F06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 683267D9139BFC5DB72D9BEE /* Assets.xcassets */; };
+		5ABCF4F7169560001AFEB15F /* MarkerClustererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E410DE334CD9C44D68FD0D00 /* MarkerClustererTests.swift */; };
 		5B2BFF89B301FC7892E02C05 /* APIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51BA9571215449F471D390E1 /* APIError.swift */; };
 		5B4DF37EA249496E90AE92F6 /* CravingSelectionSerializationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6E0FE06AFF4354B5BF52F6 /* CravingSelectionSerializationTests.swift */; };
 		5C7FBB5938DCF9F9FDC8BBB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */; };
 		5ECC516821B468899DAE9320 /* CommunityPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A133CC5E28F50DC4E6678254 /* CommunityPostTests.swift */; };
 		5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651EAF0CDE373FFCEA468C00 /* APIClient.swift */; };
-		6284A1D7D38D29E669AA78E4 /* Settings/BlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */; };
+		6284A1D7D38D29E669AA78E4 /* BlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */; };
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		65AAAE6C4CA0C7FE9085F3E0 /* MakanBrainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8809F93949C94C1BA6B57D89 /* MakanBrainTests.swift */; };
 		65E43124C405EAF1E1442459 /* LoginButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */; };
@@ -251,10 +253,12 @@
 		D83E62CFEA92F3BD697C3493 /* MapsConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MapsConfig.swift; path = Map/MapsConfig.swift; sourceTree = "<group>"; };
 		DDC08603D70D7DF2C4338C5B /* CommunityPostRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityPostRow.swift; sourceTree = "<group>"; };
 		E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyView.swift; path = Nearby/NearbyView.swift; sourceTree = "<group>"; };
+		E410DE334CD9C44D68FD0D00 /* MarkerClustererTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MarkerClustererTests.swift; sourceTree = "<group>"; };
 		E4C2E6778243985350051EB2 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		E4EAEC1DF3E04B0780656E78 /* MySubmissionsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MySubmissionsView.swift; sourceTree = "<group>"; };
 		E5F436EA902AE1A46B6C8B77 /* MakanApa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MakanApa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6E94307FD21601B0E9845AD /* SendToGengButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SendToGengButton.swift; sourceTree = "<group>"; };
+		E77089330A19A1DA9617B230 /* MarkerClusterer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MarkerClusterer.swift; path = Nearby/MarkerClusterer.swift; sourceTree = "<group>"; };
 		E7BD5EEA617BF7BDBF1D1FD5 /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		E823597CCF1CD50A5011EDE9 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		E86575C07970BC3E2F3D8E66 /* NearbyViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbyViewModel.swift; path = Nearby/NearbyViewModel.swift; sourceTree = "<group>"; };
@@ -268,7 +272,7 @@
 		FA1785012FF34F6617CCA660 /* NearbySearchPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbySearchPanel.swift; path = Nearby/NearbySearchPanel.swift; sourceTree = "<group>"; };
 		FAB3284A147544F68D5E08AB /* BetaCredentialStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BetaCredentialStore.swift; sourceTree = "<group>"; };
 		FC61ED0628A3B9E4FF6AACFD /* CommunityReportSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityReportSheet.swift; sourceTree = "<group>"; };
-		FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Settings/BlockedUsersView.swift; sourceTree = "<group>"; };
+		FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Settings/BlockedUsersView.swift; sourceTree = "<group>"; };
 		FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceProgressHeader.swift; sourceTree = "<group>"; };
 		FF8FA63B189F8F7327E20578 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
 		FFAA2DDAF6E88FE26C056C68 /* MakanBrainViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MakanBrainViews.swift; sourceTree = "<group>"; };
@@ -382,7 +386,7 @@
 			children = (
 				77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */,
 				AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */,
-				FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */,
+				FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */,
 				2018F13227288362429CCE9A /* SeleraView.swift */,
 			);
 			name = Settings;
@@ -474,6 +478,7 @@
 				8809F93949C94C1BA6B57D89 /* MakanBrainTests.swift */,
 				0C72BE1E1FA30CFB66E7D436 /* PlaceSearchTests.swift */,
 				D1E9FE9C5F94D0131435D595 /* DeepLinkTests.swift */,
+				E410DE334CD9C44D68FD0D00 /* MarkerClustererTests.swift */,
 			);
 			path = MakanApaTests;
 			sourceTree = "<group>";
@@ -505,6 +510,7 @@
 				E348B2EF8A7D2F40FEAF865A /* NearbyView.swift */,
 				69F5EEA272FBFA4D8CB571AB /* SearchSession.swift */,
 				FA1785012FF34F6617CCA660 /* NearbySearchPanel.swift */,
+				E77089330A19A1DA9617B230 /* MarkerClusterer.swift */,
 			);
 			name = Nearby;
 			sourceTree = "<group>";
@@ -759,6 +765,7 @@
 				65AAAE6C4CA0C7FE9085F3E0 /* MakanBrainTests.swift in Sources */,
 				ACD2070A6D0E98CC7CA61644 /* PlaceSearchTests.swift in Sources */,
 				E1FD12CC8F959DD968502F53 /* DeepLinkTests.swift in Sources */,
+				5ABCF4F7169560001AFEB15F /* MarkerClustererTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -867,7 +874,7 @@
 				49A9D5312A3B3822B8EED335 /* CommunityPostPresentations.swift in Sources */,
 				43C55E9AD74179E3DC1DE054 /* CommunityThreadView.swift in Sources */,
 				F5E07FD375DE84B3144965B9 /* CommunityPostsView.swift in Sources */,
-				6284A1D7D38D29E669AA78E4 /* Settings/BlockedUsersView.swift in Sources */,
+				6284A1D7D38D29E669AA78E4 /* BlockedUsersView.swift in Sources */,
 				0C2427D35C4D65519D138DF0 /* MakanBrainViews.swift in Sources */,
 				0383C7B83E61A9A00E6C9F97 /* SeleraView.swift in Sources */,
 				B6B04CC41D43B1A0C2F7D492 /* ContextStrip.swift in Sources */,
@@ -880,6 +887,7 @@
 				93520BA5E6F73E45CEA0F9BA /* LoginHeroView.swift in Sources */,
 				4643FA13D9305B08DBD2AF19 /* LoginTickerRibbon.swift in Sources */,
 				F9CFC5965AB803A3B4E92A4A /* GlyphRevealRenderer.swift in Sources */,
+				414B11AFE92CE2184CA54890 /* MarkerClusterer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

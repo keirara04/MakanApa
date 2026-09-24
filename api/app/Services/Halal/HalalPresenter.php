@@ -81,12 +81,27 @@ class HalalPresenter
             ->latest('id')
             ->first();
 
-        return $report ? [
+        if (! $report) {
+            return null;
+        }
+
+        // The viewer's own report — so "Finish your vouch" can reopen with what they already
+        // sent, and the app knows which photos are attached (the server caps them per report).
+        $photoTypes = RestaurantPhoto::where('restaurant_submission_id', $report->id)->pluck('photo_type');
+
+        return [
             'id' => $report->id,
             'status' => $report->status,
             'claim' => $report->halal_claim?->value,
             'reviewNote' => in_array($report->status, ['changes_requested', 'rejected'], true) ? $report->review_note : null,
-        ] : null;
+            'comment' => $report->halal_comment,
+            'certificationAuthority' => $report->certification_authority?->value,
+            'certificateNumber' => $report->certificate_number,
+            'certificateExpiresAt' => $report->certificate_expires_at?->toDateString(),
+            'photoCount' => $photoTypes->count(),
+            'certPhotoCount' => $photoTypes->filter(fn ($type) => $type === 'halal_cert')->count(),
+            'maxPhotos' => (int) config('restaurant_photos.max_per_submission'),
+        ];
     }
 
     /** Public, paginated ledger view for GET restaurants/{id}/halal/history. */

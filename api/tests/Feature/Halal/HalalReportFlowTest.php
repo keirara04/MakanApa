@@ -3,6 +3,7 @@
 namespace Tests\Feature\Halal;
 
 use App\Models\RestaurantOwner;
+use App\Models\RestaurantPhoto;
 use App\Models\RestaurantSubmission;
 use App\Notifications\HalalReportDecided;
 use App\Notifications\HalalReportSuperseded;
@@ -126,7 +127,10 @@ class HalalReportFlowTest extends TestCase
         $this->submit($id)->assertOk();
         $this->getJson("/api/v1/restaurants/{$restaurant->id}/details")
             ->assertJsonPath('halal.myReport.status', 'pending')
-            ->assertJsonPath('halal.myReport.claim', 'muslim_friendly');
+            ->assertJsonPath('halal.myReport.claim', 'muslim_friendly')
+            ->assertJsonPath('halal.myReport.comment', 'Owner is Muslim, no pork')
+            ->assertJsonPath('halal.myReport.photoCount', 0)
+            ->assertJsonPath('halal.myReport.maxPhotos', 5);
 
         $this->moderation()->requestChanges(RestaurantSubmission::find($id), 'Add a storefront photo please', $this->makeAdmin());
         $this->getJson("/api/v1/restaurants/{$restaurant->id}/details")
@@ -181,6 +185,20 @@ class HalalReportFlowTest extends TestCase
         $this->submit($id)->assertStatus(422);
         $this->uploadPhoto($id, 'menu')->assertCreated();
         $this->submit($id)->assertOk();
+    }
+
+    public function test_unreadable_photo_is_a_422_not_a_500(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+        $id = $this->openReport($restaurant->id, ['claim' => 'certified'])->json('submission.id');
+
+        // JPEG magic bytes pass the `image` rule, but GD can't decode the rest.
+        $corrupt = UploadedFile::fake()->createWithContent('cert.jpg', "\xFF\xD8\xFF\xE0".str_repeat("\0", 64));
+
+        $this->uploadPhoto($id, 'halal_cert', $corrupt)
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.photo.0', "We couldn't read that photo. Try a different one.");
     }
 
     public function test_duplicate_photo_hash_is_flagged_and_lowers_priority(): void
@@ -305,10 +323,103 @@ class HalalReportFlowTest extends TestCase
     {
         $user = $this->makeUser();
         foreach (range(1, 10) as $_) {
-            $this->makeHalalReport($this->makeRestaurant(), $user, HalalStatus::MuslimFriendly, 'draft');
+            $this->makeHalalReport($this->makeRestaurant(), $user, HalalStatus::MuslimFriendly, 'pending');
         }
         Sanctum::actingAs($user, ['*']);
 
         $this->openReport($this->makeRestaurant()->id, ['claim' => 'muslim_friendly', 'comment' => 'x'])->assertStatus(429);
+    }
+
+    public function test_abandoned_drafts_do_not_count_toward_the_open_report_cap(): void
+    {
+        $user = $this->makeUser();
+        foreach (range(1, 10) as $_) {
+            $this->makeHalalReport($this->makeRestaurant(), $user, HalalStatus::MuslimFriendly, 'draft');
+        }
+        Sanctum::actingAs($user, ['*']);
+
+        $this->openReport($this->makeRestaurant()->id, ['claim' => 'muslim_friendly', 'comment' => 'x'])->assertCreated();
+    }
+
+    public function test_retrying_a_failed_vouch_resumes_the_same_draft_with_its_photos(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+
+        $id = $this->openReport($restaurant->id, ['claim' => 'certified'])->json('submission.id');
+        $this->uploadPhoto($id)->assertCreated();
+        // The app died before submit — the retry reopens the same draft, cert photo still attached.
+        $this->assertSame($id, $this->openReport($restaurant->id, ['claim' => 'certified', 'comment' => 'Retry'])->assertOk()->json('submission.id'));
+        $this->getJson("/api/v1/restaurants/{$restaurant->id}/details")
+            ->assertJsonPath('halal.myReport.status', 'draft')
+            ->assertJsonPath('halal.myReport.photoCount', 1)
+            ->assertJsonPath('halal.myReport.certPhotoCount', 1);
+        $this->submit($id)->assertOk();
+    }
+
+    public function test_switching_away_from_certified_drops_the_drafts_cert_photos(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+
+        $id = $this->openReport($restaurant->id, ['claim' => 'certified'])->json('submission.id');
+        $this->uploadPhoto($id, 'halal_cert')->assertCreated();
+        $this->uploadPhoto($id, 'storefront')->assertCreated();
+        $certPath = RestaurantPhoto::where('restaurant_submission_id', $id)->where('photo_type', 'halal_cert')->value('path');
+
+        $this->openReport($restaurant->id, ['claim' => 'muslim_friendly', 'comment' => 'No cert after all'])->assertOk();
+
+        $this->assertSame(['storefront'], RestaurantPhoto::where('restaurant_submission_id', $id)->pluck('photo_type')->all());
+        Storage::disk(config('restaurant_photos.pending_disk'))->assertMissing($certPath);
+    }
+
+    public function test_submit_survives_a_queue_outage(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+        $id = $this->openReport($restaurant->id, ['claim' => 'muslim_friendly', 'comment' => 'Owner is Muslim'])->json('submission.id');
+
+        config(['queue.default' => 'unreachable', 'queue.connections.unreachable' => ['driver' => 'does-not-exist']]);
+
+        $this->submit($id)->assertOk()->assertJsonPath('submission.status', 'pending');
+        $this->assertSame('pending', RestaurantSubmission::find($id)->status);
+    }
+
+    public function test_approval_skips_a_pending_photo_whose_file_is_gone(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+        $id = $this->openReport($restaurant->id, ['claim' => 'non_halal', 'comment' => 'Beer on the menu'])->json('submission.id');
+        $this->uploadPhoto($id, 'menu')->assertCreated();
+        $this->uploadPhoto($id, 'storefront')->assertCreated();
+        $this->submit($id)->assertOk();
+
+        // e.g. the pending disk was wiped by a redeploy before review.
+        $lost = RestaurantPhoto::where('restaurant_submission_id', $id)->where('photo_type', 'menu')->first();
+        Storage::disk($lost->disk)->delete($lost->path);
+
+        $this->moderation()->approve(RestaurantSubmission::find($id), $this->makeAdmin());
+        app(RestaurantPhotoPromotionService::class)->promote(RestaurantSubmission::find($id), $restaurant);
+
+        $this->assertNull(RestaurantPhoto::find($lost->id));
+        $kept = RestaurantPhoto::where('restaurant_submission_id', $id)->sole();
+        $this->assertSame($restaurant->id, $kept->restaurant_id);
+        Storage::disk(config('restaurant_photos.public_disk'))->assertExists($kept->path);
+    }
+
+    public function test_owner_claim_retry_resumes_the_abandoned_draft(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        Sanctum::actingAs($this->makeUser(), ['*']);
+
+        $first = $this->postJson("/api/v1/restaurants/{$restaurant->id}/owner-claim", ['contactPhone' => '0123456789'])->assertCreated()->json('submission.id');
+        // Proof upload failed, user tries again — same draft back, not a 422 lockout.
+        $again = $this->postJson("/api/v1/restaurants/{$restaurant->id}/owner-claim", ['contactPhone' => '0199999999'])->assertOk()->json('submission.id');
+        $this->assertSame($first, $again);
+        $this->assertSame('0199999999', RestaurantSubmission::find($first)->contact_phone);
+
+        $this->uploadPhoto($first, 'other')->assertCreated();
+        $this->submit($first)->assertOk();
+        $this->postJson("/api/v1/restaurants/{$restaurant->id}/owner-claim", ['contactPhone' => '0123456789'])->assertStatus(422);
     }
 }

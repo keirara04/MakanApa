@@ -184,6 +184,7 @@ struct NearbyView: View {
             fitSearchPinsRequestId: viewModel.fitResultsRequestId,
             panTarget: viewModel.panCoordinate,
             panRequestId: viewModel.panRequestId,
+            selectedPlaceId: viewModel.selectedPlace?.id,
             onCameraIdle: { viewport, zoom in
                 currentViewport = viewport
                 currentZoom = zoom
@@ -197,6 +198,9 @@ struct NearbyView: View {
                 guard let result = viewModel.searchSession?.results.first(where: { $0.id == resultId }) else { return }
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.focusSearchResult(result)
+            },
+            onClusterCameraMove: {
+                viewModel.expectProgrammaticMove(.clusterExpansion)
             }
         )
     }
