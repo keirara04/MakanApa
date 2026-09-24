@@ -21,7 +21,7 @@ class SharePlaceTest extends TestCase
         return Restaurant::create(array_merge([
             'name' => 'KFC Jalan Reko', 'latitude' => 2.9284, 'longitude' => 101.7802, 'is_active' => true,
             'provider' => 'google', 'provider_place_id' => 'ChIJ-kfc', 'address' => 'Jalan Reko, Kajang',
-            'food_category' => 'fast_food', 'price_level' => 2, 'rating' => 3.9, 'user_rating_count' => 812,
+            'food_category' => 'fast_food', 'price_level' => 2, 'rating' => 3.9, 'user_rating_count' => 97531,
         ], $overrides));
     }
 
@@ -50,7 +50,8 @@ class SharePlaceTest extends TestCase
 
         $this->visit('/p/'.ShareLinks::placeKey($restaurant->id, $restaurant->name))->assertOk()
             ->assertDontSee('3.9')
-            ->assertDontSee('812');
+            // A count no auto-increment id will contain — the place URL carries the id (/p/1812-…).
+            ->assertDontSee('97531');
     }
 
     public function test_halal_wording_is_never_simplified(): void

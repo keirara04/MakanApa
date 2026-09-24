@@ -8,12 +8,21 @@ use App\Models\RestaurantSubmission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class QuickAddRestaurantPhotoTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // CI's .env points these at Spaces with no credentials — never touch a real bucket.
+        Storage::fake(config('restaurant_photos.pending_disk'));
+        Storage::fake(config('restaurant_photos.public_disk'));
+    }
 
     private function restaurant(): Restaurant
     {
