@@ -5,7 +5,7 @@
 
 @section('content')
 
-    <h1 class="text-3xl font-semibold">Privacy Policy</h1>
+    <h1 class="font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Privacy Policy</h1>
     <p class="mt-2 text-sm text-ink/70">Last updated: September 23, 2026</p>
     <p class="mt-4 text-ink/70">
         This page explains what information MakanApa collects, why, and what happens to it, including when
@@ -15,7 +15,7 @@
     <div class="mt-10 space-y-10 text-ink/80 leading-relaxed">
 
         <section id="account">
-            <h2 class="text-lg font-semibold text-ink">01. Account information</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">01. Account information</h2>
             <p class="mt-2">
                 When you create a MakanApa account, we collect your name, email address, and avatar (if provided).
                 If you sign in with Apple or Google, we store the account identifier those providers give us so we
@@ -25,7 +25,7 @@
         </section>
 
         <section id="location">
-            <h2 class="text-lg font-semibold text-ink">02. Location</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">02. Location</h2>
             <p class="mt-2">
                 When you allow location access, MakanApa uses your device location to find nearby restaurants,
                 calculate distance, and improve recommendations. Based on the current service design, your device
@@ -35,7 +35,7 @@
         </section>
 
         <section id="community">
-            <h2 class="text-lg font-semibold text-ink">03. Community affiliation</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">03. Community affiliation</h2>
             <p class="mt-2">
                 MakanApa lets you associate your account with a community, such as a university or area, along
                 with a verification status. This is used to group and filter restaurant discovery around people in
@@ -45,7 +45,7 @@
         </section>
 
         <section id="activity">
-            <h2 class="text-lg font-semibold text-ink">04. Your activity</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">04. Your activity</h2>
             <p class="mt-2">
                 We record the choices you make while using MakanApa: cravings, budget, and distance preferences
                 (decisions), the recommendations shown to you, restaurants you save, and "vibe" votes you cast on
@@ -55,7 +55,7 @@
         </section>
 
         <section id="contributions">
-            <h2 class="text-lg font-semibold text-ink">05. Restaurant contributions</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">05. Restaurant contributions</h2>
             <p class="mt-2">
                 If you submit a restaurant or suggest a correction, we store what you submitted along with a
                 review status. Once approved, submitted restaurant information becomes part of MakanApa's public
@@ -65,7 +65,7 @@
         </section>
 
         <section id="photos">
-            <h2 class="text-lg font-semibold text-ink">06. Photos</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">06. Photos</h2>
             <p class="mt-2">
                 Photos you upload for a restaurant are re-encoded on our servers before publication. This process
                 removes embedded metadata such as GPS coordinates and device information as a side effect, before
@@ -78,7 +78,7 @@
         </section>
 
         <section id="notifications">
-            <h2 class="text-lg font-semibold text-ink">07. Push notifications</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">07. Push notifications</h2>
             <p class="mt-2">
                 If you allow notifications, your device registers a push token with Apple's Push Notification
                 service (APNs), which we store alongside a device identifier, platform, and whether it's a
@@ -100,9 +100,9 @@
         </section>
 
         <section id="providers">
-            <h2 class="text-lg font-semibold text-ink">08. Service providers</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">08. Service providers</h2>
             <p class="mt-2">We use the following third parties, each for a specific purpose:</p>
-            <ul class="mt-3 divide-y divide-sambal-100 rounded-2xl border border-sambal-100 bg-white text-sm">
+            <ul class="sketch mt-4 divide-y divide-dashed divide-ink/20 bg-paper-50 text-sm" style="--sketch-radius: 12px">
                 <li class="p-4"><strong class="text-ink">Apple</strong>: Sign in with Apple, account authentication.</li>
                 <li class="p-4"><strong class="text-ink">Google Sign-In</strong>: account authentication.</li>
                 <li class="p-4"><strong class="text-ink">Google Places</strong>: restaurant discovery and information, and temporary restaurant-photo delivery (not stored by us).</li>
@@ -117,7 +117,7 @@
         </section>
 
         <section id="deletion">
-            <h2 class="text-lg font-semibold text-ink">09. Account deletion</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">09. Account deletion</h2>
             <p class="mt-2">
                 You can delete your MakanApa account from within the app. Deletion is immediate, self-service, and
                 permanent: there is no review queue and it cannot be undone.
@@ -154,7 +154,7 @@
         </section>
 
         <section id="contact">
-            <h2 class="text-lg font-semibold text-ink">10. Contact</h2>
+            <h2 class="font-display text-3xl font-bold uppercase leading-none text-ink">10. Contact</h2>
             <p class="mt-2">
                 Questions about this policy or your data?
                 @if (config('marketing.privacy_email'))

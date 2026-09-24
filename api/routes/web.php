@@ -16,6 +16,7 @@ Route::withoutMiddleware([
 ])->group(function () {
     Route::get('/', [MarketingController::class, 'home']);
     Route::get('/go/testflight', [MarketingController::class, 'download'])->name('marketing.download');
+    Route::get('/try', [MarketingController::class, 'tryPick'])->middleware('throttle:30,1,landing-try')->name('marketing.try');
     Route::view('/support', 'support');
     Route::view('/privacy', 'privacy');
 

@@ -4,8 +4,44 @@
 @section('description', 'Makan apa hari ni? Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby. Free public beta on iPhone.')
 @section('main_class', '')
 
+@php
+    // Spun by both the first-visit intro and the "try it" reel.
+    $dishes = ['Nasi lemak', 'Roti canai', 'Satay', 'Char kuey teow', 'Laksa', 'Nasi kandar', 'Mee goreng', 'Teh tarik'];
+
+    // "Try it": [field, question [ms, en], options [value, label (or [ms, en])], default]. Mood
+    // values are MarketingController::DEMO_MOODS — the same tags the app sends.
+    $tryQuestions = [
+        ['mood', ['Apa vibe?', "What's the vibe?"], [['nasi_kandar', 'Nasi Kandar'], ['nasi_lemak', 'Nasi Lemak'], ['ayam_gepuk', 'Ayam Gepuk'], ['mee_goreng', 'Mee Goreng'], ['char_kuey_teow', 'Char Kuey Teow'], ['', ['Anything lah', 'Anything']]], ''],
+        ['budget', ['Budget macam mana?', "What's the budget?"], [['1', '~RM10'], ['2', '~RM20'], ['3', '~RM35+'], ['', ['Anything lah', 'Anything']]], '2'],
+        ['km', ['Jauh boleh?', 'How far?'], [['1', '1 km'], ['2', '2 km'], ['5', '5 km']], '2'],
+    ];
+
+    // Live numbers strip: [stat key, label ms, label en]; a null stat is below its floor.
+    $statLabels = [
+        ['places', 'Tempat makan dalam peta', 'Makan spots on the map'],
+        ['picks', 'Keputusan dah settle', 'Picks settled'],
+        ['community', 'Ditambah oleh komuniti', 'Added by the community'],
+    ];
+    $shownStats = array_values(array_filter($statLabels, fn (array $stat) => $stats[$stat[0]] !== null));
+
+    // FAQ: [question, answer HTML], in two columns. Also emitted as FAQPage structured data below.
+    $faqs = [
+        [
+            ['Why TestFlight?', 'MakanApa is still in public beta, so the iPhone app is shared through Apple\'s TestFlight app. Tap the button, install TestFlight from the App Store if you don\'t have it, then tap <strong>Accept</strong> and <strong>Install</strong> for MakanApa. You might find a bug or two. <span class="lang-ms">Kalau jumpa, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">bagitahu us</a>.</span><span class="lang-en">If you find one, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">let us know</a>.</span>'],
+            ['Is it free?', 'Yes, joining the beta is free.'],
+            ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
+        ],
+        [
+            ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
+            ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. It isn\'t stored as part of your account profile and is never shown publicly. <a href="'.url('/privacy#location').'" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
+            ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>Muslim-friendly</strong> (not certified), or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
+        ],
+    ];
+@endphp
+
 @section('nav_links')
     <a href="#how-it-works" class="bracket-link">[How it works]</a>
+    <a href="#try" class="bracket-link js-only">[Try it]</a>
     <a href="#app" class="bracket-link">[The app]</a>
     <a href="#faq" class="bracket-link">[FAQ]</a>
 @endsection
@@ -47,13 +83,10 @@
         </p>
 
         <div class="relative mt-4 font-display text-[clamp(3.6rem,12vw,6.5rem)] font-bold uppercase" aria-hidden="true">
-            @php
-                $introDishes = ['Nasi lemak', 'Roti canai', 'Satay', 'Char kuey teow', 'Laksa', 'Nasi kandar', 'Mee goreng', 'Teh tarik'];
-            @endphp
-            <div class="intro-reel">
+            <div class="slot-reel">
                 {{-- Listed twice so the loop can scroll half its height and wrap without a jump. --}}
                 <ul>
-                    @foreach ([...$introDishes, ...$introDishes] as $dish)
+                    @foreach ([...$dishes, ...$dishes] as $dish)
                         <li class="whitespace-nowrap leading-[1.3]">{{ $dish }}</li>
                     @endforeach
                 </ul>
@@ -236,8 +269,26 @@
         </div>
     </section>
 
+    {{-- LIVE NUMBERS: straight from the database, recounted hourly (see LandingInsights). -------- --}}
+    @if ($shownStats)
+        <section class="mx-auto max-w-5xl px-5 pt-36 sm:px-6 sm:pt-40" aria-label="MakanApa in numbers">
+            <dl @class(['grid gap-12 text-center', 'sm:grid-cols-2' => count($shownStats) === 2, 'sm:grid-cols-3' => count($shownStats) === 3])>
+                @foreach ($shownStats as $index => [$key, $labelMs, $labelEn])
+                    <div data-stat="{{ $key }}" data-reveal class="flex flex-col-reverse items-center" style="--i: {{ $index }}">
+                        <dt class="mt-2 font-display text-2xl font-bold uppercase tracking-wide text-ink/70"><x-marketing.lang :en="$labelEn">{{ $labelMs }}</x-marketing.lang></dt>
+                        <dd class="relative font-display text-[clamp(4rem,9vw,6.5rem)] font-bold leading-none">
+                            <span data-count="{{ $stats[$key] }}">{{ number_format($stats[$key]) }}</span>
+                            <x-marketing.doodle type="underline" class="draw absolute -bottom-1 left-[10%] h-3 w-[80%] text-sambal-600" style="--draw-delay: {{ 400 + $index * 150 }}ms" />
+                        </dd>
+                    </div>
+                @endforeach
+            </dl>
+            <p class="mt-10 text-center text-sm text-ink/55"><x-marketing.lang en="Live from MakanApa, updated every hour.">Live dari MakanApa, dikemas kini setiap jam.</x-marketing.lang></p>
+        </section>
+    @endif
+
     {{-- PROBLEM: the one dark page in the sketchbook. -------------------------------------------- --}}
-    <section class="mt-36 bg-ink text-paper sm:mt-40">
+    <section @class(['bg-ink text-paper', 'mt-24 sm:mt-28' => $shownStats, 'mt-36 sm:mt-40' => ! $shownStats])>
         <div class="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[17rem_1fr] lg:gap-16 lg:py-28">
             <figure data-reveal class="relative mx-auto w-56 lg:w-full">
                 <div class="sketch p-5" style="--sketch-color: var(--color-paper); --sketch-radius: 4px">
@@ -366,6 +417,137 @@
             </li>
         </ol>
     </section>
+
+    {{-- TRY IT: the real picking engine on real places, anchored on a campus since the page never
+         asks for the visitor's location. Needs JS, so it's hidden without it. ------------------- --}}
+    <section id="try" class="js-only scroll-mt-20 mx-auto max-w-6xl px-5 pb-20 sm:px-6">
+        <div data-reveal class="text-center">
+            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600"><x-marketing.lang en="Now you try">Cuba sekarang</x-marketing.lang></p>
+            <h2 class="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">
+                <x-marketing.lang :en="'What to eat near '.$demoArea.'?'">Makan apa dekat {{ $demoArea }}?</x-marketing.lang>
+            </h2>
+            <p class="mx-auto mt-5 max-w-xl text-lg text-ink/75">
+                <x-marketing.lang en="Real places, picked the same way the app picks. In the app, it uses wherever you are.">Tempat betul, dipilih sama macam dalam app. Dalam app, dia guna lokasi kau sendiri.</x-marketing.lang>
+            </p>
+        </div>
+
+        <div data-reveal class="sketch mt-14 grid gap-12 bg-paper-50 p-6 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14" style="--i: 1; --sketch-radius: 18px">
+            <form id="try-form" action="{{ route('marketing.try') }}" method="get" class="space-y-7">
+                @foreach ($tryQuestions as $number => [$field, $question, $options, $default])
+                    <fieldset>
+                        <legend class="font-display text-3xl font-bold uppercase leading-none">{{ $number + 1 }}. <x-marketing.lang :en="$question[1]">{{ $question[0] }}</x-marketing.lang></legend>
+                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-display text-[1.7rem] font-bold uppercase leading-none">
+                            @foreach ($options as [$value, $label])
+                                <label class="chip">
+                                    <input type="radio" name="{{ $field }}" value="{{ $value }}" class="sr-only" @checked($value === $default)>
+                                    <span class="relative whitespace-nowrap">
+                                        @if (is_array($label))
+                                            <x-marketing.lang :en="$label[1]">{{ $label[0] }}</x-marketing.lang>
+                                        @else
+                                            {{ $label }}
+                                        @endif
+                                        <x-marketing.doodle type="circle" class="absolute -left-2.5 -top-1.5 h-[calc(100%+0.75rem)] w-[calc(100%+1.25rem)] text-sambal-600" />
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                @endforeach
+
+                <button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)] min-h-13 px-7 py-3.5 text-base shadow-[5px_5px_0_var(--color-sambal-600)] hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
+                    <x-marketing.lang en="What should I eat?">Makan apa?</x-marketing.lang>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+            </form>
+
+            <div class="try-panel relative flex min-h-80 items-center justify-center text-center" data-show="idle" aria-live="polite">
+                <div data-state="idle" class="flex-col items-center">
+                    <img src="{{ asset('images/mascot-default.svg') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy" class="animate-sketch-bob h-32 w-32">
+                    <p class="mt-4 max-w-[15rem] font-display text-3xl font-bold uppercase leading-none text-ink/70">
+                        <x-marketing.lang en="Pick your answers, then hit the button.">Pilih jawapan, lepas tu tekan butang.</x-marketing.lang>
+                    </p>
+                </div>
+
+                <div data-state="spinning" class="flex-col items-center" aria-hidden="true">
+                    <p class="font-display text-3xl font-bold uppercase text-ink/60"><x-marketing.lang en="Hmm… what to eat?">Hmm… makan apa ya?</x-marketing.lang></p>
+                    <div class="slot-reel mt-2 font-display text-[clamp(3rem,7vw,4.5rem)] font-bold uppercase">
+                        <ul>
+                            @foreach ([...$dishes, ...$dishes] as $dish)
+                                <li class="whitespace-nowrap leading-[1.3]">{{ $dish }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+
+                <div data-state="pick" class="w-full flex-col items-center">
+                    <p class="font-display text-2xl font-bold uppercase text-ink/60">MakanApa says…</p>
+                    <p data-field="name" class="mt-1 font-display text-[clamp(2.8rem,6vw,4.4rem)] font-bold uppercase leading-[0.9] text-balance text-sambal-600"></p>
+                    <p data-field="headline" class="mt-2 font-display text-2xl font-bold uppercase text-ink/75"></p>
+                    <ul data-field="facts" class="mt-4 flex flex-wrap justify-center gap-2"></ul>
+                    <div class="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+                        <a data-field="url" href="#" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)] text-sm">
+                            <x-marketing.lang en="See this place">Tengok tempat ni</x-marketing.lang>
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        </a>
+                        <button type="button" data-reroll class="bracket-link font-display text-2xl font-bold uppercase"><x-marketing.lang en="[Find another!]">[Cari lagi!]</x-marketing.lang></button>
+                    </div>
+                </div>
+
+                <div data-state="none" class="flex-col items-center">
+                    <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
+                    <p class="mt-3 font-display text-4xl font-bold uppercase leading-none">Aiyo…</p>
+                    <p data-variant="first" class="mt-2 max-w-xs text-ink/75"><x-marketing.lang :en="'Nothing matches that around '.$demoArea.' yet. Try 5 km, or Anything lah.'">Tak jumpa yang ngam dekat {{ $demoArea }}. Cuba 5 km, atau Anything lah.</x-marketing.lang></p>
+                    <p data-variant="more" class="mt-2 max-w-xs text-ink/75"><x-marketing.lang en="That's every match nearby for those answers. Try different ones!">Dah habis semua yang ngam untuk jawapan tu. Cuba jawapan lain!</x-marketing.lang></p>
+                </div>
+
+                <div data-state="error" class="flex-col items-center">
+                    <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
+                    <p class="mt-3 font-display text-4xl font-bold uppercase leading-none"><x-marketing.lang en="Slow down a bit lah">Slow sikit lah</x-marketing.lang></p>
+                    <p class="mt-2 max-w-xs text-ink/75"><x-marketing.lang en="Too many tries in a row. Give it a minute, then try again.">Banyak sangat cuba berturut-turut. Tunggu seminit, then cuba lagi.</x-marketing.lang></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- MOST PICKED NEAR THE DEMO CAMPUS (or top rated, labelled as such). -------------------------- --}}
+    @if ($nearby['kind'])
+        <section class="mx-auto max-w-3xl px-5 pb-24 sm:px-6 sm:pb-28" data-nearby="{{ $nearby['kind'] }}">
+            <div data-reveal class="sketch relative -rotate-[0.6deg] bg-paper-50 p-6 sm:p-9" style="--sketch-radius: 10px">
+                <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-2" aria-hidden="true"></span>
+                @if ($nearby['kind'] === 'picked')
+                    <h3 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Most picked near '.$demoArea">Paling ramai pilih dekat {{ $demoArea }}</x-marketing.lang></h3>
+                    <p class="mt-1 text-sm text-ink/60"><x-marketing.lang en="By MakanApa users over the last 30 days.">Oleh pengguna MakanApa, 30 hari lepas.</x-marketing.lang></p>
+                @else
+                    <h3 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Top rated near '.$demoArea">Top rated dekat {{ $demoArea }}</x-marketing.lang></h3>
+                    <p class="mt-1 text-sm text-ink/60"><x-marketing.lang en="By Google rating, among places MakanApa knows.">Ikut rating Google, antara tempat yang MakanApa tahu.</x-marketing.lang></p>
+                @endif
+
+                <ol class="mt-6 divide-y divide-dashed divide-ink/20 border-t border-dashed border-ink/20">
+                    @foreach ($nearby['items'] as $rank => $place)
+                        <li>
+                            <a href="{{ $place['url'] }}" class="group flex items-center gap-4 py-3.5">
+                                <span class="relative flex h-11 w-11 shrink-0 items-center justify-center font-display text-3xl font-bold">
+                                    {{ $rank + 1 }}
+                                    <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-ink/50" style="--draw-delay: {{ 200 + $rank * 120 }}ms" />
+                                </span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-lg font-semibold transition-colors group-hover:text-sambal-600">{{ $place['name'] }}</span>
+                                    <span class="block text-sm text-ink/60">{{ $place['headline'] }} · {{ number_format($place['distanceKm'], 1) }} km</span>
+                                </span>
+                                <span class="shrink-0 font-display text-2xl font-bold uppercase text-sambal-600">
+                                    @if ($place['pickers'] !== null)
+                                        <x-marketing.lang :en="$place['pickers'].' people'">{{ $place['pickers'] }} orang</x-marketing.lang>
+                                    @else
+                                        ★ {{ number_format($place['rating'], 1) }}
+                                    @endif
+                                </span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ol>
+            </div>
+        </section>
+    @endif
 
     {{-- THE REAL APP: screenshots taped into the sketchbook. -------------------------------------- --}}
     <section id="app" class="scroll-mt-20 border-y border-ink/10 bg-paper-50/60 py-24 sm:py-28">
@@ -520,18 +702,6 @@
             $summary = 'flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-semibold marker:content-none [&::-webkit-details-marker]:hidden';
             $plus = 'h-6 w-6 shrink-0 text-sambal-600 transition-transform duration-300 group-open:rotate-45';
             $answer = 'pb-5 leading-relaxed text-ink/75';
-            $faqs = [
-                [
-                    ['Why TestFlight?', 'MakanApa is still in public beta, so the iPhone app is shared through Apple\'s TestFlight app. Tap the button, install TestFlight from the App Store if you don\'t have it, then tap <strong>Accept</strong> and <strong>Install</strong> for MakanApa. You might find a bug or two. <span class="lang-ms">Kalau jumpa, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">bagitahu us</a>.</span><span class="lang-en">If you find one, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">let us know</a>.</span>'],
-                    ['Is it free?', 'Yes, joining the beta is free.'],
-                    ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
-                ],
-                [
-                    ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
-                    ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. It isn\'t stored as part of your account profile and is never shown publicly. <a href="'.url('/privacy#location').'" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
-                    ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>Muslim-friendly</strong> (not certified), or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
-                ],
-            ];
         @endphp
 
         @foreach ($faqs as $index => $column)
@@ -566,3 +736,139 @@
     </section>
 
 @endsection
+
+{{-- Structured data: the app itself, and the FAQ above as a FAQPage. Answers are the English text
+     (the Manglish variant is dropped and tags stripped); JSON_HEX_TAG keeps it inside <script>. --}}
+@push('meta')
+    @php
+        $plainAnswer = fn (string $html) => trim(preg_replace('/\s+/', ' ', strip_tags(preg_replace('#<span class="lang-ms">.*?</span>#s', '', $html))));
+        $structuredData = [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'MobileApplication',
+                'name' => 'MakanApa',
+                'operatingSystem' => 'iOS',
+                'applicationCategory' => 'LifestyleApplication',
+                'description' => 'Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby.',
+                'url' => url('/'),
+                'image' => asset('images/og.png'),
+                'inLanguage' => 'en-MY',
+                'author' => ['@type' => 'Person', 'name' => 'Hakeemi Ridza'],
+                'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'MYR'],
+            ],
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'FAQPage',
+                'mainEntity' => collect($faqs)->flatten(1)->map(fn (array $faq) => [
+                    '@type' => 'Question',
+                    'name' => $faq[0],
+                    'acceptedAnswer' => ['@type' => 'Answer', 'text' => $plainAnswer($faq[1])],
+                ])->all(),
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+@endpush
+
+@push('body_scripts')
+    <script>
+        // Live numbers count up from zero the first time they scroll into view.
+        (function () {
+            var counters = document.querySelectorAll('[data-count]');
+            var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!counters.length || calm || !('IntersectionObserver' in window)) return;
+
+            var format = new Intl.NumberFormat('en-MY');
+            var counting = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    counting.unobserve(entry.target);
+                    var el = entry.target;
+                    var target = Number(el.dataset.count);
+                    var started = performance.now();
+                    requestAnimationFrame(function frame(now) {
+                        var t = Math.min(1, (now - started) / 1400);
+                        el.textContent = format.format(Math.round(target * (1 - Math.pow(1 - t, 3))));
+                        if (t < 1) requestAnimationFrame(frame);
+                    });
+                });
+            }, { threshold: 0.6 });
+
+            counters.forEach(function (el) { el.textContent = '0'; counting.observe(el); });
+        })();
+
+        // "Try it": asks /try for one real pick, spins the reel while it waits (at least long enough
+        // to read as a spin), and "Cari lagi" re-asks while skipping what's already been shown.
+        (function () {
+            var form = document.getElementById('try-form');
+            if (!form) return;
+            var panel = document.querySelector('.try-panel');
+            var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var minSpin = calm ? 0 : 1100;
+            var shown = [];
+
+            function field(name) { return panel.querySelector('[data-field="' + name + '"]'); }
+
+            function settle(started) {
+                return new Promise(function (resolve) {
+                    setTimeout(resolve, Math.max(0, minSpin - (performance.now() - started)));
+                });
+            }
+
+            function render(data) {
+                var pick = data.pick;
+                if (!pick) {
+                    panel.querySelector('[data-variant="first"]').hidden = shown.length > 0;
+                    panel.querySelector('[data-variant="more"]').hidden = shown.length === 0;
+                    panel.dataset.show = 'none';
+                    return;
+                }
+
+                shown.push(pick.id);
+                field('name').textContent = pick.name;
+                field('headline').textContent = pick.headline;
+                field('url').href = pick.url;
+
+                var facts = field('facts');
+                facts.replaceChildren();
+                [pick.distanceKm.toFixed(1) + ' km', pick.price, pick.rating ? '★ ' + pick.rating.toFixed(1) : null, pick.halal]
+                    .filter(Boolean)
+                    .forEach(function (text) {
+                        var fact = document.createElement('li');
+                        fact.className = 'rounded-full border border-ink/15 bg-paper px-3 py-1 text-sm font-medium text-ink/80';
+                        fact.textContent = text;
+                        facts.appendChild(fact);
+                    });
+
+                panel.dataset.show = 'pick';
+            }
+
+            function ask(reroll) {
+                if (!reroll) shown = [];
+                var answers = new FormData(form);
+                var params = new URLSearchParams({ km: answers.get('km') || '2' });
+                if (answers.get('mood')) params.set('mood', answers.get('mood'));
+                if (answers.get('budget')) params.set('budget', answers.get('budget'));
+                shown.slice(-20).forEach(function (id) { params.append('exclude[]', id); });
+
+                panel.dataset.show = 'spinning';
+                if (panel.getBoundingClientRect().top > window.innerHeight - 120) {
+                    panel.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+                }
+
+                var started = performance.now();
+                fetch(form.action + '?' + params, { headers: { Accept: 'application/json' } })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        return response.json();
+                    })
+                    .then(function (data) { return settle(started).then(function () { render(data); }); })
+                    .catch(function () { return settle(started).then(function () { panel.dataset.show = 'error'; }); });
+            }
+
+            form.addEventListener('submit', function (event) { event.preventDefault(); ask(false); });
+            form.addEventListener('change', function () { shown = []; });
+            panel.querySelector('[data-reroll]').addEventListener('click', function () { ask(true); });
+        })();
+    </script>
+@endpush

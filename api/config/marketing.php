@@ -31,4 +31,25 @@ return [
     // "<TeamID>.<bundle id>" for apple-app-site-association (universal links into the app).
     'apple_app_id' => env('APPLE_APP_ID', '46798S8ZQT.com.keirara.makanapa'),
 
+    // The landing page never asks for the visitor's location, so its "try it" demo and "most
+    // picked near …" list are anchored on a real campus with places already in the database.
+    // `university` is universities.short_name, used for the most-picked list.
+    'demo' => [
+        'label' => env('MARKETING_DEMO_LABEL', 'UKM Bangi'),
+        'university' => env('MARKETING_DEMO_UNIVERSITY', 'UKM'),
+        'latitude' => (float) env('MARKETING_DEMO_LATITUDE', 2.9290),
+        'longitude' => (float) env('MARKETING_DEMO_LONGITUDE', 101.7775),
+    ],
+
+    // Live numbers on the landing page, recomputed at most this often. A stat below its floor is
+    // left out rather than shown looking small; with none left, the whole strip is hidden.
+    'stats' => [
+        'cache_seconds' => 3600,
+        'min' => [
+            'places' => (int) env('MARKETING_STATS_MIN_PLACES', 50),
+            'picks' => (int) env('MARKETING_STATS_MIN_PICKS', 50),
+            'community' => (int) env('MARKETING_STATS_MIN_COMMUNITY', 5),
+        ],
+    ],
+
 ];

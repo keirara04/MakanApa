@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\MarketingController;
 use App\Models\MarketingEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -121,5 +122,30 @@ class MarketingPagesTest extends TestCase
     public function test_api_responses_also_carry_security_headers(): void
     {
         $this->getJson('/up')->assertHeader('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function test_home_describes_the_app_and_faq_as_structured_data(): void
+    {
+        preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $this->get('/')->getContent(), $match);
+
+        $data = json_decode($match[1] ?? '', true);
+        $this->assertSame(['MobileApplication', 'FAQPage'], array_column($data, '@type'));
+        $this->assertSame('Is it free?', $data[1]['mainEntity'][1]['name']);
+        // The Manglish half of a bilingual answer is dropped, and no markup leaks into the text.
+        $this->assertStringContainsString('If you find one, let us know.', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
+        $this->assertStringNotContainsString('<', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
+    }
+
+    public function test_try_it_offers_exactly_the_moods_the_endpoint_accepts(): void
+    {
+        preg_match_all('#name="mood" value="([a-z_]*)"#', $this->get('/')->getContent(), $matches);
+
+        $this->assertSame([...MarketingController::DEMO_MOODS, ''], $matches[1]);
+    }
+
+    public function test_missing_pages_get_the_sketchbook_404_but_api_404s_stay_json(): void
+    {
+        $this->get('/no-such-page')->assertNotFound()->assertSee('This page went out to makan.');
+        $this->getJson('/api/v1/no-such-endpoint')->assertNotFound()->assertJsonStructure(['message']);
     }
 }

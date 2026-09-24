@@ -224,6 +224,12 @@ html[data-lang='en'] .lang-ms {
     stroke-dashoffset: 0;
 }
 
+/* A fully offset dash still leaves its round cap as a dot where the line starts, so undrawn
+   doodles stay invisible until they begin drawing. */
+.js .draw:not(.is-in) {
+    opacity: 0;
+}
+
 @keyframes sketch-bob {
     0%,
     100% {
@@ -247,6 +253,7 @@ html[data-lang='en'] .lang-ms {
     .js [data-reveal],
     .js [data-reveal].sketch::before,
     .js [data-reveal].sketch::after,
+    .js .draw:not(.is-in),
     .js .draw :is(path, line, polyline, ellipse) {
         opacity: 1;
         transform: none;
@@ -308,8 +315,9 @@ html.intro-active .hero-in {
     translate: 0 calc(-100% - 40px);
 }
 
-/* Slot-machine reel of dishes: two copies of the list, scrolled half its height on a loop. */
-.intro-reel {
+/* Slot-machine reel of dishes (intro + "try it"): two copies of the list, scrolled half its
+   height on a loop. */
+.slot-reel {
     height: 1.3em;
     overflow: hidden;
     mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
@@ -318,24 +326,24 @@ html.intro-active .hero-in {
         translate 380ms cubic-bezier(0.5, 0, 0.75, 0);
 }
 
-.intro-reel ul {
-    animation: intro-spin 1.05s linear infinite;
+.slot-reel ul {
+    animation: slot-spin 1.05s linear infinite;
     filter: blur(0.4px);
 }
 
-.intro-reel li {
+.slot-reel li {
     height: 1.3em;
+}
+
+@keyframes slot-spin {
+    to {
+        transform: translateY(-50%);
+    }
 }
 
 .intro.is-landing [data-intro-skip] {
     opacity: 0;
     pointer-events: none;
-}
-
-@keyframes intro-spin {
-    to {
-        transform: translateY(-50%);
-    }
 }
 
 .intro-final {
@@ -353,7 +361,7 @@ html.intro-active .hero-in {
         scale 620ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms;
 }
 
-.intro.is-landing .intro-reel {
+.intro.is-landing .slot-reel {
     opacity: 0;
     translate: 0 -60%;
 }
@@ -389,4 +397,82 @@ html.intro-active .hero-in {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
     transition: stroke-dashoffset 400ms ease-out;
+}
+
+/* Hidden without JavaScript: interactive bits that can't work without it. */
+html:not(.js) .js-only {
+    display: none !important;
+}
+
+/* "Try it" answer chips: a real radio underneath; the chosen one gets circled in red marker. */
+.chip {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    align-items: center;
+    padding-inline: 0.35rem;
+    color: rgb(43 28 20 / 0.5);
+    transition: color 160ms ease;
+}
+
+.chip:hover,
+.chip:has(input:checked) {
+    color: var(--color-ink);
+}
+
+.chip:has(input:focus-visible) {
+    outline: 3px solid var(--color-sambal-600);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+.chip svg {
+    opacity: 0;
+}
+
+.chip:has(input:checked) svg {
+    opacity: 1;
+}
+
+.chip svg path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 420ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.chip:has(input:checked) svg path {
+    stroke-dashoffset: 0;
+}
+
+/* Result panel states for "try it": idle → spinning → shown / none / error. */
+.try-panel [data-state] {
+    display: none;
+}
+
+.try-panel[data-show='idle'] [data-state='idle'],
+.try-panel[data-show='spinning'] [data-state='spinning'],
+.try-panel[data-show='pick'] [data-state='pick'],
+.try-panel[data-show='none'] [data-state='none'],
+.try-panel[data-show='error'] [data-state='error'] {
+    display: flex;
+}
+
+@keyframes try-land {
+    from {
+        opacity: 0;
+        translate: 0 30px;
+        scale: 0.94;
+    }
+}
+
+.try-panel[data-show='pick'] [data-state='pick'] {
+    animation: try-land 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slot-reel ul,
+    .try-panel[data-show='pick'] [data-state='pick'] {
+        animation: none;
+    }
 }

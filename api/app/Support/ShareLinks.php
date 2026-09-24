@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 final class ShareLinks
 {
     /** Where a shared link came from — anything else is recorded as null. */
-    public const REFS = ['share', 'nudge'];
+    public const REFS = ['share', 'nudge', 'landing'];
 
     public static function place(int $restaurantId, string $name, string $ref = 'share'): string
     {

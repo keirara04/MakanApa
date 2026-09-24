@@ -20,7 +20,7 @@
         <meta property="og:image" content="@yield('og_image', asset('images/og.png'))">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa mascot with the line: Stop deciding. Start makan.')">
+        <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa: Makan apa hari ni? Decided in seconds. The mascot next to the app showing its pick.')">
         @stack('meta')
         <meta name="twitter:card" content="summary_large_image">
 
@@ -29,6 +29,9 @@
         <script>document.documentElement.classList.add('js');</script>
 
         @fonts
+        {{-- The hand-lettered headings are the first thing on screen; fetch their font with the
+             page instead of after the CSS, so they don't flash in the fallback face. --}}
+        <link rel="preload" href="{{ asset('fonts/amatic-sc/amatic-sc-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
             @vite(['resources/css/app.css'])
