@@ -34,6 +34,10 @@
         <env name="DB_URL" value=""/>
         <!-- Always fixture in tests, regardless of local .env — never hit real Google from the test suite. -->
         <env name="PLACES_PROVIDER" value="fixture"/>
+        <!-- Same for photo storage: a test that forgets Storage::fake() must never write into the real
+             DigitalOcean Spaces buckets (and CI has no Spaces credentials, so the write silently fails). -->
+        <env name="RESTAURANT_PHOTOS_PENDING_DISK" value="local"/>
+        <env name="RESTAURANT_PHOTOS_PUBLIC_DISK" value="public"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <!-- Tests never call OpenRouter for real: an empty key selects NullJudgmentEngine unless a test opts in with Http::fake(). -->

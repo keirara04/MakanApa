@@ -39,6 +39,13 @@ class AdminPerformanceTest extends TestCase
 {
     use BuildsHalalFixtures, RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake(config('restaurant_photos.pending_disk'));
+        Storage::fake(config('restaurant_photos.public_disk'));
+    }
+
     private function newPlaceSubmission(User $user, string $name, float $latitude, float $longitude): RestaurantSubmission
     {
         return RestaurantSubmission::create([

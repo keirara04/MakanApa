@@ -14,7 +14,6 @@ struct SettingsView: View {
     @State private var showingDeleteAccount = false
     @State private var confirmingLogout = false
     @State private var showingSignIn = false
-    @State private var appeared = false
     @State private var halalOnly = HalalPreference.isOn
     @State private var mapProvider = MapProviderPreference.current
     /// Prefetched so the Notifications screen opens already filled — loading it on push made it
@@ -28,42 +27,31 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if case .authenticated(let user) = authStore.session {
-                        Group {
-                            if user.isGuestAccount {
-                                guestHeader
-                            } else {
-                                profileHeader(user)
-                            }
+                        if user.isGuestAccount {
+                            guestHeader
+                        } else {
+                            profileHeader(user)
                         }
-                        .entrance(0, appeared: appeared, reduceMotion: reduceMotion)
                         yourMakanApaCard
-                            .entrance(1, appeared: appeared, reduceMotion: reduceMotion)
                     }
 
                     preferencesCard
-                        .entrance(2, appeared: appeared, reduceMotion: reduceMotion)
 
                     privacyCard
-                        .entrance(3, appeared: appeared, reduceMotion: reduceMotion)
 
                     if case .authenticated(let user) = authStore.session, user.isSuperadmin {
                         adminCard
-                            .entrance(3, appeared: appeared, reduceMotion: reduceMotion)
                     }
 
                     helpCard
-                        .entrance(4, appeared: appeared, reduceMotion: reduceMotion)
 
                     #if DEBUG
                     debugCard
-                        .entrance(4, appeared: appeared, reduceMotion: reduceMotion)
                     #endif
 
                     accountActions
-                        .entrance(5, appeared: appeared, reduceMotion: reduceMotion)
 
                     footer
-                        .entrance(5, appeared: appeared, reduceMotion: reduceMotion)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -92,10 +80,6 @@ struct SettingsView: View {
                 DeleteAccountSheet()
             }
             .accountSignInSheet(isPresented: $showingSignIn, source: "settings")
-            .onAppear {
-                guard !appeared else { return }
-                appeared = true
-            }
             .task {
                 guard case .authenticated = authStore.session, notificationPreferences == nil else { return }
                 notificationPreferences = try? await APIClient.fetchNotificationPreferences().preferences
@@ -792,29 +776,5 @@ private struct ExternalLinkRow: View {
                 Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
             }
         }
-    }
-}
-
-/// Staggered entrance: each block fades up a beat after the one above it. Instant (no offset,
-/// no delay) under Reduce Motion.
-private struct Entrance: ViewModifier {
-    let index: Int
-    let appeared: Bool
-    let reduceMotion: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared || reduceMotion ? 0 : 14)
-            .animation(
-                reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.45, dampingFraction: 0.85).delay(Double(index) * 0.05),
-                value: appeared
-            )
-    }
-}
-
-private extension View {
-    func entrance(_ index: Int, appeared: Bool, reduceMotion: Bool) -> some View {
-        modifier(Entrance(index: index, appeared: appeared, reduceMotion: reduceMotion))
     }
 }
