@@ -45,6 +45,8 @@ struct NearbyAreaPanel: View {
     let onSelectPlace: (NearbyPlace) -> Void
     let onPickOneLah: () -> Void
     let isPicking: Bool
+    /// Still locating or fetching — an empty summary then means "not yet," not "nothing here."
+    let isLoading: Bool
     let hasPlaces: Bool
     /// The window's height, not `UIScreen`'s — on iPad Split View, Slide Over and Stage Manager
     /// the window is smaller than the screen, and it changes on rotation/resize.
@@ -164,7 +166,7 @@ struct NearbyAreaPanel: View {
     // "Around here", never "Around <university>" — affiliation answers who your community is,
     // not where the map is currently pointed (plan correction 4).
     private var collapsedSubtitle: String {
-        guard let summary else { return "" }
+        guard let summary else { return isLoading ? "finding spots…" : "" }
         return "\(summary.placeCount) places nearby"
     }
 
@@ -216,12 +218,24 @@ struct NearbyAreaPanel: View {
                     }
                     pickOneLahButton(compact: false)
                         .padding(.top, 4)
+                } else if isLoading && summary == nil {
+                    loadingState
                 } else {
                     emptyState
                 }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
+        }
+    }
+
+    private var loadingState: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Finding makan spots around here…")
+                .font(.makanBody(15))
+                .foregroundStyle(Color.kicap)
         }
     }
 

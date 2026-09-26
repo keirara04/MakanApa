@@ -24,7 +24,7 @@ struct CommunityPostPresentations: ViewModifier {
                     CommunityComposerView(store: store, parent: parent, onPosted: onPosted)
                 }
             }
-            .accountSignInSheet(isPresented: $interactions.isAccountPromptPresented)
+            .accountSignInSheet(isPresented: $interactions.isAccountPromptPresented, source: "feature:react")
             .sheet(item: $interactions.reportTarget) { post in
                 CommunityReportSheet(post: post, store: store) {
                     onRemoved(post)

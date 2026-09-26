@@ -77,6 +77,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'signup_source' => $data['signupSource'] ?? null,
         ];
 
         $guest = $this->guestFromBearerToken();
@@ -144,6 +145,7 @@ class AuthController extends Controller
             name: $data['fullName'] ?? null,
             deviceLabel: $data['deviceLabel'],
             providerRefreshToken: $refreshToken,
+            signupSource: $data['signupSource'] ?? null,
         );
     }
 
@@ -167,6 +169,7 @@ class AuthController extends Controller
             email: $identity->email,
             name: null,
             deviceLabel: $data['deviceLabel'],
+            signupSource: $data['signupSource'] ?? null,
         );
     }
 
@@ -231,6 +234,7 @@ class AuthController extends Controller
         ?string $name,
         string $deviceLabel,
         ?string $providerRefreshToken = null,
+        ?string $signupSource = null,
     ): JsonResponse {
         $subColumn = $provider.'_sub';
 
@@ -297,6 +301,7 @@ class AuthController extends Controller
                 'password' => null,
                 $subColumn => $sub,
                 'apple_refresh_token' => $provider === 'apple' ? $providerRefreshToken : null,
+                'signup_source' => $signupSource,
             ];
             $guest = $this->guestFromBearerToken();
 
@@ -336,13 +341,14 @@ class AuthController extends Controller
      * Turns the guest row itself into the real account (rather than creating a new one) so its
      * decisions, saves and taste history carry over. Its guest tokens are revoked — the caller
      * issues a fresh one. Callers inside a transaction get both writes rolled back together.
+     * `upgraded_from_guest_at` is what the admin guest-conversion stats count.
      *
      * @param  array<string, mixed>  $identity
      */
     private function upgradeGuest(User $guest, array $identity): User
     {
         $guest->tokens()->delete();
-        $guest->forceFill([...$identity, 'is_guest' => false])->save();
+        $guest->forceFill([...$identity, 'is_guest' => false, 'upgraded_from_guest_at' => now()])->save();
 
         return $guest;
     }

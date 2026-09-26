@@ -21,6 +21,8 @@ class AppleLoginRequest extends FormRequest
             // resends it on subsequent sign-ins.
             'fullName' => ['nullable', 'string', 'max:100'],
             'deviceLabel' => ['required', 'string', 'max:100'],
+            // Where in the app the account was created — conversion analytics only, never trusted.
+            'signupSource' => ['nullable', 'string', 'max:40', 'regex:/^[a-z0-9_:.-]+$/'],
         ];
     }
 }

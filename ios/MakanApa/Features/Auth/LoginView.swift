@@ -77,7 +77,12 @@ struct LoginView: View {
         }
         .preferredColorScheme(.light)
         .tint(accent)
-        .onAppear { appeared = true }
+        .onAppear {
+            appeared = true
+            // As the root screen (signed out), any sign-up here came from the login screen itself;
+            // as a guest's sheet, `GuestSignInSheet` has already set its own source.
+            if onClose == nil { AuthStore.shared.signupSource = "login_screen" }
+        }
         .sheet(isPresented: $showSignUp) { SignUpView() }
         .sheet(item: $pendingLink) { link in
             LinkAccountSheet(linkToken: link.linkToken, email: link.email, provider: link.provider)
@@ -94,6 +99,14 @@ struct LoginView: View {
                 headline
                 communityPill
                     .rise(appeared, delay: 0.55, reduceMotion: reduceMotion)
+                // A guest signing in keeps everything — say so right where they decide.
+                if onClose != nil {
+                    Text(Copy.guestCarryOver)
+                        .font(.makanBody(13).weight(.semibold))
+                        .foregroundStyle(Color.pandan)
+                        .multilineTextAlignment(.center)
+                        .rise(appeared, delay: 0.58, reduceMotion: reduceMotion)
+                }
             }
             .padding(.top, 10)
             .padding(.horizontal, 24)

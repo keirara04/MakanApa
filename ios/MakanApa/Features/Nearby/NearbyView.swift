@@ -70,9 +70,12 @@ struct NearbyView: View {
                 if let apiError = viewModel.apiError {
                     errorBanner(for: apiError)
                 }
-                // Neither applies while browsing search results — the pins are what's on the map.
+                // None apply while browsing search results — the pins are what's on the map.
                 if !isSearchActive {
-                    if viewModel.isZoomedTooFarOut {
+                    // "Search this area" carries its own spinner for the fetch it started.
+                    if isFindingSpots && !viewModel.showSearchThisArea {
+                        findingSpotsPill
+                    } else if viewModel.isZoomedTooFarOut {
                         zoomPrompt
                     } else if viewModel.showSearchThisArea {
                         searchThisAreaPill
@@ -137,6 +140,7 @@ struct NearbyView: View {
                         onSelectPlace: { selectPlace($0) },
                         onPickOneLah: { Task { await pickOneLah() } },
                         isPicking: viewModel.isPicking,
+                        isLoading: isFindingSpots,
                         hasPlaces: !viewModel.places.isEmpty,
                         windowHeight: windowHeight,
                         state: $panelState
@@ -652,6 +656,37 @@ struct NearbyView: View {
             .background(.white)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+    }
+
+    /// Waiting on the first GPS fix (the map is still at world zoom, so without this the user
+    /// would see "Zoom in" instead) or on a `places/nearby` fetch — a cold area can mean a
+    /// Google Places round trip server-side. Non-blocking: the map stays pannable underneath.
+    /// Off while cached pills are already showing — that refresh stays silent.
+    private var isFindingSpots: Bool {
+        guard !viewModel.isShowingCachedPlaces else { return false }
+        return viewModel.isLoading || (!viewModel.hasSearched && locationService.state == .notDetermined)
+    }
+
+    private var findingSpotsPill: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(Color.kicap)
+            Text("Finding makan spots…")
+        }
+        .font(.makanBody(13))
+        .foregroundStyle(Color.kicap)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.white)
+        .clipShape(Capsule())
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+        // Held back a beat so a warm-cache response doesn't flash it on and off.
+        .transition(.asymmetric(
+            insertion: .opacity.animation(.easeOut(duration: 0.2).delay(0.3)),
+            removal: .opacity.animation(.easeOut(duration: 0.15))
+        ))
+        .accessibilityElement(children: .combine)
     }
 
     private var searchThisAreaPill: some View {

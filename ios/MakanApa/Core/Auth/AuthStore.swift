@@ -95,6 +95,13 @@ final class AuthStore {
         }
     }
 
+    /// Which prompt the next sign-up/sign-in came from ("login_screen", "settings", "nudge_picks",
+    /// "feature:post_in_the_community", …) — sent with register/Apple/Google so the backend can
+    /// measure which prompts actually turn guests into accounts. Set by whatever presents the
+    /// sign-in (see `QuickSignInPanel`, `GuestSignInSheet`); cleared once a sign-in succeeds.
+    /// Not observed by any view, so it's excluded from tracking.
+    @ObservationIgnored var signupSource: String?
+
     /// Set when a stored token exists but neither `/auth/me` nor a cached user could be used
     /// (first launch after install/update while offline) — the splash offers a retry instead of
     /// discarding a perfectly valid token.
@@ -160,6 +167,9 @@ final class AuthStore {
     /// Nearby aren't account-based, so they can't sit behind sign-up. Signing in later from a
     /// guest session upgrades this same account (register/Apple/Google send its token).
     func continueAsGuest() async throws {
+        // Becoming a guest isn't a sign-up — don't let the login screen's source stick around and
+        // get credited for a much later upgrade from some other prompt.
+        signupSource = nil
         let response = try await APIClient.continueAsGuest(deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
@@ -167,7 +177,10 @@ final class AuthStore {
     }
 
     func register(name: String, email: String, password: String) async throws {
-        let response = try await APIClient.register(name: name, email: email, password: password, deviceLabel: Self.deviceLabel)
+        let response = try await APIClient.register(
+            name: name, email: email, password: password, deviceLabel: Self.deviceLabel, signupSource: signupSource
+        )
+        signupSource = nil
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
         claimDeviceTokenIfPresent()
@@ -175,13 +188,14 @@ final class AuthStore {
 
     func loginWithApple(identityToken: String, authorizationCode: String, rawNonce: String, fullName: String?) async throws -> SocialLoginOutcome {
         let response = try await APIClient.loginWithApple(
-            identityToken: identityToken, authorizationCode: authorizationCode, nonce: rawNonce, fullName: fullName, deviceLabel: Self.deviceLabel
+            identityToken: identityToken, authorizationCode: authorizationCode, nonce: rawNonce, fullName: fullName,
+            deviceLabel: Self.deviceLabel, signupSource: signupSource
         )
         return try applySocialLoginResponse(response)
     }
 
     func loginWithGoogle(idToken: String) async throws -> SocialLoginOutcome {
-        let response = try await APIClient.loginWithGoogle(idToken: idToken, deviceLabel: Self.deviceLabel)
+        let response = try await APIClient.loginWithGoogle(idToken: idToken, deviceLabel: Self.deviceLabel, signupSource: signupSource)
         return try applySocialLoginResponse(response)
     }
 
@@ -204,6 +218,7 @@ final class AuthStore {
             throw APIError.invalidResponse
         }
 
+        signupSource = nil
         CredentialStore.shared.token = token
         session = .authenticated(user)
         claimDeviceTokenIfPresent()
@@ -246,6 +261,7 @@ final class AuthStore {
         try? await APIClient.unclaimDeviceToken(installationId: InstallationID.current, environment: PushEnvironment.current)
         _ = try? await APIClient.logout()
         CredentialStore.shared.token = nil
+        NearbyPlacesCache.clear()
         session = .unauthenticated
     }
 
@@ -255,6 +271,7 @@ final class AuthStore {
     func deleteAccount(password: String?) async throws {
         _ = try await APIClient.deleteAccount(password: password)
         CredentialStore.shared.token = nil
+        NearbyPlacesCache.clear()
         session = .unauthenticated
     }
 

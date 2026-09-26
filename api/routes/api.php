@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\CommunityRequestController;
+use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\DecisionBrainController;
 use App\Http\Controllers\Api\DeviceTokenController;
 use App\Http\Controllers\Api\HalalController;
@@ -150,6 +151,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware('throttle:60,1,selera-read')->group(function () {
             Route::get('context', [SeleraController::class, 'context']);
             Route::get('me/selera', [SeleraController::class, 'show']);
+            Route::get('me/contributions', [ContributionController::class, 'show']);
         });
         Route::middleware('throttle:20,1,selera-write')->group(function () {
             Route::post('me/selera/traits/{trait}/feedback', [SeleraController::class, 'feedback']);

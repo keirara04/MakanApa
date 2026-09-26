@@ -10,6 +10,9 @@ import UIKit
 struct SocialSignInButtons: View {
     var onNeedsLinking: (_ linkToken: String, _ email: String, _ provider: String) -> Void
     var onError: (String) -> Void
+    /// Fires the moment either button is tapped, before any network call — lets a prompt stamp
+    /// `AuthStore.signupSource` at tap time rather than on appear (several prompts can be on screen).
+    var onStart: (() -> Void)? = nil
 
     @State private var currentAppleNonce: String?
     @State private var isGoogleSigningIn = false
@@ -17,6 +20,7 @@ struct SocialSignInButtons: View {
     var body: some View {
         VStack(spacing: 12) {
             SignInWithAppleButton(.continue) { request in
+                onStart?()
                 let nonce = AppleNonce.randomRawNonce()
                 currentAppleNonce = nonce
                 request.requestedScopes = [.fullName, .email]
@@ -59,6 +63,7 @@ struct SocialSignInButtons: View {
     }
 
     private func handleGoogleTap() {
+        onStart?()
         guard let presenting = presentingViewController() else {
             onError("Couldn't start Google sign-in.")
             return

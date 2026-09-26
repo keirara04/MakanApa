@@ -23,6 +23,7 @@ struct HomeView: View {
 
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
     private var recentStore = RecentDecisionStore.shared
+    private var upgradeNudge = GuestUpgradeNudge.shared
 
     var body: some View {
         ZStack {
@@ -118,6 +119,11 @@ struct HomeView: View {
                 VStack(spacing: 12) {
                     quickPickCard
                     chooseCravingCard
+                }
+
+                if let reason = upgradeNudge.activeReason {
+                    GuestUpgradeCard(reason: reason)
+                        .transition(.opacity.combined(with: .scale(scale: 0.97)))
                 }
 
                 if !recentStore.decisions.isEmpty {

@@ -37,6 +37,12 @@ struct HalalVerificationSection: View {
             if let mine = halal.myReport {
                 MyVouchStatusRow(report: mine) { showingReport = true }
             } else {
+                if let demandLine {
+                    Text(demandLine)
+                        .font(.makanBody(12))
+                        .foregroundStyle(Color.kicap.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 vouchPrompt
             }
 
@@ -80,6 +86,13 @@ struct HalalVerificationSection: View {
 extension HalalVerificationSection {
     /// A pending vouch is locked until reviewed — the API would refuse a second one anyway.
     private var canVouch: Bool { halal.myReport?.status != "pending" }
+
+    /// Who's waiting on an answer — only for places nobody has verified yet, and only once it's
+    /// more than one person, so it never reads as just "you".
+    private var demandLine: String? {
+        guard halal.verification == nil, let pickers = halal.recentPickers, pickers >= 2 else { return nil }
+        return "\(pickers) people picked this place in the last 30 days — know if it's halal? Help them out."
+    }
 
     /// The primary ask when this user hasn't vouched yet — one tap into the vouch sheet.
     private var vouchPrompt: some View {
@@ -179,6 +192,12 @@ private struct HalalReportCard: View {
                         .background(Color.pandan.opacity(0.12), in: Capsule())
                 }
                 Text(report.userName).font(.makanBody(12)).foregroundStyle(Color.kicap)
+                if report.userTrusted == true {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.pandan)
+                        .accessibilityLabel("Trusted contributor")
+                }
                 if let date = report.approvedAt {
                     Text("· \(HalalDates.display(date))").font(.makanBody(11)).foregroundStyle(.secondary)
                 }

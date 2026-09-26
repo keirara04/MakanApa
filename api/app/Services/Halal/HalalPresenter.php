@@ -2,6 +2,7 @@
 
 namespace App\Services\Halal;
 
+use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\RestaurantHalalVerification;
 use App\Models\RestaurantPhoto;
@@ -12,17 +13,20 @@ use App\Support\Halal\HalalDecisionMethod;
 use App\Support\Halal\HalalEvidenceSource;
 use App\Support\Halal\HalalReviewState;
 use App\Support\Halal\HalalStatus;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The ONLY producer of public halal payloads and labels. Clients draw `display` verbatim —
  * they never derive wording from status themselves, so iOS/admin/web can't drift apart.
  *
  * Never emitted: certificate_number, submission notes/review_note, override_reason,
- * contributor stats.
+ * contributor stats (only the derived public "trusted" badge on a report).
  */
 class HalalPresenter
 {
     public const REPORTS_SHOWN = 3;
+
+    private const RECENT_PICKERS_DAYS = 30;
 
     /** Compact shape for map markers and list cards, from a Restaurant::toRecommendationArray() row. */
     public function summaryFromArray(array $restaurant): array
@@ -66,7 +70,28 @@ class HalalPresenter
             'reports' => $this->reports($restaurant, $verification),
             'historyCount' => $restaurant->halalVerifications()->count(),
             'myReport' => $viewer ? $this->viewerReport($restaurant, $viewer) : null,
+            'recentPickers' => $this->recentPickers($restaurant),
         ];
+    }
+
+    /**
+     * Distinct people (guests included) who accepted this place as a pick lately — the app's
+     * "N people picked this, know if it's halal?" ask on unverified places. A count only, never
+     * who; cached briefly since every details open reads it.
+     */
+    private function recentPickers(Restaurant $restaurant): int
+    {
+        return Cache::remember(
+            "halal:recent-pickers:{$restaurant->id}",
+            now()->addMinutes(10),
+            fn () => (int) DecisionRecommendation::query()
+                ->join('decisions', 'decisions.id', '=', 'decision_recommendations.decision_id')
+                ->where('decision_recommendations.restaurant_id', $restaurant->id)
+                ->where('decision_recommendations.accepted_at', '>=', now()->subDays(self::RECENT_PICKERS_DAYS))
+                ->whereNotNull('decisions.user_id')
+                ->distinct()
+                ->count('decisions.user_id'),
+        );
     }
 
     /** Open vouches, plus the last decided one for 30 days so the user sees its outcome. */
@@ -209,7 +234,7 @@ class HalalPresenter
             ->where('restaurant_id', $restaurant->id)
             ->where('submission_type', 'halal_report')
             ->where('status', 'approved')
-            ->with(['user:id,name', 'photos' => fn ($q) => $q->where('is_active', true)->whereNotNull('restaurant_id')])
+            ->with(['user:id,name,trusted_contributor', 'photos' => fn ($q) => $q->where('is_active', true)->whereNotNull('restaurant_id')])
             ->latest('reviewed_at')
             ->limit(self::REPORTS_SHOWN)
             ->get()
@@ -220,6 +245,7 @@ class HalalPresenter
                 'isCurrent' => $active?->submission_id === $report->id,
                 'comment' => $report->halal_comment,
                 'userName' => $report->user?->name ?? 'MakanApa user',
+                'userTrusted' => (bool) $report->user?->trusted_contributor,
                 'approvedAt' => $report->reviewed_at?->toIso8601String(),
                 'photos' => $report->photos->map(fn (RestaurantPhoto $photo) => [
                     'id' => $photo->id,

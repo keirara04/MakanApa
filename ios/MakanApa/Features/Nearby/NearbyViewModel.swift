@@ -73,6 +73,9 @@ final class NearbyViewModel {
     var isZoomedTooFarOut = false
     var showSearchThisArea = false
     var isLoading = false
+    /// `places`/`areaSummary` were painted from `NearbyPlacesCache` and the fresh fetch hasn't
+    /// landed yet — the pills are already on screen, so the view refreshes them silently.
+    private(set) var isShowingCachedPlaces = false
 
     /// Set only while the "🍚 Pick one lah" sequence is running: disables map interaction and
     /// drives the marker pulse/dim/highlight choreography.
@@ -153,17 +156,20 @@ final class NearbyViewModel {
     private var lastSearchedViewport: MapViewport?
     private var didLoadFilters = false
 
+    /// False until the first `places/nearby` fetch lands — before that an empty map means
+    /// "still looking," not "nothing here."
+    var hasSearched: Bool { lastSearchedViewport != nil }
+
     /// Identifies a Nearby fetch by everything that actually changes its result — used to skip
     /// an exact repeat request and to know whether an in-flight fetch is now stale.
     private struct NearbyQueryKey: Equatable {
         let viewport: MapViewport
-        let openNow: Bool
-        let budgetMax: Int?
-        let minRating: Double?
-        let mode: DiscoveryMode
-        let vibe: Vibe?
-        let halal: Bool
+        let filters: NearbyFilterSignature
     }
+
+    /// The disk cache is only worth consulting for the first fetch — after that `places` is
+    /// already current for wherever the map is.
+    private var didConsultCache = false
 
     /// The view fires an unstructured `Task { await viewModel.viewportSettled(...) }` on every
     /// camera-idle event (`NearbyView.swift`) with no cancellation of its own — without this,
@@ -265,14 +271,21 @@ final class NearbyViewModel {
     @MainActor
     private func search(_ viewport: MapViewport) async {
         let key = NearbyQueryKey(
-            viewport: viewport, openNow: openNowFilter, budgetMax: budgetMaxFilter,
-            minRating: minRatingFilter, mode: discoveryMode, vibe: vibe,
-            halal: halalFilter
+            viewport: viewport,
+            filters: NearbyFilterSignature(
+                openNow: openNowFilter, budgetMax: budgetMaxFilter, minRating: minRatingFilter,
+                mode: discoveryMode, vibe: vibe, halal: halalFilter
+            )
         )
         // Already have fresh data for exactly this query — e.g. a redundant "Search this area"
         // tap after nothing actually moved. `lastSucceededQueryKey` only updates on success
         // (below), so a failed fetch never blocks a retry of the same query.
         guard key != lastSucceededQueryKey else { return }
+
+        if !didConsultCache {
+            didConsultCache = true
+            restoreCachedPlaces(for: key)
+        }
 
         // A genuinely new query supersedes whatever's in flight — cancel it rather than let two
         // responses race to be the one that lands last.
@@ -295,6 +308,10 @@ final class NearbyViewModel {
                 self.lastSucceededQueryKey = key
                 self.browseCenter = Self.center(of: viewport)
                 self.showSearchThisArea = false
+                NearbyPlacesCache.save(NearbyPlacesSnapshot(
+                    viewport: viewport, filters: key.filters, places: response.places,
+                    areaSummary: response.areaSummary, savedAt: Date()
+                ))
             } catch let error as APIError {
                 guard !Task.isCancelled else { return }
                 self.apiError = error
@@ -304,9 +321,21 @@ final class NearbyViewModel {
             }
             guard !Task.isCancelled else { return }
             self.isLoading = false
+            self.isShowingCachedPlaces = false
         }
         searchFetchTask = task
         await task.value
+    }
+
+    /// Paints the last cached response for this spot while the real fetch runs. Skipped when
+    /// something (a shared link's place) already put pins down — the cache must not replace them.
+    @MainActor
+    private func restoreCachedPlaces(for key: NearbyQueryKey) {
+        guard places.isEmpty, let snapshot = NearbyPlacesCache.load(),
+              snapshot.isUsable(for: key.viewport, filters: key.filters) else { return }
+        places = snapshot.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
+        areaSummary = snapshot.areaSummary
+        isShowingCachedPlaces = true
     }
 
     private static func center(of viewport: MapViewport) -> CLLocationCoordinate2D {
@@ -575,6 +604,7 @@ final class NearbyViewModel {
             PendingVibePromptStore.shared.recordAccept(
                 decisionId: response.decisionId, clientToken: response.clientToken, restaurantName: place.name
             )
+            GuestUpgradeNudge.shared.recordAcceptedPick(decisionId: response.decisionId)
             if let nudgeId = openedNudgeId {
                 Task { _ = try? await APIClient.nudgeEvent(nudgeId: nudgeId, event: "makan_sini") }
             }

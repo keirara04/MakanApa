@@ -24,6 +24,8 @@ struct RegisterRequestBody: Encodable {
     let email: String
     let password: String
     let deviceLabel: String
+    /// Which prompt led here (see `AuthStore.signupSource`) — nil is omitted from the JSON.
+    let signupSource: String?
 }
 
 struct AppleLoginRequestBody: Encodable {
@@ -32,6 +34,7 @@ struct AppleLoginRequestBody: Encodable {
     let nonce: String
     let fullName: String?
     let deviceLabel: String
+    let signupSource: String?
 }
 
 struct AcceptTermsRequestBody: Encodable {
@@ -48,6 +51,7 @@ struct GuestLoginRequestBody: Encodable {
 struct GoogleLoginRequestBody: Encodable {
     let idToken: String
     let deviceLabel: String
+    let signupSource: String?
 }
 
 struct LinkAccountRequestBody: Encodable {
@@ -620,14 +624,14 @@ struct AcceptResponse: Decodable {
     let accepted: Bool
 }
 
-struct MapViewport: Encodable, Equatable {
+struct MapViewport: Codable, Equatable {
     let north: Double
     let south: Double
     let east: Double
     let west: Double
 }
 
-struct NearbyPlace: Decodable, Equatable, Identifiable {
+struct NearbyPlace: Codable, Equatable, Identifiable {
     let id: Int
     let name: String
     let rating: Double?
@@ -643,14 +647,14 @@ struct NearbyPlacesResponse: Decodable {
     let areaSummary: AreaSummaryResponse
 }
 
-struct AreaCategoryCount: Decodable, Equatable {
+struct AreaCategoryCount: Codable, Equatable {
     let label: String
     let count: Int
 }
 
 /// "budget_friendly" | "category_heavy" — plain data from the backend, never emoji/prose;
 /// this layer decides how each key actually renders.
-struct AreaPersonalityTag: Decodable, Equatable, Identifiable {
+struct AreaPersonalityTag: Codable, Equatable, Identifiable {
     let key: String
     let label: String
 
@@ -660,7 +664,7 @@ struct AreaPersonalityTag: Decodable, Equatable, Identifiable {
 /// Nearby's "what's around here" interpretation layer — computed backend-side from the exact
 /// same viewport-and-filter-scoped restaurant set the marker list itself uses, never a second,
 /// independently fetched dataset (see `NearbyController::buildAreaSummary`).
-struct AreaSummaryResponse: Decodable, Equatable {
+struct AreaSummaryResponse: Codable, Equatable {
     let placeCount: Int
     let openNowCount: Int
     let budgetFriendlyCount: Int
@@ -996,7 +1000,7 @@ enum CertificationAuthority: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-struct HalalDisplay: Decodable, Equatable {
+struct HalalDisplay: Codable, Equatable {
     let shortLabel: String
     let longLabel: String
     /// certified | friendly | neutral | warning | non_halal
@@ -1010,7 +1014,7 @@ struct HalalDisplay: Decodable, Equatable {
 }
 
 /// Compact marker/list shape.
-struct HalalSummary: Decodable, Equatable {
+struct HalalSummary: Codable, Equatable {
     let status: HalalStatus
     let display: HalalDisplay
 }
@@ -1037,6 +1041,8 @@ struct HalalPublicReport: Decodable, Equatable, Identifiable {
     let isCurrent: Bool
     let comment: String?
     let userName: String
+    /// Optional: absent from older backends.
+    let userTrusted: Bool?
     let approvedAt: String?
     let photos: [HalalReportPhoto]
 }
@@ -1052,6 +1058,9 @@ struct HalalInfo: Decodable, Equatable {
     let historyCount: Int
     /// The signed-in user's own latest vouch on this place (open, or decided in the last 30 days).
     let myReport: HalalMyReport?
+    /// Distinct people who accepted this place as a pick in the last 30 days — the "who's waiting
+    /// on this answer" line above the vouch prompt. Optional: absent from older backends.
+    let recentPickers: Int?
 }
 
 struct HalalMyReport: Decodable, Equatable {
@@ -1494,4 +1503,14 @@ struct SeleraResponse: Decodable, Equatable {
 struct SeleraFeedbackRequestBody: Encodable {
     /// not_really | more | less
     let kind: String
+}
+
+/// GET me/contributions — what this account has added that others can see, for the Settings
+/// profile header. All zero (and not trusted) for a guest.
+struct MyContributionsResponse: Decodable, Equatable {
+    let trustedContributor: Bool
+    let placesAdded: Int
+    let halalVerified: Int
+    let photosAdded: Int
+    let posts: Int
 }

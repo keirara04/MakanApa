@@ -186,21 +186,24 @@ enum APIClient {
 
     // register/apple/google send the current token when there is one: for a guest, the backend
     // upgrades that same account in place so its history carries over. No token, no header.
-    static func register(name: String, email: String, password: String, deviceLabel: String) async throws -> LoginResponse {
-        try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel))
+    static func register(name: String, email: String, password: String, deviceLabel: String, signupSource: String?) async throws -> LoginResponse {
+        try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel, signupSource: signupSource))
     }
 
     static func loginWithApple(
-        identityToken: String, authorizationCode: String, nonce: String, fullName: String?, deviceLabel: String
+        identityToken: String, authorizationCode: String, nonce: String, fullName: String?, deviceLabel: String, signupSource: String?
     ) async throws -> SocialLoginResponse {
         try await post(
             "auth/apple",
-            body: AppleLoginRequestBody(identityToken: identityToken, authorizationCode: authorizationCode, nonce: nonce, fullName: fullName, deviceLabel: deviceLabel)
+            body: AppleLoginRequestBody(
+                identityToken: identityToken, authorizationCode: authorizationCode, nonce: nonce, fullName: fullName,
+                deviceLabel: deviceLabel, signupSource: signupSource
+            )
         )
     }
 
-    static func loginWithGoogle(idToken: String, deviceLabel: String) async throws -> SocialLoginResponse {
-        try await post("auth/google", body: GoogleLoginRequestBody(idToken: idToken, deviceLabel: deviceLabel))
+    static func loginWithGoogle(idToken: String, deviceLabel: String, signupSource: String?) async throws -> SocialLoginResponse {
+        try await post("auth/google", body: GoogleLoginRequestBody(idToken: idToken, deviceLabel: deviceLabel, signupSource: signupSource))
     }
 
     static func completeLink(password: String, linkToken: String, deviceLabel: String) async throws -> LoginResponse {
@@ -225,6 +228,10 @@ enum APIClient {
 
     static func me() async throws -> MeResponse {
         try await get("auth/me", query: [])
+    }
+
+    static func myContributions() async throws -> MyContributionsResponse {
+        try await get("me/contributions", query: [])
     }
 
     /// Surfaces the server's message on a 422 ("The terms were updated…").

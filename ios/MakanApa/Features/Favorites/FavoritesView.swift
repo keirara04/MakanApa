@@ -6,6 +6,7 @@ import UIKit
 /// surfaces, since Save is otherwise a silent per-place toggle with no list of its own.
 struct FavoritesView: View {
     private var preferences = PlacePreferencesStore.shared
+    private var upgradeNudge = GuestUpgradeNudge.shared
 
     var body: some View {
         Group {
@@ -13,6 +14,12 @@ struct FavoritesView: View {
                 emptyState
             } else {
                 List {
+                    if upgradeNudge.isEligible(.saves) {
+                        GuestUpgradeCard(reason: .saves)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
                     ForEach(preferences.savedPlaces) { place in
                         row(for: place)
                     }

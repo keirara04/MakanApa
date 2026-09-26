@@ -196,7 +196,17 @@ struct AccountRequiredPrompt: View {
     let feature: String
 
     @Environment(\.dismiss) private var dismiss
-    @State private var showingSignIn = false
+
+    /// "feature:post_in_the_community" — which gate a sign-up came through (see
+    /// `AuthStore.signupSource`), capped to the backend's 40 characters.
+    private var signupSource: String {
+        let slug = feature.lowercased()
+            .map { $0.isLetter || $0.isNumber ? String($0) : "_" }
+            .joined()
+            .split(separator: "_")
+            .joined(separator: "_")
+        return "feature:" + String(slug.prefix(32))
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -214,13 +224,17 @@ struct AccountRequiredPrompt: View {
                     .font(.makanBody(14))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                Text(Copy.guestCarryOver)
+                    .font(.makanBody(13).weight(.semibold))
+                    .foregroundStyle(Color.pandan)
+                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 32)
 
             Spacer(minLength: 0)
 
             VStack(spacing: 10) {
-                MakanPrimaryButton(title: "Sign in or create account") { showingSignIn = true }
+                QuickSignInPanel(source: signupSource)
 
                 Button("Not now") { dismiss() }
                     .font(.makanBody(14))
@@ -232,7 +246,6 @@ struct AccountRequiredPrompt: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.nasiCream.ignoresSafeArea())
-        .accountSignInSheet(isPresented: $showingSignIn)
     }
 }
 
@@ -240,11 +253,24 @@ struct AccountRequiredPrompt: View {
 /// is one — signing up from a guest session upgrades that same account server-side, so their
 /// picks and saves carry over.
 struct GuestSignInSheet: View {
+    /// Credited to the sign-up this sheet leads to — see `AuthStore.signupSource`.
+    let source: String
+
     @Environment(\.dismiss) private var dismiss
     private var authStore = AuthStore.shared
 
+    init(source: String) {
+        self.source = source
+    }
+
     var body: some View {
         LoginView(onClose: { dismiss() })
+            .onAppear { authStore.signupSource = source }
+            .onDisappear {
+                // Closed without signing up: don't let this source get credited to some later,
+                // unrelated sign-in.
+                if authStore.session.isGuest { authStore.signupSource = nil }
+            }
             .onChange(of: authStore.session) { _, session in
                 if session.isAuthenticated, !session.isGuest {
                     dismiss()
@@ -254,8 +280,8 @@ struct GuestSignInSheet: View {
 }
 
 extension View {
-    func accountSignInSheet(isPresented: Binding<Bool>) -> some View {
-        sheet(isPresented: isPresented) { GuestSignInSheet() }
+    func accountSignInSheet(isPresented: Binding<Bool>, source: String) -> some View {
+        sheet(isPresented: isPresented) { GuestSignInSheet(source: source) }
     }
 
     func contributionGateSheet(isPresented: Binding<Bool>, feature: String) -> some View {

@@ -97,7 +97,15 @@ enum Copy {
     static let communityLocationPromptHeadline = "See what's trending around you"
     static let communityLocationPromptDetail = "MakanApa uses your location to find popular picks nearby."
     static let communityLocationEnable = "Continue"
-    static let accountRequiredDetail = "Picks, Nearby and saves work without an account. Adding places, posting and halal reports need one, so the community knows who's contributing — and your picks carry over."
+    static let accountRequiredDetail = "Picks, Nearby and saves work without an account. Adding places, posting and halal reports need one, so the community knows who's contributing."
+    /// The line every guest sign-in prompt carries — signing up upgrades the guest account in
+    /// place, so this is literally true, not marketing.
+    static let guestCarryOver = "Your picks, saved places and taste profile all come with you. Nothing lost."
+    static let guestSettingsDetail = "Sign in to add places and post. Your picks, saves and taste profile come with you."
+    static let nudgePicksTitle = "Wah, you've been picking well 🍛"
+    static let nudgePicksDetail = "MakanApa is learning what you like. Save it to an account so a new phone doesn't mean starting over."
+    static let nudgeSavesTitle = "Your makan list is growing ❤️"
+    static let nudgeSavesDetail = "Keep your saved places safe — on this phone or the next one."
     static let continueAsGuestFailed = "Couldn't start — check your connection and try again."
     static let communityLocationDeniedHeadline = "Location is off"
     static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."

@@ -232,6 +232,7 @@ final class SoloViewModel {
     func acceptCurrentPick() async {
         guard let decisionId, let clientToken else { return }
         _ = try? await APIClient.accept(decisionId: decisionId, clientToken: clientToken)
+        GuestUpgradeNudge.shared.recordAcceptedPick(decisionId: decisionId)
 
         if let pick = currentPick {
             PendingVibePromptStore.shared.recordAccept(decisionId: decisionId, clientToken: clientToken, restaurantName: pick.name)

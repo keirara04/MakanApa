@@ -19,6 +19,8 @@ class RegisterRequest extends FormRequest
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', Password::min(8)],
             'deviceLabel' => ['required', 'string', 'max:100'],
+            // Where in the app the account was created — conversion analytics only, never trusted.
+            'signupSource' => ['nullable', 'string', 'max:40', 'regex:/^[a-z0-9_:.-]+$/'],
         ];
     }
 }

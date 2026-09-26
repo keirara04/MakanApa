@@ -58,6 +58,7 @@ final class PlacePreferencesStore {
         }
         persistSaved()
         syncSaveState(nowSaved, placeId: place.id)
+        if nowSaved { GuestUpgradeNudge.shared.recordSave() }
     }
 
     /// Favorites' swipe-to-delete — must go through the same server sync as the heart toggle,

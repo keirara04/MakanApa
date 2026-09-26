@@ -21,6 +21,8 @@ struct SettingsView: View {
     /// Prefetched so the Notifications screen opens already filled — loading it on push made it
     /// swap spinner → content mid-transition (a visible flicker no other page had).
     @State private var notificationPreferences: NotificationPreferences?
+    /// What this account has added for others — shown under the name as credit for contributing.
+    @State private var contributions: MyContributionsResponse?
 
     var body: some View {
         NavigationStack {
@@ -87,7 +89,7 @@ struct SettingsView: View {
             .sheet(isPresented: $showingDeleteAccount) {
                 DeleteAccountSheet()
             }
-            .accountSignInSheet(isPresented: $showingSignIn)
+            .accountSignInSheet(isPresented: $showingSignIn, source: "settings")
             .onAppear {
                 guard !appeared else { return }
                 appeared = true
@@ -96,10 +98,29 @@ struct SettingsView: View {
                 guard case .authenticated = authStore.session, notificationPreferences == nil else { return }
                 notificationPreferences = try? await APIClient.fetchNotificationPreferences().preferences
             }
+            .task(id: authStore.session.isGuest) {
+                // A guest has nothing to credit yet; reloads right after a guest signs up here.
+                guard case .authenticated(let user) = authStore.session, !user.isGuestAccount else { return }
+                contributions = try? await APIClient.myContributions()
+            }
         }
     }
 
     // MARK: - Profile
+
+    /// "3 places · 2 halal checks · 5 photos" — only what's non-zero, nil when there's nothing.
+    private var contributionsLine: String? {
+        guard let contributions else { return nil }
+        let parts = [
+            (contributions.placesAdded, "place", "places"),
+            (contributions.halalVerified, "halal check", "halal checks"),
+            (contributions.photosAdded, "photo", "photos"),
+            (contributions.posts, "post", "posts"),
+        ]
+        .filter { $0.0 > 0 }
+        .map { "\($0.0) \($0.0 == 1 ? $0.1 : $0.2)" }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
 
     private func profileHeader(_ user: AuthUser) -> some View {
         NavigationLink {
@@ -136,6 +157,21 @@ struct SettingsView: View {
                             .background(Color.sambalRed.opacity(0.1), in: Capsule())
                             .padding(.top, 2)
                     }
+                    if contributions?.trustedContributor == true {
+                        Label("Trusted contributor", systemImage: "checkmark.seal.fill")
+                            .font(.makanBody(12))
+                            .foregroundStyle(Color.pandan)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.pandan.opacity(0.12), in: Capsule())
+                            .padding(.top, 2)
+                    }
+                    if let line = contributionsLine {
+                        Text(line)
+                            .font(.makanBody(12))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
@@ -169,7 +205,7 @@ struct SettingsView: View {
                         .foregroundStyle(Color.kicap)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    Text("Sign in or create an account to add places, post, and keep your picks.")
+                    Text(Copy.guestSettingsDetail)
                         .font(.makanBody(13))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

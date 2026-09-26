@@ -25,6 +25,37 @@ class OverviewStatsWidget extends StatsOverviewWidget
                 ->description('Anonymous app accounts not yet signed up'),
             Stat::make('Weekly active users', $weeklyActiveUsers)
                 ->description('Users whose API token was used in the last 7 days'),
+            $this->guestConversionStat(),
         ];
+    }
+
+    /**
+     * Of the guests created in the last 30 days, how many went on to make a real account — and
+     * which app surface (`signup_source`) converted them most.
+     */
+    private function guestConversionStat(): Stat
+    {
+        $since = now()->subDays(30);
+
+        $cohort = User::query()
+            ->where('created_at', '>=', $since)
+            ->where(fn ($query) => $query->where('is_guest', true)->orWhereNotNull('upgraded_from_guest_at'));
+        $guests = (clone $cohort)->count();
+        $converted = (clone $cohort)->whereNotNull('upgraded_from_guest_at')->count();
+
+        $topSources = User::query()
+            ->where('upgraded_from_guest_at', '>=', $since)
+            ->selectRaw("coalesce(signup_source, 'unknown') as source, count(*) as total")
+            ->groupBy('source')
+            ->orderByDesc('total')
+            ->limit(2)
+            ->pluck('total', 'source')
+            ->map(fn ($total, $source) => "{$source} ({$total})")
+            ->implode(', ');
+
+        $rate = $guests > 0 ? round($converted / $guests * 100, 1) : 0;
+
+        return Stat::make('Guest → account (30d)', "{$rate}%")
+            ->description("{$converted} of {$guests} new guests".($topSources !== '' ? " · top: {$topSources}" : ''));
     }
 }
