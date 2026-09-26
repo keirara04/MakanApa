@@ -57,16 +57,11 @@ struct NotificationPrimingView: View {
 
             Spacer(minLength: 0)
 
-            VStack(spacing: 14) {
-                MakanPrimaryButton(title: "Turn On Notifications", action: requestPermission)
-                    .padding(.horizontal, 32)
-
-                Button("Maybe Later", action: skip)
-                    .font(.makanBody(14))
-                    .foregroundStyle(.secondary)
-                    .frame(minHeight: 44)
-            }
-            .padding(.bottom, 16)
+            // App Review (guideline 5.1.1(iv)): neutral wording and no way to skip — this screen
+            // must always lead to the system prompt, which is where the user can decline.
+            MakanPrimaryButton(title: "Continue", action: requestPermission)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.nasiCream.ignoresSafeArea())
@@ -88,10 +83,6 @@ struct NotificationPrimingView: View {
             }
             onFinished()
         }
-    }
-
-    private func skip() {
-        onFinished()
     }
 
     /// Only reachable signed in now, but kept defensive: with no session the choice is simply

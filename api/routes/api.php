@@ -34,6 +34,9 @@ Route::get('/health', HealthController::class);
 Route::prefix('v1')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    // Anonymous account so suggestions work without signing up (App Review 5.1.1(v)). Signing
+    // up/in later with this bearer token attached upgrades the same row — see AuthController.
+    Route::post('auth/guest', [AuthController::class, 'guest'])->middleware('throttle:guest');
     Route::post('auth/apple', [AuthController::class, 'apple'])->middleware('throttle:social');
     Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:social');
     Route::post('auth/link', [AuthController::class, 'link'])->middleware('throttle:link');
@@ -52,9 +55,9 @@ Route::prefix('v1')->group(function () {
     // it Laravel keys the limiter by user id alone, so every `throttle:N,1` route shared ONE
     // per-user counter — a burst of typeahead searches could 429 Decide or a profile save.
     // Routes that share a prefix share a budget on purpose (e.g. the Google-backed `places`).
-    // Private beta: every real endpoint below requires a valid Sanctum token, not just
-    // auth/admin — otherwise the app-level login gate is cosmetic and the underlying Google
-    // Places/OpenRouter usage stays reachable by anyone who knows the endpoints.
+    // Every real endpoint below requires a valid Sanctum token, not just auth/admin. Guests hold
+    // one too (auth/guest, throttled per IP), so the token bounds Google Places/OpenRouter usage
+    // per account rather than proving identity; account-based features add `registered`.
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::post('me/device-tokens/claim', [DeviceTokenController::class, 'claim']);
@@ -96,16 +99,18 @@ Route::prefix('v1')->group(function () {
             Route::get('community/posts/{post}', [CommunityPostController::class, 'show']);
             Route::get('me/blocks', [CommunityPostController::class, 'blocks']);
         });
-        Route::post('community/posts', [CommunityPostController::class, 'store'])->middleware(['throttle:10,1,community-write', 'throttle:community-posts']);
-        Route::delete('community/posts/{post}', [CommunityPostController::class, 'destroy'])->middleware('throttle:30,1,community-delete');
-        Route::post('community/posts/{post}/react', [CommunityPostController::class, 'react'])->middleware('throttle:60,1,community-react');
+        // Publishing/reacting needs a real account; reporting and blocking stay open to guests
+        // since anyone who can read the board must be able to act on abuse (guideline 1.2).
+        Route::post('community/posts', [CommunityPostController::class, 'store'])->middleware(['registered', 'throttle:10,1,community-write', 'throttle:community-posts']);
+        Route::delete('community/posts/{post}', [CommunityPostController::class, 'destroy'])->middleware(['registered', 'throttle:30,1,community-delete']);
+        Route::post('community/posts/{post}/react', [CommunityPostController::class, 'react'])->middleware(['registered', 'throttle:60,1,community-react']);
         Route::post('community/posts/{post}/report', [CommunityPostController::class, 'report'])->middleware('throttle:10,1,community-report');
         Route::post('users/{user}/block', [CommunityPostController::class, 'block'])->middleware('throttle:10,1,blocks');
         Route::delete('users/{user}/block', [CommunityPostController::class, 'unblock'])->middleware('throttle:10,1,blocks');
 
         // "My university/area isn't listed" — a rare, deliberate action, same throttle class
         // as community/submissions store below.
-        Route::post('community/requests', [CommunityRequestController::class, 'store'])->middleware('throttle:5,1,community-requests');
+        Route::post('community/requests', [CommunityRequestController::class, 'store'])->middleware(['registered', 'throttle:5,1,community-requests']);
 
         // Google Places-backed endpoints are rate limited per client/IP so a runaway client
         // can't turn this into a Google Places billing incident during the beta.
@@ -155,23 +160,23 @@ Route::prefix('v1')->group(function () {
         Route::post('restaurants/{restaurant}/choose', [RestaurantController::class, 'choose'])->middleware('throttle:30,1,search-choose');
         Route::post('restaurants/{restaurant}/share-events', [RestaurantController::class, 'shareStarted'])->middleware('throttle:30,1,share-events');
 
-        Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine']);
-        Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update']);
-        Route::delete('community/submissions/{submission}', [RestaurantSubmissionController::class, 'destroy']);
-        Route::post('community/submissions/{submission}/submit', [RestaurantSubmissionController::class, 'submit']);
+        Route::get('community/submissions/mine', [RestaurantSubmissionController::class, 'mine'])->middleware('registered');
+        Route::patch('community/submissions/{submission}', [RestaurantSubmissionController::class, 'update'])->middleware('registered');
+        Route::delete('community/submissions/{submission}', [RestaurantSubmissionController::class, 'destroy'])->middleware('registered');
+        Route::post('community/submissions/{submission}/submit', [RestaurantSubmissionController::class, 'submit'])->middleware('registered');
         // Adding a place is normally a once-or-twice-a-session action, not repeatable — a
         // tighter limit than the general local-DB throttle above since this writes new data
         // that auto-publishes with no review step until an admin acts on it.
-        Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware('throttle:5,1,submissions');
+        Route::post('community/submissions', [RestaurantSubmissionController::class, 'store'])->middleware(['registered', 'throttle:5,1,submissions']);
         // Above one full report's worth (max_per_submission) so a retry right after a failed
         // send isn't throttled; the per-submission cap still bounds the total.
-        Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware('throttle:10,1,submission-photos');
-        Route::post('restaurants/{restaurant}/photos/quick-add', [RestaurantSubmissionController::class, 'quickAddPhoto'])->middleware('throttle:5,1,quick-add-photos');
+        Route::post('community/submissions/{submission}/photos', [RestaurantSubmissionController::class, 'uploadPhoto'])->middleware(['registered', 'throttle:10,1,submission-photos']);
+        Route::post('restaurants/{restaurant}/photos/quick-add', [RestaurantSubmissionController::class, 'quickAddPhoto'])->middleware(['registered', 'throttle:5,1,quick-add-photos']);
 
         // Halal trust: evidence reports + ownership claims enter moderation like any submission.
         // Burst throttle plus a daily cap (`halal-reports`) against report spam.
-        Route::post('restaurants/{restaurant}/halal-reports', [HalalController::class, 'storeReport'])->middleware(['throttle:5,1,halal-reports-burst', 'throttle:halal-reports']);
-        Route::post('restaurants/{restaurant}/owner-claim', [HalalController::class, 'storeOwnerClaim'])->middleware('throttle:3,1,owner-claims');
+        Route::post('restaurants/{restaurant}/halal-reports', [HalalController::class, 'storeReport'])->middleware(['registered', 'throttle:5,1,halal-reports-burst', 'throttle:halal-reports']);
+        Route::post('restaurants/{restaurant}/owner-claim', [HalalController::class, 'storeOwnerClaim'])->middleware(['registered', 'throttle:3,1,owner-claims']);
         Route::get('restaurants/{restaurant}/halal/history', [HalalController::class, 'history'])->middleware('throttle:60,1,halal-history');
 
         Route::prefix('admin')->middleware('superadmin')->group(function () {

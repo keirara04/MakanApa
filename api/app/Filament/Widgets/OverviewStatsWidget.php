@@ -20,7 +20,9 @@ class OverviewStatsWidget extends StatsOverviewWidget
 
         return [
             Stat::make('Active restaurants', Restaurant::where('is_active', true)->count()),
-            Stat::make('Total users', User::count()),
+            Stat::make('Total users', User::registered()->count()),
+            Stat::make('Guests', User::where('is_guest', true)->count())
+                ->description('Anonymous app accounts not yet signed up'),
             Stat::make('Weekly active users', $weeklyActiveUsers)
                 ->description('Users whose API token was used in the last 7 days'),
         ];

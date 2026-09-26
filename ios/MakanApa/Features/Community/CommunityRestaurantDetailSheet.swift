@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// Deliberately simpler than NearbyView's marker sheet — no photo carousel, no save/exclude
 /// actions. Reuses the same `APIClient.placeDetails` call NearbyView already makes; this is a
@@ -140,10 +141,15 @@ struct CommunityRestaurantDetailSheet: View {
 
     private var actionRow: some View {
         HStack(spacing: 10) {
-            if let url = details?.placeGoogleMapsUrl.flatMap(URL.init(string:)) {
-                Link(destination: url) {
+            if let destination = details.flatMap(mapDestination) {
+                // Through PreferredMapsLauncher (Apple Maps by default), never straight to the
+                // Google Maps URL — App Review requires the native Maps option (guideline 4).
+                Button {
+                    PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
+                } label: {
                     actionLabel(title: "Directions", systemImage: "arrow.triangle.turn.up.right.circle.fill")
                 }
+                .buttonStyle(.plain)
             }
             if let phone = details?.phone, let url = URL(string: "tel:\(phone.filter(\.isNumber))") {
                 Link(destination: url) {
@@ -156,6 +162,15 @@ struct CommunityRestaurantDetailSheet: View {
                 }
             }
         }
+    }
+
+    private func mapDestination(_ details: PlaceDetails) -> MapDestination? {
+        guard let latitude = details.latitude, let longitude = details.longitude else { return nil }
+        return MapDestination(
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            name: details.name,
+            googleMapsURL: details.placeGoogleMapsUrl.flatMap(URL.init(string:))
+        )
     }
 
     private func actionLabel(title: String, systemImage: String) -> some View {

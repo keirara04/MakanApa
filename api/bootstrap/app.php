@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRegisteredUser;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,
+            'registered' => EnsureRegisteredUser::class,
         ]);
 
         // API-only app — there's no named 'login' route for the web guest-redirect to point

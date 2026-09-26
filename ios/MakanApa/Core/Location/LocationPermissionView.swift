@@ -52,7 +52,7 @@ struct LocationPermissionView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
-                MakanPrimaryButton(title: "Find makan near me") {
+                MakanPrimaryButton(title: "Continue") {
                     didAutoAdvance = false
                     locationService.requestLocation()
                 }

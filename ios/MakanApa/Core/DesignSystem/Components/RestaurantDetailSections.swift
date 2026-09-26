@@ -43,8 +43,25 @@ struct QuickAddPhotoTile: View {
 
     @State private var uploader = QuickAddPhotoUploader()
     @State private var pickerItem: PhotosPickerItem?
+    @State private var showingSignIn = false
 
     var body: some View {
+        // Photo uploads are account-based (guideline 5.1.1(v)) — a guest gets sign-in instead.
+        if AuthStore.shared.session.isGuest {
+            Button { showingSignIn = true } label: {
+                VStack(spacing: 6) {
+                    Image(systemName: "camera.fill").font(.system(size: 28))
+                    Text("Add a photo").font(.makanBody(12))
+                }
+                .foregroundStyle(Color.kunyit)
+            }
+            .accountSignInSheet(isPresented: $showingSignIn)
+        } else {
+            picker
+        }
+    }
+
+    private var picker: some View {
         PhotosPicker(selection: $pickerItem, matching: .images) {
             VStack(spacing: 6) {
                 switch uploader.state {
@@ -81,8 +98,25 @@ struct QuickAddPhotoRow: View {
 
     @State private var uploader = QuickAddPhotoUploader()
     @State private var pickerItem: PhotosPickerItem?
+    @State private var showingSignIn = false
 
     var body: some View {
+        if AuthStore.shared.session.isGuest {
+            Button { showingSignIn = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "camera.fill")
+                    Text("No photos yet — add one?")
+                }
+                .font(.makanBody(13))
+                .foregroundStyle(Color.sambalRed)
+            }
+            .accountSignInSheet(isPresented: $showingSignIn)
+        } else {
+            picker
+        }
+    }
+
+    private var picker: some View {
         PhotosPicker(selection: $pickerItem, matching: .images) {
             HStack(spacing: 8) {
                 switch uploader.state {

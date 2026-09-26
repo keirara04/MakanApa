@@ -3,7 +3,8 @@ import Observation
 
 struct AuthUser: Codable, Equatable {
     let id: Int
-    let email: String
+    /// Nil for a guest account.
+    let email: String?
     let name: String?
     let avatarKey: String?
     let role: String
@@ -17,8 +18,11 @@ struct AuthUser: Codable, Equatable {
     let affiliationVerificationStatus: String?
     /// Optional: absent from older cached payloads / older backends.
     let halalPreference: Bool?
+    /// Optional: absent from older cached payloads / older backends, which had no guests.
+    let isGuest: Bool?
 
     var isSuperadmin: Bool { role == "superadmin" }
+    var isGuestAccount: Bool { isGuest == true }
 }
 
 enum SessionState: Equatable {
@@ -28,6 +32,13 @@ enum SessionState: Equatable {
 
     var isAuthenticated: Bool {
         if case .authenticated = self { return true }
+        return false
+    }
+
+    /// A signed-in guest (see `AuthStore.continueAsGuest()`) — can use everything except
+    /// account-based features, which show `AccountRequiredPrompt` instead.
+    var isGuest: Bool {
+        if case .authenticated(let user) = self { return user.isGuestAccount }
         return false
     }
 }
@@ -119,6 +130,16 @@ final class AuthStore {
 
     func login(email: String, password: String) async throws {
         let response = try await APIClient.login(email: email, password: password, deviceLabel: Self.deviceLabel)
+        CredentialStore.shared.token = response.token
+        session = .authenticated(response.user)
+        claimDeviceTokenIfPresent()
+    }
+
+    /// "Continue without an account" — App Review guideline 5.1.1(v): recommendations and
+    /// Nearby aren't account-based, so they can't sit behind sign-up. Signing in later from a
+    /// guest session upgrades this same account (register/Apple/Google send its token).
+    func continueAsGuest() async throws {
+        let response = try await APIClient.continueAsGuest(deviceLabel: Self.deviceLabel)
         CredentialStore.shared.token = response.token
         session = .authenticated(response.user)
         claimDeviceTokenIfPresent()

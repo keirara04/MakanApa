@@ -109,6 +109,11 @@ struct AddPlaceFlow: View {
     private static let categorySuggestions = ["Mamak", "Nasi campur", "Kopitiam", "Cafe", "Western", "Chinese", "Indian", "Warung", "Dessert", "Street food"]
 
     var body: some View {
+        AccountRequired(feature: "add or edit places") { accountContent }
+    }
+
+    @ViewBuilder
+    private var accountContent: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if step != .success {

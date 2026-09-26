@@ -22,6 +22,7 @@ struct LoginView: View {
     @State private var appeared = false
     @State private var headlineProgress = 0.0
     @State private var sheenTrigger = 0
+    @State private var isStartingGuest = false
     @FocusState private var focusedField: Field?
     @Namespace private var mascotSpace
 
@@ -31,6 +32,14 @@ struct LoginView: View {
     private let paper = Color(red: 0.99, green: 0.98, blue: 0.96)
 
     private static let geng: [AvatarCharacter] = [.nasi, .roti, .laksa, .tehTarik]
+
+    /// Set when presented as a sheet to a guest (`GuestSignInSheet`): shows a close button instead
+    /// of "Continue without an account", since they're already in the app as a guest.
+    var onClose: (() -> Void)?
+
+    init(onClose: (() -> Void)? = nil) {
+        self.onClose = onClose
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -52,6 +61,20 @@ struct LoginView: View {
             .scrollBounceBehavior(.basedOnSize)
         }
         .background(paper.ignoresSafeArea())
+        .overlay(alignment: .topTrailing) {
+            if let onClose, !showEmailForm {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.kicap)
+                        .frame(width: 36, height: 36)
+                        .background(.white.opacity(0.9), in: Circle())
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Close")
+                .padding(.trailing, 12)
+            }
+        }
         .preferredColorScheme(.light)
         .tint(accent)
         .onAppear { appeared = true }
@@ -98,6 +121,11 @@ struct LoginView: View {
 
                 createAccountRow
                     .rise(appeared, delay: 0.8, reduceMotion: reduceMotion)
+
+                if onClose == nil {
+                    guestRow
+                        .rise(appeared, delay: 0.82, reduceMotion: reduceMotion)
+                }
 
                 legalNote
                     .rise(appeared, delay: 0.85, reduceMotion: reduceMotion)
@@ -205,6 +233,48 @@ struct LoginView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressCompressStyle())
+    }
+
+    /// App Review guideline 5.1.1(v): picks and Nearby aren't account-based, so they must be
+    /// usable without signing up. A guest can sign in later from Settings or any account-only
+    /// feature, and their history carries over.
+    private var guestRow: some View {
+        Button {
+            Task { await continueAsGuest() }
+        } label: {
+            HStack(spacing: 6) {
+                if isStartingGuest {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                Text("Continue without an account")
+                    .fontWeight(.semibold)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .accessibilityHidden(true)
+            }
+            .font(.makanBody(15))
+            .foregroundStyle(Color.kicap.opacity(0.75))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressCompressStyle())
+        .disabled(isStartingGuest)
+    }
+
+    @MainActor
+    private func continueAsGuest() async {
+        errorMessage = nil
+        isStartingGuest = true
+        defer { isStartingGuest = false }
+
+        do {
+            try await AuthStore.shared.continueAsGuest()
+        } catch {
+            errorMessage = (error as? APIError)?.serverMessage ?? Copy.continueAsGuestFailed
+            shakeTrigger += 1
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
     }
 
     private var legalNote: some View {

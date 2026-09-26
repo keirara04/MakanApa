@@ -23,7 +23,7 @@ class UserController extends Controller
 {
     public function index(): JsonResponse
     {
-        $users = User::query()
+        $users = User::registered()
             ->with('affiliation.university')
             ->orderByDesc('created_at')
             ->get(['id', 'email', 'role', 'status', 'created_at'])

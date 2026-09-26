@@ -20,6 +20,11 @@ struct OwnerClaimSheet: View {
     private struct UnreadablePhoto: Error {}
 
     var body: some View {
+        AccountRequired(feature: "claim this place") { accountContent }
+    }
+
+    @ViewBuilder
+    private var accountContent: some View {
         NavigationStack {
             Form {
                 if isDone {

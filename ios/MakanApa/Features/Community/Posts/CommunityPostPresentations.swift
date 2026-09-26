@@ -15,11 +15,16 @@ struct CommunityPostPresentations: ViewModifier {
         content
             .environment(interactions)
             .sheet(isPresented: $interactions.isComposingNew) {
-                CommunityComposerView(store: store, parent: nil, onPosted: onPosted)
+                AccountRequired(feature: "post in the community") {
+                    CommunityComposerView(store: store, parent: nil, onPosted: onPosted)
+                }
             }
             .sheet(item: $interactions.composerParent) { parent in
-                CommunityComposerView(store: store, parent: parent, onPosted: onPosted)
+                AccountRequired(feature: "reply") {
+                    CommunityComposerView(store: store, parent: parent, onPosted: onPosted)
+                }
             }
+            .accountSignInSheet(isPresented: $interactions.isAccountPromptPresented)
             .sheet(item: $interactions.reportTarget) { post in
                 CommunityReportSheet(post: post, store: store) {
                     onRemoved(post)

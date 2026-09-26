@@ -34,6 +34,20 @@ class UserFactory extends Factory
     }
 
     /**
+     * An anonymous guest account, as created by POST auth/guest — no identity at all.
+     */
+    public function guest(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => null,
+            'email' => null,
+            'email_verified_at' => null,
+            'password' => null,
+            'is_guest' => true,
+        ]);
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

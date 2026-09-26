@@ -152,10 +152,13 @@ private struct OnboardingLocationPage: View {
             },
             headline: "Find good food around you 📍",
             subtext: "We use your location to show places nearby, what's trending around you, and better \"Pick one lah\" results.\n\nYour location isn't shown publicly.",
-            primaryTitle: "Use my location",
+            // App Review (guideline 5.1.1(iv)): a pre-permission screen must use neutral wording
+            // and always lead to the system prompt — no "Maybe later" to dodge it. The system
+            // dialog itself is where the user says no.
+            primaryTitle: "Continue",
             primaryAction: requestLocation,
-            secondaryTitle: "Maybe later",
-            secondaryAction: onContinue
+            secondaryTitle: nil,
+            secondaryAction: nil
         )
         .onChange(of: locationService.state) { _, newState in
             guard didRequest else { return }
@@ -178,9 +181,17 @@ private struct OnboardingLocationPage: View {
         // the same coordinate, and onChange never fires for a value that hasn't actually
         // changed, which otherwise leaves this screen stuck forever. Advance immediately instead
         // of waiting for a delegate callback that has nothing new to report.
-        if case .authorized = locationService.state {
+        switch locationService.state {
+        case .authorized:
             confirmAndContinue()
             return
+        case .denied, .unavailable:
+            // Already decided in an earlier session — the system won't prompt again and the
+            // state won't change, so waiting on onChange would leave this screen stuck.
+            onContinue()
+            return
+        case .notDetermined:
+            break
         }
 
         locationService.requestLocation()

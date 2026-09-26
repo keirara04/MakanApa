@@ -11,6 +11,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -19,7 +20,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone', 'halal_preference', 'trusted_contributor', 'contribution_stats'])]
+#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone', 'halal_preference', 'trusted_contributor', 'contribution_stats', 'is_guest'])]
 #[Hidden(['password', 'remember_token', 'apple_refresh_token'])]
 class User extends Authenticatable implements FilamentUser, HasEmailAuthentication
 {
@@ -42,6 +43,7 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
             'halal_preference' => 'boolean',
             'trusted_contributor' => 'boolean',
             'contribution_stats' => 'array',
+            'is_guest' => 'boolean',
         ];
     }
 
@@ -85,6 +87,22 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    /** Anonymous app account from POST auth/guest — no name/email/password until it upgrades. */
+    public function isGuest(): bool
+    {
+        return (bool) $this->is_guest;
+    }
+
+    /**
+     * Real accounts only — guests are excluded from admin user lists and user-count metrics.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeRegistered(Builder $query): Builder
+    {
+        return $query->where('is_guest', false);
     }
 
     public function canAccessPanel(Panel $panel): bool

@@ -178,8 +178,16 @@ enum APIClient {
         try await post("auth/login", body: LoginRequestBody(email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
     }
 
+    /// No personal info — a device-scoped account so recommendations and Nearby work without
+    /// signing up (App Review guideline 5.1.1(v)).
+    static func continueAsGuest(deviceLabel: String) async throws -> LoginResponse {
+        try await post("auth/guest", body: GuestLoginRequestBody(deviceLabel: deviceLabel), authenticated: false)
+    }
+
+    // register/apple/google send the current token when there is one: for a guest, the backend
+    // upgrades that same account in place so its history carries over. No token, no header.
     static func register(name: String, email: String, password: String, deviceLabel: String) async throws -> LoginResponse {
-        try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
+        try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel))
     }
 
     static func loginWithApple(
@@ -187,13 +195,12 @@ enum APIClient {
     ) async throws -> SocialLoginResponse {
         try await post(
             "auth/apple",
-            body: AppleLoginRequestBody(identityToken: identityToken, authorizationCode: authorizationCode, nonce: nonce, fullName: fullName, deviceLabel: deviceLabel),
-            authenticated: false
+            body: AppleLoginRequestBody(identityToken: identityToken, authorizationCode: authorizationCode, nonce: nonce, fullName: fullName, deviceLabel: deviceLabel)
         )
     }
 
     static func loginWithGoogle(idToken: String, deviceLabel: String) async throws -> SocialLoginResponse {
-        try await post("auth/google", body: GoogleLoginRequestBody(idToken: idToken, deviceLabel: deviceLabel), authenticated: false)
+        try await post("auth/google", body: GoogleLoginRequestBody(idToken: idToken, deviceLabel: deviceLabel))
     }
 
     static func completeLink(password: String, linkToken: String, deviceLabel: String) async throws -> LoginResponse {

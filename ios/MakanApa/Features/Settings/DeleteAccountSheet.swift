@@ -32,16 +32,19 @@ struct DeleteAccountSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 7) {
-                SecureField("Password", text: $password, prompt: Text("Password (leave blank for Apple/Google accounts)").foregroundStyle(Color.kicap.opacity(0.4)))
-                    .textContentType(.password)
-                    .submitLabel(.go)
-                    .onSubmit { submit() }
-                    .font(.system(.body, design: .rounded))
-                    .padding(.horizontal, 16)
-                    .frame(minHeight: 56)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .modifier(LoginFieldStyle(isFocused: false, accent: accent))
+                // A guest account has no password (and nothing to prove beyond its token).
+                if !AuthStore.shared.session.isGuest {
+                    SecureField("Password", text: $password, prompt: Text("Password (leave blank for Apple/Google accounts)").foregroundStyle(Color.kicap.opacity(0.4)))
+                        .textContentType(.password)
+                        .submitLabel(.go)
+                        .onSubmit { submit() }
+                        .font(.system(.body, design: .rounded))
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 56)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .modifier(LoginFieldStyle(isFocused: false, accent: accent))
+                }
 
                 if let errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.circle.fill")

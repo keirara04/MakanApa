@@ -34,6 +34,10 @@ struct AppleLoginRequestBody: Encodable {
     let deviceLabel: String
 }
 
+struct GuestLoginRequestBody: Encodable {
+    let deviceLabel: String
+}
+
 struct GoogleLoginRequestBody: Encodable {
     let idToken: String
     let deviceLabel: String

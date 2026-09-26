@@ -18,6 +18,9 @@ Schedule::command('restaurant-photos:prune')->daily();
 // Abandoned drafts -> cancelled (restaurant-photos:prune already deletes their photos).
 Schedule::command('community:prune-drafts')->daily();
 
+// Guest accounts idle for 90 days (uninstalled app, or person signed in elsewhere).
+Schedule::command('users:prune-guests')->daily();
+
 // Halal certificate expiry/expiring notices + review-state refresh. Read-time expiry already
 // protects correctness if this is late; this drives admin queues and owner notifications.
 Schedule::command('halal:lifecycle')->dailyAt('06:00');

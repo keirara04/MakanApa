@@ -30,8 +30,11 @@ class UserAccountDeletionService
 
         // Deletion is instant and self-service — there's no admin-reviewed queue for this.
         // This is the only trace left afterward, so admins have some visibility (support,
-        // abuse patterns, compliance) once the row itself is gone.
-        AccountDeletion::create(['user_id' => $user->id, 'email' => $user->email]);
+        // abuse patterns, compliance) once the row itself is gone. A guest has no identity
+        // to record (and account_deletions.email is required), so it leaves no trace.
+        if (! $user->isGuest()) {
+            AccountDeletion::create(['user_id' => $user->id, 'email' => $user->email]);
+        }
 
         $user->tokens()->delete();
         // forceDelete(), not delete() — the User model gained SoftDeletes for the admin panel's

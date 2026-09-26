@@ -99,6 +99,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->ip());
         });
 
+        // Anyone can mint a guest token now (no identity needed), so this per-IP cap is what
+        // bounds how much Google Places usage a stream of fresh guests can reach. Distinct
+        // keys per limit: limits sharing a key share one counter (and its decay window).
+        RateLimiter::for('guest', function ($request) {
+            return [
+                Limit::perMinute(5)->by('minute:'.$request->ip()),
+                Limit::perDay(30)->by('day:'.$request->ip()),
+            ];
+        });
+
         RateLimiter::for('social', function ($request) {
             return Limit::perMinute(10)->by($request->ip());
         });

@@ -34,9 +34,10 @@ class UserResource extends Resource
 
     // Required for TrashedFilter/restore to work at all — otherwise the global SoftDeletes
     // scope hides deleted rows from the table query and 404s their edit page entirely.
+    // Guests are anonymous per-install accounts with nothing to moderate, so they stay out.
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+        return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class])->registered();
     }
 
     public static function table(Table $table): Table

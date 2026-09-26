@@ -265,6 +265,11 @@ private struct CommunityRequestSheet: View {
     @State private var didSubmit = false
 
     var body: some View {
+        AccountRequired(feature: "request a new community") { accountContent }
+    }
+
+    @ViewBuilder
+    private var accountContent: some View {
         NavigationStack {
             Form {
                 if didSubmit {

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var showingAboutInfo = false
     @State private var showingDeleteAccount = false
     @State private var confirmingLogout = false
+    @State private var showingSignIn = false
     @State private var appeared = false
     @State private var halalOnly = HalalPreference.isOn
     @State private var mapProvider = MapProviderPreference.current
@@ -26,8 +27,14 @@ struct SettingsView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if case .authenticated(let user) = authStore.session {
-                        profileHeader(user)
-                            .entrance(0, appeared: appeared, reduceMotion: reduceMotion)
+                        Group {
+                            if user.isGuestAccount {
+                                guestHeader
+                            } else {
+                                profileHeader(user)
+                            }
+                        }
+                        .entrance(0, appeared: appeared, reduceMotion: reduceMotion)
                         shortcutTiles
                             .entrance(1, appeared: appeared, reduceMotion: reduceMotion)
                     }
@@ -80,6 +87,7 @@ struct SettingsView: View {
             .sheet(isPresented: $showingDeleteAccount) {
                 DeleteAccountSheet()
             }
+            .accountSignInSheet(isPresented: $showingSignIn)
             .onAppear {
                 guard !appeared else { return }
                 appeared = true
@@ -113,10 +121,12 @@ struct SettingsView: View {
                         .font(.makanDisplay(20))
                         .foregroundStyle(Color.kicap)
                         .lineLimit(1)
-                    Text(user.email)
-                        .font(.makanBody(13))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if let email = user.email {
+                        Text(email)
+                            .font(.makanBody(13))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                     if let community = user.university ?? user.area {
                         Label(community, systemImage: user.university != nil ? "graduationcap.fill" : "mappin")
                             .font(.makanBody(12))
@@ -138,6 +148,43 @@ struct SettingsView: View {
         }
         .buttonStyle(PressCompressStyle())
         .accessibilityHint("Edit your profile")
+    }
+
+    /// A guest has no profile to edit — this is where they find sign-in (App Review wants the
+    /// app usable without an account, not sign-up hidden).
+    private var guestHeader: some View {
+        Button {
+            showingSignIn = true
+        } label: {
+            HStack(spacing: 14) {
+                MascotView(mood: .idle, size: 56)
+                    .frame(width: 64, height: 64)
+                    .background(Color.kunyit.opacity(0.25))
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Using MakanApa as a guest")
+                        .font(.makanDisplay(18))
+                        .foregroundStyle(Color.kicap)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text("Sign in or create an account to add places, post, and keep your picks.")
+                        .font(.makanBody(13))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(16)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 24))
+            .shadow(color: Color.kicap.opacity(0.05), radius: 10, y: 4)
+        }
+        .buttonStyle(PressCompressStyle())
+        .accessibilityHint("Sign in or create an account")
     }
 
     // MARK: - Shortcut tiles
@@ -271,18 +318,22 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var accountActions: some View {
-        if case .authenticated = authStore.session {
+        if case .authenticated(let user) = authStore.session {
             VStack(spacing: 10) {
-                Button {
-                    confirmingLogout = true
-                } label: {
-                    Text("Log out")
-                        .font(.makanBody(16).weight(.semibold))
-                        .foregroundStyle(Color.sambalRed)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                // Logging a guest out would just strand their history — sign-in lives in the
+                // header instead. "Delete account" stays: guests can still wipe their data.
+                if !user.isGuestAccount {
+                    Button {
+                        confirmingLogout = true
+                    } label: {
+                        Text("Log out")
+                            .font(.makanBody(16).weight(.semibold))
+                            .foregroundStyle(Color.sambalRed)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(PressCompressStyle())
                 }
-                .buttonStyle(PressCompressStyle())
 
                 Button {
                     showingDeleteAccount = true

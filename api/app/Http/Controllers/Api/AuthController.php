@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AppleLoginRequest;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\GoogleLoginRequest;
+use App\Http\Requests\GuestLoginRequest;
 use App\Http\Requests\LinkAccountRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
@@ -58,21 +59,51 @@ class AuthController extends Controller
      * Open self-service signup — no invite/beta code required (the app dropped its closed-beta
      * gate; admin-provisioned accounts via Admin\UserController::store() keep working alongside
      * this). Issues a token immediately, same as login(), rather than requiring a separate
-     * sign-in step right after registering.
+     * sign-in step right after registering. Sent with a guest's bearer token, it upgrades that
+     * guest row in place instead of creating a second account.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $user = User::create([
+        $identity = [
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'role' => 'user',
-            'status' => 'active',
-        ]);
+        ];
+
+        $guest = $this->guestFromBearerToken();
+
+        $user = DB::transaction(fn () => $guest
+            ? $this->upgradeGuest($guest, $identity)
+            : User::create([...$identity, 'role' => 'user', 'status' => 'active']));
 
         $token = $user->createToken($data['deviceLabel'], expiresAt: now()->addDays(90));
+
+        return response()->json([
+            'token' => $token->plainTextToken,
+            'user' => $this->presentUser($user),
+        ], 201);
+    }
+
+    /**
+     * Anonymous account so the app's suggestions work without registering (App Review
+     * 5.1.1(v)) — no name, email or password. Account-based routes refuse it via the
+     * `registered` middleware; signing up/in later with this token attached upgrades the same
+     * row (register()/resolveSocialLogin()), so history and saves carry over.
+     */
+    public function guest(GuestLoginRequest $request): JsonResponse
+    {
+        $user = User::create([
+            'name' => null,
+            'email' => null,
+            'password' => null,
+            'role' => 'user',
+            'status' => 'active',
+            'is_guest' => true,
+        ]);
+
+        $token = $user->createToken($request->validated('deviceLabel'), expiresAt: now()->addDays(90));
 
         return response()->json([
             'token' => $token->plainTextToken,
@@ -243,16 +274,19 @@ class AuthController extends Controller
             // below only rolls back this insert — Postgres otherwise poisons the whole
             // transaction on error, which would make the fallback lookup in the catch block
             // fail too instead of finding the winner's row.
-            $user = DB::transaction(function () use ($name, $email, $subColumn, $sub, $provider, $providerRefreshToken) {
-                return User::create([
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => null,
-                    'role' => 'user',
-                    'status' => 'active',
-                    $subColumn => $sub,
-                    'apple_refresh_token' => $provider === 'apple' ? $providerRefreshToken : null,
-                ]);
+            $identity = [
+                'name' => $name,
+                'email' => $email,
+                'password' => null,
+                $subColumn => $sub,
+                'apple_refresh_token' => $provider === 'apple' ? $providerRefreshToken : null,
+            ];
+            $guest = $this->guestFromBearerToken();
+
+            $user = DB::transaction(function () use ($identity, $guest) {
+                return $guest
+                    ? $this->upgradeGuest($guest, $identity)
+                    : User::create([...$identity, 'role' => 'user', 'status' => 'active']);
             });
         } catch (QueryException $e) {
             // Two simultaneous first-time logins with the same sub race past the lookup above —
@@ -266,6 +300,33 @@ class AuthController extends Controller
         }
 
         return $this->issueSession($user, $deviceLabel);
+    }
+
+    /**
+     * The guest behind this request's bearer token, if any. The sign-up routes carry no auth
+     * middleware, so a missing, expired or invalid token — or a registered user's token —
+     * just yields null and sign-up creates a fresh account as before (never a 401).
+     */
+    private function guestFromBearerToken(): ?User
+    {
+        $user = auth('sanctum')->user();
+
+        return $user instanceof User && $user->isGuest() ? $user : null;
+    }
+
+    /**
+     * Turns the guest row itself into the real account (rather than creating a new one) so its
+     * decisions, saves and taste history carry over. Its guest tokens are revoked — the caller
+     * issues a fresh one. Callers inside a transaction get both writes rolled back together.
+     *
+     * @param  array<string, mixed>  $identity
+     */
+    private function upgradeGuest(User $guest, array $identity): User
+    {
+        $guest->tokens()->delete();
+        $guest->forceFill([...$identity, 'is_guest' => false])->save();
+
+        return $guest;
     }
 
     private function issueSession(User $user, string $deviceLabel): JsonResponse
@@ -379,6 +440,7 @@ class AuthController extends Controller
             'halalPreference' => (bool) $user->halal_preference,
             'role' => $user->role,
             'status' => $user->status,
+            'isGuest' => $user->isGuest(),
             'affiliationType' => $user->affiliation?->type,
             'university' => $user->universityShortName(),
             'area' => $user->areaShortName(),

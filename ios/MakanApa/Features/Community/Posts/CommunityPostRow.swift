@@ -13,6 +13,8 @@ final class CommunityPostInteractions {
     var threadTarget: CommunityPost?
     var placeTarget: CommunityPostPlace?
     var toast: String?
+    /// A guest tapped an account-only action (reacting) — offers sign-in instead.
+    var isAccountPromptPresented = false
 }
 
 struct CommunityPostRow: View {
@@ -215,6 +217,10 @@ struct CommunityPostRow: View {
 
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if AuthStore.shared.session.isGuest {
+                interactions.isAccountPromptPresented = true
+                return
+            }
             onReact(ReactionTap(post: post, type: type))
         } label: {
             HStack(spacing: 3) {

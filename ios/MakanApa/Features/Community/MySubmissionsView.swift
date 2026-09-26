@@ -6,6 +6,11 @@ struct MySubmissionsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        AccountRequired(feature: "see places you've added") { accountContent }
+    }
+
+    @ViewBuilder
+    private var accountContent: some View {
         List {
             if let errorMessage {
                 Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)

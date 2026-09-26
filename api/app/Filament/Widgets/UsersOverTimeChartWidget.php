@@ -38,7 +38,7 @@ class UsersOverTimeChartWidget extends LineChartWidget
             default => ['day', now()->subDays(30), 'M j'],
         };
 
-        $rows = User::query()
+        $rows = User::registered()
             ->where('created_at', '>=', $since)
             ->selectRaw("date_trunc('{$bucket}', created_at) as bucket")
             ->selectRaw('count(*) as total')

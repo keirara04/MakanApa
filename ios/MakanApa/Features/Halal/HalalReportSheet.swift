@@ -73,6 +73,11 @@ struct HalalReportSheet: View {
     private var isSending: Bool { if case .sending = phase { true } else { false } }
 
     var body: some View {
+        AccountRequired(feature: "report halal status") { accountContent }
+    }
+
+    @ViewBuilder
+    private var accountContent: some View {
         NavigationStack {
             Group {
                 if phase == .done {
