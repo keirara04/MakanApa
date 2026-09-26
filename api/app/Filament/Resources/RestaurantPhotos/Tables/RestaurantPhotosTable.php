@@ -14,7 +14,7 @@ class RestaurantPhotosTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['restaurant', 'uploadedBy']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['restaurant:id,name', 'uploadedBy:id,email']))
             ->defaultSort('id', 'desc')
             ->columns([
                 ImageColumn::make('path')

@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\EditProfile;
 use App\Filament\Widgets\AppSessionsChartWidget;
+use App\Filament\Widgets\ModerationSlaWidget;
 use App\Filament\Widgets\NeedsAttentionWidget;
 use App\Filament\Widgets\OverviewStatsWidget;
 use App\Filament\Widgets\RecommendationRatesChartWidget;
@@ -66,6 +67,14 @@ class AdminPanelProvider extends PanelProvider
             // lets that same toggle hide it completely instead of stopping at the icon rail.
             ->sidebarCollapsibleOnDesktop()
             ->sidebarFullyCollapsibleOnDesktop()
+            // Page changes swap content over wire:navigate instead of a full reload — the panel's
+            // CSS/JS and sidebar aren't re-downloaded and re-booted on every click.
+            ->spa()
+            // The bell: new reports/submissions and moderation or API-budget alerts land here
+            // (Filament's database notifications, excluded from the app's me/notifications).
+            // Checked once a minute rather than Filament's 30s default.
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('60s')
             // Lives in the topbar's x-persist block, so it survives Filament's wire:navigate SPA
             // transitions between pages rather than being re-mounted per page — one button,
             // everywhere, without adding it to every Resource/Page individually.
@@ -97,6 +106,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 NeedsAttentionWidget::class,
+                ModerationSlaWidget::class,
                 OverviewStatsWidget::class,
                 UsersOverTimeChartWidget::class,
                 AppSessionsChartWidget::class,

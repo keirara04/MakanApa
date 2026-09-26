@@ -28,6 +28,9 @@ use Illuminate\Support\Str;
  */
 class RestaurantSubmissionModerationService
 {
+    /** Half-width of duplicateHint()'s SQL prefilter box — ~165m of latitude, safely over its 100m check. */
+    private const DUPLICATE_BOX_DEGREES = 0.0015;
+
     public function __construct(
         private readonly AdminAuditLogger $auditLogger,
         private readonly HalalVerificationService $halalVerifications,
@@ -449,15 +452,31 @@ class RestaurantSubmissionModerationService
 
     /**
      * Warning only, never an automatic block — any active restaurant within ~100m whose
-     * normalized name loosely overlaps the submission's. O(n) over active restaurants is fine
-     * at beta scale; not a concern worth optimizing prematurely. Public — reused by the Filament
+     * normalized name loosely overlaps the submission's. A SQL bounding box (a little wider than
+     * 100m) narrows the candidates first, so this reads a handful of rows rather than every
+     * active restaurant on each render of the admin page. Public — reused by the Filament
      * submission page's "possible duplicate" panel as well as the JSON admin API's presenter.
      */
     public function duplicateHint(RestaurantSubmission $submission): ?array
     {
-        $normalized = (string) Str::of($submission->name)->lower()->squish();
+        if ($submission->latitude === null || $submission->longitude === null) {
+            return null;
+        }
 
-        foreach (Restaurant::where('is_active', true)->get(['id', 'name', 'latitude', 'longitude']) as $candidate) {
+        $normalized = (string) Str::of($submission->name)->lower()->squish();
+        $latitude = (float) $submission->latitude;
+        $longitude = (float) $submission->longitude;
+        $latDelta = self::DUPLICATE_BOX_DEGREES;
+        $lonDelta = self::DUPLICATE_BOX_DEGREES / max(cos(deg2rad($latitude)), 0.01);
+
+        $candidates = Restaurant::query()
+            ->where('is_active', true)
+            ->whereBetween('latitude', [$latitude - $latDelta, $latitude + $latDelta])
+            ->whereBetween('longitude', [$longitude - $lonDelta, $longitude + $lonDelta])
+            ->orderBy('id')
+            ->get(['id', 'name', 'latitude', 'longitude']);
+
+        foreach ($candidates as $candidate) {
             $distanceKm = RecommendationService::distanceKm(
                 (float) $submission->latitude, (float) $submission->longitude,
                 (float) $candidate->latitude, (float) $candidate->longitude

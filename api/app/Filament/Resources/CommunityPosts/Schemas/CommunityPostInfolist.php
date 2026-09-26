@@ -47,6 +47,7 @@ class CommunityPostInfolist
                     ->visible(fn (CommunityPost $record) => $record->reports()->exists())
                     ->schema([
                         RepeatableEntry::make('reports')->hiddenLabel()
+                            ->state(fn (CommunityPost $record) => $record->reports()->with('reporter:id,email')->get())
                             ->schema([
                                 TextEntry::make('reason')->formatStateUsing(fn ($state) => $state?->label()),
                                 TextEntry::make('note')->placeholder('—'),

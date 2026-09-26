@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Jobs\SendNotificationBroadcast;
 use App\Models\NotificationBroadcast;
+use App\Models\NotificationDelivery;
 use App\Models\User;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Context;
@@ -21,40 +23,60 @@ use Illuminate\Support\Facades\Context;
  * to sent/skipped_no_token/failed once the queue worker actually talks to APNs, via the
  * NotificationSent/NotificationFailed listeners in AppServiceProvider, matched back to this row
  * through Context (which Laravel automatically carries into the queued job for us).
+ *
+ * Delivery rows are written one INSERT per chunk of users, not one per user. The admin page
+ * uses queue() so the whole fan-out runs on the worker instead of inside the HTTP request.
  */
 class NotificationBroadcastService
 {
-    /** @param array<string, mixed> $meta category/title/body/version/message/app_store_url/source/scheduled_notification_id/created_by for the log entry */
-    /** @return int users considered (not all will actually receive a push — via() on the notification itself gates by preference/device tokens) */
+    private const CHUNK_SIZE = 200;
+
+    /**
+     * Synchronous: logs the batch and fans out right now (artisan command, scheduler).
+     *
+     * @param  array<string, mixed>  $meta  category/title/body/version/message/app_store_url/source/scheduled_notification_id/created_by for the log entry
+     * @return int users considered (not all will actually receive a push — via() on the notification itself gates by preference/device tokens)
+     */
     public function broadcast(Notification $notification, array $meta = []): int
     {
-        $broadcast = NotificationBroadcast::create([
-            'category' => $meta['category'] ?? null,
-            'title' => $meta['title'] ?? null,
-            'body' => $meta['body'] ?? null,
-            'version' => $meta['version'] ?? null,
-            'message' => $meta['message'] ?? null,
-            'app_store_url' => $meta['app_store_url'] ?? null,
-            'source' => $meta['source'] ?? 'manual',
-            'scheduled_notification_id' => $meta['scheduled_notification_id'] ?? null,
-            'created_by' => $meta['created_by'] ?? null,
-        ]);
+        return $this->fanOut($this->createBroadcast($meta), $notification);
+    }
 
+    /**
+     * Logs the batch now and leaves the fan-out to a queued job — for the admin page, where a
+     * loop over every user would otherwise hold the request (and the admin) until it finished.
+     *
+     * @param  array<string, mixed>  $meta  see broadcast()
+     */
+    public function queue(Notification $notification, array $meta = []): NotificationBroadcast
+    {
+        $broadcast = $this->createBroadcast($meta);
+
+        SendNotificationBroadcast::dispatch($broadcast, $notification);
+
+        return $broadcast;
+    }
+
+    /** @return int users considered — also stored on the broadcast as recipients_considered */
+    public function fanOut(NotificationBroadcast $broadcast, Notification $notification): int
+    {
         $considered = 0;
 
-        User::query()->chunkById(200, function ($users) use ($notification, $broadcast, &$considered) {
-            foreach ($users as $user) {
-                $channels = $notification->via($user);
+        User::query()->chunkById(self::CHUNK_SIZE, function ($users) use ($notification, $broadcast, &$considered) {
+            [$reachable, $skipped] = $users->partition(fn (User $user) => ! empty($notification->via($user)));
+            $reachableIds = array_values($reachable->modelKeys());
 
-                if (empty($channels)) {
-                    $broadcast->deliveries()->create(['user_id' => $user->id, 'status' => 'skipped_preference']);
+            $this->insertDeliveries($broadcast, array_values($skipped->modelKeys()), 'skipped_preference');
+            $this->insertDeliveries($broadcast, $reachableIds, 'queued');
 
-                    continue;
-                }
+            // The ids Context must carry into each queued push, read back in one query.
+            $deliveryIds = $reachableIds === [] ? collect() : NotificationDelivery::query()
+                ->where('notification_broadcast_id', $broadcast->id)
+                ->whereIn('user_id', $reachableIds)
+                ->pluck('id', 'user_id');
 
-                $delivery = $broadcast->deliveries()->create(['user_id' => $user->id, 'status' => 'queued']);
-
-                Context::add('notification_delivery_id', $delivery->id);
+            foreach ($reachable as $user) {
+                Context::add('notification_delivery_id', $deliveryIds[$user->id]);
                 $user->notify($notification);
                 Context::forget('notification_delivery_id');
 
@@ -65,5 +87,39 @@ class NotificationBroadcastService
         $broadcast->update(['recipients_considered' => $considered]);
 
         return $considered;
+    }
+
+    /** @param array<string, mixed> $meta */
+    private function createBroadcast(array $meta): NotificationBroadcast
+    {
+        return NotificationBroadcast::create([
+            'category' => $meta['category'] ?? null,
+            'title' => $meta['title'] ?? null,
+            'body' => $meta['body'] ?? null,
+            'version' => $meta['version'] ?? null,
+            'message' => $meta['message'] ?? null,
+            'app_store_url' => $meta['app_store_url'] ?? null,
+            'source' => $meta['source'] ?? 'manual',
+            'scheduled_notification_id' => $meta['scheduled_notification_id'] ?? null,
+            'created_by' => $meta['created_by'] ?? null,
+        ]);
+    }
+
+    /** @param list<int> $userIds */
+    private function insertDeliveries(NotificationBroadcast $broadcast, array $userIds, string $status): void
+    {
+        if ($userIds === []) {
+            return;
+        }
+
+        $now = now();
+
+        NotificationDelivery::insert(array_map(fn (int $userId) => [
+            'notification_broadcast_id' => $broadcast->id,
+            'user_id' => $userId,
+            'status' => $status,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ], $userIds));
     }
 }

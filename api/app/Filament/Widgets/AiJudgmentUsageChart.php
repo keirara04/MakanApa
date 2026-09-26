@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\AiJudgment;
 use Filament\Widgets\BarChartWidget;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /** Daily Judgment System volume + failures, per purpose filter. Shown on the AI Judgments page. */
 class AiJudgmentUsageChart extends BarChartWidget
@@ -17,6 +18,9 @@ class AiJudgmentUsageChart extends BarChartWidget
 
     public ?string $filter = 'all';
 
+    /** Refreshed on page load / filter change, not every 5s (Filament's default). */
+    protected ?string $pollingInterval = null;
+
     public function getHeading(): string
     {
         return 'AI judgments per day (last 14 days)';
@@ -28,6 +32,12 @@ class AiJudgmentUsageChart extends BarChartWidget
     }
 
     protected function getData(): array
+    {
+        return Cache::remember('admin-widget:ai-judgment-usage:'.$this->filter, now()->addMinutes(5), fn (): array => $this->buildData());
+    }
+
+    /** @return array{datasets: array<int, array<string, mixed>>, labels: array<int, string>} */
+    private function buildData(): array
     {
         $since = today()->subDays(13);
         $rows = AiJudgment::query()

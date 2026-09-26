@@ -13,6 +13,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Halal Trust > Review queue. A focused lens over RestaurantSubmission (halal_report +
@@ -74,8 +75,9 @@ class HalalReportResource extends Resource
         return ['index' => ListHalalReports::route('/')];
     }
 
+    /** Runs on every admin page load (the sidebar), so it's cached briefly rather than counted each time. */
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getEloquentQuery()->where('status', 'pending')->count();
+        return (string) Cache::remember('admin-nav-badge:halal-reports', now()->addMinute(), fn () => static::getEloquentQuery()->where('status', 'pending')->count());
     }
 }

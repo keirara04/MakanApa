@@ -24,6 +24,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Read-only view of the Judgment System's append-only log: every run, its exact state,
@@ -45,6 +46,18 @@ class AiJudgmentResource extends Resource
     protected static ?string $slug = 'ai/judgments';
 
     protected static ?string $recordTitleAttribute = 'run_id';
+
+    /** An append-only log: a topbar search would ILIKE-scan all of it on every keystroke. */
+    protected static bool $isGloballySearchable = false;
+
+    /**
+     * What the list view reads. Leaves out the big JSON columns (state snapshot, questions,
+     * per-request attempts) — only the view page needs those.
+     */
+    private const LIST_COLUMNS = [
+        'id', 'run_id', 'purpose', 'definition_version', 'model', 'samples', 'subject_type', 'subject_id',
+        'answers', 'error', 'outcome', 'input_tokens', 'output_tokens', 'latency_ms', 'status', 'failure_reason', 'created_at',
+    ];
 
     public static function canCreate(): bool
     {
@@ -73,6 +86,7 @@ class AiJudgmentResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query) => $query->select(self::LIST_COLUMNS))
             ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('created_at')->label('When')->since()->sortable()
@@ -103,7 +117,7 @@ class AiJudgmentResource extends Resource
                 SelectFilter::make('failure_reason')->label('Failure reason')
                     ->options(collect(FailureReason::cases())->mapWithKeys(fn ($c) => [$c->value => str_replace('_', ' ', $c->value)])->all()),
                 SelectFilter::make('definition_version')->label('Definition version')
-                    ->options(fn () => AiJudgment::query()->distinct()->orderBy('definition_version')->pluck('definition_version', 'definition_version')->mapWithKeys(fn ($v) => [$v => "v{$v}"])->all()),
+                    ->options(fn () => Cache::remember('admin-filter:ai-judgment-versions', now()->addMinutes(10), fn () => AiJudgment::query()->distinct()->orderBy('definition_version')->pluck('definition_version', 'definition_version')->mapWithKeys(fn ($v) => [$v => "v{$v}"])->all())),
                 TernaryFilter::make('labelled')->label('Has admin outcome')
                     ->queries(
                         true: fn (Builder $q) => $q->whereNotNull('outcome'),

@@ -21,10 +21,10 @@ fi
 # for production photo persistence).
 [ -L /var/www/html/public/storage ] || php artisan storage:link
 
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
+# config/route/view/event caches plus filament:optimize (Filament component + Blade icon
+# caches) in one go. Without the Filament half, every admin request re-discovers all
+# resources/pages/widgets and re-renders SVG icons from scratch.
+php artisan optimize
 
 # Caches above are written as root; make sure www-data (Apache and the long-running roles
 # below) can still write logs and compiled views.

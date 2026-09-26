@@ -15,7 +15,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class RestaurantSubmissionInfolist
 {
@@ -48,7 +48,7 @@ class RestaurantSubmissionInfolist
                     ->schema([
                         TextEntry::make('halal_claim')->label('Claim')->badge()->formatStateUsing(fn ($state) => $state?->label()),
                         TextEntry::make('current_halal_status')->label('Current status')
-                            ->state(fn (RestaurantSubmission $record) => Restaurant::find($record->restaurant_id)?->effectiveHalalStatus()->label() ?? '—'),
+                            ->state(fn (RestaurantSubmission $record) => self::restaurant($record)?->effectiveHalalStatus()->label() ?? '—'),
                         TextEntry::make('halal_comment')->label('Public comment')->placeholder('—')->columnSpanFull(),
                         TextEntry::make('certification_authority')->label('Authority (reporter)')->formatStateUsing(fn ($state) => $state?->label())->placeholder('—'),
                         TextEntry::make('certificate_number')->label('Certificate no. (reporter)')->placeholder('—'),
@@ -65,7 +65,7 @@ class RestaurantSubmissionInfolist
                                 : 'None')
                             ->color(fn (string $state) => $state === 'None' ? 'gray' : 'danger'),
                         ImageEntry::make('evidence_photos')->label('Evidence photos')->columnSpanFull()
-                            ->state(fn (RestaurantSubmission $record) => self::photoDataUris($record))
+                            ->state(fn (RestaurantSubmission $record) => self::photoUrls($record))
                             ->imageHeight(220),
                     ]),
 
@@ -76,7 +76,7 @@ class RestaurantSubmissionInfolist
                         TextEntry::make('contact_phone')->label('Contact phone'),
                         TextEntry::make('notes')->placeholder('—'),
                         ImageEntry::make('proof_photos')->label('Proof photos')->columnSpanFull()
-                            ->state(fn (RestaurantSubmission $record) => self::photoDataUris($record))
+                            ->state(fn (RestaurantSubmission $record) => self::photoUrls($record))
                             ->imageHeight(220),
                     ]),
 
@@ -114,37 +114,38 @@ class RestaurantSubmissionInfolist
     }
 
     /**
-     * Pending evidence lives on the private disk with no public URL, so the panel inlines it —
-     * moderators must SEE the certificate to verify it. Bounded by max_per_submission photos.
+     * Pending evidence lives on the private disk with no public URL — moderators must SEE the
+     * certificate to verify it, so each photo gets a short-lived signed admin URL the browser
+     * fetches itself (see routes/web.php), rather than being inlined into the page as base64.
      *
      * @return list<string>
      */
-    private static function photoDataUris(RestaurantSubmission $record): array
+    private static function photoUrls(RestaurantSubmission $record): array
     {
-        return RestaurantPhoto::where('restaurant_submission_id', $record->id)
-            ->get()
-            ->map(function (RestaurantPhoto $photo) {
-                if ($url = $photo->publicUrl()) {
-                    return $url;
-                }
-                $disk = Storage::disk($photo->disk);
-
-                return $disk->exists($photo->path) ? 'data:image/jpeg;base64,'.base64_encode($disk->get($photo->path)) : null;
-            })
-            ->filter()
+        return once(fn () => RestaurantPhoto::where('restaurant_submission_id', $record->id)
+            ->get(['id', 'disk', 'path'])
+            ->map(fn (RestaurantPhoto $photo) => $photo->publicUrl()
+                ?? URL::temporarySignedRoute('admin.panel.submission-photos.show', now()->addMinutes(30), ['photo' => $photo->id]))
             ->values()
-            ->all();
+            ->all());
     }
 
+    /** Memoized per request: both the section's visible() and its entry's state() ask. */
     private static function duplicateHint(RestaurantSubmission $record): ?array
     {
-        return app(RestaurantSubmissionModerationService::class)->duplicateHint($record);
+        return once(fn () => app(RestaurantSubmissionModerationService::class)->duplicateHint($record));
+    }
+
+    /** Memoized per request: the halal status entry and the comparison section both need it. */
+    private static function restaurant(RestaurantSubmission $record): ?Restaurant
+    {
+        return $record->restaurant_id === null ? null : once(fn () => Restaurant::find($record->restaurant_id));
     }
 
     /** @return array<int, Grid> */
     private static function comparisonEntries(RestaurantSubmission $record): array
     {
-        $restaurant = Restaurant::find($record->restaurant_id);
+        $restaurant = self::restaurant($record);
         if (! $restaurant) {
             return [];
         }

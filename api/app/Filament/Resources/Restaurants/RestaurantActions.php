@@ -50,14 +50,21 @@ class RestaurantActions
             ->color('warning')
             ->visible(fn (Restaurant $record) => $record->merged_into_restaurant_id === null)
             ->schema([
+                // Searched as you type (trigram-indexed name), not every restaurant preloaded into
+                // the modal — that list is the whole Google Places sync.
                 Select::make('mergeIntoId')
                     ->label('This restaurant is a duplicate of…')
                     ->helperText('The other restaurant is kept; this one is marked merged and deactivated.')
-                    ->options(fn (Restaurant $record) => Restaurant::where('id', '!=', $record->id)
-                        ->whereNull('merged_into_restaurant_id')
-                        ->orderBy('name')
-                        ->pluck('name', 'id'))
                     ->searchable()
+                    ->getSearchResultsUsing(fn (string $search, Restaurant $record) => Restaurant::where('id', '!=', $record->id)
+                        ->whereNull('merged_into_restaurant_id')
+                        ->where('name', 'ilike', '%'.addcslashes($search, '%_\\').'%')
+                        ->orderBy('name')
+                        ->limit(50)
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->getOptionLabelUsing(fn ($value) => Restaurant::whereKey($value)->value('name'))
+                    ->rules(['integer', 'exists:restaurants,id'])
                     ->required(),
             ])
             ->requiresConfirmation()

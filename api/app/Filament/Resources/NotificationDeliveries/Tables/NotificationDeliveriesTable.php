@@ -5,6 +5,7 @@ namespace App\Filament\Resources\NotificationDeliveries\Tables;
 use App\Models\NotificationBroadcast;
 use App\Models\NotificationDelivery;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\PaginationMode;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -13,8 +14,11 @@ class NotificationDeliveriesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['broadcast', 'user']))
-            ->defaultSort('created_at', 'desc')
+            ->modifyQueryUsing(fn ($query) => $query->with(['broadcast.creator:id,email', 'user:id,email']))
+            // One row per user per broadcast, so this is the biggest table in the panel: newest
+            // first by primary key, and "Previous / Next" paging that skips the full count(*).
+            ->defaultSort('id', 'desc')
+            ->paginationMode(PaginationMode::Simple)
             ->columns([
                 TextColumn::make('created_at')->label('Queued at')->dateTime()->sortable(),
                 TextColumn::make('broadcast.category')

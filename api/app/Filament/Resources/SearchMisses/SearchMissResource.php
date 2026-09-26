@@ -12,7 +12,8 @@ use Filament\Tables\Table;
 
 /**
  * Nearby searches that found nothing, most-repeated first — a to-do list of places MakanApa is
- * missing. Aggregate and anonymous (query + ~1 km cell + count). Read-only.
+ * missing. Aggregate and anonymous (query + ~1 km cell + count). "Create place" opens the
+ * restaurant form prefilled from the miss; "Resolve" takes it off the open list.
  */
 class SearchMissResource extends Resource
 {

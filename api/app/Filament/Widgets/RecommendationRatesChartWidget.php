@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\DecisionRecommendation;
 use Filament\Widgets\LineChartWidget;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,12 +18,21 @@ class RecommendationRatesChartWidget extends LineChartWidget
 {
     protected static ?int $sort = 3;
 
+    /** Refreshed on page load, not every 5s (Filament's default). */
+    protected ?string $pollingInterval = null;
+
     public function getHeading(): string
     {
         return 'Recommendation accept / reroll rate (last 14 days)';
     }
 
     protected function getData(): array
+    {
+        return Cache::remember('admin-widget:recommendation-rates', now()->addMinutes(5), fn (): array => $this->buildData());
+    }
+
+    /** @return array{datasets: array<int, array<string, mixed>>, labels: array<int, string>} */
+    private function buildData(): array
     {
         $rows = DecisionRecommendation::query()
             ->whereNotNull('shown_at')

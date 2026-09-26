@@ -12,6 +12,13 @@ struct SeleraView: View {
     @State private var isLoading = true
     @State private var expanded: Set<String> = []
     @State private var confirmingReset = false
+    /// Trait key → the correction currently in flight. One at a time per trait.
+    @State private var sendingFeedback: [String: TraitFeedback] = [:]
+    /// Trait key → the last More/Less saved this visit. The response comes back with the same
+    /// traits (those nudge weights, they don't hide anything), so this is the only sign the tap
+    /// landed. Not really / Hide need no marker — the card itself leaves.
+    @State private var savedFeedback: [String: TraitFeedback] = [:]
+    @State private var failedFeedback: Set<String> = []
 
     private static let stages = ["starting", "learning", "knowing", "strong"]
 
@@ -52,6 +59,8 @@ struct SeleraView: View {
         .refreshable { await load() }
         .confirmationDialog("Reset your Selera?", isPresented: $confirmingReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) {
+                savedFeedback = [:]
+                failedFeedback = []
                 Task { await update { try await APIClient.resetSelera() } }
             }
         } message: {
@@ -121,6 +130,10 @@ struct SeleraView: View {
                 VStack(spacing: 10) {
                     ForEach(selera.traits) { trait in
                         traitCard(trait)
+                            .transition(.asymmetric(
+                                insertion: .opacity,
+                                removal: .opacity.combined(with: .scale(scale: 0.92, anchor: .top))
+                            ))
                     }
                 }
             }
@@ -172,9 +185,33 @@ struct SeleraView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.nasiCream, in: RoundedRectangle(cornerRadius: 14))
 
+                    // 2×2 at normal text sizes; one per row once large Dynamic Type won't fit two.
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 8) { feedbackButtons(trait) }
-                        VStack(alignment: .leading, spacing: 8) { feedbackButtons(trait) }
+                        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+                            GridRow {
+                                feedbackButton(.more, for: trait)
+                                feedbackButton(.less, for: trait)
+                            }
+                            GridRow {
+                                feedbackButton(.notReally, for: trait)
+                                feedbackButton(.hide, for: trait)
+                            }
+                        }
+                        VStack(spacing: 8) {
+                            ForEach(TraitFeedback.allCases, id: \.self) { feedbackButton($0, for: trait) }
+                        }
+                    }
+
+                    if let saved = savedFeedback[trait.key], let note = saved.confirmation {
+                        Label(note, systemImage: "checkmark.circle.fill")
+                            .font(.makanBody(13))
+                            .foregroundStyle(Color.pandan)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    } else if failedFeedback.contains(trait.key) {
+                        Label("Couldn't save that. Try again.", systemImage: "exclamationmark.circle")
+                            .font(.makanBody(13))
+                            .foregroundStyle(Color.sambalRed)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -185,37 +222,41 @@ struct SeleraView: View {
         .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(Color.kicap.opacity(0.06)) }
     }
 
-    @ViewBuilder
-    private func feedbackButtons(_ trait: SeleraTrait) -> some View {
-        feedbackButton("More like this", systemImage: "hand.thumbsup") {
-            try await APIClient.seleraTraitFeedback(key: trait.key, kind: "more")
-        }
-        feedbackButton("Less", systemImage: "minus.circle") {
-            try await APIClient.seleraTraitFeedback(key: trait.key, kind: "less")
-        }
-        feedbackButton("Not really", systemImage: "xmark", tint: .sambalRed) {
-            try await APIClient.seleraTraitFeedback(key: trait.key, kind: "not_really")
-        }
-        feedbackButton("Hide", systemImage: "eye.slash") {
-            try await APIClient.muteSeleraTrait(key: trait.key)
-        }
-    }
+    private func feedbackButton(_ kind: TraitFeedback, for trait: SeleraTrait) -> some View {
+        let isSending = sendingFeedback[trait.key] == kind
+        let isSaved = savedFeedback[trait.key] == kind
 
-    private func feedbackButton(_ title: String, systemImage: String, tint: Color = .kicap,
-                                action: @escaping () async throws -> SeleraResponse) -> some View {
-        Button {
+        return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            Task { await update(action) }
+            Task { await sendFeedback(kind, for: trait) }
         } label: {
-            Label(title, systemImage: systemImage)
-                .font(.makanBody(13))
-                .lineLimit(1)
-                .padding(.horizontal, 12)
-                .frame(minHeight: 36)
-                .foregroundStyle(tint)
-                .background(tint.opacity(0.08), in: Capsule())
+            HStack(spacing: 6) {
+                if isSending {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(kind.tint)
+                        .transition(.opacity)
+                } else {
+                    Image(systemName: isSaved ? kind.savedSymbol : kind.symbol)
+                        .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                        .symbolEffect(.bounce, value: reduceMotion ? false : isSaved)
+                        .transition(.opacity)
+                }
+                Text(kind.title)
+            }
+            .font(.makanBody(13))
+            .lineLimit(1)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 36)
+            .foregroundStyle(kind.tint)
+            .background(kind.tint.opacity(isSaved ? 0.16 : 0.08), in: Capsule())
+            .overlay { Capsule().strokeBorder(kind.tint.opacity(isSaved ? 0.35 : 0), lineWidth: 1.5) }
+            .contentShape(Capsule())
         }
         .buttonStyle(PressCompressStyle())
+        // One correction at a time per trait, and re-tapping a saved one would just stack weight.
+        .disabled(sendingFeedback[trait.key] != nil || isSaved)
+        .accessibilityAddTraits(isSaved ? .isSelected : [])
     }
 
     // MARK: - Constraints
@@ -351,6 +392,36 @@ struct SeleraView: View {
         } catch {}
     }
 
+    /// Unlike `update`, never silent: a spinner while saving, a success/error haptic after, and
+    /// either the card leaving (Not really / Hide), a "Got it" line (More / Less), or an error line.
+    private func sendFeedback(_ kind: TraitFeedback, for trait: SeleraTrait) async {
+        guard sendingFeedback[trait.key] == nil else { return }
+        let animation = reduceMotion ? nil : Motion.standard
+        withAnimation(reduceMotion ? nil : Motion.quick) {
+            sendingFeedback[trait.key] = kind
+            failedFeedback.remove(trait.key)
+        }
+
+        do {
+            let updated = try await kind.send(trait.key)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            withAnimation(animation) {
+                sendingFeedback[trait.key] = nil
+                if kind.confirmation != nil { savedFeedback[trait.key] = kind }
+                selera = updated
+            }
+        } catch APIError.unauthorized {
+            sendingFeedback[trait.key] = nil
+            AuthStore.shared.handleUnauthorized()
+        } catch {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            withAnimation(animation) {
+                sendingFeedback[trait.key] = nil
+                failedFeedback.insert(trait.key)
+            }
+        }
+    }
+
     private func update(_ call: () async throws -> SeleraResponse) async {
         if let updated = try? await call() {
             withAnimation(reduceMotion ? nil : Motion.standard) { selera = updated }
@@ -426,6 +497,59 @@ struct SeleraView: View {
         case "budget": "banknote"
         case "distance": "location.fill"
         default: "slider.horizontal.3"
+        }
+    }
+}
+
+/// The four corrections on an expanded trait card.
+private enum TraitFeedback: CaseIterable {
+    case more, less, notReally, hide
+
+    var title: String {
+        switch self {
+        case .more: "More like this"
+        case .less: "Less"
+        case .notReally: "Not really"
+        case .hide: "Hide"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .more: "hand.thumbsup"
+        case .less: "minus.circle"
+        case .notReally: "xmark"
+        case .hide: "eye.slash"
+        }
+    }
+
+    var savedSymbol: String {
+        switch self {
+        case .more: "hand.thumbsup.fill"
+        case .less: "minus.circle.fill"
+        case .notReally, .hide: symbol
+        }
+    }
+
+    var tint: Color {
+        self == .notReally ? .sambalRed : .kicap
+    }
+
+    /// Shown under the buttons after it saves. Nil for the two that remove the card instead.
+    var confirmation: String? {
+        switch self {
+        case .more: "Got it. I'll lean into this."
+        case .less: "Got it. I'll ease off this."
+        case .notReally, .hide: nil
+        }
+    }
+
+    func send(_ traitKey: String) async throws -> SeleraResponse {
+        switch self {
+        case .more: try await APIClient.seleraTraitFeedback(key: traitKey, kind: "more")
+        case .less: try await APIClient.seleraTraitFeedback(key: traitKey, kind: "less")
+        case .notReally: try await APIClient.seleraTraitFeedback(key: traitKey, kind: "not_really")
+        case .hide: try await APIClient.muteSeleraTrait(key: traitKey)
         }
     }
 }

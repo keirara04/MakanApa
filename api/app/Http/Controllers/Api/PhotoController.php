@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Places\GooglePlacesProvider;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
@@ -31,11 +32,11 @@ class PhotoController extends Controller
         abort_if(empty($apiKey), 500, 'Places photo proxy misconfigured.');
 
         try {
-            $photoUri = Http::withHeaders(['X-Goog-Api-Key' => $apiKey])
+            $response = Http::withHeaders(['X-Goog-Api-Key' => $apiKey])
                 ->timeout(8)
-                ->get("https://places.googleapis.com/v1/{$name}/media", ['maxWidthPx' => 800, 'skipHttpRedirect' => 'true'])
-                ->throw()
-                ->json('photoUri');
+                ->get("https://places.googleapis.com/v1/{$name}/media", ['maxWidthPx' => 800, 'skipHttpRedirect' => 'true']);
+            GooglePlacesProvider::recordUsage(GooglePlacesProvider::USAGE_PLACE_PHOTO);
+            $photoUri = $response->throw()->json('photoUri');
         } catch (ConnectionException|RequestException $exception) {
             // Google rate-limited, the photo resource expired, or the request timed out —
             // a fast, clean 502 lets the client's retry affordance kick in immediately

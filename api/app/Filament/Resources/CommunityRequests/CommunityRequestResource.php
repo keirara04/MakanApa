@@ -9,6 +9,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Cache;
 
 class CommunityRequestResource extends Resource
 {
@@ -30,8 +31,9 @@ class CommunityRequestResource extends Resource
         ];
     }
 
+    /** Runs on every admin page load (the sidebar), so it's cached briefly rather than counted each time. */
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::where('status', 'pending')->count();
+        return (string) Cache::remember('admin-nav-badge:community-requests', now()->addMinute(), fn () => static::getModel()::where('status', 'pending')->count());
     }
 }

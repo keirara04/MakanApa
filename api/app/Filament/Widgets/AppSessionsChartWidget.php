@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\AppSession;
 use Filament\Widgets\LineChartWidget;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,6 +19,9 @@ class AppSessionsChartWidget extends LineChartWidget
     protected static ?int $sort = 6;
 
     public ?string $filter = 'day';
+
+    /** Refreshed on page load / filter change, not every 5s (Filament's default). */
+    protected ?string $pollingInterval = null;
 
     public function getHeading(): string
     {
@@ -35,6 +39,12 @@ class AppSessionsChartWidget extends LineChartWidget
     }
 
     protected function getData(): array
+    {
+        return Cache::remember('admin-widget:app-sessions:'.$this->filter, now()->addMinutes(5), fn (): array => $this->buildData());
+    }
+
+    /** @return array{datasets: array<int, array<string, mixed>>, labels: array<int, string>} */
+    private function buildData(): array
     {
         [$bucket, $since, $format] = match ($this->filter) {
             'hour' => ['hour', now()->subHours(24), 'ga'],

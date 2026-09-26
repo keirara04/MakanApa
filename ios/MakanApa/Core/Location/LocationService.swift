@@ -23,6 +23,11 @@ enum LocationState: Equatable {
 @Observable
 final class LocationService: NSObject, CLLocationManagerDelegate {
     private(set) var state: LocationState = .notDetermined
+    /// The raw permission, tracked apart from `state` — `state` stays `.notDetermined` while an
+    /// already-allowed app waits for its first fix, which would otherwise read as "never asked."
+    private(set) var authorization: CLAuthorizationStatus = .notDetermined
+    /// False when the user only granted Approximate Location.
+    private(set) var isPrecise = true
 
     private let manager = CLLocationManager()
 
@@ -52,6 +57,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     private func refreshAuthorizationState() {
+        authorization = manager.authorizationStatus
+        isPrecise = manager.accuracyAuthorization == .fullAccuracy
         switch manager.authorizationStatus {
         case .notDetermined:
             state = .notDetermined

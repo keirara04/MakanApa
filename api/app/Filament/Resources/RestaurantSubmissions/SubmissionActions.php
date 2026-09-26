@@ -174,10 +174,18 @@ class SubmissionActions
             ->color('gray')
             ->visible(fn (RestaurantSubmission $record) => $record->status === 'pending')
             ->schema([
+                // Searched as you type, not every active restaurant preloaded into the modal.
                 Select::make('restaurantId')
                     ->label('Restaurant')
-                    ->options(fn () => Restaurant::where('is_active', true)->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
+                    ->getSearchResultsUsing(fn (string $search) => Restaurant::where('is_active', true)
+                        ->where('name', 'ilike', '%'.addcslashes($search, '%_\\').'%')
+                        ->orderBy('name')
+                        ->limit(50)
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->getOptionLabelUsing(fn ($value) => Restaurant::whereKey($value)->value('name'))
+                    ->rules(['integer', 'exists:restaurants,id'])
                     ->required(),
             ])
             ->requiresConfirmation()

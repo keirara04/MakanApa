@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Observers\RestaurantSubmissionObserver;
 use App\Support\Halal\CertificationAuthority;
 use App\Support\Halal\HalalStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,14 +19,26 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'certification_authority', 'certificate_number', 'certificate_issued_at', 'certificate_expires_at',
     'halal_resolved_status', 'review_priority', 'contact_phone', 'triage', 'review_priority_breakdown',
 ])]
+#[ObservedBy(RestaurantSubmissionObserver::class)]
 class RestaurantSubmission extends Model
 {
+    /** Every (re)entry into the review queue restarts the moderation clock — see ModerationSlaService. */
+    protected static function booted(): void
+    {
+        static::saving(function (RestaurantSubmission $submission) {
+            if ($submission->isDirty('status') && $submission->status === 'pending') {
+                $submission->submitted_at = now();
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'reviewed_at' => 'datetime',
+            'submitted_at' => 'datetime',
             'changed_fields' => 'array',
             'menu_items' => 'array',
             'halal_claim' => HalalStatus::class,

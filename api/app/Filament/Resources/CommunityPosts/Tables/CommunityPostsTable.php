@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CommunityPosts\Tables;
 
 use App\Filament\Resources\CommunityPosts\CommunityPostActions;
 use App\Models\CommunityPost;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -53,6 +54,13 @@ class CommunityPostsTable
                 CommunityPostActions::restore(),
                 CommunityPostActions::hide(),
                 CommunityPostActions::remove(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    CommunityPostActions::bulkDismissReports(),
+                    CommunityPostActions::bulkHide(),
+                    CommunityPostActions::bulkRestore(),
+                ]),
             ]);
     }
 }

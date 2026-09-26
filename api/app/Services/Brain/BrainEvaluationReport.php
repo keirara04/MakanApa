@@ -109,44 +109,63 @@ class BrainEvaluationReport
         })->values()->all();
     }
 
-    /** Is the brain concentrating everyone onto the same few places? Per algorithm version. */
+    /**
+     * Is the brain concentrating everyone onto the same few places? Per algorithm version.
+     * Aggregated in Postgres (window functions) rather than pulling every accepted pick into
+     * PHP: top-10 share, coverage, distinct categories, and how often a person's next accept
+     * repeats their previous one's category (consecutive pairs per user, else per install).
+     */
     public function concentration(int $days): array
     {
-        $since = now()->subDays($days);
         $activeRestaurants = max(1, Restaurant::where('is_active', true)->count());
 
-        $accepted = DB::table('decision_recommendations as r')
-            ->join('decisions', 'decisions.id', '=', 'r.decision_id')
-            ->join('restaurants', 'restaurants.id', '=', 'r.restaurant_id')
-            ->whereNotNull('r.accepted_at')
-            ->where('r.accepted_at', '>=', $since)
-            ->select('decisions.algorithm_version as version', 'r.restaurant_id', 'restaurants.food_category', 'decisions.user_id', 'decisions.installation_id', 'r.accepted_at')
-            ->get()
-            ->groupBy('version');
+        $rows = DB::select(<<<'SQL'
+            with accepted as (
+                select decisions.algorithm_version as version, r.id, r.restaurant_id, r.accepted_at,
+                       nullif(restaurants.food_category, '') as food_category,
+                       coalesce(decisions.user_id::text, decisions.installation_id, '') as owner
+                from decision_recommendations as r
+                join decisions on decisions.id = r.decision_id
+                join restaurants on restaurants.id = r.restaurant_id
+                where r.accepted_at is not null and r.accepted_at >= ?
+            ),
+            per_restaurant as (
+                select version, count(*) as picks,
+                       row_number() over (partition by version order by count(*) desc) as rank
+                from accepted
+                group by version, restaurant_id
+            ),
+            sequenced as (
+                select version, food_category,
+                       lag(food_category) over (partition by version, owner order by accepted_at, id) as previous_category,
+                       row_number() over (partition by version, owner order by accepted_at, id) as position
+                from accepted
+            )
+            select totals.version, totals.accepts, totals.restaurants, totals.categories, top.top10, pairs.pairs, pairs.repeats
+            from (
+                select version, count(*) as accepts, count(distinct restaurant_id) as restaurants, count(distinct food_category) as categories
+                from accepted group by version
+            ) as totals
+            join (
+                select version, sum(picks) filter (where rank <= 10) as top10 from per_restaurant group by version
+            ) as top on top.version is not distinct from totals.version
+            join (
+                select version,
+                       count(*) filter (where position > 1) as pairs,
+                       count(*) filter (where position > 1 and food_category is not null and food_category = previous_category) as repeats
+                from sequenced group by version
+            ) as pairs on pairs.version is not distinct from totals.version
+            order by totals.version
+            SQL, [now()->subDays($days)]);
 
-        return $accepted->map(function ($rows, $version) use ($activeRestaurants) {
-            $perRestaurant = $rows->countBy('restaurant_id')->sortDesc();
-            $total = max(1, $rows->count());
-
-            $repeats = 0;
-            $pairs = 0;
-            foreach ($rows->groupBy(fn ($r) => $r->user_id ?? $r->installation_id)->filter(fn ($g) => $g->count() >= 2) as $group) {
-                $sorted = $group->sortBy('accepted_at')->values();
-                for ($i = 1; $i < $sorted->count(); $i++) {
-                    $pairs++;
-                    $repeats += $sorted[$i]->food_category !== null && $sorted[$i]->food_category === $sorted[$i - 1]->food_category ? 1 : 0;
-                }
-            }
-
-            return [
-                'version' => $version,
-                'accepts' => $rows->count(),
-                'top10Share' => $perRestaurant->take(10)->sum() / $total,
-                'coverage' => $perRestaurant->count() / $activeRestaurants,
-                'categories' => $rows->pluck('food_category')->filter()->unique()->count(),
-                'repeatCategoryRate' => $pairs > 0 ? $repeats / $pairs : null,
-            ];
-        })->values()->all();
+        return array_map(fn (object $row) => [
+            'version' => $row->version,
+            'accepts' => (int) $row->accepts,
+            'top10Share' => (int) $row->top10 / max(1, (int) $row->accepts),
+            'coverage' => (int) $row->restaurants / $activeRestaurants,
+            'categories' => (int) $row->categories,
+            'repeatCategoryRate' => (int) $row->pairs > 0 ? (int) $row->repeats / (int) $row->pairs : null,
+        ], $rows);
     }
 
     private function cohort(Builder $query, string $cohort): Builder

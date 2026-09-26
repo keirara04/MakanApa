@@ -28,6 +28,7 @@ class FieldOverridesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('verifier:id,email'))
             ->columns([
                 TextColumn::make('field'),
                 TextColumn::make('value')->formatStateUsing(fn ($state) => is_array($state) ? json_encode($state) : (string) $state),

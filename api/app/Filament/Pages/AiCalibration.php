@@ -8,11 +8,14 @@ use App\Services\Judgment\CalibrationReport;
 use App\Services\Judgment\DefinitionRegistry;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
 
 /**
  * How well AI judgments matched later human decisions, per purpose + definition version.
- * Same numbers as `php artisan judgments:calibration` (both use CalibrationReport).
+ * Same numbers as `php artisan judgments:calibration` (both use CalibrationReport). Cached for a
+ * few minutes per filter combination — the view asks on every Livewire update (each keystroke
+ * in the threshold box), and the report reads every labelled judgment.
  */
 class AiCalibration extends Page
 {
@@ -52,25 +55,31 @@ class AiCalibration extends Page
 
     public function versions(): array
     {
-        return AiJudgment::where('purpose', $this->purpose)->distinct()->orderByDesc('definition_version')->pluck('definition_version')->all()
+        return Cache::remember("admin-page:ai-calibration:versions:{$this->purpose}", now()->addMinutes(5), fn () => AiJudgment::where('purpose', $this->purpose)->distinct()->orderByDesc('definition_version')->pluck('definition_version')->all())
             ?: [DefinitionRegistry::latestVersion($this->purpose)];
     }
 
     public function report(): array
     {
-        return CalibrationReport::build($this->purpose, $this->version, $this->since ?: null, $this->threshold);
+        return Cache::remember(
+            'admin-page:ai-calibration:report:'.md5(serialize([$this->purpose, $this->version, $this->since, $this->threshold])),
+            now()->addMinutes(5),
+            fn () => CalibrationReport::build($this->purpose, $this->version, $this->since ?: null, $this->threshold),
+        );
     }
 
     public function totals(): array
     {
-        $base = AiJudgment::where('purpose', $this->purpose)
-            ->when($this->version, fn ($q) => $q->where('definition_version', $this->version));
+        return Cache::remember("admin-page:ai-calibration:totals:{$this->purpose}:{$this->version}", now()->addMinutes(5), function (): array {
+            $base = AiJudgment::where('purpose', $this->purpose)
+                ->when($this->version, fn ($q) => $q->where('definition_version', $this->version));
 
-        return [
-            'runs' => (clone $base)->count(),
-            'ok' => (clone $base)->where('status', 'ok')->count(),
-            'labelled' => (clone $base)->whereNotNull('outcome')->count(),
-        ];
+            return [
+                'runs' => (clone $base)->count(),
+                'ok' => (clone $base)->where('status', 'ok')->count(),
+                'labelled' => (clone $base)->whereNotNull('outcome')->count(),
+            ];
+        });
     }
 
     public function updatedPurpose(): void

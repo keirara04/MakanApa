@@ -14,6 +14,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Post-moderation queue for community posts/replies. Read-only records — every state change
@@ -53,8 +54,12 @@ class CommunityPostResource extends Resource
         ];
     }
 
+    /**
+     * Same scope as the table's default "Has open reports" view (soft-deleted rows included), so
+     * the badge and the list agree. Runs on every admin page load, so it's cached briefly.
+     */
     public static function getNavigationBadge(): ?string
     {
-        return (string) CommunityPost::where('report_count', '>', 0)->count();
+        return (string) Cache::remember('admin-nav-badge:community-posts', now()->addMinute(), fn () => static::getEloquentQuery()->where('report_count', '>', 0)->count());
     }
 }

@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Mostly read-only presentation, not a generic CRUD form — a submission's fields are a
@@ -52,8 +53,9 @@ class RestaurantSubmissionResource extends Resource
         ];
     }
 
+    /** Runs on every admin page load (the sidebar), so it's cached briefly rather than counted each time. */
     public static function getNavigationBadge(): ?string
     {
-        return (string) static::getModel()::where('status', 'pending')->count();
+        return (string) Cache::remember('admin-nav-badge:restaurant-submissions', now()->addMinute(), fn () => static::getModel()::where('status', 'pending')->count());
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\SubmissionPhotoController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\SharePlaceController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -34,3 +35,10 @@ Route::withoutMiddleware([
         ->whereIn('target', ['app', 'download']);
     Route::get('/.well-known/apple-app-site-association', [SharePlaceController::class, 'appSiteAssociation']);
 });
+
+// Private (pre-approval) evidence photos for the admin panel's submission page. Session-authed
+// superadmin AND a short-lived signature — the URL is minted per render, never guessable, and
+// replaces inlining every photo into the Livewire payload as base64.
+Route::get('/admin-files/submission-photos/{photo}', SubmissionPhotoController::class)
+    ->middleware(['auth:web', 'superadmin', 'signed'])
+    ->name('admin.panel.submission-photos.show');

@@ -18,7 +18,7 @@ use Filament\Support\Icons\Heroicon;
  * Superadmin-only (the whole panel already gates on User::canAccessPanel()). Reuses the same
  * Notification classes and NotificationBroadcastService as the artisan command and
  * RestaurantSubmissionModerationService — this page is just another caller, not a separate
- * implementation of "send a push to everyone."
+ * implementation of "send a push to everyone." Queued, so sending never blocks the page.
  */
 class BroadcastNotification extends Page
 {
@@ -93,7 +93,7 @@ class BroadcastNotification extends Page
             ? new ReleaseAnnouncement($data['version'], $data['message'], $data['appStoreUrl'] ?: null)
             : new AccountAdminNotice($data['title'], $data['body']);
 
-        $considered = $service->broadcast($notification, [
+        $service->queue($notification, [
             'category' => $data['category'],
             'title' => $data['title'] ?? null,
             'body' => $data['body'] ?? null,
@@ -105,8 +105,8 @@ class BroadcastNotification extends Page
         ]);
 
         FilamentNotification::make()
-            ->title("Broadcast queued for {$considered} users")
-            ->body('Opted-out users and devices without a valid token are skipped automatically.')
+            ->title('Broadcast queued')
+            ->body('It sends in the background — watch the Notification Log for delivery. Opted-out users and devices without a valid token are skipped automatically.')
             ->success()
             ->send();
 

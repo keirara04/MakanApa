@@ -6,34 +6,49 @@ use App\Models\Restaurant;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Cache;
 
 class OverviewStatsWidget extends StatsOverviewWidget
 {
     protected static ?int $sort = 2;
 
+    /** Refreshed on page load, not every 5s (Filament's default). */
+    protected ?string $pollingInterval = null;
+
     protected function getStats(): array
     {
-        $weeklyActiveUsers = User::whereHas(
-            'tokens',
-            fn ($query) => $query->where('last_used_at', '>=', now()->subDays(7))
-        )->count();
+        $counts = Cache::remember('admin-widget:overview-stats', now()->addMinutes(2), fn (): array => [
+            'activeRestaurants' => Restaurant::where('is_active', true)->count(),
+            'registeredUsers' => User::registered()->count(),
+            'guests' => User::where('is_guest', true)->count(),
+            'weeklyActiveUsers' => User::whereHas(
+                'tokens',
+                fn ($query) => $query->where('last_used_at', '>=', now()->subDays(7))
+            )->count(),
+            'guestConversion' => $this->guestConversion(),
+        ]);
+        ['guests' => $newGuests, 'converted' => $converted, 'topSources' => $topSources] = $counts['guestConversion'];
+        $rate = $newGuests > 0 ? round($converted / $newGuests * 100, 1) : 0;
 
         return [
-            Stat::make('Active restaurants', Restaurant::where('is_active', true)->count()),
-            Stat::make('Total users', User::registered()->count()),
-            Stat::make('Guests', User::where('is_guest', true)->count())
+            Stat::make('Active restaurants', $counts['activeRestaurants']),
+            Stat::make('Total users', $counts['registeredUsers']),
+            Stat::make('Guests', $counts['guests'])
                 ->description('Anonymous app accounts not yet signed up'),
-            Stat::make('Weekly active users', $weeklyActiveUsers)
+            Stat::make('Weekly active users', $counts['weeklyActiveUsers'])
                 ->description('Users whose API token was used in the last 7 days'),
-            $this->guestConversionStat(),
+            Stat::make('Guest → account (30d)', "{$rate}%")
+                ->description("{$converted} of {$newGuests} new guests".($topSources !== '' ? " · top: {$topSources}" : '')),
         ];
     }
 
     /**
      * Of the guests created in the last 30 days, how many went on to make a real account — and
      * which app surface (`signup_source`) converted them most.
+     *
+     * @return array{guests: int, converted: int, topSources: string}
      */
-    private function guestConversionStat(): Stat
+    private function guestConversion(): array
     {
         $since = now()->subDays(30);
 
@@ -53,9 +68,6 @@ class OverviewStatsWidget extends StatsOverviewWidget
             ->map(fn ($total, $source) => "{$source} ({$total})")
             ->implode(', ');
 
-        $rate = $guests > 0 ? round($converted / $guests * 100, 1) : 0;
-
-        return Stat::make('Guest → account (30d)', "{$rate}%")
-            ->description("{$converted} of {$guests} new guests".($topSources !== '' ? " · top: {$topSources}" : ''));
+        return ['guests' => $guests, 'converted' => $converted, 'topSources' => $topSources];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\User;
 use Filament\Widgets\LineChartWidget;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /** New user signups, grouped by hour/day/week/month — switchable via the filter dropdown. */
@@ -13,6 +14,9 @@ class UsersOverTimeChartWidget extends LineChartWidget
     protected static ?int $sort = 5;
 
     public ?string $filter = 'day';
+
+    /** Refreshed on page load / filter change, not every 5s (Filament's default). */
+    protected ?string $pollingInterval = null;
 
     public function getHeading(): string
     {
@@ -30,6 +34,12 @@ class UsersOverTimeChartWidget extends LineChartWidget
     }
 
     protected function getData(): array
+    {
+        return Cache::remember('admin-widget:users-over-time:'.$this->filter, now()->addMinutes(5), fn (): array => $this->buildData());
+    }
+
+    /** @return array{datasets: array<int, array<string, mixed>>, labels: array<int, string>} */
+    private function buildData(): array
     {
         [$bucket, $since, $format] = match ($this->filter) {
             'hour' => ['hour', now()->subHours(24), 'ga'],

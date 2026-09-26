@@ -5,11 +5,13 @@ namespace App\Filament\Pages;
 use App\Services\Brain\BrainEvaluationReport;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Url;
 
 /**
  * Is Makan Brain actually better than v1 — and for whom? Cohorted, so a big win for returning
- * users can't be hidden by (or hide) a flat result for brand-new ones.
+ * users can't be hidden by (or hide) a flat result for brand-new ones. Both reports aggregate
+ * over every decision in the window, so they're cached for 10 minutes per cohort/window.
  */
 class MakanBrainInsights extends Page
 {
@@ -41,11 +43,16 @@ class MakanBrainInsights extends Page
 
     public function metrics(): array
     {
-        return app(BrainEvaluationReport::class)->metrics(max(1, min(180, $this->days)), array_key_exists($this->cohort, BrainEvaluationReport::COHORTS) ? $this->cohort : 'all');
+        $days = max(1, min(180, $this->days));
+        $cohort = array_key_exists($this->cohort, BrainEvaluationReport::COHORTS) ? $this->cohort : 'all';
+
+        return Cache::remember("admin-page:brain-insights:metrics:{$days}:{$cohort}", now()->addMinutes(10), fn () => app(BrainEvaluationReport::class)->metrics($days, $cohort));
     }
 
     public function concentration(): array
     {
-        return app(BrainEvaluationReport::class)->concentration(max(1, min(180, $this->days)));
+        $days = max(1, min(180, $this->days));
+
+        return Cache::remember("admin-page:brain-insights:concentration:{$days}", now()->addMinutes(10), fn () => app(BrainEvaluationReport::class)->concentration($days));
     }
 }

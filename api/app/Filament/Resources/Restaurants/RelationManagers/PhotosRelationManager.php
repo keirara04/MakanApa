@@ -27,6 +27,7 @@ class PhotosRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn ($query) => $query->with('uploadedBy:id,email'))
             ->columns([
                 ImageColumn::make('path')
                     ->label('Photo')

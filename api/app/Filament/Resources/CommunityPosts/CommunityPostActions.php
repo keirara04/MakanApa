@@ -6,8 +6,10 @@ use App\Models\CommunityPost;
 use App\Services\AdminUserService;
 use App\Services\Community\CommunityPostModerationService;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Collection;
 
 /** Shared between the table's row actions and the View page's header actions. */
 class CommunityPostActions
@@ -60,5 +62,76 @@ class CommunityPostActions
                     Notification::make()->danger()->title($e->getMessage())->send();
                 }
             });
+    }
+
+    /*
+     * Bulk versions of the row actions — same service calls (so each post still resolves its
+     * reports and writes its own audit row); posts the action doesn't apply to are skipped.
+     */
+
+    public static function bulkHide(): BulkAction
+    {
+        return BulkAction::make('bulkHide')
+            ->label('Hide selected')
+            ->color('warning')
+            ->icon('heroicon-o-eye-slash')
+            ->schema([Textarea::make('reason')->maxLength(500)])
+            ->requiresConfirmation()
+            ->deselectRecordsAfterCompletion()
+            ->action(fn (Collection $records, array $data) => self::applyToEach(
+                $records,
+                fn (CommunityPost $post) => $post->status === CommunityPost::STATUS_VISIBLE && ! $post->trashed(),
+                fn (CommunityPost $post) => app(CommunityPostModerationService::class)->hide($post, auth()->user(), $data['reason'] ?? null),
+                'hidden',
+            ));
+    }
+
+    public static function bulkRestore(): BulkAction
+    {
+        return BulkAction::make('bulkRestore')
+            ->label('Restore selected')
+            ->color('success')
+            ->icon('heroicon-o-arrow-uturn-left')
+            ->requiresConfirmation()
+            ->deselectRecordsAfterCompletion()
+            ->action(fn (Collection $records) => self::applyToEach(
+                $records,
+                fn (CommunityPost $post) => ! $post->trashed() && ! $post->isVisible(),
+                fn (CommunityPost $post) => app(CommunityPostModerationService::class)->restore($post, auth()->user()),
+                'restored',
+            ));
+    }
+
+    /** Resolves open reports as "kept" on visible posts the admin judged fine. */
+    public static function bulkDismissReports(): BulkAction
+    {
+        return BulkAction::make('bulkDismissReports')
+            ->label('Dismiss reports')
+            ->color('gray')
+            ->icon('heroicon-o-check')
+            ->requiresConfirmation()
+            ->deselectRecordsAfterCompletion()
+            ->action(fn (Collection $records) => self::applyToEach(
+                $records,
+                fn (CommunityPost $post) => ! $post->trashed() && $post->isVisible() && $post->report_count > 0,
+                fn (CommunityPost $post) => app(CommunityPostModerationService::class)->restore($post, auth()->user()),
+                'cleared',
+            ));
+    }
+
+    /**
+     * @param  Collection<int, CommunityPost>  $records
+     */
+    private static function applyToEach(Collection $records, callable $applies, callable $apply, string $verb): void
+    {
+        $eligible = $records->filter($applies);
+        $eligible->each($apply);
+
+        $skipped = $records->count() - $eligible->count();
+        Notification::make()
+            ->success()
+            ->title($eligible->count().' '.str('post')->plural($eligible->count())." {$verb}")
+            ->body($skipped > 0 ? "{$skipped} skipped (not applicable)." : null)
+            ->send();
     }
 }

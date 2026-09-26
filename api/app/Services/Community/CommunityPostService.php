@@ -11,6 +11,7 @@ use App\Models\UserBlock;
 use App\Notifications\CommunityPostReacted;
 use App\Notifications\CommunityPostReplied;
 use App\Notifications\CommunityPostReported;
+use App\Services\AdminAlertService;
 use App\Support\CommunityContentFilter;
 use App\Support\CommunityReaction;
 use App\Support\CommunityReportReason;
@@ -193,6 +194,7 @@ class CommunityPostService
         if ($isNewReport && ($openReports === 1 || $justHidden)) {
             $admins = User::where('role', 'superadmin')->where('status', 'active')->get();
             Notification::send($admins, new CommunityPostReported($post, $reason, $justHidden));
+            app(AdminAlertService::class)->postReported($post, $justHidden);
         }
     }
 

@@ -3,9 +3,16 @@
 namespace App\Filament\Resources\RestaurantSubmissions\Tables;
 
 use App\Filament\Resources\RestaurantSubmissions\SubmissionActions;
+use App\Models\RestaurantSubmission;
+use App\Services\RestaurantSubmissionModerationService;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class RestaurantSubmissionsTable
 {
@@ -74,6 +81,32 @@ class RestaurantSubmissionsTable
                 SubmissionActions::reject(),
                 SubmissionActions::requestChanges(),
                 SubmissionActions::link(),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    // One shared reason (e.g. clearing spam); each submission still goes through
+                    // the service, so each gets its own audit row and the submitter is notified.
+                    BulkAction::make('bulkReject')
+                        ->label('Reject selected')
+                        ->color('danger')
+                        ->icon('heroicon-o-x-circle')
+                        ->schema([
+                            Textarea::make('reviewNote')->label('Reason')->required()->maxLength(500),
+                        ])
+                        ->requiresConfirmation()
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (Collection $records, array $data) {
+                            $pending = $records->where('status', 'pending');
+                            $pending->each(fn (RestaurantSubmission $record) => app(RestaurantSubmissionModerationService::class)
+                                ->reject($record, $data['reviewNote'], auth()->user()));
+
+                            $skipped = $records->count() - $pending->count();
+                            Notification::make()->success()
+                                ->title($pending->count().' '.str('submission')->plural($pending->count()).' rejected')
+                                ->body($skipped > 0 ? "{$skipped} skipped (no longer pending)." : null)
+                                ->send();
+                        }),
+                ]),
             ]);
     }
 }

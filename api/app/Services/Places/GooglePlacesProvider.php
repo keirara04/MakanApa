@@ -2,7 +2,9 @@
 
 namespace App\Services\Places;
 
+use App\Models\ApiUsageDaily;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -11,7 +13,8 @@ use Throwable;
 /**
  * Only knows how to talk to Google Places (New) :searchNearby. Does not
  * normalize into MakanApa semantics (PlaceNormalizer's job) and does not
- * touch the database (PlacesService's job).
+ * touch the database (PlacesService's job) — apart from counting each billable call it makes
+ * (ApiUsageDaily, one key per SKU below) for the admin API cost page.
  */
 class GooglePlacesProvider implements PlacesProvider
 {
@@ -20,6 +23,17 @@ class GooglePlacesProvider implements PlacesProvider
     private const TEXT_SEARCH_ENDPOINT = 'https://places.googleapis.com/v1/places:searchText';
 
     private const DETAILS_ENDPOINT = 'https://places.googleapis.com/v1/places';
+
+    /** Usage keys — one per billed SKU, priced in config/admin_budgets.php. */
+    public const USAGE_NEARBY_SEARCH = 'nearby_search';
+
+    public const USAGE_TEXT_SEARCH = 'text_search';
+
+    public const USAGE_PLACE_DETAILS = 'place_details';
+
+    public const USAGE_PLACE_DETAILS_ATMOSPHERE = 'place_details_atmosphere';
+
+    public const USAGE_PLACE_PHOTO = 'place_photo';
 
     /**
      * Only request the fields PlaceNormalizer actually consumes — avoids pricier response tiers.
@@ -66,7 +80,9 @@ class GooglePlacesProvider implements PlacesProvider
                     'radius' => $radiusKm * 1000,
                 ],
             ],
-        ])->throw();
+        ]);
+        self::recordUsage(self::USAGE_NEARBY_SEARCH);
+        $response->throw();
 
         return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
     }
@@ -111,6 +127,7 @@ class GooglePlacesProvider implements PlacesProvider
                     ],
                 ])
         )->all());
+        self::recordUsage(self::USAGE_NEARBY_SEARCH, self::answered($responses));
 
         return collect($tiles)
             ->map(function (array $tile, int $index) use ($responses) {
@@ -158,6 +175,7 @@ class GooglePlacesProvider implements PlacesProvider
                 ->timeout(8)
                 ->post(self::TEXT_SEARCH_ENDPOINT, $this->textSearchPayload($lane['query'], $latitude, $longitude, $radiusKm, $lane['includedType']))
         )->all());
+        self::recordUsage(self::USAGE_TEXT_SEARCH, self::answered($responses));
 
         return collect($lanes)
             ->map(function (array $lane, int $index) use ($responses) {
@@ -197,7 +215,9 @@ class GooglePlacesProvider implements PlacesProvider
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::FIELD_MASK,
-        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, $this->textSearchPayload($query, $latitude, $longitude, $radiusKm, $includedType))->throw();
+        ])->timeout(8)->post(self::TEXT_SEARCH_ENDPOINT, $this->textSearchPayload($query, $latitude, $longitude, $radiusKm, $includedType));
+        self::recordUsage(self::USAGE_TEXT_SEARCH);
+        $response->throw();
 
         return collect($response->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
     }
@@ -254,7 +274,9 @@ class GooglePlacesProvider implements PlacesProvider
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::SINGLE_PLACE_FIELD_MASK,
-        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}")->throw();
+        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}");
+        self::recordUsage(self::USAGE_PLACE_DETAILS);
+        $response->throw();
 
         return $this->mapPlace($response->json());
     }
@@ -272,9 +294,26 @@ class GooglePlacesProvider implements PlacesProvider
         $response = Http::withHeaders([
             'X-Goog-Api-Key' => $this->apiKey,
             'X-Goog-FieldMask' => self::DETAILS_FIELD_MASK,
-        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}")->throw();
+        ])->timeout(8)->get(self::DETAILS_ENDPOINT."/{$providerPlaceId}");
+        self::recordUsage(self::USAGE_PLACE_DETAILS_ATMOSPHERE);
+        $response->throw();
 
         return $response->json();
+    }
+
+    /**
+     * Counted once Google has answered (any status) — a call that never connected isn't billed.
+     * Public so other Places callers (the photo proxy) count against the same SKUs.
+     */
+    public static function recordUsage(string $endpoint, int $calls = 1): void
+    {
+        ApiUsageDaily::record(ApiUsageDaily::PROVIDER_GOOGLE_PLACES, $endpoint, $calls);
+    }
+
+    /** @param  array<string, Response|Throwable>  $responses */
+    private static function answered(array $responses): int
+    {
+        return count(array_filter($responses, fn ($response) => $response instanceof Response));
     }
 
     private function mapPriceLevel(?string $googlePriceLevel): ?int

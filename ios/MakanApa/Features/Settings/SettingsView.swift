@@ -1,10 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// Settings, reorganised around what people actually come here for. The old single List had
-/// twelve sections stacked on top of each other; now it's a profile header, four shortcut tiles,
-/// three grouped cards (Preferences · Community · About), then account actions — and the less
-/// common screens (notification toggles, admin tools) live one tap deeper.
+/// Settings, grouped by job: profile header, then Your MakanApa (your stuff) · Preferences (how
+/// the app behaves) · Privacy & safety · Help, then account actions. Less common screens
+/// (notification toggles, legal pages, admin tools) live one tap deeper.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(LocationService.self) private var locationService
@@ -37,25 +36,28 @@ struct SettingsView: View {
                             }
                         }
                         .entrance(0, appeared: appeared, reduceMotion: reduceMotion)
-                        shortcutTiles
+                        yourMakanApaCard
                             .entrance(1, appeared: appeared, reduceMotion: reduceMotion)
                     }
 
                     preferencesCard
                         .entrance(2, appeared: appeared, reduceMotion: reduceMotion)
 
-                    if case .authenticated(let user) = authStore.session {
-                        communityCard(isAdmin: user.isSuperadmin)
+                    privacyCard
+                        .entrance(3, appeared: appeared, reduceMotion: reduceMotion)
+
+                    if case .authenticated(let user) = authStore.session, user.isSuperadmin {
+                        adminCard
                             .entrance(3, appeared: appeared, reduceMotion: reduceMotion)
                     }
+
+                    helpCard
+                        .entrance(4, appeared: appeared, reduceMotion: reduceMotion)
 
                     #if DEBUG
                     debugCard
                         .entrance(4, appeared: appeared, reduceMotion: reduceMotion)
                     #endif
-
-                    aboutCard
-                        .entrance(4, appeared: appeared, reduceMotion: reduceMotion)
 
                     accountActions
                         .entrance(5, appeared: appeared, reduceMotion: reduceMotion)
@@ -223,21 +225,21 @@ struct SettingsView: View {
         .accessibilityHint("Sign in or create an account")
     }
 
-    // MARK: - Shortcut tiles
+    // MARK: - Your MakanApa
 
-    private var shortcutTiles: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-            SettingsTile(icon: "sparkles", tint: .sambalRed, title: "Your Selera", subtitle: "What I've learned") {
+    /// Your own stuff — what the app learned, what you saved, what you added.
+    private var yourMakanApaCard: some View {
+        SettingsCard(title: "Your MakanApa") {
+            SettingsNavRow(icon: "sparkles", tint: .sambalRed, title: "Your Selera", subtitle: "What I've learned about your taste") {
                 SeleraView()
             }
-            SettingsTile(icon: "heart.fill", tint: .sambalRed, title: "Saved", subtitle: "Places you kept") {
+            SettingsDivider()
+            SettingsNavRow(icon: "heart.fill", tint: .sambalRed, title: "Saved places", subtitle: "Places you kept") {
                 FavoritesView()
             }
-            SettingsTile(icon: "bell.badge.fill", tint: .kunyit, title: "Notifications", subtitle: "Choose what pings you") {
-                NotificationSettingsView(preferences: $notificationPreferences)
-            }
-            SettingsTile(icon: "hand.raised.fill", tint: .pandan, title: "Blocked", subtitle: "People you've hidden") {
-                BlockedUsersView()
+            SettingsDivider()
+            SettingsNavRow(icon: "mappin.and.ellipse", tint: .pandan, title: "My places", subtitle: "Places you've added or edited") {
+                MySubmissionsView()
             }
         }
     }
@@ -246,6 +248,12 @@ struct SettingsView: View {
 
     private var preferencesCard: some View {
         SettingsCard(title: "Preferences") {
+            // First: without it Nearby and every pick are guessing, so a problem here should be
+            // the first thing seen, with the fix right on the row.
+            locationRow
+
+            SettingsDivider()
+
             SettingsRow(icon: "checkmark.seal.fill", tint: .pandan, title: "Hide non-halal", subtitle: "Hides places known to be non-halal") {
                 Toggle("", isOn: $halalOnly)
                     .labelsHidden()
@@ -281,98 +289,109 @@ struct SettingsView: View {
                 MapProviderPreference.current = provider
             }
 
-            SettingsDivider()
-
-            Button(action: openSystemSettings) {
-                SettingsRow(icon: "location.fill", tint: .sambalRed, title: "Location access", subtitle: nil) {
-                    StatusPill(text: locationStatusLabel, isGood: locationIsGood)
+            if case .authenticated = authStore.session {
+                SettingsDivider()
+                SettingsNavRow(icon: "bell.badge.fill", tint: .kunyit, title: "Notifications", subtitle: "Choose what pings you") {
+                    NotificationSettingsView(preferences: $notificationPreferences)
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityHint("Opens iOS Settings")
         }
     }
 
-    // MARK: - Community
+    // MARK: - Location
 
-    private func communityCard(isAdmin: Bool) -> some View {
-        SettingsCard(title: "Community") {
-            NavigationLink {
-                MySubmissionsView()
-            } label: {
-                SettingsRow(icon: "mappin.and.ellipse", tint: .sambalRed, title: "My places", subtitle: "Places you've added or edited") {
-                    Chevron()
+    /// Says what location is doing for you and carries its own fix: "Allow" asks in-app the
+    /// first time, "Turn on" / "Manage" go to iOS Settings (the only place a denial or
+    /// Approximate Location can be changed), "Try again" re-requests a fix.
+    private var locationRow: some View {
+        let status = locationStatus
+        return SettingsRow(icon: status.icon, tint: status.tint, title: status.title, subtitle: status.subtitle) {
+            switch status {
+            case .notAsked:
+                LocationActionButton(title: "Allow", isProminent: true) {
+                    locationService.requestLocation()
                 }
-            }
-            .buttonStyle(.plain)
-
-            if isAdmin {
-                SettingsDivider()
-                NavigationLink {
-                    AdminToolsView()
-                } label: {
-                    SettingsRow(icon: "wrench.and.screwdriver.fill", tint: .kicap, title: "Admin tools", subtitle: "Users, places, halal & requests") {
-                        Chevron()
+            case .off:
+                LocationActionButton(title: "Turn on", isProminent: true, action: openSystemSettings)
+                    .accessibilityHint("Opens iOS Settings")
+            case .unavailable:
+                LocationActionButton(title: "Try again", isProminent: false) {
+                    locationService.requestLocation()
+                }
+            case .on, .approximate, .locating:
+                Button(action: openSystemSettings) {
+                    HStack(spacing: 3) {
+                        Text("Manage")
+                        Image(systemName: "arrow.up.right").font(.caption2.weight(.semibold))
                     }
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityHint("Opens iOS Settings")
+            }
+        }
+        .animation(reduceMotion ? nil : Motion.standard, value: status)
+    }
+
+    private var locationStatus: LocationStatus {
+        switch locationService.state {
+        case .authorized: return locationService.isPrecise ? .on : .approximate
+        case .denied: return .off
+        case .unavailable: return .unavailable
+        case .notDetermined:
+            // Also what an allowed app reports while its first fix is on the way.
+            switch locationService.authorization {
+            case .authorizedWhenInUse, .authorizedAlways: return .locating
+            case .denied, .restricted: return .off
+            default: return .notAsked
             }
         }
     }
 
-    // MARK: - About
+    // MARK: - Privacy & safety
 
-    private var aboutCard: some View {
-        SettingsCard(title: "About") {
+    private var privacyCard: some View {
+        SettingsCard(title: "Privacy & safety") {
+            if case .authenticated = authStore.session {
+                SettingsNavRow(icon: "hand.raised.fill", tint: .pandan, title: "Blocked people", subtitle: "People you've hidden") {
+                    BlockedUsersView()
+                }
+                SettingsDivider()
+            }
+            SettingsNavRow(icon: "lock.fill", tint: .kicap, title: "Privacy & legal", subtitle: "Privacy Policy, Terms, Community Guidelines") {
+                LegalView()
+            }
+        }
+    }
+
+    private var adminCard: some View {
+        SettingsCard(title: "Admin") {
+            SettingsNavRow(icon: "wrench.and.screwdriver.fill", tint: .kicap, title: "Admin tools", subtitle: "Users, places, halal & requests") {
+                AdminToolsView()
+            }
+        }
+    }
+
+    // MARK: - Help
+
+    private var helpCard: some View {
+        SettingsCard(title: "Help") {
             Button { showingAboutInfo = true } label: {
                 SettingsRow(icon: "questionmark.circle.fill", tint: .kunyit, title: "What is MakanApa?", subtitle: nil) { Chevron() }
             }
             .buttonStyle(.plain)
 
-            SettingsDivider()
-
             if let url = URL(string: Copy.supportURL) {
-                Link(destination: url) {
-                    SettingsRow(icon: "lifepreserver.fill", tint: .sambalRed, title: "Help & support", subtitle: nil) {
-                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
                 SettingsDivider()
+                ExternalLinkRow(url: url, icon: "lifepreserver.fill", tint: .sambalRed, title: "Help & support")
             }
 
             if let url = URL(string: "mailto:\(Copy.supportEmail)?subject=MakanApa%20support") {
-                Link(destination: url) {
-                    SettingsRow(icon: "envelope.fill", tint: .pandan, title: "Contact & report a problem", subtitle: Copy.supportEmail) {
-                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
                 SettingsDivider()
-            }
-
-            if let url = URL(string: Copy.privacyPolicyURL) {
-                Link(destination: url) {
-                    SettingsRow(icon: "lock.fill", tint: .kicap, title: "Privacy Policy", subtitle: nil) {
-                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
-                SettingsDivider()
-            }
-
-            if let url = URL(string: Copy.termsURL) {
-                Link(destination: url) {
-                    SettingsRow(icon: "doc.text.fill", tint: .kicap, title: "Terms of Use", subtitle: nil) {
-                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
-                SettingsDivider()
-            }
-
-            if let url = URL(string: Copy.communityGuidelinesURL) {
-                Link(destination: url) {
-                    SettingsRow(icon: "person.2.fill", tint: .pandan, title: "Community Guidelines", subtitle: nil) {
-                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                    }
-                }
+                ExternalLinkRow(url: url, icon: "envelope.fill", tint: .pandan, title: "Contact & report a problem", subtitle: Copy.supportEmail)
             }
         }
     }
@@ -450,20 +469,6 @@ struct SettingsView: View {
     #endif
 
     // MARK: - Helpers
-
-    private var locationStatusLabel: String {
-        switch locationService.state {
-        case .authorized: return "While Using"
-        case .denied: return "Not Allowed"
-        case .notDetermined: return "Not Asked Yet"
-        case .unavailable: return "Unavailable"
-        }
-    }
-
-    private var locationIsGood: Bool {
-        if case .authorized = locationService.state { return true }
-        return false
-    }
 
     private var appVersionLabel: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -560,6 +565,36 @@ struct NotificationSettingsView: View {
             .labelsHidden()
             .tint(.sambalRed)
         }
+    }
+}
+
+// MARK: - Privacy & legal screen
+
+/// Privacy Policy, Terms and Community Guidelines — reference pages people rarely open, so they
+/// sit one tap below Settings instead of taking three rows of it.
+struct LegalView: View {
+    private var links: [(title: String, icon: String, tint: Color, url: URL)] {
+        [
+            ("Privacy Policy", "lock.fill", Color.kicap, Copy.privacyPolicyURL),
+            ("Terms of Use", "doc.text.fill", Color.kicap, Copy.termsURL),
+            ("Community Guidelines", "person.2.fill", Color.pandan, Copy.communityGuidelinesURL),
+        ]
+        .compactMap { title, icon, tint, string in URL(string: string).map { (title, icon, tint, $0) } }
+    }
+
+    var body: some View {
+        ScrollView {
+            SettingsCard(title: "Legal") {
+                ForEach(Array(links.enumerated()), id: \.element.title) { index, link in
+                    if index > 0 { SettingsDivider() }
+                    ExternalLinkRow(url: link.url, icon: link.icon, tint: link.tint, title: link.title)
+                }
+            }
+            .padding(16)
+        }
+        .background(Color.nasiCream.ignoresSafeArea())
+        .navigationTitle("Privacy & legal")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -666,55 +701,97 @@ private struct Chevron: View {
     }
 }
 
-private struct StatusPill: View {
-    let text: String
-    let isGood: Bool
+/// What the Location row shows — one case per thing the user can actually do about it.
+private enum LocationStatus: Equatable {
+    case on, approximate, locating, notAsked, off, unavailable
 
-    var body: some View {
-        HStack(spacing: 4) {
-            Circle().fill(isGood ? Color.pandan : Color.sambalRed).frame(width: 6, height: 6)
-            Text(text)
+    var icon: String {
+        switch self {
+        case .on, .approximate, .locating: "location.fill"
+        case .notAsked: "location"
+        case .off: "location.slash.fill"
+        case .unavailable: "location.slash"
         }
-        .font(.makanBody(12))
-        .foregroundStyle(Color.kicap.opacity(0.75))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Color.kicap.opacity(0.05), in: Capsule())
+    }
+
+    var tint: Color {
+        switch self {
+        case .on, .locating: .pandan
+        case .approximate, .notAsked, .unavailable: .kunyit
+        case .off: .sambalRed
+        }
+    }
+
+    var title: String {
+        self == .off ? "Location is off" : "Location"
+    }
+
+    var subtitle: String {
+        switch self {
+        case .on: "On while you use MakanApa"
+        case .approximate: "Approximate only. Precise finds closer spots."
+        case .locating: "On. Finding you…"
+        case .notAsked: "So MakanApa can find makan near you"
+        case .off: "Nearby and picks can't see what's around you"
+        case .unavailable: "Couldn't get your location just now"
+        }
     }
 }
 
-/// Square-ish shortcut tile for the four most-used destinations.
-private struct SettingsTile<Destination: View>: View {
+/// Compact capsule for the Location row's fix — filled when the row is blocking something.
+private struct LocationActionButton: View {
+    let title: String
+    let isProminent: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        } label: {
+            Text(title)
+                .font(.makanBody(13).weight(.semibold))
+                .foregroundStyle(isProminent ? Color.white : Color.sambalRed)
+                .padding(.horizontal, 14)
+                .frame(minHeight: 32)
+                .background(isProminent ? Color.sambalRed : Color.sambalRed.opacity(0.1), in: Capsule())
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressCompressStyle())
+    }
+}
+
+/// A row that pushes another Settings screen.
+private struct SettingsNavRow<Destination: View>: View {
     let icon: String
     let tint: Color
     let title: String
-    let subtitle: String
+    let subtitle: String?
     @ViewBuilder var destination: () -> Destination
 
     var body: some View {
         NavigationLink(destination: destination) {
-            VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 38, height: 38)
-                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.makanBody(15).weight(.semibold))
-                        .foregroundStyle(Color.kicap)
-                    Text(subtitle)
-                        .font(.makanBody(12))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+            SettingsRow(icon: icon, tint: tint, title: title, subtitle: subtitle) { Chevron() }
         }
-        .buttonStyle(PressCompressStyle())
+        .buttonStyle(.plain)
+    }
+}
+
+/// A row that leaves the app (web page or mail) — the trailing arrow says so.
+private struct ExternalLinkRow: View {
+    let url: URL
+    let icon: String
+    let tint: Color
+    let title: String
+    var subtitle: String? = nil
+
+    var body: some View {
+        Link(destination: url) {
+            SettingsRow(icon: icon, tint: tint, title: title, subtitle: subtitle) {
+                Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+        }
     }
 }
 

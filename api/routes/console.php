@@ -35,3 +35,11 @@ Schedule::command('notifications:dispatch-scheduled')->everyMinute();
 
 // Mealtime nudges (opt-in, max one a day): only users whose next_nudge_at has passed are touched.
 Schedule::command('nudges:dispatch')->everyFiveMinutes()->withoutOverlapping();
+
+// Moderation response time: the in-app agreement promises reports are reviewed within 24 hours.
+// Alerts superadmins (bell + email) once a queue's oldest item passes 12h, at most every 12h.
+Schedule::command('admin:moderation-sla')->hourly();
+
+// Estimated Google Places / OpenRouter spend vs the monthly budgets in config/admin_budgets.php —
+// bell + email to superadmins at 80% and 100%, once per provider/threshold/month.
+Schedule::command('admin:check-api-budget')->dailyAt('08:00');
