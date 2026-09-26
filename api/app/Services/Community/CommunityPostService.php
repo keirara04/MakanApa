@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Models\UserBlock;
 use App\Notifications\CommunityPostReacted;
 use App\Notifications\CommunityPostReplied;
+use App\Notifications\CommunityPostReported;
 use App\Support\CommunityContentFilter;
 use App\Support\CommunityReaction;
 use App\Support\CommunityReportReason;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -162,8 +164,8 @@ class CommunityPostService
             throw ValidationException::withMessages(['post' => "You can't report your own post."]);
         }
 
-        DB::transaction(function () use ($user, $post, $reason, $note) {
-            CommunityPostReport::firstOrCreate(
+        [$isNewReport, $openReports, $justHidden] = DB::transaction(function () use ($user, $post, $reason, $note) {
+            $report = CommunityPostReport::firstOrCreate(
                 ['community_post_id' => $post->id, 'reporter_id' => $user->id],
                 ['reason' => $reason, 'note' => $note !== null ? trim($note) : null],
             );
@@ -172,7 +174,8 @@ class CommunityPostService
             $threshold = (int) Config::get('moderation.community_posts.report_hide_threshold', 3);
 
             $post->report_count = $openReports;
-            if ($post->isVisible() && $openReports >= $threshold) {
+            $justHidden = $post->isVisible() && $openReports >= $threshold;
+            if ($justHidden) {
                 $post->status = CommunityPost::STATUS_HIDDEN;
                 $post->hidden_reason = 'reports';
             }
@@ -181,7 +184,16 @@ class CommunityPostService
             if ($post->parent) {
                 $this->recountReplies($post->parent);
             }
+
+            return [$report->wasRecentlyCreated, $openReports, $justHidden];
         });
+
+        // Once when a post first gets reported, and again if reports just hid it — not on every
+        // report, so one popular bad post can't flood the admins.
+        if ($isNewReport && ($openReports === 1 || $justHidden)) {
+            $admins = User::where('role', 'superadmin')->where('status', 'active')->get();
+            Notification::send($admins, new CommunityPostReported($post, $reason, $justHidden));
+        }
     }
 
     public function block(User $blocker, User $target): void

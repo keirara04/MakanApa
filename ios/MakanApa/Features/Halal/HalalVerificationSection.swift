@@ -44,7 +44,7 @@ struct HalalVerificationSection: View {
                 HalalReportCard(report: report)
             }
 
-            Text("In testing — halal info may be incomplete. Always double-check at the restaurant.")
+            Text("Community-sourced — halal info may be incomplete. Always double-check at the restaurant.")
                 .font(.makanBody(11))
                 .foregroundStyle(.secondary)
 

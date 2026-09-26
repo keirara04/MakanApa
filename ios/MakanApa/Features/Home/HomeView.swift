@@ -14,7 +14,6 @@ struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(LocationService.self) private var locationService
     @Environment(SoloViewModel.self) private var soloViewModel
-    @State private var showGengComingSoon = false
     @State private var showSettings = false
     @State private var isQuickPicking = false
     @State private var vibeFollowUp: PendingVibePrompt?
@@ -42,9 +41,6 @@ struct HomeView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: isQuickPicking)
         .background(Color.nasiCream)
-        .alert(Copy.gengComingSoon, isPresented: $showGengComingSoon) {
-            Button("Okay", role: .cancel) {}
-        }
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
@@ -122,7 +118,6 @@ struct HomeView: View {
                 VStack(spacing: 12) {
                     quickPickCard
                     chooseCravingCard
-                    gengRow
                 }
 
                 if !recentStore.decisions.isEmpty {
@@ -211,35 +206,6 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 26))
         }
         .buttonStyle(PressableCardStyle())
-    }
-
-    /// Geng mode isn't built yet — a quiet teaser row, not a full-size card competing with
-    /// the two things that actually work.
-    private var gengRow: some View {
-        Button {
-            showGengComingSoon = true
-        } label: {
-            HStack(spacing: 8) {
-                Image("GengIllustration")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
-                Text(Copy.gengTeaser)
-                    .font(.makanBody(13))
-                    .foregroundStyle(Color.kicap.opacity(0.6))
-                Text("Soon")
-                    .font(.makanBody(10))
-                    .foregroundStyle(Color.kicap.opacity(0.5))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color.kicap.opacity(0.08))
-                    .clipShape(Capsule())
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
     }
 
     private var quickPickBudgetLabel: String {

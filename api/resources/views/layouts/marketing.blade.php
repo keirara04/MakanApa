@@ -78,7 +78,9 @@
                     @else
                         <a href="{{ url('/') }}" class="bracket-link">[Home]</a>
                         <a href="{{ url('/support') }}" class="bracket-link" @if (request()->is('support')) data-active aria-current="page" @endif>[Support]</a>
-                        <a href="{{ url('/privacy') }}" class="bracket-link" @if (request()->is('privacy')) data-active aria-current="page" @endif>[Privacy]</a>
+                        <a href="{{ route('privacy') }}" class="bracket-link" @if (request()->routeIs('privacy')) data-active aria-current="page" @endif>[Privacy]</a>
+                        {{-- Guidelines stays footer-only: a fifth header link doesn't fit at tablet width. --}}
+                        <a href="{{ route('terms') }}" class="bracket-link" @if (request()->routeIs('terms')) data-active aria-current="page" @endif>[Terms]</a>
                     @endif
                 </nav>
 
@@ -102,7 +104,9 @@
                     </a>
                     <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2 font-display text-xl font-bold uppercase tracking-wide text-ink">
                         <a href="{{ url('/support') }}" class="bracket-link min-h-0">[Support]</a>
-                        <a href="{{ url('/privacy') }}" class="bracket-link min-h-0">[Privacy Policy]</a>
+                        <a href="{{ route('privacy') }}" class="bracket-link min-h-0">[Privacy Policy]</a>
+                        <a href="{{ route('terms') }}" class="bracket-link min-h-0">[Terms of Use]</a>
+                        <a href="{{ route('community-guidelines') }}" class="bracket-link min-h-0">[Community Guidelines]</a>
                     </nav>
                 </div>
                 <p>Made in Malaysia <span aria-hidden="true">🇲🇾</span> · &copy; {{ date('Y') }} Hakeemi Ridza. All rights reserved.</p>

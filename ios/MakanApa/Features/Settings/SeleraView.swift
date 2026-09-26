@@ -444,7 +444,7 @@ struct SeleraView: View {
                             evidence: "You picked mamak 4 times at supper"),
             ],
             constraints: [
-                SeleraConstraint(key: "halal", label: "Halal only", icon: "", value: true, editIn: "settings"),
+                SeleraConstraint(key: "halal", label: "Hide non-halal", icon: "", value: true, editIn: "settings"),
                 SeleraConstraint(key: "budget", label: "Budget", icon: "", value: nil, editIn: "each_decision"),
                 SeleraConstraint(key: "distance", label: "Distance", icon: "", value: nil, editIn: "each_decision"),
             ]
@@ -459,7 +459,7 @@ struct SeleraView: View {
             signalCount: 0,
             traits: [],
             constraints: [
-                SeleraConstraint(key: "halal", label: "Halal only", icon: "", value: false, editIn: "settings"),
+                SeleraConstraint(key: "halal", label: "Hide non-halal", icon: "", value: false, editIn: "settings"),
                 SeleraConstraint(key: "budget", label: "Budget", icon: "", value: nil, editIn: "each_decision"),
                 SeleraConstraint(key: "distance", label: "Distance", icon: "", value: nil, editIn: "each_decision"),
             ]

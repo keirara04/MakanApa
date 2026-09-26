@@ -42,7 +42,7 @@ final class NearbyViewModel {
     var openNowFilter = false {
         didSet { persistFilters() }
     }
-    /// "Muslim-friendly" chip — the app-wide Halal-only preference (HalalPreference), not a
+    /// "Hide non-halal" chip — the app-wide Halal-only preference (HalalPreference), not a
     /// Nearby-only filter: it also shapes solo picks and rerolls, and syncs to the account.
     /// Hides confirmed non-halal places server-side; unverified places stay, badged.
     var halalFilter = HalalPreference.isOn {

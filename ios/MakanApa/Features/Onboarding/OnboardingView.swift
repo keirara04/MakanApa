@@ -205,7 +205,7 @@ private struct OnboardingLocationPage: View {
 }
 
 /// Asked once, up front — a dietary requirement shouldn't be buried in Settings. Changeable
-/// anytime with the "Muslim-friendly" chip on the Nearby map.
+/// anytime with the "Hide non-halal" chip on the Nearby map.
 private struct OnboardingHalalPage: View {
     let onContinue: () -> Void
 
@@ -219,8 +219,8 @@ private struct OnboardingHalalPage: View {
                     .frame(height: 150)
             },
             headline: "Do you only eat halal?",
-            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Muslim-friendly chip on the map. This is still in testing, so always double-check at the restaurant.",
-            primaryTitle: "Yes, halal only",
+            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Hide non-halal chip on the map. Halal info comes from the community, so always double-check at the restaurant.",
+            primaryTitle: "Yes, hide non-halal",
             primaryAction: {
                 HalalPreference.isOn = true
                 onContinue()

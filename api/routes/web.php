@@ -18,7 +18,12 @@ Route::withoutMiddleware([
     Route::get('/go/testflight', [MarketingController::class, 'download'])->name('marketing.download');
     Route::get('/try', [MarketingController::class, 'tryPick'])->middleware('throttle:30,1,landing-try')->name('marketing.try');
     Route::view('/support', 'support');
-    Route::view('/privacy', 'privacy');
+
+    // Legal pages. The app links these URLs directly (privacy is hardcoded in the iOS build), so
+    // the paths must not change. Versions and "Last updated" dates live in config/legal.php.
+    Route::view('/privacy', 'legal.privacy')->name('privacy');
+    Route::view('/terms', 'legal.terms')->name('terms');
+    Route::view('/community-guidelines', 'legal.community-guidelines')->name('community-guidelines');
 
     // Shared place links — the web fallback and the universal-link target for the app.
     Route::get('/p/{place}', [SharePlaceController::class, 'show'])

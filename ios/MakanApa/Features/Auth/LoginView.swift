@@ -101,6 +101,9 @@ struct LoginView: View {
             Spacer(minLength: 24)
 
             VStack(spacing: 12) {
+                legalNote
+                    .rise(appeared, delay: 0.6, reduceMotion: reduceMotion)
+
                 SocialSignInButtons(
                     onNeedsLinking: { linkToken, email, provider in
                         pendingLink = PendingLink(linkToken: linkToken, email: email, provider: provider)
@@ -126,9 +129,6 @@ struct LoginView: View {
                     guestRow
                         .rise(appeared, delay: 0.82, reduceMotion: reduceMotion)
                 }
-
-                legalNote
-                    .rise(appeared, delay: 0.85, reduceMotion: reduceMotion)
             }
             .modifier(ShakeEffect(trigger: reduceMotion ? 0 : shakeTrigger))
             .animation(reduceMotion ? nil : .linear(duration: 0.4), value: shakeTrigger)
@@ -279,18 +279,14 @@ struct LoginView: View {
 
     private var legalNote: some View {
         Text(legalText)
-            .font(.makanBody(12))
-            .foregroundStyle(Color.kicap.opacity(0.5))
+            .font(.makanBody(13))
+            .foregroundStyle(Color.kicap.opacity(0.75))
             .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var legalText: AttributedString {
-        var text = AttributedString("By continuing, you acknowledge our Privacy Policy.")
-        if let range = text.range(of: "Privacy Policy"), let url = URL(string: Copy.privacyPolicyURL) {
-            text[range].link = url
-            text[range].underlineStyle = .single
-        }
-        return text
+        LegalConsent.text(prefix: "By continuing")
     }
 
     // MARK: - Email form
@@ -566,6 +562,26 @@ private struct Rise: ViewModifier {
 private extension View {
     func rise(_ visible: Bool, delay: Double, reduceMotion: Bool) -> some View {
         modifier(Rise(visible: visible, delay: delay, reduceMotion: reduceMotion))
+    }
+}
+
+/// Terms notice shown wherever an account (guest or real) gets created. It sits above the
+/// buttons, in readable contrast, and its "By continuing" matches their "Continue with…" labels —
+/// a notice below the fold or in faint grey doesn't count as agreement (Chabolla v. ClassPass).
+/// The binding clickwrap for contributors is `CommunityAgreementPrompt`.
+/// Internal, not private — SignUpView shows the same line above its submit button.
+enum LegalConsent {
+    static func text(prefix: String) -> AttributedString {
+        var text = AttributedString("\(prefix), you agree to our Terms of Use and acknowledge our Privacy Policy.")
+        link("Terms of Use", to: Copy.termsURL, in: &text)
+        link("Privacy Policy", to: Copy.privacyPolicyURL, in: &text)
+        return text
+    }
+
+    private static func link(_ phrase: String, to urlString: String, in text: inout AttributedString) {
+        guard let range = text.range(of: phrase), let url = URL(string: urlString) else { return }
+        text[range].link = url
+        text[range].underlineStyle = .single
     }
 }
 

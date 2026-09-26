@@ -61,7 +61,7 @@
 		5C7FBB5938DCF9F9FDC8BBB6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */; };
 		5ECC516821B468899DAE9320 /* CommunityPostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A133CC5E28F50DC4E6678254 /* CommunityPostTests.swift */; };
 		5F0FAAE9818C48C93D355EFB /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651EAF0CDE373FFCEA468C00 /* APIClient.swift */; };
-		6284A1D7D38D29E669AA78E4 /* BlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */; };
+		6284A1D7D38D29E669AA78E4 /* Settings/BlockedUsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */; };
 		657790745A0986B96D235782 /* MakanApaTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */; };
 		65AAAE6C4CA0C7FE9085F3E0 /* MakanBrainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8809F93949C94C1BA6B57D89 /* MakanBrainTests.swift */; };
 		65E43124C405EAF1E1442459 /* LoginButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */; };
@@ -274,7 +274,7 @@
 		FA1785012FF34F6617CCA660 /* NearbySearchPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NearbySearchPanel.swift; path = Nearby/NearbySearchPanel.swift; sourceTree = "<group>"; };
 		FAB3284A147544F68D5E08AB /* BetaCredentialStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BetaCredentialStore.swift; sourceTree = "<group>"; };
 		FC61ED0628A3B9E4FF6AACFD /* CommunityReportSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityReportSheet.swift; sourceTree = "<group>"; };
-		FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Settings/BlockedUsersView.swift; sourceTree = "<group>"; };
+		FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Settings/BlockedUsersView.swift; sourceTree = "<group>"; };
 		FE044BA6E0E05B54F59BE7CC /* PreferenceProgressHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceProgressHeader.swift; sourceTree = "<group>"; };
 		FF8FA63B189F8F7327E20578 /* Motion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Motion.swift; sourceTree = "<group>"; };
 		FFAA2DDAF6E88FE26C056C68 /* MakanBrainViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MakanBrainViews.swift; sourceTree = "<group>"; };
@@ -388,7 +388,7 @@
 			children = (
 				77C0AFFB3EF9BB10FBC7965D /* SettingsView.swift */,
 				AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */,
-				FD1A12D317074582A2FD5C59 /* BlockedUsersView.swift */,
+				FD1A12D317074582A2FD5C59 /* Settings/BlockedUsersView.swift */,
 				2018F13227288362429CCE9A /* SeleraView.swift */,
 			);
 			name = Settings;
@@ -877,7 +877,7 @@
 				49A9D5312A3B3822B8EED335 /* CommunityPostPresentations.swift in Sources */,
 				43C55E9AD74179E3DC1DE054 /* CommunityThreadView.swift in Sources */,
 				F5E07FD375DE84B3144965B9 /* CommunityPostsView.swift in Sources */,
-				6284A1D7D38D29E669AA78E4 /* BlockedUsersView.swift in Sources */,
+				6284A1D7D38D29E669AA78E4 /* Settings/BlockedUsersView.swift in Sources */,
 				0C2427D35C4D65519D138DF0 /* MakanBrainViews.swift in Sources */,
 				0383C7B83E61A9A00E6C9F97 /* SeleraView.swift in Sources */,
 				B6B04CC41D43B1A0C2F7D492 /* ContextStrip.swift in Sources */,
@@ -912,12 +912,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MakanApa talks to its own dev server on your local network while testing.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -941,12 +940,11 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MakanApa/MakanApa.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				DEVELOPMENT_TEAM = 46798S8ZQT;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MakanApa/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MakanApa talks to its own dev server on your local network while testing.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "MakanApa uses your location to find food store or restaurant nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

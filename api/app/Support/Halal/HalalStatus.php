@@ -6,7 +6,8 @@ namespace App\Support\Halal;
  * Public halal status of a restaurant. Deliberately never carries moderation state
  * (pending/conflicting/expiring) — that lives in HalalReviewState so this stays a pure
  * statement about the evidence. Wording rule: only `Certified` may ever be labelled "Halal";
- * `MuslimFriendly` must never drift into a synonym for it (see HalalPresenter).
+ * `MuslimFriendly` must never drift into a synonym for it, and is never shown as "Muslim-friendly"
+ * either (see HalalPresenter).
  */
 enum HalalStatus: string
 {
@@ -29,7 +30,7 @@ enum HalalStatus: string
     {
         return match ($this) {
             self::Certified => 'Certified',
-            self::MuslimFriendly => 'Muslim-friendly',
+            self::MuslimFriendly => 'Not certified (community notes)',
             self::NonHalal => 'Non-halal',
             self::Unknown => 'Unknown',
         };

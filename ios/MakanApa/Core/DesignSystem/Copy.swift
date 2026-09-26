@@ -4,8 +4,6 @@ import Foundation
 enum Copy {
     static let homeGreeting = "Hungry?"
     static let homeSubtext = "Okay, what we doing today?"
-    static let gengComingSoon = "Soon lah 👀 Geng mode is still cooking."
-    static let gengTeaser = "Geng mode: settle for the whole group"
     static let quickPickTitle = "Just pick lah"
     static let chooseCravingTitle = "I know what I want"
     static let chooseCravingSubtitle = "Craving, budget, distance"
@@ -80,6 +78,9 @@ enum Copy {
     static let tagline = "Less thinking. More makan."
     static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more makan."
     static let privacyPolicyURL = "https://makanapa.hakeemiridza.com/privacy"
+    static let termsURL = "https://makanapa.hakeemiridza.com/terms"
+    static let communityGuidelinesURL = "https://makanapa.hakeemiridza.com/community-guidelines"
+    static let supportURL = "https://makanapa.hakeemiridza.com/support"
 
     static let loginTagline = "Makan dulu. Decide later."
     static let signIn = "Sign in"
@@ -107,7 +108,7 @@ enum Copy {
     // standard-width devices. The subtitle below already spells out what this screen is for.
     static let communityChooseCommunityTitle = "Community"
     static let communityChooseCommunitySubtitle = "This helps MakanApa show what's popular around people in your community."
-    static let communityChooseCommunityFooter = "University verification will be available later."
+    static let communityChooseCommunityFooter = "You can change your community anytime."
     static let communityChooseCommunitySave = "Save"
     static let communityChangeCommunityCTA = "Change ›"
     static let communityAssignCommunityCTA = "Choose ›"

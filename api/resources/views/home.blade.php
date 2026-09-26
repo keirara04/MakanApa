@@ -33,8 +33,8 @@
         ],
         [
             ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
-            ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. It isn\'t stored as part of your account profile and is never shown publicly. <a href="'.url('/privacy#location').'" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
-            ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>Muslim-friendly</strong> (not certified), or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
+            ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. We save it with each pick you ask for, linked to your account, and it\'s never shown publicly. <a href="'.route('privacy').'#location" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
+            ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>not certified</strong> with community notes, or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
         ],
     ];
 @endphp
@@ -618,7 +618,7 @@
                     </svg>
                     <div>
                         <h3 class="font-display text-4xl font-bold uppercase leading-none">Halal info you can understand</h3>
-                        <p class="mt-2 text-ink/75">See Halal certified, Muslim-friendly and places we haven't verified yet. No guessing.</p>
+                        <p class="mt-2 text-ink/75">See which places are halal certified, which aren't, and which we haven't verified yet. No guessing.</p>
                     </div>
                 </div>
                 <ul class="mt-7 flex flex-wrap gap-x-6 gap-y-3 font-display text-2xl font-bold uppercase leading-none">
@@ -626,7 +626,7 @@
                         Halal certified
                         <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-pandan" />
                     </li>
-                    <li class="text-pandan-700">Muslim-friendly</li>
+                    <li class="text-ink/75">Not certified</li>
                     <li class="text-ink/55">Not verified yet</li>
                 </ul>
             </article>

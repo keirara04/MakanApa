@@ -24,13 +24,7 @@ targets:
       TARGETED_DEVICE_FAMILY: "1,2"
     info:
       path: MakanApa/Info.plist
-      properties:
-        NSLocalNetworkUsageDescription: "MakanApa talks to its own dev server on your local network while testing."
-        NSAppTransportSecurity:
-          NSExceptionDomains:
-            10.123.171.118:
-              NSExceptionAllowsInsecureHTTPLoads: true
-              NSIncludesSubdomains: false
+      properties: {}
   MakanApaTests:
     type: bundle.unit-test
     platform: iOS

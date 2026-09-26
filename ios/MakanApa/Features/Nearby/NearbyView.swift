@@ -11,6 +11,7 @@ struct NearbyView: View {
     @State private var viewModel = NearbyViewModel()
     @State private var halalNoticeDismissed = false
     @State private var panelState: NearbyPanelState = .collapsed
+    @State private var windowHeight: CGFloat = 0
     @State private var currentViewport: MapViewport?
     @State private var currentZoom: Float = 15
     @State private var recenterRequestId = 0
@@ -137,6 +138,7 @@ struct NearbyView: View {
                         onPickOneLah: { Task { await pickOneLah() } },
                         isPicking: viewModel.isPicking,
                         hasPlaces: !viewModel.places.isEmpty,
+                        windowHeight: windowHeight,
                         state: $panelState
                     )
                 }
@@ -144,6 +146,13 @@ struct NearbyView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(1)
             }
+        }
+        // Full window height (safe-area insets added back), which is what the area panel sizes
+        // itself from — tracks iPad multitasking resizes and rotation, unlike UIScreen.
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+        } action: { height in
+            windowHeight = height
         }
         .animation(Motion.standard, value: viewModel.selectedPlace == nil)
         .onChange(of: pendingDeepLink.placeRequest, initial: true) { _, request in
@@ -239,7 +248,7 @@ struct NearbyView: View {
             HStack(spacing: 8) {
                 // First in the rail: a standing dietary preference, not a browsing chip — so
                 // Reset deliberately leaves it alone.
-                filterChip(label: "Muslim-friendly", isOn: viewModel.halalFilter) {
+                filterChip(label: "Hide non-halal", isOn: viewModel.halalFilter) {
                     viewModel.halalFilter.toggle()
                     // Turning it on again always re-shows the testing notice.
                     if viewModel.halalFilter { halalNoticeDismissed = false }
@@ -570,7 +579,7 @@ struct NearbyView: View {
 
     // MARK: - Zoom / search-this-area prompts
 
-    /// Shown while the Muslim-friendly chip is on. Halal data is still sparse and partly
+    /// Shown while the Hide non-halal chip is on. Halal data is still sparse and partly
     /// community-sourced, so users are told to double-check before relying on it. Dismiss hides
     /// it until the chip is next turned on.
     private var halalTestingNotice: some View {
@@ -580,7 +589,7 @@ struct NearbyView: View {
                 .foregroundStyle(Color.kunyit)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Muslim-friendly filter is in testing")
+                Text("Halal info is community-sourced")
                     .font(.makanBody(13))
                     .foregroundStyle(Color.kicap)
                 Text("Halal info may be incomplete or out of date. Always double-check at the restaurant (look for the halal certificate) before you eat.")

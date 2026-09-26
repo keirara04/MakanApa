@@ -6,7 +6,7 @@ struct MySubmissionsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        AccountRequired(feature: "see places you've added") { accountContent }
+        AccountRequired(feature: "see places you've added", requiresTerms: false) { accountContent }
     }
 
     @ViewBuilder

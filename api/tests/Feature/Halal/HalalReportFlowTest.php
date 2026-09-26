@@ -157,7 +157,7 @@ class HalalReportFlowTest extends TestCase
         $this->getJson("/api/v1/restaurants/{$restaurant->id}/details")
             ->assertJsonPath('halal.reports.0.claim', 'certified')
             ->assertJsonPath('halal.reports.0.resolvedStatus', 'muslim_friendly')
-            ->assertJsonPath('halal.display.shortLabel', 'Muslim-friendly');
+            ->assertJsonPath('halal.display.shortLabel', 'Not certified · community notes');
     }
 
     public function test_one_open_report_per_user_per_restaurant(): void

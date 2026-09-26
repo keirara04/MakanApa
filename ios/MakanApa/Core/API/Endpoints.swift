@@ -34,6 +34,13 @@ struct AppleLoginRequestBody: Encodable {
     let deviceLabel: String
 }
 
+struct AcceptTermsRequestBody: Encodable {
+    let termsVersion: String
+    let guidelinesVersion: String
+    let privacyVersion: String
+    let appVersion: String
+}
+
 struct GuestLoginRequestBody: Encodable {
     let deviceLabel: String
 }
@@ -960,7 +967,7 @@ enum HalalStatus: String, Codable, CaseIterable, Identifiable {
     var pickerLabel: String {
         switch self {
         case .certified: "Halal (has certificate)"
-        case .muslimFriendly: "Muslim-friendly (no cert)"
+        case .muslimFriendly: "No certificate (community notes)"
         case .nonHalal: "Not halal"
         case .unknown: "Unknown"
         }

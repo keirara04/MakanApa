@@ -24,7 +24,7 @@ struct DeleteAccountSheet: View {
                 Text("Delete your account?")
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .accessibilityAddTraits(.isHeader)
-                Text("This permanently deletes your account, saved places, and submissions. This can't be undone.")
+                Text("This permanently deletes your account, profile, community posts, photos and taste profile. Places you added, your past picks and saves stay in MakanApa without your name. This can't be undone.")
                     .font(.system(.subheadline, design: .rounded))
                     .foregroundStyle(Color.kicap.opacity(0.7))
                     .multilineTextAlignment(.center)

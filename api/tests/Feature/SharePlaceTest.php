@@ -63,7 +63,7 @@ class SharePlaceTest extends TestCase
             ->assertSee('Not verified · Help verify')
             ->assertDontSee('>Halal<', false);
         $this->visit('/p/'.ShareLinks::placeKey($friendly->id, $friendly->name))->assertOk()
-            ->assertSee('Muslim-friendly')
+            ->assertSee('Not certified · community notes')
             ->assertDontSee('>Halal<', false);
     }
 

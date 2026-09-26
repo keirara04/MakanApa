@@ -66,6 +66,24 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
         return $this->hasOne(MealNudgeState::class);
     }
 
+    public function termsAcceptances(): HasMany
+    {
+        return $this->hasMany(TermsAcceptance::class);
+    }
+
+    /**
+     * Whether the latest agreement covers the current Terms and Community Guidelines. A newer
+     * privacy version never blocks — the privacy policy is a notice, not something agreed to.
+     */
+    public function hasAcceptedCurrentTerms(): bool
+    {
+        $latest = $this->termsAcceptances()->latest('accepted_at')->latest('id')->first();
+
+        return $latest !== null
+            && $latest->terms_version === config('legal.terms_version')
+            && $latest->guidelines_version === config('legal.guidelines_version');
+    }
+
     public function wantsNotification(string $category): bool
     {
         $preferences = $this->notification_preferences ?? [];

@@ -210,7 +210,7 @@ struct SettingsView: View {
 
     private var preferencesCard: some View {
         SettingsCard(title: "Preferences") {
-            SettingsRow(icon: "checkmark.seal.fill", tint: .pandan, title: "Halal only", subtitle: "Hide places confirmed non-halal") {
+            SettingsRow(icon: "checkmark.seal.fill", tint: .pandan, title: "Hide non-halal", subtitle: "Hides places known to be non-halal") {
                 Toggle("", isOn: $halalOnly)
                     .labelsHidden()
                     .tint(.sambalRed)
@@ -295,6 +295,15 @@ struct SettingsView: View {
 
             SettingsDivider()
 
+            if let url = URL(string: Copy.supportURL) {
+                Link(destination: url) {
+                    SettingsRow(icon: "lifepreserver.fill", tint: .sambalRed, title: "Help & support", subtitle: nil) {
+                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                }
+                SettingsDivider()
+            }
+
             if let url = URL(string: "mailto:\(Copy.supportEmail)?subject=MakanApa%20support") {
                 Link(destination: url) {
                     SettingsRow(icon: "envelope.fill", tint: .pandan, title: "Contact & report a problem", subtitle: Copy.supportEmail) {
@@ -307,6 +316,24 @@ struct SettingsView: View {
             if let url = URL(string: Copy.privacyPolicyURL) {
                 Link(destination: url) {
                     SettingsRow(icon: "lock.fill", tint: .kicap, title: "Privacy Policy", subtitle: nil) {
+                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                }
+                SettingsDivider()
+            }
+
+            if let url = URL(string: Copy.termsURL) {
+                Link(destination: url) {
+                    SettingsRow(icon: "doc.text.fill", tint: .kicap, title: "Terms of Use", subtitle: nil) {
+                        Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                }
+                SettingsDivider()
+            }
+
+            if let url = URL(string: Copy.communityGuidelinesURL) {
+                Link(destination: url) {
+                    SettingsRow(icon: "person.2.fill", tint: .pandan, title: "Community Guidelines", subtitle: nil) {
                         Image(systemName: "arrow.up.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                     }
                 }

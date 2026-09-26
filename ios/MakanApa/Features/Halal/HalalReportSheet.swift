@@ -195,7 +195,7 @@ struct HalalReportSheet: View {
     private var claimHint: String {
         switch claim {
         case .certified: "Only a valid halal certificate counts — we'll verify it."
-        case .muslimFriendly: "Muslim-owned, or no pork/lard/alcohol — but no halal certificate. Tell us how you know."
+        case .muslimFriendly: "No halal certificate, but you know something useful (e.g. Muslim-owned, no pork or alcohol on the menu). Tell us how you know."
         case .nonHalal: "Pork, lard or alcohol served. A photo of the menu helps."
         case .unknown: ""
         }

@@ -7,14 +7,16 @@ import SwiftUI
 enum NearbyPanelState: CaseIterable {
     case collapsed, medium, large
 
-    func height(screenHeight: CGFloat) -> CGFloat {
+    func height(windowHeight: CGFloat) -> CGFloat {
         switch self {
         // Deliberately not tall enough to fit a full-width button underneath the summary row —
         // that would recreate the "too much bottom chrome" problem this panel replaced. The
         // Pick-one-lah CTA stays compact and inline at this height instead.
         case .collapsed: return 100
         case .medium: return 320
-        case .large: return screenHeight * 0.82
+        // Never below medium, so the three stay ordered even in a very short window (or the
+        // single layout pass before NearbyView has measured one).
+        case .large: return max(windowHeight * 0.82, 320)
         }
     }
 }
@@ -44,6 +46,9 @@ struct NearbyAreaPanel: View {
     let onPickOneLah: () -> Void
     let isPicking: Bool
     let hasPlaces: Bool
+    /// The window's height, not `UIScreen`'s — on iPad Split View, Slide Over and Stage Manager
+    /// the window is smaller than the screen, and it changes on rotation/resize.
+    let windowHeight: CGFloat
 
     @Binding var state: NearbyPanelState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -52,13 +57,11 @@ struct NearbyAreaPanel: View {
     @State private var listScrollOffset: CGFloat = 0
     @Namespace private var ctaNamespace
 
-    private var screenHeight: CGFloat { UIScreen.main.bounds.height }
-
     private var listIsAtTop: Bool { listScrollOffset >= -1 }
 
     private var currentHeight: CGFloat {
-        let base = state.height(screenHeight: screenHeight) + dragTranslation
-        return min(max(base, NearbyPanelState.collapsed.height(screenHeight: screenHeight)), NearbyPanelState.large.height(screenHeight: screenHeight))
+        let base = state.height(windowHeight: windowHeight) + dragTranslation
+        return min(max(base, NearbyPanelState.collapsed.height(windowHeight: windowHeight)), NearbyPanelState.large.height(windowHeight: windowHeight))
     }
 
     var body: some View {
@@ -444,9 +447,9 @@ struct NearbyAreaPanel: View {
     /// old state's exact height for one frame before the spring even starts, a visible jump/
     /// glitch on every release.
     private func snapToNearestState(afterDragging delta: CGFloat) {
-        let candidateHeight = state.height(screenHeight: screenHeight) + delta
+        let candidateHeight = state.height(windowHeight: windowHeight) + delta
         let closest = NearbyPanelState.allCases.min { a, b in
-            abs(a.height(screenHeight: screenHeight) - candidateHeight) < abs(b.height(screenHeight: screenHeight) - candidateHeight)
+            abs(a.height(windowHeight: windowHeight) - candidateHeight) < abs(b.height(windowHeight: windowHeight) - candidateHeight)
         } ?? .collapsed
 
         withAnimation(reduceMotion ? .easeOut(duration: 0.12) : .interactiveSpring(response: 0.35, dampingFraction: 0.85)) {

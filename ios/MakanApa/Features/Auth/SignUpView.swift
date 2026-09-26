@@ -99,6 +99,13 @@ struct SignUpView: View {
                 .modifier(ShakeEffect(trigger: reduceMotion ? 0 : shakeTrigger))
                 .animation(reduceMotion ? nil : .linear(duration: 0.4), value: shakeTrigger)
 
+                Text(LegalConsent.text(prefix: "By creating an account"))
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap.opacity(0.75))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+
                 submitButton
 
                 HStack(spacing: 4) {

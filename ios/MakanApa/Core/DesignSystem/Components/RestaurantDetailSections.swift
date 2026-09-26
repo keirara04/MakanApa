@@ -46,8 +46,9 @@ struct QuickAddPhotoTile: View {
     @State private var showingSignIn = false
 
     var body: some View {
-        // Photo uploads are account-based (guideline 5.1.1(v)) — a guest gets sign-in instead.
-        if AuthStore.shared.session.isGuest {
+        // Photo uploads are account-based (guideline 5.1.1(v)) and a contribution (1.2): a guest
+        // gets sign-in, a new contributor the agreement, before the picker.
+        if AuthStore.shared.session.isGuest || AuthStore.shared.session.needsTermsAcceptance {
             Button { showingSignIn = true } label: {
                 VStack(spacing: 6) {
                     Image(systemName: "camera.fill").font(.system(size: 28))
@@ -55,7 +56,7 @@ struct QuickAddPhotoTile: View {
                 }
                 .foregroundStyle(Color.kunyit)
             }
-            .accountSignInSheet(isPresented: $showingSignIn)
+            .contributionGateSheet(isPresented: $showingSignIn, feature: "add photos")
         } else {
             picker
         }
@@ -101,7 +102,7 @@ struct QuickAddPhotoRow: View {
     @State private var showingSignIn = false
 
     var body: some View {
-        if AuthStore.shared.session.isGuest {
+        if AuthStore.shared.session.isGuest || AuthStore.shared.session.needsTermsAcceptance {
             Button { showingSignIn = true } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "camera.fill")
@@ -110,7 +111,7 @@ struct QuickAddPhotoRow: View {
                 .font(.makanBody(13))
                 .foregroundStyle(Color.sambalRed)
             }
-            .accountSignInSheet(isPresented: $showingSignIn)
+            .contributionGateSheet(isPresented: $showingSignIn, feature: "add photos")
         } else {
             picker
         }

@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureRegisteredUser;
 use App\Http\Middleware\EnsureSuperadmin;
+use App\Http\Middleware\EnsureTermsAccepted;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,
             'registered' => EnsureRegisteredUser::class,
+            'terms' => EnsureTermsAccepted::class,
+            'active' => EnsureActiveUser::class,
         ]);
 
         // API-only app — there's no named 'login' route for the web guest-redirect to point

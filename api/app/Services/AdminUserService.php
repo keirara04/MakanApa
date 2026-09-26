@@ -22,6 +22,9 @@ class AdminUserService
 
         DB::transaction(function () use ($target, $reason, $admin) {
             $target->update(['status' => 'suspended']);
+            // Signs them out everywhere now, not at token expiry — the `active` middleware
+            // is the backstop for any request already in flight.
+            $target->tokens()->delete();
             $this->auditLogger->log($admin, 'user.suspend', $target, reason: $reason);
         });
     }

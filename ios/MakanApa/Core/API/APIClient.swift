@@ -227,6 +227,11 @@ enum APIClient {
         try await get("auth/me", query: [])
     }
 
+    /// Surfaces the server's message on a 422 ("The terms were updated…").
+    static func acceptTerms(_ body: AcceptTermsRequestBody) async throws -> MeResponse {
+        try await sendSurfacingMessage("POST", "me/terms-acceptance", body: body)
+    }
+
     static func updateMyCommunity(university: String?, area: String?) async throws -> MeResponse {
         try await patch("me/community", body: UpdateMyCommunityRequestBody(university: university, area: area))
     }

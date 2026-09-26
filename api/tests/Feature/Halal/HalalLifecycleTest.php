@@ -95,7 +95,7 @@ class HalalLifecycleTest extends TestCase
             [HalalStatus::Certified, 'jakim', false, 'Halal (JAKIM)', 'certified'],
             [HalalStatus::Certified, 'muis', false, 'Halal certified', 'certified'],
             [HalalStatus::Certified, null, false, 'Halal certified', 'certified'],
-            [HalalStatus::MuslimFriendly, null, false, 'Muslim-friendly', 'friendly'],
+            [HalalStatus::MuslimFriendly, null, false, 'Not certified · community notes', 'friendly'],
             [HalalStatus::NonHalal, null, false, 'Non-halal', 'non_halal'],
             [HalalStatus::Unknown, null, false, 'Not verified · Help verify', 'neutral'],
             [HalalStatus::Unknown, 'jakim', true, 'Cert expired · Help re-verify', 'warning'],

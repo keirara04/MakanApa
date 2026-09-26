@@ -145,7 +145,10 @@ class HalalPresenter
     {
         [$short, $long, $tone, $action] = match (true) {
             $status === HalalStatus::Certified => $this->certifiedLabels($authority),
-            $status === HalalStatus::MuslimFriendly => ['Muslim-friendly', 'Muslim-friendly (not halal certified)', 'friendly', null],
+            // Never "Muslim-friendly": uncertified food may not be described in any way that
+            // implies Muslims can eat it (Trade Descriptions (Definition of Halal) Order 2011;
+            // JAIS bans the phrase for uncertified premises). State the certification fact only.
+            $status === HalalStatus::MuslimFriendly => ['Not certified · community notes', 'No halal certificate. Community notes only, check at the restaurant.', 'friendly', null],
             $status === HalalStatus::NonHalal => ['Non-halal', 'Non-halal', 'non_halal', null],
             $expired => ['Cert expired · Help re-verify', 'Halal certificate expired — help us re-verify', 'warning', 'help_reverify'],
             default => ['Not verified · Help verify', 'Halal status not verified yet — help us verify', 'neutral', 'help_verify'],

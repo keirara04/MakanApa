@@ -20,9 +20,23 @@ struct AuthUser: Codable, Equatable {
     let halalPreference: Bool?
     /// Optional: absent from older cached payloads / older backends, which had no guests.
     let isGuest: Bool?
+    /// Optional: absent from older cached payloads / older backends. Nil reads as "nothing to
+    /// agree to" — the server still refuses an unagreed contribution with `terms_required`.
+    let legal: LegalStatus?
 
     var isSuperadmin: Bool { role == "superadmin" }
     var isGuestAccount: Bool { isGuest == true }
+    var needsTermsAcceptance: Bool { legal?.needsAcceptance == true }
+}
+
+/// Current document versions (the server's `config/legal.php`) and whether this account still
+/// has to agree to them before contributing. Sent back verbatim when agreeing, so a version bump
+/// between loading and tapping "I agree" is caught server-side.
+struct LegalStatus: Codable, Equatable {
+    let termsVersion: String
+    let guidelinesVersion: String
+    let privacyVersion: String
+    let needsAcceptance: Bool
 }
 
 enum SessionState: Equatable {
@@ -39,6 +53,13 @@ enum SessionState: Equatable {
     /// account-based features, which show `AccountRequiredPrompt` instead.
     var isGuest: Bool {
         if case .authenticated(let user) = self { return user.isGuestAccount }
+        return false
+    }
+
+    /// Signed in, but hasn't agreed to the current Terms + Community Guidelines — contributing
+    /// shows `CommunityAgreementPrompt` first (App Review guideline 1.2).
+    var needsTermsAcceptance: Bool {
+        if case .authenticated(let user) = self { return user.needsTermsAcceptance }
         return false
     }
 }
@@ -197,6 +218,23 @@ final class AuthStore {
         session = .authenticated(response.user)
     }
 
+    /// Records agreement to the versions the prompt showed. The backend answers 422 if they went
+    /// stale meanwhile; the caller then refreshes (`refreshUser()`) to pick up the new versions.
+    func acceptTerms(_ legal: LegalStatus) async throws {
+        let response = try await APIClient.acceptTerms(AcceptTermsRequestBody(
+            termsVersion: legal.termsVersion,
+            guidelinesVersion: legal.guidelinesVersion,
+            privacyVersion: legal.privacyVersion,
+            appVersion: Self.appVersion
+        ))
+        session = .authenticated(response.user)
+    }
+
+    func refreshUser() async {
+        guard let response = try? await APIClient.me() else { return }
+        session = .authenticated(response.user)
+    }
+
     func updateProfile(name: String?, avatarKey: String?) async throws {
         let response = try await APIClient.updateMyProfile(name: name, avatarKey: avatarKey)
         session = .authenticated(response.user)
@@ -238,6 +276,12 @@ final class AuthStore {
         Task {
             try? await APIClient.claimDeviceToken(installationId: InstallationID.current, token: token, environment: PushEnvironment.current)
         }
+    }
+
+    private static var appVersion: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "\(version) (\(build))"
     }
 
     /// A non-personal Sanctum token label — purely for the admin's own reference — rather than

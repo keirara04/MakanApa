@@ -36,7 +36,7 @@ class SeleraTraits
             'signalCount' => $signals,
             'traits' => $profile ? $this->traits($profile, $owner) : [],
             'constraints' => [
-                ['key' => 'halal', 'label' => 'Halal only', 'icon' => '✅', 'value' => (bool) $user?->halal_preference, 'editIn' => 'settings'],
+                ['key' => 'halal', 'label' => 'Hide non-halal', 'icon' => '✅', 'value' => (bool) $user?->halal_preference, 'editIn' => 'settings'],
                 ['key' => 'budget', 'label' => 'Budget', 'icon' => '💰', 'value' => null, 'editIn' => 'each_decision'],
                 ['key' => 'distance', 'label' => 'Distance', 'icon' => '📍', 'value' => null, 'editIn' => 'each_decision'],
             ],

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Requests\AcceptTermsRequest;
 use App\Http\Requests\AppleLoginRequest;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\GoogleLoginRequest;
@@ -43,8 +45,13 @@ class AuthController extends Controller
 
         $user = User::where('email', $data['email'])->first();
 
-        if (! $user || ! Hash::check($data['password'], $user->password) || ! $user->isActive()) {
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
             return response()->json(['message' => 'Invalid credentials.'], 401);
+        }
+
+        // Only after the password checks out, so this never reveals that an account exists.
+        if (! $user->isActive()) {
+            return EnsureActiveUser::suspendedResponse();
         }
 
         $token = $user->createToken($data['deviceLabel'], expiresAt: now()->addDays(90));
@@ -187,6 +194,10 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
 
+        if (! $user->isActive()) {
+            return EnsureActiveUser::suspendedResponse();
+        }
+
         DB::transaction(function () use ($pending, $user) {
             $user->forceFill([
                 $pending->provider.'_sub' => $pending->provider_sub,
@@ -234,6 +245,12 @@ class AuthController extends Controller
         }
 
         if ($user) {
+            // The provider already proved who this is, so saying "suspended" leaks nothing —
+            // and without this check a suspended account could just sign back in.
+            if (! $user->isActive()) {
+                return EnsureActiveUser::suspendedResponse();
+            }
+
             if ($provider === 'apple' && $providerRefreshToken) {
                 $user->forceFill(['apple_refresh_token' => $providerRefreshToken])->save();
             }
@@ -304,14 +321,15 @@ class AuthController extends Controller
 
     /**
      * The guest behind this request's bearer token, if any. The sign-up routes carry no auth
-     * middleware, so a missing, expired or invalid token — or a registered user's token —
-     * just yields null and sign-up creates a fresh account as before (never a 401).
+     * middleware, so a missing, expired or invalid token — or a registered user's token, or a
+     * suspended guest's — just yields null and sign-up creates a fresh account as before
+     * (never a 401), rather than upgrading a suspended row back into a working account.
      */
     private function guestFromBearerToken(): ?User
     {
         $user = auth('sanctum')->user();
 
-        return $user instanceof User && $user->isGuest() ? $user : null;
+        return $user instanceof User && $user->isGuest() && $user->isActive() ? $user : null;
     }
 
     /**
@@ -428,6 +446,33 @@ class AuthController extends Controller
         return response()->json(['user' => $this->presentUser($user)]);
     }
 
+    /**
+     * Records an agreement to the current Terms of Use + Community Guidelines (the app's
+     * first-contribution sheet). Versions must match config/legal.php: agreeing to a document
+     * that has since changed would record consent to text the user never saw.
+     */
+    public function acceptTerms(AcceptTermsRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        if ($data['termsVersion'] !== config('legal.terms_version') || $data['guidelinesVersion'] !== config('legal.guidelines_version')) {
+            return response()->json(['message' => 'The terms were updated. Please review them again.'], 422);
+        }
+
+        $user = $request->user();
+
+        $user->termsAcceptances()->create([
+            'terms_version' => $data['termsVersion'],
+            'guidelines_version' => $data['guidelinesVersion'],
+            'privacy_version' => $data['privacyVersion'],
+            'context' => 'contribution',
+            'app_version' => $data['appVersion'] ?? null,
+            'accepted_at' => now(),
+        ]);
+
+        return response()->json(['user' => $this->presentUser($user)]);
+    }
+
     private function presentUser(User $user): array
     {
         $user->loadMissing('affiliation.university', 'affiliation.area');
@@ -445,6 +490,14 @@ class AuthController extends Controller
             'university' => $user->universityShortName(),
             'area' => $user->areaShortName(),
             'affiliationVerificationStatus' => $user->affiliation?->verification_status,
+            // Current document versions, so the app can show the agreement sheet (and send the
+            // versions back) before a contribution instead of waiting for a terms_required 403.
+            'legal' => [
+                'termsVersion' => config('legal.terms_version'),
+                'guidelinesVersion' => config('legal.guidelines_version'),
+                'privacyVersion' => config('legal.privacy_version'),
+                'needsAcceptance' => ! $user->hasAcceptedCurrentTerms(),
+            ],
         ];
     }
 }
