@@ -87,7 +87,7 @@ class MarketingPagesTest extends TestCase
     public function test_home_has_link_preview_metadata(): void
     {
         $this->get('/')
-            ->assertSee('<meta property="og:image" content="'.asset('images/og.png').'">', false)
+            ->assertSee('<meta property="og:image" content="'.asset('images/og.jpg').'">', false)
             ->assertSee('<meta name="twitter:card" content="summary_large_image">', false);
     }
 

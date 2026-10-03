@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # phpredis — CACHE_STORE/QUEUE_CONNECTION=redis (see .env.staging.example).
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && a2enmod rewrite \
+    && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
@@ -46,7 +46,8 @@ COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 COPY docker/php/hardening.ini /usr/local/etc/php/conf.d/hardening.ini
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache-tuning.ini
 COPY docker/apache/zz-hardening.conf /etc/apache2/conf-available/zz-hardening.conf
-RUN a2enconf zz-hardening
+COPY docker/apache/zz-static-cache.conf /etc/apache2/conf-available/zz-static-cache.conf
+RUN a2enconf zz-hardening zz-static-cache
 
 WORKDIR /var/www/html
 

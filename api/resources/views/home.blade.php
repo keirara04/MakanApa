@@ -120,10 +120,12 @@
             if (!intro) return;
             if (!root.classList.contains('intro-active')) { intro.remove(); return; }
 
-            var MIN_MS = 2400; // long enough for the reel to read as a spin, not a flicker
-            var MAX_MS = 6000; // never hold a slow connection hostage
+            var MIN_MS = 1600; // long enough for the reel to read as a spin, not a flicker
+            var MAX_MS = 3000; // never hold a slow connection hostage
             var started = performance.now();
-            var clips = Array.prototype.slice.call(document.querySelectorAll('video[data-clip]'));
+            // Only the hero's backdrop clip is on screen when the intro lifts; the rest keep loading
+            // lazily as they scroll into view (layout script), instead of all ~2.5MB up front.
+            var clips = Array.prototype.slice.call(document.querySelectorAll('video[data-clip="night-market"]'));
             var line = intro.querySelector('.intro-progress path');
             var page = [document.querySelector('body > header'), document.getElementById('main'), document.querySelector('body > footer')];
             var shown = 0;
@@ -131,11 +133,10 @@
 
             page.forEach(function (el) { if (el) el.inert = true; });
 
-            // Fetch every clip now rather than when it scrolls into view, so they're ready on entry.
             clips.forEach(function (video) { video.preload = 'auto'; video.load(); });
 
             function loaded(video) {
-                if (video.error || video.readyState >= 4) return 1;
+                if (video.error || video.readyState >= 3) return 1; // enough to start playing
                 var duration = video.duration;
                 if (!duration || !isFinite(duration) || !video.buffered.length) return 0;
                 return Math.min(1, video.buffered.end(video.buffered.length - 1) / duration);
@@ -232,16 +233,16 @@
 
             <div class="absolute inset-x-0 -bottom-16 flex items-end justify-center sm:-bottom-20">
                 <div class="relative z-0 -mr-10 mb-10 hidden w-48 -rotate-[8deg] sm:block lg:w-56">
-                    <x-marketing.phone screen="mood" eager class="rounded-[2.2rem] p-1.5"
+                    <x-marketing.phone screen="mood" class="rounded-[2.2rem] p-1.5"
                                        alt="Mood step with options like Nasi Kandar, Ayam Gepuk and Nasi Padang" />
                 </div>
                 <div class="relative z-10 w-52 sm:w-60 lg:w-64">
                     <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-3" aria-hidden="true"></span>
-                    <x-marketing.phone screen="result" eager class="rounded-[2.4rem] p-1.5"
+                    <x-marketing.phone screen="result" eager priority class="rounded-[2.4rem] p-1.5"
                                        alt="Result screen: MakanApa says Nasi Kandar Haji Basheer, settled, with price, distance and why" />
                 </div>
                 <div class="relative z-0 -ml-10 mb-10 hidden w-48 rotate-[7deg] sm:block lg:w-56">
-                    <x-marketing.phone screen="nearby" eager class="rounded-[2.2rem] p-1.5"
+                    <x-marketing.phone screen="nearby" class="rounded-[2.2rem] p-1.5"
                                        alt="Nearby map with top-rated places and community finds" />
                 </div>
             </div>
@@ -760,7 +761,7 @@
                 'downloadUrl' => config('marketing.app_download_url'),
                 'installUrl' => config('marketing.app_download_url'),
                 'sameAs' => [config('marketing.app_download_url')],
-                'image' => asset('images/og.png'),
+                'image' => asset('images/og.jpg'),
                 'screenshot' => array_map(fn (string $screen) => asset("images/screens/{$screen}-720.webp"), ['mood', 'result', 'nearby']),
                 'inLanguage' => 'en-MY',
                 'author' => ['@type' => 'Person', 'name' => 'Hakeemi Ridza'],

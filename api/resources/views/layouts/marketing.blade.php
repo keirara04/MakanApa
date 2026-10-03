@@ -25,7 +25,7 @@
         <meta property="og:description" content="@yield('description', 'MakanApa: what to eat, decided in seconds.')">
         <meta property="og:url" content="@yield('canonical', \App\Support\MarketingUrl::to(request()->path()))">
         <meta property="og:locale" content="@yield('og_locale', 'en_MY')">
-        <meta property="og:image" content="@yield('og_image', asset('images/og.png'))">
+        <meta property="og:image" content="@yield('og_image', asset('images/og.jpg'))">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa: Makan apa hari ni? Decided in seconds. The mascot next to the app showing its pick.')">
