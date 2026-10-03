@@ -19,11 +19,11 @@ return [
 
     'domain' => env('MARKETING_DOMAIN', 'localhost'),
 
-    // Where the "Get the app" buttons point. TestFlight public beta until the App Store
-    // listing is live — swap via env, no deploy of source needed.
-    'app_download_url' => env('APP_DOWNLOAD_URL', 'https://testflight.apple.com/join/m1hGrFmM'),
+    // Where the "Get the app" buttons point: the App Store listing. No storefront in the path,
+    // so Apple sends each visitor to their own country's store.
+    'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/makanapa-what-to-eat/id6812670941'),
 
-    'app_download_label' => env('APP_DOWNLOAD_LABEL', 'Join the beta on TestFlight'),
+    'app_download_label' => env('APP_DOWNLOAD_LABEL', 'Download on the App Store'),
 
     // Shared place links (/p/{id}-{slug}). Kept out of search engines until public launch.
     'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', false),

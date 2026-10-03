@@ -54,7 +54,7 @@ class MarketingController extends Controller
     }
 
     /**
-     * Every "Get the app" button points here instead of straight at TestFlight/App Store, so
+     * Every "Get the app" button points here instead of straight at the App Store, so
      * clicks can be counted per placement without any client-side analytics.
      */
     public function download(Request $request): RedirectResponse
@@ -63,7 +63,7 @@ class MarketingController extends Controller
             $source = $request->query('from');
 
             MarketingEvent::create([
-                'event' => MarketingEvent::TESTFLIGHT_CLICK,
+                'event' => MarketingEvent::APP_STORE_CLICK,
                 'source' => in_array($source, MarketingEvent::SOURCES, true) ? $source : null,
             ]);
         }

@@ -1,7 +1,7 @@
 @extends('layouts.marketing')
 
 @section('title', 'MakanApa | What to Eat')
-@section('description', 'Makan apa hari ni? Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby. Free public beta on iPhone.')
+@section('description', 'Makan apa hari ni? Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby. Free on the App Store for iPhone.')
 @section('main_class', '')
 
 @php
@@ -27,8 +27,8 @@
     // FAQ: [question, answer HTML], in two columns. Also emitted as FAQPage structured data below.
     $faqs = [
         [
-            ['Why TestFlight?', 'MakanApa is still in public beta, so the iPhone app is shared through Apple\'s TestFlight app. Tap the button, install TestFlight from the App Store if you don\'t have it, then tap <strong>Accept</strong> and <strong>Install</strong> for MakanApa. You might find a bug or two. <span class="lang-ms">Kalau jumpa, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">bagitahu us</a>.</span><span class="lang-en">If you find one, <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">let us know</a>.</span>'],
-            ['Is it free?', 'Yes, joining the beta is free.'],
+            ['Where do I get it?', 'MakanApa is on the App Store for iPhone. Tap the download button, or search <strong>MakanApa</strong> in the App Store. Found a bug? <span class="lang-ms"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Bagitahu us</a>.</span><span class="lang-en"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Let us know</a>.</span>'],
+            ['Is it free?', 'Yes, MakanApa is free to download and use.'],
             ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
         ],
         [
@@ -210,7 +210,7 @@
 
             <div class="hero-in mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-8" style="--i: 4">
                 <x-marketing.download-button from="hero" />
-                <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · Public beta</p>
+                <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
             </div>
         </div>
 
@@ -261,7 +261,7 @@
             <div class="absolute -right-10 bottom-24 z-20 hidden rotate-[4deg] xl:block">
                 <div class="relative bg-paper-50 p-3 shadow-[0_18px_30px_-18px_rgba(43,28,20,0.5)]">
                     <span class="tape -top-3 left-1/2 w-20 -translate-x-1/2 rotate-2" aria-hidden="true"></span>
-                    <img src="{{ asset('images/qr-testflight.svg') }}" alt="QR code to join the MakanApa beta on TestFlight"
+                    <img src="{{ asset('images/qr-app-store.svg') }}" alt="QR code to download MakanApa from the App Store"
                          width="96" height="96" class="h-24 w-24">
                     <p class="mt-1 text-center font-display text-xl font-bold uppercase leading-5">Scan with<br>your iPhone</p>
                 </div>
@@ -731,7 +731,7 @@
         <div data-reveal class="relative mt-12 inline-flex flex-col items-center gap-4" style="--i: 3">
             <x-marketing.doodle type="arrow-loop" class="draw absolute -left-40 -top-16 hidden h-24 w-36 text-ink/80 sm:block" style="--draw-delay: 500ms; --draw-dur: 1300ms" />
             <x-marketing.download-button from="final" />
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · Public beta</p>
+            <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
         </div>
     </section>
 
@@ -751,6 +751,7 @@
                 'applicationCategory' => 'LifestyleApplication',
                 'description' => 'Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby.',
                 'url' => url('/'),
+                'downloadUrl' => config('marketing.app_download_url'),
                 'image' => asset('images/og.png'),
                 'inLanguage' => 'en-MY',
                 'author' => ['@type' => 'Person', 'name' => 'Hakeemi Ridza'],

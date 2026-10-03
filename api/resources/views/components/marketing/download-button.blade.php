@@ -1,6 +1,6 @@
 @props(['from', 'size' => 'lg'])
 
-{{-- Every download CTA goes through /go/testflight so clicks are counted per placement. Ink pill
+{{-- Every download CTA goes through /go/app-store so clicks are counted per placement. Ink pill
      with an offset sambal "print" shadow that lifts on hover, like a sticker peeling up. --}}
 <a href="{{ route('marketing.download', ['from' => $from]) }}"
    {{ $attributes->class([

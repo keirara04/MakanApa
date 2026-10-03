@@ -8,7 +8,8 @@ class MarketingEvent extends Model
 {
     public const LANDING_VIEW = 'landing_view';
 
-    public const TESTFLIGHT_CLICK = 'testflight_click';
+    /** A download-button tap. Beta-era rows (TestFlight links) are stored as 'testflight_click'. */
+    public const APP_STORE_CLICK = 'app_store_click';
 
     /** Share funnel: the app's "Send to geng" tap → a recipient views the page → opens the app / gets it. */
     public const SHARE_STARTED = 'share_started';

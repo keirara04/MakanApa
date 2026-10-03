@@ -24,20 +24,31 @@ class MarketingPagesTest extends TestCase
 
     public function test_download_redirects_to_configured_url_and_counts_click(): void
     {
-        config(['marketing.app_download_url' => 'https://testflight.apple.com/join/test123']);
+        config(['marketing.app_download_url' => 'https://apps.apple.com/app/id123']);
 
         $this->withHeader('User-Agent', self::BROWSER)
-            ->get('/go/testflight?from=hero')
-            ->assertRedirect('https://testflight.apple.com/join/test123');
+            ->get('/go/app-store?from=hero')
+            ->assertRedirect('https://apps.apple.com/app/id123');
 
-        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::TESTFLIGHT_CLICK, 'source' => 'hero']);
+        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'hero']);
+    }
+
+    public function test_beta_era_download_path_still_redirects_and_counts_click(): void
+    {
+        config(['marketing.app_download_url' => 'https://apps.apple.com/app/id123']);
+
+        $this->withHeader('User-Agent', self::BROWSER)
+            ->get('/go/testflight?from=qr')
+            ->assertRedirect('https://apps.apple.com/app/id123');
+
+        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'qr']);
     }
 
     public function test_download_with_unknown_source_is_stored_without_one(): void
     {
-        $this->withHeader('User-Agent', self::BROWSER)->get('/go/testflight?from=<script>');
+        $this->withHeader('User-Agent', self::BROWSER)->get('/go/app-store?from=<script>');
 
-        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::TESTFLIGHT_CLICK, 'source' => null]);
+        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => null]);
     }
 
     public function test_landing_view_is_counted_for_browsers_but_not_link_previews(): void
@@ -45,12 +56,12 @@ class MarketingPagesTest extends TestCase
         // Deltas, not absolutes: tests without RefreshDatabase (e.g. ExampleTest's GET /) can
         // leave committed rows behind in the shared local DB.
         $views = fn () => MarketingEvent::where('event', MarketingEvent::LANDING_VIEW)->count();
-        $clicks = fn () => MarketingEvent::where('event', MarketingEvent::TESTFLIGHT_CLICK)->count();
+        $clicks = fn () => MarketingEvent::where('event', MarketingEvent::APP_STORE_CLICK)->count();
         [$viewsBefore, $clicksBefore] = [$views(), $clicks()];
 
         $this->withHeader('User-Agent', self::BROWSER)->get('/');
         $this->withHeader('User-Agent', 'WhatsApp/2.24.1 A')->get('/');
-        $this->withHeader('User-Agent', 'WhatsApp/2.24.1 A')->get('/go/testflight?from=hero')->assertRedirect();
+        $this->withHeader('User-Agent', 'WhatsApp/2.24.1 A')->get('/go/app-store?from=hero')->assertRedirect();
 
         $this->assertSame($viewsBefore + 1, $views());
         $this->assertSame($clicksBefore, $clicks());
@@ -93,7 +104,7 @@ class MarketingPagesTest extends TestCase
 
     public function test_marketing_pages_set_no_session_or_csrf_cookies(): void
     {
-        foreach (['/', '/support', '/privacy', '/go/testflight'] as $path) {
+        foreach (['/', '/support', '/privacy', '/go/app-store'] as $path) {
             $response = $this->get($path);
 
             $response->assertCookieMissing('XSRF-TOKEN');
@@ -130,9 +141,11 @@ class MarketingPagesTest extends TestCase
 
         $data = json_decode($match[1] ?? '', true);
         $this->assertSame(['MobileApplication', 'FAQPage'], array_column($data, '@type'));
+        $this->assertSame(config('marketing.app_download_url'), $data[0]['downloadUrl']);
         $this->assertSame('Is it free?', $data[1]['mainEntity'][1]['name']);
         // The Manglish half of a bilingual answer is dropped, and no markup leaks into the text.
-        $this->assertStringContainsString('If you find one, let us know.', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
+        $this->assertStringContainsString('Found a bug? Let us know.', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
+        $this->assertStringNotContainsString('Bagitahu', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
         $this->assertStringNotContainsString('<', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
     }
 

@@ -28,7 +28,7 @@ class MarketingFunnelWidget extends StatsOverviewWidget
                     'views' => MarketingEvent::where('event', MarketingEvent::LANDING_VIEW)
                         ->where('created_at', '>=', $since)
                         ->count(),
-                    'clicksBySource' => MarketingEvent::where('event', MarketingEvent::TESTFLIGHT_CLICK)
+                    'clicksBySource' => MarketingEvent::where('event', MarketingEvent::APP_STORE_CLICK)
                         ->where('created_at', '>=', $since)
                         ->selectRaw('source, count(*) as total')
                         ->groupBy('source')
@@ -48,7 +48,7 @@ class MarketingFunnelWidget extends StatsOverviewWidget
 
         return [
             Stat::make('Landing views', $views),
-            Stat::make('TestFlight clicks', $clicks)
+            Stat::make('App Store clicks', $clicks)
                 ->description($breakdown ?: 'No clicks yet'),
             Stat::make('Click rate', $views > 0 ? round($clicks / $views * 100, 1).'%' : '–')
                 ->description('Clicks ÷ views'),
