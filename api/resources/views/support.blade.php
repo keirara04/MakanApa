@@ -18,6 +18,8 @@
                 Email support
             </a>
             <p class="mt-2 text-sm text-ink/70">{{ config('marketing.support_email') }}</p>
+        @else
+            <p class="mt-5 text-ink/70">In the app, open <strong class="text-ink">Settings → Help → Contact &amp; report a problem</strong>.</p>
         @endif
         <p class="mt-1 text-sm text-ink/70">
             For technical problems, please include your device model, iOS version, MakanApa version, and a
@@ -123,8 +125,39 @@
                     <x-marketing.doodle type="plus" class="float-right h-5 w-5 text-sambal-600 transition-transform duration-300 group-open:rotate-45" />
                 </summary>
                 <div class="mt-3 text-sm text-ink/70 space-y-2">
-                    <p>You can delete your MakanApa account from within the app. Deletion is instant and permanent: there's no review queue and it can't be undone.</p>
-                    <p>If you're unable to access your account or need help, contact support below.</p>
+                    <p>In the app, open <strong class="text-ink">Settings</strong>, scroll to the bottom, tap <strong class="text-ink">Delete account</strong>, then <strong class="text-ink">Delete my account</strong>. Deletion is instant and permanent: there's no review queue and it can't be undone.</p>
+                    <p>Using MakanApa as a guest? You can delete a guest account the same way, and guest accounts that go unused for 90 days are deleted automatically.</p>
+                    <p>If you can't get into your account, contact us below.</p>
+                </div>
+            </details>
+
+            <details class="group p-5">
+                <summary class="cursor-pointer list-none text-lg font-semibold marker:content-none [&::-webkit-details-marker]:hidden">
+                    Get a copy of my data
+                    <x-marketing.doodle type="plus" class="float-right h-5 w-5 text-sambal-600 transition-transform duration-300 group-open:rotate-45" />
+                </summary>
+                <div class="mt-3 text-sm text-ink/70 space-y-2">
+                    <p>
+                        @if (config('marketing.privacy_email'))
+                            Email <a href="mailto:{{ config('marketing.privacy_email') }}" class="font-medium text-sambal-600 underline">{{ config('marketing.privacy_email') }}</a> from the address on your account
+                        @else
+                            Contact us below from the address on your account
+                        @endif
+                        and ask for a copy of your data, or for anything you can't correct in the app. We'll reply within 21 days.
+                    </p>
+                    <p><a href="{{ route('privacy') }}#rights" class="font-medium text-sambal-600 underline">Your rights in the privacy policy →</a></p>
+                </div>
+            </details>
+
+            <details class="group p-5">
+                <summary class="cursor-pointer list-none text-lg font-semibold marker:content-none [&::-webkit-details-marker]:hidden">
+                    Report a post or a person
+                    <x-marketing.doodle type="plus" class="float-right h-5 w-5 text-sambal-600 transition-transform duration-300 group-open:rotate-45" />
+                </summary>
+                <div class="mt-3 text-sm text-ink/70 space-y-2">
+                    <p>Tap the menu on a post and choose <strong class="text-ink">Report</strong>. Reports are anonymous and reviewed within 24 hours.</p>
+                    <p>To stop seeing someone, choose <strong class="text-ink">Block</strong> on their post. You can unblock people in <strong class="text-ink">Settings → Privacy &amp; safety → Blocked people</strong>.</p>
+                    <p><a href="{{ route('community-guidelines') }}#report" class="font-medium text-sambal-600 underline">Community guidelines →</a></p>
                 </div>
             </details>
 
@@ -175,6 +208,8 @@
                class="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3 font-semibold text-paper shadow-[5px_5px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
                 Contact MakanApa Support
             </a>
+        @else
+            <p class="mt-3 text-ink/70">In the app, open <strong class="text-ink">Settings → Help → Contact &amp; report a problem</strong>.</p>
         @endif
     </section>
 

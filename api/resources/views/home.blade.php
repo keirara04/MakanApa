@@ -61,7 +61,8 @@
                 var replay = /[?&]intro(=|&|$)/.test(location.search);
                 var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
                 var saver = navigator.connection && navigator.connection.saveData;
-                if ((replay || !localStorage.getItem('makanapa-intro-seen')) && !calm && !saver) {
+                var still = localStorage.getItem('makanapa-motion') === 'off';
+                if ((replay || !localStorage.getItem('makanapa-intro-seen')) && !calm && !saver && !still) {
                     document.documentElement.classList.add('intro-active');
                 }
             } catch (e) {}
@@ -102,9 +103,9 @@
         <svg class="intro-progress mt-6 h-3 w-56 text-ink/80 sm:w-72" viewBox="0 0 300 20" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
             <path pathLength="1" d="M4 13c52-7 104-9 150-6s98 7 142 1"/>
         </svg>
-        <p class="mt-3 text-sm text-ink/60" aria-hidden="true"><x-marketing.lang en="Warming up the wok…">Tengah panaskan kuali…</x-marketing.lang></p>
+        <p class="mt-3 text-sm text-ink/70" aria-hidden="true"><x-marketing.lang en="Warming up the wok…">Tengah panaskan kuali…</x-marketing.lang></p>
 
-        <button type="button" data-intro-skip class="bracket-link absolute bottom-5 right-6 transition-opacity font-display text-2xl font-bold uppercase text-ink/60">[Skip]</button>
+        <button type="button" data-intro-skip class="bracket-link absolute bottom-5 right-6 transition-opacity font-display text-2xl font-bold uppercase text-ink/70">[Skip]</button>
 
         <svg class="intro-tear" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
             <path fill="currentColor" d="M0 0H1200V12L1200 12L1191 20L1170 12L1147 14L1132 23L1115 27L1096 19L1068 8L1043 29L1017 17L989 28L966 9L950 30L921 16L905 10L877 26L848 27L823 18L799 25L783 9L756 23L738 18L719 21L689 11L673 17L645 18L616 24L593 10L572 30L553 15L530 19L502 26L474 18L447 23L427 27L412 26L396 25L379 19L359 11L340 25L317 26L300 12L273 17L255 9L234 9L208 26L193 15L176 9L149 10L128 10L101 21L85 9L65 24L50 19L33 10L18 20L0 18Z"/>
@@ -290,7 +291,7 @@
                     </div>
                 @endforeach
             </dl>
-            <p class="mt-10 text-center text-sm text-ink/55"><x-marketing.lang en="Live from MakanApa, updated every hour.">Live dari MakanApa, dikemas kini setiap jam.</x-marketing.lang></p>
+            <p class="mt-10 text-center text-sm text-ink/70"><x-marketing.lang en="Live from MakanApa, updated every hour.">Live dari MakanApa, dikemas kini setiap jam.</x-marketing.lang></p>
         </section>
     @endif
 
@@ -308,13 +309,13 @@
             </figure>
 
             <div data-reveal style="--i: 1">
-                <p class="font-display text-[clamp(3.2rem,7.5vw,6.2rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">
+                <h2 class="font-display text-[clamp(3.2rem,7.5vw,6.2rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">
                     <x-marketing.lang>
                         Scroll Grab <span class="relative inline-block whitespace-nowrap">20 minit.<x-marketing.doodle type="circle" class="draw absolute -left-2 -top-4 h-[calc(100%+2rem)] w-[calc(100%+1.25rem)] text-sambal-500 sm:-left-6 sm:-top-5 sm:h-[calc(100%+2.5rem)] sm:w-[calc(100%+3rem)]" style="--draw-delay: 600ms" /></span>
                         <x-slot:en><span class="relative inline-block whitespace-nowrap">20 minutes<x-marketing.doodle type="circle" class="draw absolute -left-2 -top-4 h-[calc(100%+2rem)] w-[calc(100%+1.25rem)] text-sambal-500 sm:-left-6 sm:-top-5 sm:h-[calc(100%+2.5rem)] sm:w-[calc(100%+3rem)]" style="--draw-delay: 600ms" /></span> scrolling Grab.</x-slot:en>
                     </x-marketing.lang>
                     <span class="mt-3 block text-sambal-300"><x-marketing.lang en="Still no idea what to eat?">Still tak tahu nak makan apa?</x-marketing.lang></span>
-                </p>
+                </h2>
                 <p class="mt-8 max-w-lg text-lg text-paper/75">That's literally why we built MakanApa.</p>
             </div>
         </div>
@@ -396,7 +397,7 @@
                     <p class="mt-2 text-sm leading-relaxed text-ink/70"><x-marketing.lang :en="$body[1]">{{ $body[0] }}</x-marketing.lang></p>
                     <ul class="mt-6 flex flex-wrap gap-x-5 gap-y-3 font-display text-2xl font-bold uppercase leading-none" aria-hidden="true">
                         @foreach ($options as $option)
-                            <li @class(['relative', 'text-sambal-600' => $option === $picked, 'text-ink/45' => $option !== $picked])>
+                            <li @class(['relative', 'text-sambal-600' => $option === $picked, 'text-ink/60' => $option !== $picked])>
                                 @if (is_array($option))
                                     <x-marketing.lang :en="$option[1]">{{ $option[0] }}</x-marketing.lang>
                                 @else
@@ -461,7 +462,7 @@
                     </fieldset>
                 @endforeach
 
-                <button type="submit" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)] min-h-13 px-7 py-3.5 text-base shadow-[5px_5px_0_var(--color-sambal-600)] hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
+                <button type="submit" class="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-paper shadow-[5px_5px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
                     <x-marketing.lang en="What should I eat?">Makan apa?</x-marketing.lang>
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </button>
@@ -509,8 +510,14 @@
 
                 <div data-state="error" class="flex-col items-center">
                     <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
-                    <p class="mt-3 font-display text-4xl font-bold uppercase leading-none"><x-marketing.lang en="Slow down a bit lah">Slow sikit lah</x-marketing.lang></p>
-                    <p class="mt-2 max-w-xs text-ink/75"><x-marketing.lang en="Too many tries in a row. Give it a minute, then try again.">Banyak sangat cuba berturut-turut. Tunggu seminit, then cuba lagi.</x-marketing.lang></p>
+                    <div data-variant="busy" class="flex flex-col items-center">
+                        <p class="mt-3 font-display text-4xl font-bold uppercase leading-none"><x-marketing.lang en="Slow down a bit lah">Slow sikit lah</x-marketing.lang></p>
+                        <p class="mt-2 max-w-xs text-ink/75"><x-marketing.lang en="Too many tries in a row. Give it a minute, then try again.">Banyak sangat cuba berturut-turut. Tunggu seminit, then cuba lagi.</x-marketing.lang></p>
+                    </div>
+                    <div data-variant="offline" class="flex flex-col items-center">
+                        <p class="mt-3 font-display text-4xl font-bold uppercase leading-none"><x-marketing.lang en="Oops">Alamak</x-marketing.lang></p>
+                        <p class="mt-2 max-w-xs text-ink/75"><x-marketing.lang en="Couldn't get a pick just now. Check your connection, then try again.">Tak dapat cari sekarang. Check internet, then cuba lagi.</x-marketing.lang></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -522,11 +529,11 @@
             <div data-reveal class="sketch relative -rotate-[0.6deg] bg-paper-50 p-6 sm:p-9" style="--sketch-radius: 10px">
                 <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-2" aria-hidden="true"></span>
                 @if ($nearby['kind'] === 'picked')
-                    <h3 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Most picked near '.$demoArea">Paling ramai pilih dekat {{ $demoArea }}</x-marketing.lang></h3>
-                    <p class="mt-1 text-sm text-ink/60"><x-marketing.lang en="By MakanApa users over the last 30 days.">Oleh pengguna MakanApa, 30 hari lepas.</x-marketing.lang></p>
+                    <h2 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Most picked near '.$demoArea">Paling ramai pilih dekat {{ $demoArea }}</x-marketing.lang></h3>
+                    <p class="mt-1 text-sm text-ink/70"><x-marketing.lang en="By MakanApa users over the last 30 days.">Oleh pengguna MakanApa, 30 hari lepas.</x-marketing.lang></p>
                 @else
-                    <h3 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Top rated near '.$demoArea">Top rated dekat {{ $demoArea }}</x-marketing.lang></h3>
-                    <p class="mt-1 text-sm text-ink/60"><x-marketing.lang en="By Google rating, among places MakanApa knows.">Ikut rating Google, antara tempat yang MakanApa tahu.</x-marketing.lang></p>
+                    <h2 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl"><x-marketing.lang :en="'Top rated near '.$demoArea">Top rated dekat {{ $demoArea }}</x-marketing.lang></h3>
+                    <p class="mt-1 text-sm text-ink/70"><x-marketing.lang en="By Google rating, among places MakanApa knows.">Ikut rating Google, antara tempat yang MakanApa tahu.</x-marketing.lang></p>
                 @endif
 
                 <ol class="mt-6 divide-y divide-dashed divide-ink/20 border-t border-dashed border-ink/20">
@@ -539,7 +546,7 @@
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="block truncate text-lg font-semibold transition-colors group-hover:text-sambal-600">{{ $place['name'] }}</span>
-                                    <span class="block text-sm text-ink/60">{{ $place['headline'] }} · {{ number_format($place['distanceKm'], 1) }} km</span>
+                                    <span class="block text-sm text-ink/70">{{ $place['headline'] }} · {{ number_format($place['distanceKm'], 1) }} km</span>
                                 </span>
                                 <span class="shrink-0 font-display text-2xl font-bold uppercase text-sambal-600">
                                     @if ($place['pickers'] !== null)
@@ -634,7 +641,7 @@
                         <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-pandan" />
                     </li>
                     <li class="text-ink/75">Not certified</li>
-                    <li class="text-ink/55">Not verified yet</li>
+                    <li class="text-ink/60">Not verified yet</li>
                 </ul>
             </article>
 
@@ -703,7 +710,7 @@
 
     {{-- FAQ ------------------------------------------------------------------------------------- --}}
     <section id="faq" class="scroll-mt-20 mx-auto grid max-w-6xl gap-10 px-5 py-24 sm:px-6 lg:grid-cols-[14rem_1fr_1fr] lg:gap-10">
-        <h2 data-reveal class="font-display text-6xl font-bold uppercase leading-[0.85] tracking-tight lg:pt-2">Okay but…</h2>
+        <h2 data-reveal class="font-display text-6xl font-bold uppercase leading-[0.85] tracking-tight lg:pt-2">Okay but…<span class="sr-only"> Frequently asked questions</span></h2>
 
         @php
             $summary = 'flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-semibold marker:content-none [&::-webkit-details-marker]:hidden';
@@ -741,6 +748,8 @@
             <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
         </div>
     </section>
+
+    <x-marketing.motion-toggle />
 
 @endsection
 
@@ -860,6 +869,14 @@
                 panel.dataset.show = 'pick';
             }
 
+            // 429 is the endpoint's rate limit; anything else (offline, 5xx) gets the generic message.
+            function fail(error) {
+                var busy = Boolean(error && error.status === 429);
+                panel.querySelector('[data-variant="busy"]').hidden = !busy;
+                panel.querySelector('[data-variant="offline"]').hidden = busy;
+                panel.dataset.show = 'error';
+            }
+
             function ask(reroll) {
                 if (!reroll) shown = [];
                 var answers = new FormData(form);
@@ -876,11 +893,15 @@
                 var started = performance.now();
                 fetch(form.action + '?' + params, { headers: { Accept: 'application/json' } })
                     .then(function (response) {
-                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        if (!response.ok) {
+                            var error = new Error('HTTP ' + response.status);
+                            error.status = response.status;
+                            throw error;
+                        }
                         return response.json();
                     })
                     .then(function (data) { return settle(started).then(function () { render(data); }); })
-                    .catch(function () { return settle(started).then(function () { panel.dataset.show = 'error'; }); });
+                    .catch(function (error) { return settle(started).then(function () { fail(error); }); });
             }
 
             form.addEventListener('submit', function (event) { event.preventDefault(); ask(false); });

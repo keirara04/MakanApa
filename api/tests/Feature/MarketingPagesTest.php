@@ -4,7 +4,11 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\MarketingController;
 use App\Models\MarketingEvent;
+use App\Models\Restaurant;
+use App\Support\ShareLinks;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
+use RuntimeException;
 use Tests\TestCase;
 
 class MarketingPagesTest extends TestCase
@@ -177,5 +181,56 @@ class MarketingPagesTest extends TestCase
     {
         $this->get('/no-such-page')->assertNotFound()->assertSee('This page went out to makan.');
         $this->getJson('/api/v1/no-such-endpoint')->assertNotFound()->assertJsonStructure(['message']);
+    }
+
+    public function test_server_errors_and_maintenance_get_a_page_that_needs_nothing_from_the_app(): void
+    {
+        config(['app.debug' => false]);
+        Route::get('/__test/boom', fn () => throw new RuntimeException('boom'));
+        Route::get('/__test/down', fn () => abort(503));
+
+        $this->get('/__test/boom')->assertStatus(500)
+            ->assertSee('Aiyo, something broke on our side.')
+            ->assertDontSee('build/assets', false)
+            ->assertDontSee('boom');
+        $this->get('/__test/down')->assertStatus(503)
+            ->assertSee('Back soon!')
+            ->assertDontSee('build/assets', false);
+    }
+
+    public function test_public_pages_never_mention_the_beta_or_testflight(): void
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'Warung Kak Ros', 'latitude' => 2.9284, 'longitude' => 101.7802, 'is_active' => true,
+            'provider' => 'user_submitted', 'address' => 'Jalan Reko, Kajang',
+        ]);
+        $pages = ['/', '/support', '/privacy', '/privacy?lang=ms', '/terms', '/community-guidelines', '/p/'.ShareLinks::placeKey($restaurant->id, $restaurant->name)];
+
+        foreach ($pages as $page) {
+            $html = $this->get($page)->assertOk()->getContent();
+            $text = strip_tags(preg_replace('#<(script|style)\b.*?</\1>#is', '', $html));
+
+            $this->assertDoesNotMatchRegularExpression('/\b(beta|testflight)\b/i', $text, "{$page} still mentions the beta");
+        }
+    }
+
+    public function test_home_has_a_motion_pause_button_and_separate_try_it_errors(): void
+    {
+        $this->get('/')
+            ->assertSee('id="motion-toggle"', false)
+            ->assertSee('aria-label="Pause animations"', false)
+            ->assertSee('data-variant="busy"', false)
+            ->assertSee('data-variant="offline"', false);
+
+        $this->get('/support')->assertDontSee('id="motion-toggle"', false);
+    }
+
+    public function test_support_page_points_to_the_app_when_no_support_email_is_configured(): void
+    {
+        config(['marketing.support_email' => null, 'marketing.privacy_email' => null]);
+
+        $this->get('/support')->assertOk()
+            ->assertSee('Settings → Help → Contact &amp; report a problem', false)
+            ->assertDontSee('mailto:', false);
     }
 }

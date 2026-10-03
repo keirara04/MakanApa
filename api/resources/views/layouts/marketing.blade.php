@@ -131,18 +131,32 @@
                 var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
                 var saveData = navigator.connection && navigator.connection.saveData;
                 if (clips.length && !calm && !saveData && 'IntersectionObserver' in window) {
+                    // The motion-toggle component sets data-motion="off" on <html> to stop all clips.
+                    var root = document.documentElement;
+                    var onScreen = new Set();
+                    function play(video) {
+                        if (root.dataset.motion === 'off') return;
+                        var playing = video.play();
+                        if (playing && playing.catch) playing.catch(function () {});
+                    }
                     var player = new IntersectionObserver(function (entries) {
                         entries.forEach(function (entry) {
                             var video = entry.target;
                             if (entry.isIntersecting) {
-                                var playing = video.play();
-                                if (playing && playing.catch) playing.catch(function () {});
+                                onScreen.add(video);
+                                play(video);
                             } else {
+                                onScreen.delete(video);
                                 video.pause();
                             }
                         });
                     }, { threshold: 0.25 });
                     clips.forEach(function (video) { player.observe(video); });
+                    document.addEventListener('makanapa:motion', function () {
+                        onScreen.forEach(function (video) {
+                            if (root.dataset.motion === 'off') { video.pause(); } else { play(video); }
+                        });
+                    });
                 }
 
                 // The home page's first-visit intro covers the page; hold the reveals until it lifts.

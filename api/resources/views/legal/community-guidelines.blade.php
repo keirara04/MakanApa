@@ -56,7 +56,7 @@
             <h2 class="{{ $h2 }}">03. Report and block</h2>
             <ul class="mt-2 list-disc pl-5 space-y-1 text-sm">
                 <li><strong class="text-ink">Report:</strong> tap the menu on any post and choose Report. Reports are anonymous; the author isn't told who reported them.</li>
-                <li><strong class="text-ink">Block:</strong> choose Block on a post to hide that person's posts from you, and yours from them. You can unblock people in Settings → Blocked.</li>
+                <li><strong class="text-ink">Block:</strong> choose Block on a post to hide that person's posts from you, and yours from them. You can unblock people in Settings → Privacy &amp; safety → Blocked people.</li>
                 <li>
                     For anything else, like a photo, a place or a display name, email
                     @if (config('marketing.support_email'))

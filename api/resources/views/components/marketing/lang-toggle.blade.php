@@ -29,8 +29,9 @@
                 function render() {
                     var isEnglish = root.dataset.lang === 'en';
                     label.textContent = isEnglish ? 'Manglish' : 'English';
+                    // An action button: its name says what pressing it does. (No aria-pressed — a
+                    // toggle's name must stay the same, and this label flips with the language.)
                     button.setAttribute('aria-label', isEnglish ? 'Show page in Manglish' : 'Show page in English');
-                    button.setAttribute('aria-pressed', isEnglish ? 'true' : 'false');
                 }
 
                 function flip() {
