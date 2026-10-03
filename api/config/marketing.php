@@ -17,13 +17,17 @@ return [
 
     'privacy_email' => env('PRIVACY_EMAIL', env('SUPPORT_EMAIL')),
 
-    'domain' => env('MARKETING_DOMAIN', 'localhost'),
+    // Empty counts as unset: `MARKETING_DOMAIN=` in a copied .env.example must not build "https://".
+    'domain' => env('MARKETING_DOMAIN') ?: 'localhost',
 
     // Where the "Get the app" buttons point: the App Store listing. No storefront in the path,
     // so Apple sends each visitor to their own country's store.
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/makanapa-what-to-eat/id6812670941'),
 
     'app_download_label' => env('APP_DOWNLOAD_LABEL', 'Download on the App Store'),
+
+    // The App Store listing's numeric id, for Safari's Smart App Banner. Null turns the banner off.
+    'app_store_id' => env('APP_STORE_ID', '6812670941'),
 
     // Shared place links (/p/{id}-{slug}). Kept out of search engines until public launch.
     'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', false),

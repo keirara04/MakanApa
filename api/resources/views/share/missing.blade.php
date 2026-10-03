@@ -11,6 +11,7 @@
         <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="mx-auto h-24 w-24" aria-hidden="true">
         <h1 class="mt-4 font-display text-[clamp(2.8rem,8vw,4.5rem)] font-bold uppercase leading-[0.9] tracking-tight">This spot isn't on MakanApa anymore</h1>
         <p class="mt-3 text-ink/70">It may have closed down. MakanApa can pick something else near you in seconds.</p>
-        <x-marketing.download-button from="final" class="mt-6">Get the app</x-marketing.download-button>
+        <p class="mt-6 text-ink/70">Get the app free on the App Store.</p>
+        <x-marketing.app-store-badge from="missing" class="mt-2" />
     </div>
 @endsection

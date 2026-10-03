@@ -41,6 +41,28 @@ class SharePlaceTest extends TestCase
             ->assertSee('property="og:title"', false)
             ->assertSee('images/share/', false)
             ->assertSee('/go/app?ref=share', false)
+            ->assertSee('/go/download?ref=share', false)
+            ->assertSee('alt="Download on the App Store"', false)
+            ->assertSee('name="robots" content="noindex"', false);
+    }
+
+    public function test_smart_app_banner_opens_the_shared_place_in_the_app(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        $key = ShareLinks::placeKey($restaurant->id, $restaurant->name);
+
+        $this->visit("/p/{$key}?ref=share")->assertOk()
+            ->assertSee('content="app-id='.config('marketing.app_store_id').', app-argument='.url("/p/{$key}").'"', false);
+    }
+
+    public function test_open_in_app_tries_the_app_then_falls_back_to_the_app_store(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        $key = ShareLinks::placeKey($restaurant->id, $restaurant->name);
+
+        $this->visit("/p/{$key}/go/app?ref=share")->assertOk()
+            ->assertSee('makanapa:\/\/place\/'.$restaurant->id.'?source=share', false)
+            ->assertSee('href="'.url("/p/{$key}/go/download?ref=share").'"', false)
             ->assertSee('name="robots" content="noindex"', false);
     }
 
@@ -89,7 +111,8 @@ class SharePlaceTest extends TestCase
     {
         $closed = $this->makeRestaurant(['is_active' => false]);
 
-        $this->visit('/p/'.ShareLinks::placeKey($closed->id, $closed->name))->assertNotFound()->assertSee('Get the app');
+        $this->visit('/p/'.ShareLinks::placeKey($closed->id, $closed->name))->assertNotFound()
+            ->assertSee('href="'.route('marketing.download', ['from' => 'missing']).'"', false);
         $this->visit('/p/999999')->assertNotFound();
     }
 
@@ -101,7 +124,7 @@ class SharePlaceTest extends TestCase
         $this->postJson("/api/v1/restaurants/{$restaurant->id}/share-events")->assertCreated();
         $this->withHeader('User-Agent', 'WhatsApp/2.24')->get("/p/{$key}?ref=share")->assertOk();
         $this->visit("/p/{$key}?ref=share")->assertOk();
-        $this->visit("/p/{$key}/go/app?ref=share")->assertRedirect("makanapa://place/{$restaurant->id}?source=share");
+        $this->visit("/p/{$key}/go/app?ref=share")->assertOk();
         $this->visit("/p/{$key}/go/download?ref=share")->assertRedirect(config('marketing.app_download_url'));
 
         $events = MarketingEvent::where('restaurant_id', $restaurant->id)->orderBy('id')->get(['event', 'source']);

@@ -8,6 +8,7 @@ use App\Models\Restaurant;
 use App\Models\RestaurantMenuItem;
 use App\Services\Halal\HalalPresenter;
 use App\Support\BotUserAgent;
+use App\Support\MarketingUrl;
 use App\Support\OpeningHours;
 use App\Support\RecommendationHeadline;
 use App\Support\ShareLinks;
@@ -61,6 +62,7 @@ class SharePlaceController extends Controller
             'pickers' => $this->recentPickers($restaurant),
             'menuRange' => $this->menuPriceRange($restaurant),
             'description' => $this->previewDescription($halal['display']['shortLabel'], self::priceLabel($restaurant->price_level), $data['open_status']),
+            'canonicalUrl' => MarketingUrl::to("/p/{$key}"),
             'openAppUrl' => url("/p/{$key}/go/app").($ref ? "?ref={$ref}" : ''),
             'getAppUrl' => url("/p/{$key}/go/download").($ref ? "?ref={$ref}" : ''),
             'directionsUrl' => $this->directionsUrl($restaurant),
@@ -72,9 +74,11 @@ class SharePlaceController extends Controller
     /**
      * "Open in MakanApa" / "Get the app" go through here so taps are counted server-side (no JS
      * tracker). Opening uses the app's own URL scheme: a universal link tapped on its own domain
-     * stays in Safari, so the same /p URL can't open the app from this page.
+     * stays in Safari, so the same /p URL can't open the app from this page. The scheme is tried
+     * from a small page rather than a bare redirect, so someone without the app falls through to
+     * the App Store (via the tracked download link) instead of Safari's "address is invalid".
      */
-    public function go(Request $request, string $place, string $target): RedirectResponse
+    public function go(Request $request, string $place, string $target): Response|RedirectResponse
     {
         $restaurant = $this->resolve($place);
         if (! $restaurant instanceof Restaurant) {
@@ -84,8 +88,15 @@ class SharePlaceController extends Controller
         $ref = $this->ref($request);
         if ($target === 'app') {
             $this->record($request, MarketingEvent::SHARE_OPEN_APP, $restaurant, $ref);
+            $key = ShareLinks::placeKey($restaurant->id, $restaurant->name);
+            $query = $ref ? "?ref={$ref}" : '';
 
-            return redirect()->away("makanapa://place/{$restaurant->id}?source=share");
+            return response()->view('share.open', [
+                'restaurant' => $restaurant,
+                'appUrl' => "makanapa://place/{$restaurant->id}?source=share",
+                'downloadUrl' => url("/p/{$key}/go/download").$query,
+                'placeUrl' => url("/p/{$key}").$query,
+            ]);
         }
 
         $this->record($request, MarketingEvent::SHARE_GET_APP, $restaurant, $ref);

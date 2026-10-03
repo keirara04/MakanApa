@@ -15,7 +15,7 @@ final class ShareLinks
 
     public static function place(int $restaurantId, string $name, string $ref = 'share'): string
     {
-        return self::base().'/p/'.self::placeKey($restaurantId, $name).'?ref='.$ref;
+        return MarketingUrl::to('/p/'.self::placeKey($restaurantId, $name)).'?ref='.$ref;
     }
 
     /** "624-kfc-jalan-reko" — the id is authoritative, the slug is cosmetic. */
@@ -24,12 +24,5 @@ final class ShareLinks
         $slug = Str::slug($name);
 
         return $slug === '' ? (string) $restaurantId : "{$restaurantId}-{$slug}";
-    }
-
-    private static function base(): string
-    {
-        $domain = (string) config('marketing.domain');
-
-        return $domain === 'localhost' ? rtrim(url('/'), '/') : 'https://'.$domain;
     }
 }

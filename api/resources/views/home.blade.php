@@ -27,7 +27,7 @@
     // FAQ: [question, answer HTML], in two columns. Also emitted as FAQPage structured data below.
     $faqs = [
         [
-            ['Where do I get it?', 'MakanApa is on the App Store for iPhone. Tap the download button, or search <strong>MakanApa</strong> in the App Store. Found a bug? <span class="lang-ms"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Bagitahu us</a>.</span><span class="lang-en"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Let us know</a>.</span>'],
+            ['Where do I get it?', 'MakanApa is on the App Store for iPhone: <a href="'.route('marketing.download', ['from' => 'faq']).'" class="font-medium text-sambal-700 underline">download it here</a>, or search <strong>MakanApa</strong> in the App Store. Found a bug? <span class="lang-ms"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Bagitahu us</a>.</span><span class="lang-en"><a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Let us know</a>.</span>'],
             ['Is it free?', 'Yes, MakanApa is free to download and use.'],
             ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
         ],
@@ -209,7 +209,7 @@
             </p>
 
             <div class="hero-in mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-8" style="--i: 4">
-                <x-marketing.download-button from="hero" />
+                <x-marketing.app-store-badge from="hero" />
                 <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
             </div>
         </div>
@@ -730,7 +730,7 @@
 
         <div data-reveal class="relative mt-12 inline-flex flex-col items-center gap-4" style="--i: 3">
             <x-marketing.doodle type="arrow-loop" class="draw absolute -left-40 -top-16 hidden h-24 w-36 text-ink/80 sm:block" style="--draw-delay: 500ms; --draw-dur: 1300ms" />
-            <x-marketing.download-button from="final" />
+            <x-marketing.app-store-badge from="final" />
             <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
         </div>
     </section>

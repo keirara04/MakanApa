@@ -4,6 +4,7 @@
 @section('description', $description)
 @section('og_image', $ogImage)
 @section('og_image_alt', $restaurant->name.' on MakanApa')
+@section('app_argument', $canonicalUrl)
 
 @push('meta')
     @unless ($indexable)
@@ -50,21 +51,21 @@
             <p class="mt-4 text-sm text-ink/70">Picked by {{ $pickers }} people on MakanApa this month.</p>
         @endif
 
-        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="{{ $directionsUrl }}" rel="noopener" class="inline-flex min-h-12 items-center justify-center rounded-full bg-sambal-600 px-6 py-3 font-semibold text-white hover:bg-sambal-700">
+        {{-- Someone with the app is taken straight into it by the universal link, so a visitor here
+             most likely doesn't have it yet: the App Store badge leads, "open" is the fallback. --}}
+        <div class="mt-8 flex flex-col items-center gap-1 sm:flex-row sm:gap-3">
+            <a href="{{ $directionsUrl }}" rel="noopener" class="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-sambal-600 px-6 py-3 font-semibold text-white hover:bg-sambal-700 sm:w-auto">
                 Get directions
             </a>
-            <a href="{{ $openAppUrl }}" class="inline-flex min-h-12 items-center justify-center rounded-full border border-sambal-200 bg-white px-6 py-3 font-semibold text-ink hover:border-sambal-300">
-                Open in MakanApa
-            </a>
+            <x-marketing.app-store-badge :href="$getAppUrl" size="md" />
         </div>
+        <p class="mt-1 text-center text-sm text-ink/70 sm:text-left">
+            Already have MakanApa? <a href="{{ $openAppUrl }}" class="font-medium text-sambal-700 underline">Open this place in the app</a>
+        </p>
 
         <section class="mt-10 rounded-3xl bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold">Can't decide where to makan?</h2>
-            <p class="mt-2 text-ink/70">MakanApa picks a spot near you in seconds — halal-aware, budget-aware, no scrolling.</p>
-            <a href="{{ $getAppUrl }}" class="mt-4 inline-flex min-h-11 items-center rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink/90">
-                {{ config('marketing.app_download_label') }}
-            </a>
+            <p class="mt-2 text-ink/70">MakanApa picks a spot near you in seconds — halal-aware, budget-aware, no scrolling. Free on iPhone.</p>
         </section>
 
         @if ($restaurant->provider === 'google')

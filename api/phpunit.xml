@@ -34,6 +34,8 @@
         <env name="DB_URL" value=""/>
         <!-- Always fixture in tests, regardless of local .env — never hit real Google from the test suite. -->
         <env name="PLACES_PROVIDER" value="fixture"/>
+        <!-- Marketing links follow the test request's host unless a test sets a domain itself. -->
+        <env name="MARKETING_DOMAIN" value="localhost"/>
         <!-- Same for photo storage: a test that forgets Storage::fake() must never write into the real
              DigitalOcean Spaces buckets (and CI has no Spaces credentials, so the write silently fails). -->
         <env name="RESTAURANT_PHOTOS_PENDING_DISK" value="local"/>

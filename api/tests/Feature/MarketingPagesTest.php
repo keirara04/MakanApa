@@ -17,9 +17,19 @@ class MarketingPagesTest extends TestCase
     {
         $response = $this->get('/')->assertOk();
 
-        foreach (['nav', 'hero', 'final'] as $from) {
+        foreach (['nav', 'hero', 'final', 'faq'] as $from) {
             $response->assertSee('href="'.route('marketing.download', ['from' => $from]).'"', false);
         }
+        $response->assertSee('alt="Download on the App Store"', false);
+    }
+
+    public function test_pages_carry_the_smart_app_banner_only_when_an_app_store_id_is_set(): void
+    {
+        $this->get('/')->assertSee('<meta name="apple-itunes-app" content="app-id='.config('marketing.app_store_id').'">', false);
+
+        config(['marketing.app_store_id' => null]);
+
+        $this->get('/')->assertDontSee('apple-itunes-app', false);
     }
 
     public function test_download_redirects_to_configured_url_and_counts_click(): void
@@ -42,6 +52,13 @@ class MarketingPagesTest extends TestCase
             ->assertRedirect('https://apps.apple.com/app/id123');
 
         $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'qr']);
+    }
+
+    public function test_download_from_the_missing_place_page_is_counted_separately(): void
+    {
+        $this->withHeader('User-Agent', self::BROWSER)->get('/go/app-store?from=missing')->assertRedirect();
+
+        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'missing']);
     }
 
     public function test_download_with_unknown_source_is_stored_without_one(): void

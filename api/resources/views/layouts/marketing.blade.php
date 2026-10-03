@@ -6,6 +6,10 @@
         <title>@yield('title', 'MakanApa')</title>
         <meta name="description" content="@yield('description', 'MakanApa: what to eat, decided in seconds.')">
         <meta name="theme-color" content="#f4efe6">
+        @if (config('marketing.app_store_id'))
+            {{-- Safari's own "Get"/"Open" bar; a share page passes its URL so "Open" lands on the place. --}}
+            <meta name="apple-itunes-app" content="app-id={{ config('marketing.app_store_id') }}@hasSection('app_argument'), app-argument=@yield('app_argument')@endif">
+        @endif
         <link rel="canonical" href="{{ url()->current() }}">
 
         <link rel="icon" href="{{ asset('images/mascot-default.svg') }}" type="image/svg+xml">
@@ -111,6 +115,7 @@
                 </div>
                 <p>Made in Malaysia <span aria-hidden="true">🇲🇾</span> · &copy; {{ date('Y') }} Hakeemi Ridza. All rights reserved.</p>
             </div>
+            <p class="mx-auto max-w-6xl px-4 pb-8 text-xs text-ink/70 sm:px-6">Apple and the Apple logo are trademarks of Apple Inc., registered in the U.S. and other countries and regions. App Store is a service mark of Apple Inc.</p>
         </footer>
 
         <script>
