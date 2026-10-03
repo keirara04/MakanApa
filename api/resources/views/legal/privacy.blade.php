@@ -13,9 +13,13 @@
 @section('title', $isMalay ? 'Notis Privasi | MakanApa' : 'Privacy Policy | MakanApa')
 @section('description', $isMalay ? 'Cara MakanApa mengumpul, menggunakan dan memadam data peribadi anda.' : 'How MakanApa collects, uses, shares and deletes your data.')
 
+@section('canonical', \App\Support\MarketingUrl::to('/privacy').($isMalay ? '?lang=ms' : ''))
+@section('og_locale', $isMalay ? 'ms_MY' : 'en_MY')
+
 @push('meta')
-    <link rel="alternate" hreflang="en" href="{{ route('privacy') }}">
-    <link rel="alternate" hreflang="ms" href="{{ route('privacy', ['lang' => 'ms']) }}">
+    <link rel="alternate" hreflang="en" href="{{ \App\Support\MarketingUrl::to('/privacy') }}">
+    <link rel="alternate" hreflang="ms" href="{{ \App\Support\MarketingUrl::to('/privacy') }}?lang=ms">
+    <link rel="alternate" hreflang="x-default" href="{{ \App\Support\MarketingUrl::to('/privacy') }}">
 @endpush
 
 @section('content')

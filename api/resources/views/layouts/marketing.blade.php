@@ -10,8 +10,11 @@
             {{-- Safari's own "Get"/"Open" bar; a share page passes its URL so "Open" lands on the place. --}}
             <meta name="apple-itunes-app" content="app-id={{ config('marketing.app_store_id') }}@hasSection('app_argument'), app-argument=@yield('app_argument')@endif">
         @endif
-        <link rel="canonical" href="{{ url()->current() }}">
+        {{-- Always the marketing domain (never the API/admin host that also serves these routes),
+             without query strings like ?ref=. A page with its own variants sets 'canonical'. --}}
+        <link rel="canonical" href="@yield('canonical', \App\Support\MarketingUrl::to(request()->path()))">
 
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
         <link rel="icon" href="{{ asset('images/mascot-default.svg') }}" type="image/svg+xml">
         <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
@@ -20,7 +23,8 @@
         <meta property="og:site_name" content="MakanApa">
         <meta property="og:title" content="@yield('title', 'MakanApa')">
         <meta property="og:description" content="@yield('description', 'MakanApa: what to eat, decided in seconds.')">
-        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:url" content="@yield('canonical', \App\Support\MarketingUrl::to(request()->path()))">
+        <meta property="og:locale" content="@yield('og_locale', 'en_MY')">
         <meta property="og:image" content="@yield('og_image', asset('images/og.png'))">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">

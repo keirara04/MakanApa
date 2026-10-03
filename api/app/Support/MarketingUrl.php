@@ -25,6 +25,12 @@ final class MarketingUrl
         return self::base().($path === '' ? '/' : '/'.$path);
     }
 
+    /** True when a request came in on another host than the marketing domain (API, admin). */
+    public static function isForeignHost(string $host): bool
+    {
+        return ! self::isLocal() && strcasecmp($host, (string) config('marketing.domain')) !== 0;
+    }
+
     private static function isLocal(): bool
     {
         $domain = (string) config('marketing.domain');

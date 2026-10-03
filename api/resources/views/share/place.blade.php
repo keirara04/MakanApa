@@ -10,6 +10,9 @@
     @unless ($indexable)
         <meta name="robots" content="noindex">
     @endunless
+    @if ($structuredData)
+        <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
+    @endif
 @endpush
 
 @section('content')

@@ -25,6 +25,7 @@ class MarketingController extends Controller
         return view('home', [
             'demoArea' => $insights->anchor()['label'],
             'stats' => $insights->stats(),
+            'appRating' => $insights->appRating(),
             'nearby' => $insights->nearbyList(),
         ]);
     }

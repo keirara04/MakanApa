@@ -28,6 +28,13 @@ use Illuminate\Support\Facades\DB;
  */
 class SharePlaceController extends Controller
 {
+    /**
+     * Only places the community added may be indexed or described in structured data. Google-sourced
+     * ones stay noindex: their name, address and coordinates are Places content, not ours to publish
+     * to search engines.
+     */
+    public const INDEXABLE_PROVIDER = 'user_submitted';
+
     private const PICKER_WINDOW_DAYS = 30;
 
     private const MIN_PICKERS_SHOWN = 2;
@@ -51,23 +58,28 @@ class SharePlaceController extends Controller
         $data = $restaurant->toRecommendationArray();
         $halal = $this->halalPresenter->summaryFromArray($data);
         $key = ShareLinks::placeKey($restaurant->id, $restaurant->name);
+        $canonicalUrl = MarketingUrl::to("/p/{$key}");
+        $price = self::priceLabel($restaurant->price_level);
+        $menuRange = $this->menuPriceRange($restaurant);
+        $indexable = (bool) config('marketing.share_indexable') && $restaurant->provider === self::INDEXABLE_PROVIDER;
 
         return response()->view('share.place', [
             'restaurant' => $restaurant,
             'category' => RecommendationHeadline::categoryLabel($restaurant->food_category),
             'openStatus' => $data['open_status'],
             'closesAt' => OpeningHours::closesAt($restaurant->opening_hours, now()),
-            'price' => self::priceLabel($restaurant->price_level),
+            'price' => $price,
             'halal' => $halal['display'],
             'pickers' => $this->recentPickers($restaurant),
-            'menuRange' => $this->menuPriceRange($restaurant),
-            'description' => $this->previewDescription($halal['display']['shortLabel'], self::priceLabel($restaurant->price_level), $data['open_status']),
-            'canonicalUrl' => MarketingUrl::to("/p/{$key}"),
+            'menuRange' => $menuRange,
+            'description' => $this->previewDescription($halal['display']['shortLabel'], $price, $data['open_status']),
+            'canonicalUrl' => $canonicalUrl,
             'openAppUrl' => url("/p/{$key}/go/app").($ref ? "?ref={$ref}" : ''),
             'getAppUrl' => url("/p/{$key}/go/download").($ref ? "?ref={$ref}" : ''),
             'directionsUrl' => $this->directionsUrl($restaurant),
             'ogImage' => $this->ogImage($restaurant->food_category),
-            'indexable' => (bool) config('marketing.share_indexable'),
+            'indexable' => $indexable,
+            'structuredData' => $indexable ? $this->structuredData($restaurant, $canonicalUrl, $menuRange ?? $price) : null,
         ]);
     }
 
@@ -200,6 +212,32 @@ class SharePlaceController extends Controller
                 default => null,
             },
         ])->filter()->implode(' · ').' — picked on MakanApa';
+    }
+
+    /**
+     * schema.org Restaurant for an indexable (community-added) place: what the page itself shows,
+     * and deliberately no rating or review fields.
+     *
+     * @return array<string, mixed>
+     */
+    private function structuredData(Restaurant $restaurant, string $url, ?string $priceRange): array
+    {
+        $cuisines = $restaurant->cuisines->pluck('name')->all();
+        $category = RecommendationHeadline::categoryLabel($restaurant->food_category);
+
+        return array_filter([
+            '@context' => 'https://schema.org',
+            '@type' => 'Restaurant',
+            'name' => $restaurant->name,
+            'url' => $url,
+            'image' => $this->ogImage($restaurant->food_category),
+            'address' => $restaurant->address
+                ? ['@type' => 'PostalAddress', 'streetAddress' => $restaurant->address, 'addressCountry' => 'MY']
+                : null,
+            'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float) $restaurant->latitude, 'longitude' => (float) $restaurant->longitude],
+            'servesCuisine' => $cuisines ?: ($category ? [$category] : null),
+            'priceRange' => $priceRange,
+        ], fn ($value) => $value !== null);
     }
 
     private function directionsUrl(Restaurant $restaurant): string

@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\EnsureRegisteredUser;
 use App\Http\Middleware\EnsureSuperadmin;
 use App\Http\Middleware\EnsureTermsAccepted;
+use App\Http\Middleware\NoindexNonMarketingHosts;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->append(SecurityHeaders::class);
+        $middleware->append(NoindexNonMarketingHosts::class);
 
         $middleware->alias([
             'superadmin' => EnsureSuperadmin::class,

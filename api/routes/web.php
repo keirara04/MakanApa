@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\SubmissionPhotoController;
 use App\Http\Controllers\MarketingController;
+use App\Http\Controllers\SeoController;
 use App\Http\Controllers\SharePlaceController;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -36,6 +37,10 @@ Route::withoutMiddleware([
         ->where('place', '[0-9]+(-[A-Za-z0-9-]*)?')
         ->whereIn('target', ['app', 'download']);
     Route::get('/.well-known/apple-app-site-association', [SharePlaceController::class, 'appSiteAssociation']);
+
+    // Generated rather than static files so the Sitemap line and URLs follow MARKETING_DOMAIN.
+    Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
+    Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('seo.sitemap');
 });
 
 // Private (pre-approval) evidence photos for the admin panel's submission page. Session-authed

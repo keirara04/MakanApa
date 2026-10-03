@@ -28,6 +28,9 @@ Schedule::command('halal:lifecycle')->dailyAt('06:00');
 // Judgment System: purge old state snapshots (rows/answers/outcomes stay for calibration).
 Schedule::command('judgments:prune')->daily();
 
+// The landing page's App Store rating (read from cache only; see the command).
+Schedule::command('marketing:refresh-app-rating')->dailyAt('05:00');
+
 // Admin-scheduled push notifications (Filament: System > Scheduled Notifications) — checks for
 // anything due every minute. Requires the scheduler itself to actually be running in production
 // (`php artisan schedule:work`, or cron calling `schedule:run` every minute) — not automatic.

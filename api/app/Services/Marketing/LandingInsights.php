@@ -32,6 +32,9 @@ class LandingInsights
     /** A top-rated fallback place needs at least this many Google ratings to count. */
     private const MIN_RATING_COUNT = 20;
 
+    /** Written by marketing:refresh-app-rating; the page never calls Apple itself. */
+    public const APP_RATING_CACHE_KEY = 'marketing:app-store-rating';
+
     public function __construct(
         private readonly PlacesService $places,
         private readonly RecommendationService $recommendations,
@@ -102,6 +105,19 @@ class LandingInsights
         }
 
         return $totals;
+    }
+
+    /**
+     * The app's own App Store rating, or null until enough people have rated it to be worth showing
+     * (config marketing.stats.min.app_ratings) — shown on the page and in its structured data together.
+     *
+     * @return array{rating: float, count: int}|null
+     */
+    public function appRating(): ?array
+    {
+        $rating = Cache::get(self::APP_RATING_CACHE_KEY);
+
+        return is_array($rating) && $rating['count'] >= (int) Config::get('marketing.stats.min.app_ratings') ? $rating : null;
     }
 
     /**

@@ -1,6 +1,6 @@
 @extends('layouts.marketing')
 
-@section('title', 'MakanApa | What to Eat')
+@section('title', 'MakanApa: What to Eat Near You, Decided in Seconds')
 @section('description', 'Makan apa hari ni? Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby. Free on the App Store for iPhone.')
 @section('main_class', '')
 
@@ -210,7 +210,13 @@
 
             <div class="hero-in mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-8" style="--i: 4">
                 <x-marketing.app-store-badge from="hero" />
-                <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
+                <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">
+                    Free · iPhone · App Store
+                    {{-- Only once enough people have rated it; the same value backs the structured data. --}}
+                    @if ($appRating)
+                        <span class="whitespace-nowrap">· ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
+                    @endif
+                </p>
             </div>
         </div>
 
@@ -750,12 +756,20 @@
                 'operatingSystem' => 'iOS',
                 'applicationCategory' => 'LifestyleApplication',
                 'description' => 'Tell MakanApa your mood, budget and how far you\'ll go. It picks one place nearby.',
-                'url' => url('/'),
+                'url' => \App\Support\MarketingUrl::to('/'),
                 'downloadUrl' => config('marketing.app_download_url'),
+                'installUrl' => config('marketing.app_download_url'),
+                'sameAs' => [config('marketing.app_download_url')],
                 'image' => asset('images/og.png'),
+                'screenshot' => array_map(fn (string $screen) => asset("images/screens/{$screen}-720.webp"), ['mood', 'result', 'nearby']),
                 'inLanguage' => 'en-MY',
                 'author' => ['@type' => 'Person', 'name' => 'Hakeemi Ridza'],
+                'publisher' => ['@type' => 'Person', 'name' => 'Hakeemi Ridza'],
                 'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'MYR'],
+                // Google only accepts a rating the page visibly shows: same $appRating as the hero line.
+                'aggregateRating' => $appRating
+                    ? ['@type' => 'AggregateRating', 'ratingValue' => $appRating['rating'], 'ratingCount' => $appRating['count'], 'bestRating' => 5, 'worstRating' => 1]
+                    : null,
             ],
             [
                 '@context' => 'https://schema.org',
@@ -767,6 +781,7 @@
                 ])->all(),
             ],
         ];
+        $structuredData[0] = array_filter($structuredData[0], fn ($value) => $value !== null);
     @endphp
     <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 @endpush

@@ -29,8 +29,9 @@ return [
     // The App Store listing's numeric id, for Safari's Smart App Banner. Null turns the banner off.
     'app_store_id' => env('APP_STORE_ID', '6812670941'),
 
-    // Shared place links (/p/{id}-{slug}). Kept out of search engines until public launch.
-    'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', false),
+    // Shared place links (/p/{id}-{slug}) may be indexed and listed in the sitemap. Only places the
+    // community added ever are: Google-sourced ones stay noindex (Places terms), see SharePlaceController.
+    'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', true),
 
     // "<TeamID>.<bundle id>" for apple-app-site-association (universal links into the app).
     'apple_app_id' => env('APPLE_APP_ID', '46798S8ZQT.com.keirara.makanapa'),
@@ -53,6 +54,7 @@ return [
             'places' => (int) env('MARKETING_STATS_MIN_PLACES', 50),
             'picks' => (int) env('MARKETING_STATS_MIN_PICKS', 50),
             'community' => (int) env('MARKETING_STATS_MIN_COMMUNITY', 5),
+            'app_ratings' => (int) env('MARKETING_STATS_MIN_APP_RATINGS', 10),
         ],
     ],
 
