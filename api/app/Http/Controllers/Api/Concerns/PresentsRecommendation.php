@@ -191,7 +191,7 @@ trait PresentsRecommendation
             return [];
         }
 
-        return BrainPresenter::forRow($decision, $row, $withTrace, $rejected, $lead);
+        return BrainPresenter::forRow($decision, $row, $withTrace, $rejected, $lead, (bool) request()->user()?->plain_english);
     }
 
     /**

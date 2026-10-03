@@ -25,7 +25,7 @@ class SeleraTraits
     private const SLOT_ICONS = ['breakfast' => '🌅', 'lunch' => '☀️', 'teatime' => '🫖', 'dinner' => '🌆', 'supper' => '🌙', 'weekend' => '🎉'];
 
     /**
-     * @return array{stage: string, signalCount: int, traits: array<int, array>, constraints: array<int, array>}
+     * @return array{stage: string, signalCount: int, traits: array<int, array>, startingPicks: string[], constraints: array<int, array>}
      */
     public function describe(?TasteProfile $profile, TasteOwner $owner, ?User $user): array
     {
@@ -35,6 +35,8 @@ class SeleraTraits
             'stage' => DecisionBrainState::stageFor($signals),
             'signalCount' => $signals,
             'traits' => $profile ? $this->traits($profile, $owner) : [],
+            // What they chose in onboarding — shown as where the first hints came from.
+            'startingPicks' => $profile?->memory['seeds'] ?? [],
             'constraints' => [
                 ['key' => 'halal', 'label' => 'Hide non-halal', 'icon' => '✅', 'value' => (bool) $user?->halal_preference, 'editIn' => 'settings'],
                 ['key' => 'budget', 'label' => 'Budget', 'icon' => '💰', 'value' => null, 'editIn' => 'each_decision'],

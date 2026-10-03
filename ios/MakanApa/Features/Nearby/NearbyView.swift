@@ -1038,7 +1038,7 @@ struct NearbyView: View {
                 case .failed:
                     Text(Copy.tryAgain)
                 case .idle:
-                    Text("Makan sini")
+                    Text(Copy.makanSini)
                 }
             }
             .font(.makanBody(14))

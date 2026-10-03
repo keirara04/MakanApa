@@ -157,6 +157,7 @@ Route::prefix('v1')->group(function () {
             Route::post('me/selera/traits/{trait}/feedback', [SeleraController::class, 'feedback']);
             Route::delete('me/selera/traits/{trait}', [SeleraController::class, 'mute']);
             Route::post('me/selera/reset', [SeleraController::class, 'reset']);
+            Route::post('me/selera/seed', [SeleraController::class, 'seed']);
         });
 
         Route::post('restaurants/{restaurant}/save', [RestaurantController::class, 'save']);

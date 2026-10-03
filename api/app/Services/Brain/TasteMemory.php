@@ -56,6 +56,11 @@ final class TasteMemory
         $key = (string) ($event['dimension_key'] ?? '');
         $value = (float) $event['value'];
 
+        // Onboarding picks: remembered by label for Your Selera, then applied like any taste row.
+        if ($event['signal'] === 'onboarding' && ! empty($meta['label'])) {
+            $state['memory']['seeds'] = array_values(array_unique([...$state['memory']['seeds'] ?? [], $meta['label']]));
+        }
+
         if ($event['signal'] === 'trait_mute') {
             $state['muted'] = array_values(array_unique([...$state['muted'], $key]));
 

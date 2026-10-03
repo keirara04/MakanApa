@@ -53,6 +53,19 @@ class SeleraController extends Controller
         return $this->show($request);
     }
 
+    /** Onboarding's cuisine chips, sent once the account exists. Idempotent per owner. */
+    public function seed(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'picks' => ['required', 'array', 'min:1', 'max:4'],
+            'picks.*' => ['string', Rule::in(array_keys(TasteEventRecorder::ONBOARDING_SEEDS))],
+        ]);
+
+        $this->recorder->onboardingSeed(TasteOwner::resolve($request->user(), null), $data['picks']);
+
+        return $this->show($request);
+    }
+
     public function reset(Request $request): JsonResponse
     {
         $this->recorder->reset(TasteOwner::resolve($request->user(), null));
@@ -76,7 +89,7 @@ class SeleraController extends Controller
 
         return response()->json([
             'mealSlot' => $snapshot->mealSlot,
-            'signals' => ContextEngine::present($snapshot),
+            'signals' => ContextEngine::present($snapshot, (bool) $request->user()?->plain_english),
         ]);
     }
 }

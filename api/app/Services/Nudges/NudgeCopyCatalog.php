@@ -52,11 +52,31 @@ final class NudgeCopyCatalog
     ];
 
     /**
+     * Settings → Plain English: a title or body template above → its English line. Only the
+     * Malay-only ones; "Jom?" and the rest of the Manglish stay either way.
+     */
+    private const PLAIN = [
+        'Lunch dah? 🍛' => 'Lunch yet? 🍛',
+        'Lunch dah?' => 'Lunch yet?',
+        'Perut dah bunyi? 🍛' => 'Tummy rumbling? 🍛',
+        'Dinner apa malam ni? 🍽️' => 'Dinner plans tonight? 🍽️',
+        'Makan malam jom 🌙' => 'Dinner time, jom 🌙',
+        'Makan malam apa?' => "What's for dinner?",
+        'Hujan ni 🌧️' => 'Raining out 🌧️',
+        '{name} is just {distance} away{closes} — tak basah sangat.' => "{name} is just {distance} away{closes} — you won't get too wet.",
+        '{name} is just {distance} away{closes} — dekat je.' => "{name} is just {distance} away{closes} — it's close.",
+        'Lepas Jumaat, makan? 🍛' => 'After Friday prayers, makan? 🍛',
+        'Jumaat lunch 🍛' => 'Friday lunch 🍛',
+        'Buka puasa kat mana? 🌙' => 'Where to buka puasa? 🌙',
+        'Nak buka puasa kat mana? 🌙' => 'Where to buka puasa? 🌙',
+    ];
+
+    /**
      * @param  'lunch'|'dinner'|'iftar'  $slot
      * @param  array{name: string, distanceKm: float, closesAt: ?string}|null  $place
      * @return array{key: string, title: string, body: string}
      */
-    public static function compose(string $slot, ?array $place, bool $raining, CarbonImmutable $localDay, int $userId): array
+    public static function compose(string $slot, ?array $place, bool $raining, CarbonImmutable $localDay, int $userId, bool $plainEnglish = false): array
     {
         $key = match (true) {
             $place === null => $slot === 'iftar' ? 'generic_iftar' : "generic_{$slot}",
@@ -68,6 +88,10 @@ final class NudgeCopyCatalog
 
         $variants = self::VARIANTS[$key];
         [$title, $body] = $variants[crc32($userId.'|'.$localDay->toDateString()) % count($variants)];
+        if ($plainEnglish) {
+            $title = self::PLAIN[$title] ?? $title;
+            $body = self::PLAIN[$body] ?? $body;
+        }
 
         if ($place !== null) {
             $body = strtr($body, [

@@ -13,7 +13,7 @@ struct KenapaNiSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Kenapa ni?")
+            Text(Copy.whyThisPick)
                 .font(.makanBody(12))
                 .foregroundStyle(.secondary)
                 .accessibilityAddTraits(.isHeader)
@@ -195,7 +195,7 @@ struct WhyNotChips: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text(answered ? "Noted 👍" : "Help me learn — kenapa tak nak?")
+            Text(answered ? "Noted 👍" : Copy.whyNotPrompt)
                 .font(.makanBody(13))
                 .foregroundStyle(.secondary)
 

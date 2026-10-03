@@ -93,6 +93,7 @@
 		A66E31CA20DF4BBA9CD9E6A1 /* CommunityTrendingCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */; };
 		A8639DE2EF61872686E94F7F /* HalalBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B658EFCF2950D0F56A44B1F9 /* HalalBadge.swift */; };
 		ACD2070A6D0E98CC7CA61644 /* PlaceSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C72BE1E1FA30CFB66E7D436 /* PlaceSearchTests.swift */; };
+		B08EC40C093CC528EB69A808 /* PlainEnglishPreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21885DC2C3898C9E64A53EE9 /* PlainEnglishPreference.swift */; };
 		B395B06CDF344F3A8CFACAF5 /* DeleteAccountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1B35DCD7A1480DA3192BD8 /* DeleteAccountSheet.swift */; };
 		B4D505A8D9C37252D4C7354D /* PreferenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011E6031DBB15CA7420E8B83 /* PreferenceView.swift */; };
 		B6B04CC41D43B1A0C2F7D492 /* ContextStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD9C5FFDACC520497CC1C1B /* ContextStrip.swift */; };
@@ -170,6 +171,7 @@
 		1A04E8CDC6F1958B90CA50EA /* MakanApaTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MakanApaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2018F13227288362429CCE9A /* SeleraView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SeleraView.swift; path = Settings/SeleraView.swift; sourceTree = "<group>"; };
 		217BC4E792F65DECF27B6B66 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		21885DC2C3898C9E64A53EE9 /* PlainEnglishPreference.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlainEnglishPreference.swift; sourceTree = "<group>"; };
 		23CF20F8EDDFAED7BBB91B50 /* PreferenceChoiceRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferenceChoiceRow.swift; sourceTree = "<group>"; };
 		274CA36352CF48000FD00802 /* CredentialStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CredentialStore.swift; sourceTree = "<group>"; };
 		27B277232B312330DA019B4E /* ContextPreferences.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContextPreferences.swift; sourceTree = "<group>"; };
@@ -659,6 +661,7 @@
 				A16312428510CBCA4AA26AAE /* HalalPreference.swift */,
 				27B277232B312330DA019B4E /* ContextPreferences.swift */,
 				A092B09B9085078E209278A9 /* GuestUpgradeNudge.swift */,
+				21885DC2C3898C9E64A53EE9 /* PlainEnglishPreference.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -912,6 +915,7 @@
 				EA6F3C88DE5CFC9E66862D56 /* QuickSignInPanel.swift in Sources */,
 				FA375B15DFD6586960162C05 /* GuestUpgradeCard.swift in Sources */,
 				E4A6D4CFF8B61BAED933A804 /* GuestUpgradeNudge.swift in Sources */,
+				B08EC40C093CC528EB69A808 /* PlainEnglishPreference.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -943,6 +947,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -971,6 +976,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

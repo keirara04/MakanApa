@@ -8,27 +8,30 @@ struct OnboardingView: View {
     let onFinished: () -> Void
 
     @State private var page = 0
-    @Environment(LocationService.self) private var locationService
+    /// Which way the last move went, so Back slides the other way. Set a beat before `page` —
+    /// the outgoing page only picks up a new transition if it re-renders with it first.
+    @State private var isMovingForward = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let pageCount = 4
 
     var body: some View {
         VStack(spacing: 0) {
-            progressDots
-                .padding(.top, 20)
+            topBar
+                .padding(.top, 8)
 
             ZStack {
-                if page == 0 {
-                    OnboardingValuePropPage(onContinue: advance)
+                switch page {
+                case 0:
+                    OnboardingValuePropPage(onContinue: { advance(from: 0) })
                         .transition(pageTransition)
-                } else if page == 1 {
-                    OnboardingLocationPage(onContinue: advance)
+                case 1:
+                    OnboardingLocationPage(onContinue: { advance(from: 1) })
                         .transition(pageTransition)
-                } else if page == 2 {
-                    OnboardingHalalPage(onContinue: advance)
+                case 2:
+                    OnboardingHalalPage(onContinue: { advance(from: 2) })
                         .transition(pageTransition)
-                } else {
+                default:
                     OnboardingTastePage(onFinish: finish)
                         .transition(pageTransition)
                 }
@@ -43,10 +46,39 @@ struct OnboardingView: View {
         if reduceMotion {
             return .opacity
         }
+        let shift: CGFloat = isMovingForward ? 24 : -24
         return .asymmetric(
-            insertion: .opacity.combined(with: .offset(x: 8)),
-            removal: .opacity.combined(with: .offset(x: -8))
+            insertion: .opacity.combined(with: .offset(x: shift)),
+            removal: .opacity.combined(with: .offset(x: -shift))
         )
+    }
+
+    /// Back on the left, progress in the middle. An empty slot of the same width on the right
+    /// keeps the dots centred whether or not Back is showing.
+    private var topBar: some View {
+        HStack {
+            Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                go(to: page - 1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.kicap)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .opacity(page > 0 ? 1 : 0)
+            .disabled(page == 0)
+            .accessibilityLabel("Back")
+            .accessibilityHidden(page == 0)
+
+            Spacer()
+            progressDots
+            Spacer()
+
+            Color.clear.frame(width: 44, height: 44)
+        }
+        .padding(.horizontal, 12)
     }
 
     private var progressDots: some View {
@@ -58,11 +90,26 @@ struct OnboardingView: View {
                     .animation(reduceMotion ? .easeOut(duration: 0.15) : Motion.quick, value: page)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Step \(page + 1) of \(pageCount)")
     }
 
-    private func advance() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        page = min(page + 1, pageCount - 1)
+    /// Only moves on from the page that asked — a late or repeated callback (two location
+    /// updates in a row, a double tap) can't skip the page after it.
+    private func advance(from expectedPage: Int) {
+        guard page == expectedPage else { return }
+        go(to: page + 1)
+    }
+
+    private func go(to newPage: Int) {
+        let target = min(max(newPage, 0), pageCount - 1)
+        guard target != page else { return }
+        isMovingForward = target > page
+        Task { @MainActor in
+            page = target
+            // VoiceOver: start reading the new page from the top.
+            UIAccessibility.post(notification: .screenChanged, argument: nil)
+        }
     }
 
     private func finish() {
@@ -70,6 +117,8 @@ struct OnboardingView: View {
         onFinished()
     }
 }
+
+// MARK: - Pages
 
 private struct OnboardingValuePropPage: View {
     let onContinue: () -> Void
@@ -79,44 +128,59 @@ private struct OnboardingValuePropPage: View {
             content: {
                 ZStack {
                     ForEach(Array(floatingLabels.enumerated()), id: \.offset) { index, label in
-                        FloatingLabelChip(text: label)
+                        FloatingLabelChip(text: label, index: index)
                             .offset(floatingOffset(for: index))
                     }
                     MascotView(mood: .idle, size: 140)
                 }
                 .frame(height: 220)
+                .accessibilityHidden(true)
             },
             headline: "What should we makan? 👀",
             subtext: "Discover places nearby, hidden gems, and spots your community is actually picking.",
             primaryTitle: "Jom explore",
-            primaryAction: onContinue,
-            secondaryTitle: nil,
-            secondaryAction: nil
+            primaryAction: onContinue
         )
     }
 
-    private let floatingLabels = ["RM", "Late night", "Cafe", "Community find"]
+    private let floatingLabels = ["Under RM10", "Late night", "Cafe", "Community find"]
 
     private func floatingOffset(for index: Int) -> CGSize {
         switch index {
-        case 0: return CGSize(width: -110, height: -70)
+        case 0: return CGSize(width: -105, height: -70)
         case 1: return CGSize(width: 100, height: -50)
         case 2: return CGSize(width: -100, height: 60)
-        default: return CGSize(width: 110, height: 75)
+        default: return CGSize(width: 100, height: 75)
         }
     }
 }
 
+/// Decorative tag around the mascot — drifts gently, each on its own rhythm so they never move
+/// in lockstep. Still under Reduce Motion.
 private struct FloatingLabelChip: View {
     let text: String
+    let index: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isUp = false
 
     var body: some View {
         Text(text)
-            .font(.makanBody(11))
-            .foregroundStyle(Color.kicap.opacity(0.7))
+            .font(.makanBody(12))
+            .foregroundStyle(Color.kicap.opacity(0.8))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color.white, in: Capsule())
+            .shadow(color: Color.kicap.opacity(0.08), radius: 4, y: 2)
+            .offset(y: isUp ? -4 : 4)
+            .animation(
+                reduceMotion ? nil : .easeInOut(duration: 2.2 + Double(index) * 0.35).repeatForever(autoreverses: true),
+                value: isUp
+            )
+            .onAppear {
+                guard !reduceMotion else { return }
+                isUp = true
+            }
     }
 }
 
@@ -124,7 +188,9 @@ private struct OnboardingLocationPage: View {
     let onContinue: () -> Void
 
     @Environment(LocationService.self) private var locationService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var didRequest = false
+    @State private var didFinish = false
     @State private var showConfirmation = false
 
     var body: some View {
@@ -135,40 +201,55 @@ private struct OnboardingLocationPage: View {
                         .resizable()
                         .scaledToFit()
                         .opacity(0.18)
-                        .accessibilityHidden(true)
                     Image("MascotLocation")
                         .resizable()
                         .scaledToFit()
-                        .accessibilityHidden(true)
                 }
                 .frame(width: 150, height: 150)
-
-                if showConfirmation {
-                    Label("Nice, found you", systemImage: "checkmark.circle.fill")
-                        .font(.makanBody(13))
-                        .foregroundStyle(.green)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                .accessibilityHidden(true)
+                // Overlaid, not stacked, so the confirmation never pushes the headline down.
+                .overlay(alignment: .bottom) {
+                    if showConfirmation {
+                        Label("Nice, location's on", systemImage: "checkmark.circle.fill")
+                            .font(.makanBody(13).weight(.semibold))
+                            .foregroundStyle(Color.pandan)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.white, in: Capsule())
+                            .fixedSize()
+                            .offset(y: 18)
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    }
                 }
             },
             headline: "Find good food around you 📍",
-            subtext: "We use your location to show places nearby, what's trending around you, and better \"Pick one lah\" results.\n\nYour location isn't shown publicly.",
+            subtext: "We use your location to show places nearby, what's trending around you, and better \"Pick one lah\" results.",
+            footnote: OnboardingFootnote(icon: "lock.fill", text: "Your location is never shown to other people."),
             // App Review (guideline 5.1.1(iv)): a pre-permission screen must use neutral wording
             // and always lead to the system prompt — no "Maybe later" to dodge it. The system
             // dialog itself is where the user says no.
             primaryTitle: "Continue",
             primaryAction: requestLocation,
-            secondaryTitle: nil,
-            secondaryAction: nil
+            // Waiting on the system prompt — a second tap would only re-ask.
+            isPrimaryEnabled: !didRequest || didFinish
         )
-        .onChange(of: locationService.state) { _, newState in
+        // The permission answer, not the first GPS fix — that can take seconds after "Allow",
+        // which used to leave this screen looking frozen.
+        .onChange(of: locationService.authorization) { _, status in
             guard didRequest else { return }
-            switch newState {
-            case .authorized:
-                confirmAndContinue()
-            case .denied, .unavailable:
-                onContinue()
-            default:
-                break
+            switch status {
+            case .authorizedWhenInUse, .authorizedAlways: confirmAndContinue()
+            case .denied, .restricted: finish()
+            default: break
+            }
+        }
+        // Debug location override and a failed fix report through `state` instead.
+        .onChange(of: locationService.state) { _, state in
+            guard didRequest else { return }
+            switch state {
+            case .authorized: confirmAndContinue()
+            case .denied, .unavailable: finish()
+            case .notDetermined: break
             }
         }
     }
@@ -176,31 +257,41 @@ private struct OnboardingLocationPage: View {
     private func requestLocation() {
         didRequest = true
 
-        // Already authorized from an earlier session — LocationService fetches on init, so the
-        // state may already be .authorized before this page even appears. Re-requesting yields
-        // the same coordinate, and onChange never fires for a value that hasn't actually
-        // changed, which otherwise leaves this screen stuck forever. Advance immediately instead
-        // of waiting for a delegate callback that has nothing new to report.
-        switch locationService.state {
-        case .authorized:
+        // Decided in an earlier session: the system won't prompt again and nothing will change,
+        // so waiting on onChange would leave this screen stuck.
+        switch locationService.authorization {
+        case .authorizedWhenInUse, .authorizedAlways:
             confirmAndContinue()
             return
-        case .denied, .unavailable:
-            // Already decided in an earlier session — the system won't prompt again and the
-            // state won't change, so waiting on onChange would leave this screen stuck.
-            onContinue()
+        case .denied, .restricted:
+            finish()
             return
-        case .notDetermined:
+        default:
             break
+        }
+        if case .authorized = locationService.state {
+            confirmAndContinue()
+            return
         }
 
         locationService.requestLocation()
     }
 
     private func confirmAndContinue() {
+        guard !didFinish else { return }
+        didFinish = true
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        withAnimation(Motion.playful) { showConfirmation = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { onContinue() }
+        withAnimation(reduceMotion ? .easeOut(duration: 0.15) : Motion.playful) { showConfirmation = true }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            onContinue()
+        }
+    }
+
+    private func finish() {
+        guard !didFinish else { return }
+        didFinish = true
+        onContinue()
     }
 }
 
@@ -213,13 +304,16 @@ private struct OnboardingHalalPage: View {
         OnboardingPageLayout(
             content: {
                 Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 72))
+                    .font(.system(size: 64))
                     .foregroundStyle(Color.pandan)
-                    .accessibilityHidden(true)
+                    .frame(width: 132, height: 132)
+                    .background(Color.pandan.opacity(0.12), in: Circle())
                     .frame(height: 150)
+                    .accessibilityHidden(true)
             },
             headline: "Do you only eat halal?",
-            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked — and you can help verify them. Switch it anytime with the Hide non-halal chip on the map. Halal info comes from the community, so always double-check at the restaurant.",
+            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked. Change it anytime from the map.",
+            footnote: OnboardingFootnote(icon: "info.circle.fill", text: "Halal info comes from the community. Always double-check at the restaurant."),
             primaryTitle: "Yes, hide non-halal",
             primaryAction: {
                 HalalPreference.isOn = true
@@ -238,103 +332,191 @@ private struct OnboardingTastePage: View {
     let onFinish: () -> Void
 
     @State private var state = OnboardingState.shared
+    /// Bumped when a tap is refused at the limit — shakes the counter so the limit is seen.
+    @State private var limitNudge = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let cuisines = ["Mamak", "Cafe", "Korean", "Malay", "Dessert", "Cheap eats", "Late night", "Anything lah"]
+    private let cuisines = ["Mamak", "Cafe", "Korean", "Malay", "Dessert", "Cheap eats", "Late night", OnboardingState.anythingPick]
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 10)]
+    private let maxPicks = OnboardingState.maxPicks
+
+    private var isFull: Bool { state.selectedCuisines.count >= maxPicks }
 
     var body: some View {
         OnboardingPageLayout(
             content: {
-                LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(cuisines, id: \.self) { cuisine in
-                        cuisineChip(cuisine)
+                VStack(spacing: 12) {
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(cuisines, id: \.self) { cuisine in
+                            cuisineChip(cuisine)
+                        }
                     }
+                    Text(counterText)
+                        .font(.makanBody(12).weight(.semibold))
+                        .foregroundStyle(isFull ? Color.sambalRed : Color.kicap.opacity(0.6))
+                        .contentTransition(.numericText())
+                        .modifier(ShakeEffect(trigger: reduceMotion ? 0 : limitNudge))
+                        .animation(.easeOut(duration: 0.35), value: limitNudge)
+                        .animation(Motion.quick, value: state.selectedCuisines.count)
                 }
                 .padding(.horizontal, 8)
             },
             headline: "What are you usually craving?",
-            subtext: "Pick a few — you can change this anytime.",
+            subtext: "Pick up to \(maxPicks). They shape your first few picks.",
             primaryTitle: "Start exploring",
             primaryAction: onFinish,
+            // Nothing picked is what "Skip for now" is for — two buttons doing the same thing
+            // was just confusing.
+            isPrimaryEnabled: !state.selectedCuisines.isEmpty,
             secondaryTitle: "Skip for now",
             secondaryAction: onFinish
         )
     }
 
+    private var counterText: String {
+        let count = state.selectedCuisines.count
+        return count == 0 ? "None picked yet" : "\(count) of \(maxPicks) picked"
+    }
+
     private func cuisineChip(_ cuisine: String) -> some View {
         let isSelected = state.selectedCuisines.contains(cuisine)
+        // "Anything lah" replaces the others instead of adding to them, so it's never locked.
+        let isLocked = isFull && !isSelected && cuisine != OnboardingState.anythingPick
+
         return Button {
+            if isLocked {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                limitNudge += 1
+                return
+            }
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            withAnimation(Motion.playful) {
+            withAnimation(reduceMotion ? .easeOut(duration: 0.12) : Motion.playful) {
                 state.toggleCuisine(cuisine)
             }
         } label: {
-            Text(cuisine)
-                .font(.makanBody(14))
-                .foregroundStyle(isSelected ? .white : Color.kicap)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.sambalRed : Color.white, in: Capsule())
+            HStack(spacing: 5) {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .transition(.scale.combined(with: .opacity))
+                }
+                Text(cuisine)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .font(.makanBody(14))
+            .foregroundStyle(isSelected ? .white : Color.kicap)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(isSelected ? Color.sambalRed : Color.white, in: Capsule())
+            .opacity(isLocked ? 0.45 : 1)
         }
         .buttonStyle(PressCompressStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(isLocked ? "You've picked \(maxPicks). Unpick one first." : "")
     }
 }
 
-/// Shared skeleton: illustration/content up top, headline + subtext in the middle, CTA + skip
+/// Hori - Layout
+
+/// Small icon + note under the subtext — the privacy promise / safety caveat, kept visually
+/// separate so the main explanation stays short.
+private struct OnboardingFootnote {
+    let icon: String
+    let text: String
+}
+
+/// Shared skeleton: illustration up top, headline + subtext in the middle, CTA + secondary
 /// pinned to the bottom. Every onboarding page fits this shape, so the layout lives once here
 /// instead of being re-typed per page.
+///
+/// Colours are all explicit brand colours on purpose — the cream background never changes, so
+/// adaptive system colours (`.secondary`) would turn light-on-cream for anyone in Dark Mode.
 private struct OnboardingPageLayout<Content: View>: View {
     @ViewBuilder let content: () -> Content
     let headline: String
     let subtext: String
+    var footnote: OnboardingFootnote? = nil
     let primaryTitle: String
-    let primaryAction: (() -> Void)?
-    let secondaryTitle: String?
-    let secondaryAction: (() -> Void)?
+    let primaryAction: () -> Void
+    var isPrimaryEnabled = true
+    var secondaryTitle: String? = nil
+    var secondaryAction: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 0)
-
-            content()
-
-            VStack(spacing: 10) {
-                Text(headline)
-                    .font(.makanDisplay(24))
-                    .foregroundStyle(Color.kicap)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-
-                Text(subtext)
-                    .font(.makanBody(14))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 32)
-
-            Spacer(minLength: 0)
-
-            VStack(spacing: 14) {
-                MakanPrimaryButton(title: primaryTitle) {
-                    primaryAction?()
+        // Scrolls only when it has to (small phones, large text) — otherwise centred as before,
+        // and the buttons stay pinned either way.
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 28) {
+                    Spacer(minLength: 0)
+                    content()
+                    copy
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            buttons
+        }
+    }
+
+    private var copy: some View {
+        VStack(spacing: 10) {
+            Text(headline)
+                .font(.makanDisplay(24))
+                .foregroundStyle(Color.kicap)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+
+            Text(subtext)
+                .font(.makanBody(15))
+                .foregroundStyle(Color.kicap.opacity(0.72))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let footnote {
+                Label(footnote.text, systemImage: footnote.icon)
+                    .font(.makanBody(12))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.horizontal, 32)
+    }
+
+    private var buttons: some View {
+        VStack(spacing: 6) {
+            MakanPrimaryButton(title: primaryTitle, action: primaryAction)
+                .disabled(!isPrimaryEnabled)
+                .opacity(isPrimaryEnabled ? 1 : 0.45)
+                .animation(Motion.quick, value: isPrimaryEnabled)
                 .padding(.horizontal, 32)
 
-                if let secondaryTitle {
-                    Button(secondaryTitle) {
-                        secondaryAction?()
-                    }
-                    .font(.makanBody(14))
-                    .foregroundStyle(.secondary)
-                    .frame(minHeight: 44)
+            if let secondaryTitle {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    secondaryAction?()
+                } label: {
+                    Text(secondaryTitle)
+                        .font(.makanBody(15).weight(.semibold))
+                        .foregroundStyle(Color.kicap.opacity(0.7))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
+                .padding(.horizontal, 32)
             }
-            .padding(.bottom, 16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+        .background(Color.nasiCream)
     }
 }
 

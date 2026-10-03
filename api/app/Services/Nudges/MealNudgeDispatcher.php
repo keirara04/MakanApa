@@ -95,7 +95,7 @@ class MealNudgeDispatcher
 
         $found = $this->pickFinder->find($user, $now);
         $place = $this->placeForCopy($found['pick']);
-        $copy = NudgeCopyCatalog::compose($slot, $place, $found['raining'], $localDay, $user->id);
+        $copy = NudgeCopyCatalog::compose($slot, $place, $found['raining'], $localDay, $user->id, (bool) $user->plain_english);
         $detail = $copy['key'].($place ? ' · '.$place['name'] : '');
 
         if ($dryRun) {

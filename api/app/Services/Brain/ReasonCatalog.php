@@ -40,20 +40,27 @@ final class ReasonCatalog
         'exploration' => 'a wildcard — you\'ve been playing safe',
     ];
 
+    /** Settings → Plain English: a Malay-only reason line below → its English line. */
+    private const PLAIN = [
+        'Hujan — kept it close ☔' => 'Raining — kept it close ☔',
+        'Jumaat — picked one that\'s open' => 'Friday — picked one that\'s open',
+        'Hujung bulan — kept it cheap 💸' => 'Month-end — kept it cheap 💸',
+    ];
+
     /**
      * @return array{reasons: array<int, array{family: string, key: string, icon: string, text: string}>, decidingFactor: ?string, fit: string}
      */
-    public static function render(array $facts, int $seed, bool $rejectedCategoryChanged = false, ?string $rejectedCategory = null): array
+    public static function render(array $facts, int $seed, bool $rejectedCategoryChanged = false, ?string $rejectedCategory = null, bool $plainEnglish = false): array
     {
         $reasons = [];
         if ($rejectedCategoryChanged && $rejectedCategory) {
-            $reasons[] = self::line('moment', 'pulse_reject', $seed, ['category' => $rejectedCategory]);
+            $reasons[] = self::line('moment', 'pulse_reject', $seed, ['category' => $rejectedCategory], $plainEnglish);
         }
         foreach ($facts['reasons'] ?? [] as $reason) {
             if ($rejectedCategoryChanged && $reason['family'] === 'moment') {
                 continue; // one MOMENT line only — the "not feeling X" acknowledgement wins
             }
-            $line = self::line($reason['family'], $reason['key'], $seed, $reason['facts'] ?? []);
+            $line = self::line($reason['family'], $reason['key'], $seed, $reason['facts'] ?? [], $plainEnglish);
             if ($line !== null) {
                 $reasons[] = $line;
             }
@@ -94,18 +101,20 @@ final class ReasonCatalog
         return $lines;
     }
 
-    private static function line(string $family, string $key, int $seed, array $f): ?array
+    private static function line(string $family, string $key, int $seed, array $f, bool $plainEnglish): ?array
     {
         $variants = self::variants($key, $f);
         if ($variants === []) {
             return null;
         }
 
+        $text = $variants[crc32($seed.$key) % count($variants)];
+
         return [
             'family' => $family,
             'key' => $key,
             'icon' => self::ICONS[$key] ?? '•',
-            'text' => $variants[crc32($seed.$key) % count($variants)],
+            'text' => $plainEnglish ? (self::PLAIN[$text] ?? $text) : $text,
         ];
     }
 

@@ -179,7 +179,7 @@ struct NearbyAreaPanel: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             onPickOneLah()
         } label: {
-            Text(isPicking ? "Nasi tengah fikir..." : "Pick one lah")
+            Text(isPicking ? Copy.pickingInProgress : "Pick one lah")
                 .font(compact ? .makanBody(14) : .makanDisplay(16))
                 .foregroundStyle(.white)
                 .padding(.horizontal, compact ? 16 : 20)

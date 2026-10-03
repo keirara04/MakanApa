@@ -30,14 +30,14 @@ enum Copy {
     static let moodCharKueyTeowSubtext = "Smoky and shiok"
     static let moodBananaLeafRiceSubtext = "Banjir gravy, no regrets"
     static let moodDimSumSubtext = "Small plates, big satisfaction"
-    static let moodCustomCravingPlaceholder = "Cakap je nak makan apa..."
+    @MainActor static var moodCustomCravingPlaceholder: String { plain("Cakap je nak makan apa...", "Tell me what you're craving...") }
 
     static let thinking = "Thinking so you don't have to..."
     static let thinkingStep1 = "Finding nearby spots..."
     static let thinkingStep2 = "Checking what fits you..."
     static let thinkingStep3 = "Picking the best one..."
 
-    static let rerollHeadline = "Cari lagi!"
+    @MainActor static var rerollHeadline: String { plain("Cari lagi!", "Finding another one!") }
     static let rerollLine1 = "Same preferences"
     static let rerollLine2 = "Different spot"
     static let rerollLine3 = "Still sedap, don't worry"
@@ -86,9 +86,9 @@ enum Copy {
     static let signIn = "Sign in"
     static let loginInvalidCredentials = "Email or password doesn't match."
 
-    static let communityHeadlineUniversityFormat = "%@ tengah makan apa? 👀"
+    @MainActor static var communityHeadlineUniversityFormat: String { plain("%@ tengah makan apa? 👀", "What's %@ eating? 👀") }
     static let communitySubtitleUniversityFormat = "Popular around %@"
-    static let communityHeadlineAreaFormat = "%@ tengah makan apa? 👀"
+    @MainActor static var communityHeadlineAreaFormat: String { plain("%@ tengah makan apa? 👀", "What's %@ eating? 👀") }
     static let communitySubtitleAreaFormat = "Popular around %@"
     static let communityHeadlinePublic = "What's trending near you"
     static let communitySubtitlePublic = "Trending picks nearby"
@@ -201,4 +201,17 @@ enum Copy {
     static let communityAddMenuSubtitle = "Help people know what's good here."
     static let communityBlankIsFine = "You can leave these blank — the community can help complete them later."
     static let communityAddMenuItemCTA = "Add another item"
+
+    // MARK: - Plain English (Settings → Plain English)
+    // Manglish is the voice and the default. Only the Malay-only lines a non-Malay speaker can't
+    // read get a plain pair (the `plain(…)` ones above and below); every other "lah" stays.
+
+    @MainActor static var whyThisPick: String { plain("Kenapa ni?", "Why this one?") }
+    @MainActor static var whyNotPrompt: String { plain("Help me learn — kenapa tak nak?", "Help me learn — why not this one?") }
+    @MainActor static var pickingInProgress: String { plain("Nasi tengah fikir...", "Nasi's thinking...") }
+    @MainActor static var makanSini: String { plain("Makan sini", "Makan here") }
+
+    @MainActor private static func plain(_ manglish: String, _ plain: String) -> String {
+        PlainEnglishPreference.shared.pick(manglish, plain: plain)
+    }
 }

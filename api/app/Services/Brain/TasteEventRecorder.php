@@ -19,7 +19,55 @@ use Illuminate\Support\Facades\Config;
  */
 class TasteEventRecorder
 {
+    /**
+     * Onboarding's "What are you usually craving?" chips → [label, taste rows]. Base values before
+     * the weak authority scales them: a hint for the first picks, not evidence — one row each
+     * (n = 1) never reaches a Selera trait's evidence bar on its own.
+     */
+    public const ONBOARDING_SEEDS = [
+        // Mamak has no Google type — community places file it as a category, Google as Indian.
+        'mamak' => ['Mamak', [['category', 'mamak', 1.0], ['cuisine', 'indian', 0.5]]],
+        'cafe' => ['Cafe', [['category', 'cafe', 1.0]]],
+        'korean' => ['Korean', [['cuisine', 'korean', 1.0]]],
+        'malay' => ['Malay', [['cuisine', 'malay', 1.0]]],
+        'dessert' => ['Dessert', [['category', 'dessert', 1.0]]],
+        'cheap_eats' => ['Cheap eats', [['price', '1', 1.0]]],
+        'late_night' => ['Late night', [['vibe', 'late_night', 1.0]]],
+        // No lean at all — recorded only so Selera can show it was the answer.
+        'anything' => ['Anything', [['novelty', '', 0.0]]],
+    ];
+
     public function __construct(private readonly TasteProfileBuilder $builder) {}
+
+    /**
+     * Onboarding picks, once per owner — a later call (a reinstall, a second device) is a no-op.
+     * Never counted as a pick (`primary` stays off), so the stage and "N picks so far" don't move.
+     *
+     * @param  string[]  $picks  keys of ONBOARDING_SEEDS
+     */
+    public function onboardingSeed(TasteOwner $owner, array $picks): void
+    {
+        $alreadySeeded = $owner->scope(TasteEvent::query())->where('signal', 'onboarding')->exists();
+        if ($alreadySeeded) {
+            return;
+        }
+
+        $now = Carbon::now();
+        $records = [];
+        foreach (array_unique($picks) as $pick) {
+            [$label, $rows] = self::ONBOARDING_SEEDS[$pick];
+            foreach ($rows as [$dimension, $key, $value]) {
+                $records[] = [
+                    ...$this->ownerColumns($owner), 'session_id' => null, 'signal' => 'onboarding', 'detail' => $pick,
+                    'dimension' => $dimension, 'dimension_key' => $key, 'value' => $value * $this->authority('weak'),
+                    'scope' => 'long', 'source' => 'explicit', 'authority' => 'weak',
+                    'metadata' => json_encode(['label' => $label]), 'created_at' => $now,
+                ];
+            }
+        }
+
+        $this->insertAndCatchUp($owner, $records);
+    }
 
     public function accept(Decision $decision, DecisionRecommendation $row, ?User $user): void
     {

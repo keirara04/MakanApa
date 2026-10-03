@@ -137,7 +137,33 @@ struct SeleraView: View {
                     }
                 }
             }
+
+            if let picks = selera.startingPicks, !picks.isEmpty {
+                startingPicksCard(picks)
+            }
         }
+    }
+
+    /// What they chose in onboarding — owns up to where the first hints came from, so an early
+    /// recommendation leaning Mamak doesn't look like a guess.
+    private func startingPicksCard(_ picks: [String]) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            symbolBadge("flag.fill", tint: .kunyit)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Your starting picks: \(picks.joined(separator: " · "))")
+                    .font(.makanBody(15))
+                    .foregroundStyle(Color.kicap)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("From when you joined. They nudge your first recommendations until your real picks take over.")
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
     }
 
     private func traitCard(_ trait: SeleraTrait) -> some View {

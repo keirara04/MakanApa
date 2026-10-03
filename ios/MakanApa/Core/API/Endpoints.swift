@@ -1136,6 +1136,10 @@ struct UpdateHalalPreferenceRequestBody: Encodable {
     let halalPreference: Bool
 }
 
+struct UpdatePlainEnglishRequestBody: Encodable {
+    let plainEnglish: Bool
+}
+
 // MARK: - Community posts ("What KU is saying")
 
 enum CommunityReactionType: String, Codable, CaseIterable, Identifiable {
@@ -1498,6 +1502,12 @@ struct SeleraResponse: Decodable, Equatable {
     let signalCount: Int
     let traits: [SeleraTrait]
     let constraints: [SeleraConstraint]
+    /// Onboarding's cuisine chips, by label. Absent from older backends.
+    var startingPicks: [String]? = nil
+}
+
+struct SeleraSeedRequestBody: Encodable {
+    let picks: [String]
 }
 
 struct SeleraFeedbackRequestBody: Encodable {

@@ -447,6 +447,10 @@ class AuthController extends Controller
             $user->halal_preference = $data['halalPreference'];
         }
 
+        if (array_key_exists('plainEnglish', $data)) {
+            $user->plain_english = $data['plainEnglish'];
+        }
+
         $user->save();
 
         return response()->json(['user' => $this->presentUser($user)]);
@@ -489,6 +493,7 @@ class AuthController extends Controller
             'name' => $user->name,
             'avatarKey' => $user->avatar_key,
             'halalPreference' => (bool) $user->halal_preference,
+            'plainEnglish' => (bool) $user->plain_english,
             'role' => $user->role,
             'status' => $user->status,
             'isGuest' => $user->isGuest(),

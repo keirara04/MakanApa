@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var authStore = AuthStore.shared
+    private var plainEnglish = PlainEnglishPreference.shared
 
     @State private var showingAboutInfo = false
     @State private var showingDeleteAccount = false
@@ -249,6 +250,20 @@ struct SettingsView: View {
                 if case .authenticated = authStore.session {
                     Task { _ = try? await APIClient.updateHalalPreference(isOn) }
                 }
+            }
+
+            SettingsDivider()
+
+            SettingsRow(icon: "character.bubble.fill", tint: .kicap, title: "Plain English", subtitle: "Swap Malay-only phrases for English") {
+                Toggle("", isOn: Binding(
+                    get: { plainEnglish.isOn },
+                    set: { isOn in
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        plainEnglish.set(isOn)
+                    }
+                ))
+                .labelsHidden()
+                .tint(.sambalRed)
             }
 
             SettingsDivider()

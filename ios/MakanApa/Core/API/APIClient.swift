@@ -168,6 +168,10 @@ enum APIClient {
         try await delete("me/selera/traits/\(key)")
     }
 
+    static func seedSelera(picks: [String]) async throws -> SeleraResponse {
+        try await post("me/selera/seed", body: SeleraSeedRequestBody(picks: picks))
+    }
+
     static func resetSelera() async throws -> SeleraResponse {
         try await post("me/selera/reset", body: EmptyBody())
     }
@@ -249,6 +253,10 @@ enum APIClient {
 
     static func updateHalalPreference(_ isOn: Bool) async throws -> MeResponse {
         try await patch("me/profile", body: UpdateHalalPreferenceRequestBody(halalPreference: isOn))
+    }
+
+    static func updatePlainEnglish(_ isOn: Bool) async throws -> MeResponse {
+        try await patch("me/profile", body: UpdatePlainEnglishRequestBody(plainEnglish: isOn))
     }
 
     // MARK: - Halal trust
