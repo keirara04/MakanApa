@@ -59,11 +59,9 @@ struct SavedPickRevealView: View {
     @State private var phase: Phase = .boxed
     // The blind-box intro: the deck arrives sealed, gets a shake, pops open, and the cards climb
     // out — buying the deck's map snapshots time to render before anyone sees a face.
-    @State private var boxShown = false
-    @State private var boxShake: CGFloat = 0
-    @State private var lidOpen = false
+    @State private var box = CardBoxMotion()
     @State private var cardsOut = false
-    @State private var boxGone = false
+    @State private var boxLands = 0
     @State private var boxShakes = 0
     @State private var boxPops = 0
     @State private var isSplit = false
@@ -123,6 +121,7 @@ struct SavedPickRevealView: View {
         .background { stage }
         .overlay(alignment: .topLeading) { closeButton }
         .statusBarHidden()
+        .sensoryFeedback(.impact(weight: .light), trigger: boxLands)
         .sensoryFeedback(.impact(weight: .light), trigger: boxShakes)
         .sensoryFeedback(.impact(weight: .medium), trigger: boxPops)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: riffleSnaps)
@@ -151,7 +150,7 @@ struct SavedPickRevealView: View {
 
     private var spotlight: Double {
         switch phase {
-        case .boxed: lidOpen ? 0.2 : 0.14
+        case .boxed: box.glow ? 0.22 : 0.14
         case .fanned, .stacked: 0.12
         case .revealing: 0.3
         case .revealed: 0.18
@@ -203,16 +202,17 @@ struct SavedPickRevealView: View {
                 stillDeck
             } else {
                 ZStack {
-                    if !boxGone || phase == .boxed {
-                        boxGlow.zIndex(-1)
+                    if phase == .boxed {
+                        CardBoxShadow(motion: box).zIndex(-2)
+                        CardBoxInside(motion: box).zIndex(-1)
                     }
                     ForEach(deck.indices, id: \.self) { index in
                         card(at: index)
                     }
                     if phase == .boxed {
-                        boxFront.zIndex(50)
-                        // Once it swings open the lid sits behind the cards climbing out.
-                        boxLid.zIndex(lidOpen ? -0.5 : 51)
+                        CardBoxFront(motion: box, title: Copy.savedPickTitle).zIndex(50)
+                        // Past upright the lid is behind the cards climbing out of the box.
+                        CardBoxLid(motion: box).zIndex(box.lidAngle > 90 ? -0.5 : 51)
                     }
                 }
                 // Looking down at the table while the cards are shuffled; level for the reveal.
@@ -277,7 +277,7 @@ struct SavedPickRevealView: View {
     private func rotation(index: Int, isLeftHalf: Bool) -> Double {
         guard entered else { return 0 }
         switch phase {
-        case .boxed: return 0
+        case .boxed: return cardsOut ? (tilts[safe: index] ?? 0) : 0
         case .fanned: return (Double(index) - center) * 9
         case .stacked: return isSplit ? (isLeftHalf ? -9 : 9) : (tilts[safe: index] ?? 0)
         case .revealing, .revealed: return 0
@@ -289,9 +289,10 @@ struct SavedPickRevealView: View {
         guard entered else { return CGSize(width: 0, height: 40) }
         switch phase {
         case .boxed:
+            // Inside, the cards ride along with the box; out, they stand above its mouth.
             return cardsOut
-                ? CGSize(width: 0, height: -40 - Double(depth) * 5)
-                : CGSize(width: boxShake, height: Self.boxCenterY + (boxShown ? 0 : 50))
+                ? CGSize(width: CardBoxMotion.cardsInside.width, height: -70 - Double(depth) * 5)
+                : CGSize(width: CardBoxMotion.cardsInside.width, height: CardBoxMotion.cardsInside.height + box.dropY + box.hop)
         case .fanned:
             let spread = Double(index) - center
             return CGSize(width: spread * 30, height: abs(spread) * 8)
@@ -310,7 +311,7 @@ struct SavedPickRevealView: View {
 
     private func scale(isTop: Bool) -> Double {
         switch phase {
-        case .boxed: cardsOut ? 0.92 : 0.8
+        case .boxed: cardsOut ? 0.9 : 0.74
         case .revealing: isTop ? 1.1 : 0.9
         case .revealed: isTop ? 0.86 : 0.9
         default: 1
@@ -320,78 +321,11 @@ struct SavedPickRevealView: View {
     private func opacity(isTop: Bool) -> Double {
         guard entered else { return 0 }
         switch phase {
-        case .boxed: return boxShown ? 1 : 0
+        case .boxed: return 1
         case .fanned, .stacked: return 1
         case .revealing, .revealed: return isTop ? 1 : 0
         case .failed, .exhausted: return 0.2
         }
-    }
-
-    // MARK: - Card box
-
-    private static let boxCenterY: CGFloat = 60
-    private static let boxSize = CGSize(width: 214, height: 232)
-
-    private var boxTransform: (offset: CGSize, scale: CGFloat, opacity: Double) {
-        (
-            CGSize(width: boxShake, height: Self.boxCenterY + (boxGone ? 420 : boxShown ? 0 : 50)),
-            boxShown ? 1 : 0.85,
-            boxGone ? 0 : boxShown ? 1 : 0
-        )
-    }
-
-    /// The box itself: cream, the Nasi mascot printed on the front, a red band like a seal.
-    private var boxFront: some View {
-        let transform = boxTransform
-        return VStack(spacing: 10) {
-            Color.sambalRed.frame(height: 26)
-            Spacer(minLength: 0)
-            Image("Avatar_nasi")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 96)
-            Text(Copy.savedPickTitle)
-                .font(.makanDisplay(15))
-                .foregroundStyle(Color.kicap)
-            Spacer(minLength: 0)
-        }
-        .frame(width: Self.boxSize.width, height: Self.boxSize.height)
-        .background(Color.surface)
-        .clipShape(.card)
-        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
-        .shadow(color: .black.opacity(0.45), radius: 22, y: 14)
-        .scaleEffect(transform.scale)
-        .offset(transform.offset)
-        .opacity(transform.opacity)
-        .accessibilityHidden(true)
-    }
-
-    /// Hinged at the back edge, so it swings up and away from the viewer when it pops.
-    private var boxLid: some View {
-        let transform = boxTransform
-        return RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(Color.sambalRed)
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).inset(by: 5).strokeBorder(.white.opacity(0.4), lineWidth: 1))
-            .frame(width: Self.boxSize.width + 8, height: 40)
-            .rotation3DEffect(.degrees(lidOpen ? 118 : 0), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.5)
-            .opacity(lidOpen ? 0.55 : 1)
-            .offset(y: -(Self.boxSize.height / 2) - 20)
-            .scaleEffect(transform.scale)
-            .offset(transform.offset)
-            .opacity(transform.opacity)
-            .accessibilityHidden(true)
-    }
-
-    /// Warm light spilling out of the open box.
-    private var boxGlow: some View {
-        let transform = boxTransform
-        return Ellipse()
-            .fill(RadialGradient(colors: [Color.kunyit.opacity(0.7), .clear], center: .center, startRadius: 4, endRadius: 120))
-            .frame(width: 260, height: 120)
-            .offset(y: -(Self.boxSize.height / 2))
-            .offset(transform.offset)
-            .opacity(lidOpen && !boxGone ? 1 : 0)
-            .accessibilityHidden(true)
     }
 
     /// Reduce Motion: one card that cross-fades from its back to the winner — nothing travels.
@@ -600,26 +534,36 @@ struct SavedPickRevealView: View {
         await reveal(exhaustedWhenEmpty: false)
     }
 
-    /// Rise, shake, pop, climb out, box drops away — about 2.3 s.
+    /// Drop and land, rock, pop the lid, cards climb out, box sinks away — about 2.6 s.
     private func openBox() async {
-        withAnimation(Motion.playful) { boxShown = true }
-        try? await Task.sleep(for: .milliseconds(600))
+        withAnimation(.easeIn(duration: 0.38)) { box.dropY = 0 }
+        try? await Task.sleep(for: .milliseconds(380))
+        boxLands += 1
+        withAnimation(.easeOut(duration: 0.07)) { box.squash = true }
+        try? await Task.sleep(for: .milliseconds(70))
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) { box.squash = false }
+        try? await Task.sleep(for: .milliseconds(480))
 
+        // Rocks on its base, each swing smaller — something inside wants out.
         boxShakes += 1
-        for x: CGFloat in [-8, 8, -6, 6, 0] {
-            withAnimation(.easeInOut(duration: 0.07)) { boxShake = x }
-            try? await Task.sleep(for: .milliseconds(70))
+        for angle in [-6.0, 5.0, -3.5, 2.0, 0] {
+            withAnimation(.easeInOut(duration: 0.09)) { box.rock = angle }
+            try? await Task.sleep(for: .milliseconds(90))
         }
-        try? await Task.sleep(for: .milliseconds(250))
+        try? await Task.sleep(for: .milliseconds(220))
 
         boxPops += 1
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) { lidOpen = true }
-        try? await Task.sleep(for: .milliseconds(350))
+        withAnimation(.easeOut(duration: 0.12)) { box.hop = -10 }
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.62)) { box.lidAngle = 165 }
+        withAnimation(.easeOut(duration: 0.5)) { box.glow = true }
+        try? await Task.sleep(for: .milliseconds(120))
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.55)) { box.hop = 0 }
+        try? await Task.sleep(for: .milliseconds(300))
 
         cardsOut = true
         try? await Task.sleep(for: .milliseconds(850))
 
-        withAnimation(.easeIn(duration: 0.45)) { boxGone = true }
+        withAnimation(.easeIn(duration: 0.45)) { box.sunk = true }
         try? await Task.sleep(for: .milliseconds(250))
     }
 
@@ -946,4 +890,235 @@ private struct SavedPlaceCardBack: View {
 
 private extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
+}
+
+// MARK: - Card box (blind-box intro)
+
+/// Everything the box does, shared by its layers so they move as one object. The cards are drawn
+/// *between* the inside and the front, so the box is split into layers on one shared canvas.
+struct CardBoxMotion {
+    var dropY: CGFloat = -340
+    var squash = false
+    var rock: Double = 0
+    var hop: CGFloat = 0
+    var lidAngle: Double = 0
+    var glow = false
+    var sunk = false
+
+    /// Where the box sits in the deck area, and where the cards ride inside it.
+    static let centerY: CGFloat = 60
+    static let cardsInside = CGSize(width: -12, height: centerY + 46)
+}
+
+/// The box drawn in three-quarter view on a fixed canvas: front face, right side face, top.
+/// Light comes from the top left, like the stage spotlight.
+private enum CardBoxGeometry {
+    static let canvas = CGSize(width: 264, height: 310)
+    static let front = CGRect(x: 18, y: 96, width: 204, height: 210)
+    /// How far the back edge sits up and to the right of the front edge.
+    static let depth = CGSize(width: 34, height: -26)
+    static let lidLip: CGFloat = 34
+
+    static var side: [CGPoint] {
+        [CGPoint(x: front.maxX, y: front.minY), CGPoint(x: front.maxX + depth.width, y: front.minY + depth.height),
+         CGPoint(x: front.maxX + depth.width, y: front.maxY + depth.height), CGPoint(x: front.maxX, y: front.maxY)]
+    }
+
+    static var top: [CGPoint] {
+        [CGPoint(x: front.minX, y: front.minY), CGPoint(x: front.minX + depth.width, y: front.minY + depth.height),
+         CGPoint(x: front.maxX + depth.width, y: front.minY + depth.height), CGPoint(x: front.maxX, y: front.minY)]
+    }
+}
+
+private struct Polygon: Shape {
+    let points: [CGPoint]
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.addLines(points)
+            path.closeSubpath()
+        }
+    }
+}
+
+/// Moves a box layer: drop, landing squash, rocking on its base, the hop when the lid pops, and
+/// sinking away at the end. Every layer gets the same one, on the same canvas, so they stay glued.
+private struct CardBoxPlacement: ViewModifier {
+    let motion: CardBoxMotion
+
+    func body(content: Content) -> some View {
+        content
+            .frame(width: CardBoxGeometry.canvas.width, height: CardBoxGeometry.canvas.height, alignment: .topLeading)
+            .scaleEffect(x: motion.squash ? 1.06 : 1, y: motion.squash ? 0.92 : 1, anchor: .bottom)
+            .rotationEffect(.degrees(motion.rock), anchor: .bottom)
+            .offset(y: motion.dropY + motion.hop + (motion.sunk ? 70 : 0))
+            .scaleEffect(motion.sunk ? 0.9 : 1)
+            .opacity(motion.sunk ? 0 : 1)
+            .offset(y: CardBoxMotion.centerY)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// Contact shadow on the table — stays put while the box falls, firming up as it lands.
+private struct CardBoxShadow: View {
+    let motion: CardBoxMotion
+
+    var body: some View {
+        let landed = motion.dropY > -40
+        Ellipse()
+            .fill(.black.opacity(motion.sunk ? 0 : landed ? 0.6 : 0.2))
+            .frame(width: 240, height: 26)
+            .blur(radius: 10)
+            .scaleEffect(landed ? 1 : 0.5)
+            .offset(x: 6, y: CardBoxMotion.centerY + CardBoxGeometry.canvas.height / 2 - 6)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The dark inside of the box, plus the light that spills out of it once the lid is open.
+private struct CardBoxInside: View {
+    let motion: CardBoxMotion
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            // A column of warm light rising out of the open box.
+            LinearGradient(colors: [Color.kunyit.opacity(0.55), .clear], startPoint: .bottom, endPoint: .top)
+                .frame(width: 170, height: 230)
+                .blur(radius: 14)
+                .position(x: CardBoxGeometry.front.midX + 17, y: CardBoxGeometry.front.minY - 120)
+                .opacity(motion.glow ? 1 : 0)
+            Polygon(points: CardBoxGeometry.top)
+                .fill(LinearGradient(colors: [Color(red: 0.16, green: 0.1, blue: 0.08), Color(red: 0.32, green: 0.2, blue: 0.14)],
+                                     startPoint: .top, endPoint: .bottom))
+            Polygon(points: CardBoxGeometry.top)
+                .fill(RadialGradient(colors: [Color.kunyit.opacity(0.65), .clear], center: UnitPoint(x: 0.5, y: 0.28),
+                                     startRadius: 2, endRadius: 110))
+                .opacity(motion.glow ? 1 : 0)
+        }
+        .modifier(CardBoxPlacement(motion: motion))
+    }
+}
+
+/// Front and side faces, with the Nasi mascot printed on the front.
+private struct CardBoxFront: View {
+    let motion: CardBoxMotion
+    let title: String
+
+    var body: some View {
+        let front = CardBoxGeometry.front
+        ZStack(alignment: .topLeading) {
+            // Side face: same card stock, turned away from the light.
+            Polygon(points: CardBoxGeometry.side)
+                .fill(Color.surface)
+                .overlay(Polygon(points: CardBoxGeometry.side)
+                    .fill(LinearGradient(colors: [.black.opacity(0.18), .black.opacity(0.34)], startPoint: .top, endPoint: .bottom)))
+            Polygon(points: [
+                CGPoint(x: front.maxX, y: front.maxY - 30), CGPoint(x: front.maxX + 34, y: front.maxY - 56),
+                CGPoint(x: front.maxX + 34, y: front.maxY - 44), CGPoint(x: front.maxX, y: front.maxY - 18),
+            ])
+            .fill(Color.sambalRed)
+            .brightness(-0.18)
+
+            // Front face.
+            VStack(spacing: 8) {
+                Spacer().frame(height: CardBoxGeometry.lidLip + 12)
+                Image("Avatar_nasi")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88)
+                    .shadow(color: .black.opacity(0.12), radius: 3, y: 2)
+                Text(title)
+                    .font(.makanDisplay(14))
+                    .foregroundStyle(Color.kicap)
+                Spacer(minLength: 0)
+                Color.sambalRed.frame(height: 12)
+                    .padding(.bottom, 18)
+            }
+            .frame(width: front.width, height: front.height)
+            .background(Color.surface)
+            .overlay(LinearGradient(colors: [.white.opacity(0.35), .clear, .black.opacity(0.12)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing))
+            .overlay(alignment: .leading) {
+                // Light catching the front-left edge.
+                LinearGradient(colors: [.white.opacity(0.7), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom)
+                    .frame(width: 1.5)
+            }
+            .overlay(alignment: .trailing) {
+                Color.black.opacity(0.18).frame(width: 1)
+            }
+            .offset(x: front.minX, y: front.minY)
+        }
+        .modifier(CardBoxPlacement(motion: motion))
+    }
+}
+
+/// The red lid: top panel plus front and side lips, hinged on the back edge. Past upright you see
+/// its darker inside.
+private struct CardBoxLid: View {
+    let motion: CardBoxMotion
+
+    var body: some View {
+        let front = CardBoxGeometry.front
+        let depth = CardBoxGeometry.depth
+        let lip = CardBoxGeometry.lidLip
+        let size = CGSize(width: front.width + depth.width, height: -depth.height + lip)
+
+        LidShape(outside: true, size: size)
+            .modifier(LidHinge(angle: motion.lidAngle, inside: LidShape(outside: false, size: size)))
+            .frame(width: size.width, height: size.height)
+            .offset(x: front.minX, y: front.minY + depth.height)
+            .modifier(CardBoxPlacement(motion: motion))
+    }
+}
+
+private struct LidShape: View {
+    let outside: Bool
+    let size: CGSize
+
+    var body: some View {
+        let depth = CardBoxGeometry.depth
+        let lip = CardBoxGeometry.lidLip
+        let frontWidth = size.width - depth.width
+        let top = -depth.height
+        ZStack(alignment: .topLeading) {
+            // Top panel — faces the light.
+            Polygon(points: [CGPoint(x: 0, y: top), CGPoint(x: depth.width, y: 0), CGPoint(x: size.width, y: 0), CGPoint(x: frontWidth, y: top)])
+                .fill(Color.sambalRed)
+                .overlay(Polygon(points: [CGPoint(x: 0, y: top), CGPoint(x: depth.width, y: 0), CGPoint(x: size.width, y: 0), CGPoint(x: frontWidth, y: top)])
+                    .fill(LinearGradient(colors: [.white.opacity(outside ? 0.3 : 0), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)))
+            // Side lip — in shadow.
+            Polygon(points: [CGPoint(x: frontWidth, y: top), CGPoint(x: size.width, y: 0), CGPoint(x: size.width, y: lip), CGPoint(x: frontWidth, y: top + lip)])
+                .fill(Color.sambalRed)
+                .brightness(-0.22)
+            // Front lip.
+            Rectangle()
+                .fill(Color.sambalRed)
+                .overlay(LinearGradient(colors: [.white.opacity(outside ? 0.14 : 0), .black.opacity(0.1)], startPoint: .top, endPoint: .bottom))
+                .overlay(alignment: .top) { Color.white.opacity(outside ? 0.55 : 0).frame(height: 1) }
+                .frame(width: frontWidth, height: lip)
+                .offset(y: top)
+        }
+        .brightness(outside ? 0 : -0.35)
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
+    }
+}
+
+/// Swings the lid around its back edge (the top of its frame) and swaps to the inside past 90°.
+private struct LidHinge<Inside: View>: ViewModifier, Animatable {
+    var angle: Double
+    let inside: Inside
+
+    nonisolated var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        ZStack {
+            content.opacity(angle < 90 ? 1 : 0)
+            inside.scaleEffect(x: 1, y: -1).opacity(angle < 90 ? 0 : 1)
+        }
+        .rotation3DEffect(.degrees(angle), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.45)
+    }
 }
