@@ -68,6 +68,8 @@ struct SavedPickRevealView: View {
     /// The winner's street, rendered once per reveal — a still image so the card can flip and
     /// tilt without a live map view glitching inside the 3D transform.
     @State private var map: MapSnapshot?
+    /// Every deck card's own street map, keyed by place id — so the fan isn't six blank faces.
+    @State private var deckMaps: [Int: MapSnapshot] = [:]
 
     private static let deckSize = 6
     private static let minimumRiffles = 2
@@ -84,25 +86,31 @@ struct SavedPickRevealView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                title
-                deckArea
-                if phase == .revealed {
-                    whyPanel
-                    actions
-                } else if phase == .failed || phase == .exhausted {
-                    failure
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    title
+                    deckArea
+                    if phase == .revealed {
+                        whyPanel
+                        actions
+                    } else if phase == .failed || phase == .exhausted {
+                        failure
+                    } else {
+                        deckCaption
+                    }
                 }
+                .padding(.horizontal, 24)
+                .padding(.top, 64)
+                .padding(.bottom, 32)
+                .frame(maxWidth: 480)
+                .frame(maxWidth: .infinity)
+                // Centered on the stage while shuffling; grows and scrolls once the reasons arrive.
+                .frame(minHeight: proxy.size.height)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 64)
-            .padding(.bottom, 32)
-            .frame(maxWidth: 480)
-            .frame(maxWidth: .infinity)
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
         }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollIndicators(.hidden)
         .background { stage }
         .overlay(alignment: .topLeading) { closeButton }
         .statusBarHidden()
@@ -149,6 +157,17 @@ struct SavedPickRevealView: View {
             .animation(.easeOut(duration: 0.4), value: entered)
             .frame(minHeight: 32)
             .accessibilityAddTraits(.isHeader)
+    }
+
+    private var deckCaption: some View {
+        let names = deck.prefix(2).map(\.name)
+        return Text(Copy.savedPickInDeck(Array(names), more: places.count - names.count))
+            .font(.makanBody(13))
+            .foregroundStyle(.white.opacity(0.6))
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .opacity(entered ? 1 : 0)
+            .animation(.easeOut(duration: 0.4).delay(0.3), value: entered)
     }
 
     private var closeButton: some View {
@@ -202,8 +221,8 @@ struct SavedPickRevealView: View {
             priceLevel: showsWinner ? pick?.priceLevel : deck[index].priceLevel,
             isWinner: showsWinner,
             sheen: showsWinner && sheen,
-            map: showsWinner ? .slot(map) : .none,
-            travel: showsWinner ? travelLabel : nil
+            map: .slot(showsWinner ? (map ?? pick.flatMap { deckMaps[$0.id] }) : deckMaps[deck[index].id]),
+            travel: showsWinner ? travelLabel : travelText(to: deck[index])
         )
         .modifier(CardFlip(angle: isFaceUp(isTop: isTop) ? 0 : 180, back: SavedPlaceCardBack()))
         // The riffle: each half bends toward the middle like cards under a thumb.
@@ -346,9 +365,23 @@ struct SavedPickRevealView: View {
 
     /// Walking pace (~5 km/h) up to 2 km, plain distance beyond; nothing without real location.
     private var travelLabel: String? {
-        guard originIsUser, let km = soloViewModel.currentPick?.distanceKm else { return nil }
+        guard let km = soloViewModel.currentPick?.distanceKm else { return nil }
+        return travelText(km: km)
+    }
+
+    private func travelText(to place: SavedPlace) -> String? {
+        travelText(km: distanceKm(to: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)))
+    }
+
+    private func travelText(km: Double) -> String? {
+        guard originIsUser else { return nil }
         guard km <= 2 else { return Copy.savedPickAway(Self.distanceText(km)) }
         return Copy.savedPickWalk(minutes: max(1, Int((km / 5 * 60).rounded())))
+    }
+
+    private func distanceKm(to coordinate: CLLocationCoordinate2D) -> Double {
+        CLLocation(latitude: origin.latitude, longitude: origin.longitude)
+            .distance(from: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)) / 1000
     }
 
     private func symbol(forFamily family: String, text: String) -> String {
@@ -447,12 +480,20 @@ struct SavedPickRevealView: View {
     private func firstDeal() async {
         isAnswered = false
         async let request: Void = pickFirst()
+        loadDeckMaps()
 
         entered = true
         if reduceMotion {
             phase = .stacked
         } else {
+            // Hold the fan until the cards' maps are in (they fade in as they land), capped so a
+            // slow render never stalls the show.
+            let start = ContinuousClock.now
             try? await Task.sleep(for: .milliseconds(800))
+            while deckMaps.count < deck.count, ContinuousClock.now - start < .milliseconds(1400), !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            try? await Task.sleep(for: .milliseconds(300))
             phase = .stacked
             try? await Task.sleep(for: .milliseconds(450))
         }
@@ -477,6 +518,18 @@ struct SavedPickRevealView: View {
         await shuffleUntilAnswered()
         await request
         await reveal(exhaustedWhenEmpty: true)
+    }
+
+    private func loadDeckMaps() {
+        let user = originIsUser ? origin : nil
+        for place in deck {
+            let coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude)
+            let km = distanceKm(to: coordinate)
+            Task {
+                guard let snapshot = await MapSnapshot.make(place: coordinate, user: user, distanceKm: km) else { return }
+                withAnimation(.easeOut(duration: 0.3)) { deckMaps[place.id] = snapshot }
+            }
+        }
     }
 
     private func pickFirst() async {

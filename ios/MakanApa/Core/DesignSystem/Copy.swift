@@ -279,6 +279,10 @@ enum Copy {
     static func savedPickWalk(minutes: Int) -> String { "\(minutes) min walk" }
     static func savedPickAway(_ distance: String) -> String { "\(distance) away" }
     static let savedPickMapLabel = "Map of where it is"
+    static func savedPickInDeck(_ names: [String], more: Int) -> String {
+        let list = names.joined(separator: ", ")
+        return more > 0 ? "In the deck: \(list) + \(more) more" : "In the deck: \(list)"
+    }
     static let close = "Close"
     static let back = "Back"
     static let cancel = "Cancel"
