@@ -49,14 +49,23 @@ struct SavedPickRevealView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
 
-    private enum Phase { case fanned, stacked, revealing, revealed, failed, exhausted }
+    private enum Phase { case boxed, fanned, stacked, revealing, revealed, failed, exhausted }
 
     @State private var deck: [SavedPlace]
     /// Draw order: the last index is the top card — the one that gets dealt.
     @State private var order: [Int]
     @State private var tilts: [Double]
     @State private var entered = false
-    @State private var phase: Phase = .fanned
+    @State private var phase: Phase = .boxed
+    // The blind-box intro: the deck arrives sealed, gets a shake, pops open, and the cards climb
+    // out — buying the deck's map snapshots time to render before anyone sees a face.
+    @State private var boxShown = false
+    @State private var boxShake: CGFloat = 0
+    @State private var lidOpen = false
+    @State private var cardsOut = false
+    @State private var boxGone = false
+    @State private var boxShakes = 0
+    @State private var boxPops = 0
     @State private var isSplit = false
     @State private var riffleSnaps = 0
     @State private var faceShown = false
@@ -114,6 +123,8 @@ struct SavedPickRevealView: View {
         .background { stage }
         .overlay(alignment: .topLeading) { closeButton }
         .statusBarHidden()
+        .sensoryFeedback(.impact(weight: .light), trigger: boxShakes)
+        .sensoryFeedback(.impact(weight: .medium), trigger: boxPops)
         .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: riffleSnaps)
         .sensoryFeedback(.success, trigger: faceShown) { _, shown in shown }
         .sensoryFeedback(.error, trigger: phase) { _, new in new == .failed || new == .exhausted }
@@ -140,6 +151,7 @@ struct SavedPickRevealView: View {
 
     private var spotlight: Double {
         switch phase {
+        case .boxed: lidOpen ? 0.2 : 0.14
         case .fanned, .stacked: 0.12
         case .revealing: 0.3
         case .revealed: 0.18
@@ -152,7 +164,7 @@ struct SavedPickRevealView: View {
             .font(.makanDisplay(22))
             .foregroundStyle(.white)
             .contentTransition(.opacity)
-            .opacity(entered && phase != .revealed && phase != .failed && phase != .exhausted ? 1 : 0)
+            .opacity(entered && phase != .boxed && phase != .revealed && phase != .failed && phase != .exhausted ? 1 : 0)
             .animation(.easeInOut(duration: 0.4), value: phase)
             .animation(.easeOut(duration: 0.4), value: entered)
             .frame(minHeight: 32)
@@ -191,8 +203,16 @@ struct SavedPickRevealView: View {
                 stillDeck
             } else {
                 ZStack {
+                    if !boxGone || phase == .boxed {
+                        boxGlow.zIndex(-1)
+                    }
                     ForEach(deck.indices, id: \.self) { index in
                         card(at: index)
+                    }
+                    if phase == .boxed {
+                        boxFront.zIndex(50)
+                        // Once it swings open the lid sits behind the cards climbing out.
+                        boxLid.zIndex(lidOpen ? -0.5 : 51)
                     }
                 }
                 // Looking down at the table while the cards are shuffled; level for the reveal.
@@ -233,6 +253,8 @@ struct SavedPickRevealView: View {
         .opacity(opacity(isTop: isTop))
         .zIndex(Double(depth))
         .animation(Motion.standard.delay(Double(index) * 0.05), value: entered)
+        // Out of the box top card first, each one a beat behind the last.
+        .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(Double(deck.count - 1 - depth) * 0.08), value: cardsOut)
         // Split together, then fall back in one card at a time, bottom first — the cascade.
         .animation(
             isSplit
@@ -245,7 +267,7 @@ struct SavedPickRevealView: View {
     private func isFaceUp(isTop: Bool) -> Bool {
         switch phase {
         case .fanned: true
-        case .stacked, .failed, .exhausted: false
+        case .boxed, .stacked, .failed, .exhausted: false
         case .revealing, .revealed: isTop && faceShown
         }
     }
@@ -255,6 +277,7 @@ struct SavedPickRevealView: View {
     private func rotation(index: Int, isLeftHalf: Bool) -> Double {
         guard entered else { return 0 }
         switch phase {
+        case .boxed: return 0
         case .fanned: return (Double(index) - center) * 9
         case .stacked: return isSplit ? (isLeftHalf ? -9 : 9) : (tilts[safe: index] ?? 0)
         case .revealing, .revealed: return 0
@@ -265,6 +288,10 @@ struct SavedPickRevealView: View {
     private func offset(index: Int, depth: Int, isTop: Bool, isLeftHalf: Bool) -> CGSize {
         guard entered else { return CGSize(width: 0, height: 40) }
         switch phase {
+        case .boxed:
+            return cardsOut
+                ? CGSize(width: 0, height: -40 - Double(depth) * 5)
+                : CGSize(width: boxShake, height: Self.boxCenterY + (boxShown ? 0 : 50))
         case .fanned:
             let spread = Double(index) - center
             return CGSize(width: spread * 30, height: abs(spread) * 8)
@@ -283,6 +310,7 @@ struct SavedPickRevealView: View {
 
     private func scale(isTop: Bool) -> Double {
         switch phase {
+        case .boxed: cardsOut ? 0.92 : 0.8
         case .revealing: isTop ? 1.1 : 0.9
         case .revealed: isTop ? 0.86 : 0.9
         default: 1
@@ -292,10 +320,78 @@ struct SavedPickRevealView: View {
     private func opacity(isTop: Bool) -> Double {
         guard entered else { return 0 }
         switch phase {
+        case .boxed: return boxShown ? 1 : 0
         case .fanned, .stacked: return 1
         case .revealing, .revealed: return isTop ? 1 : 0
         case .failed, .exhausted: return 0.2
         }
+    }
+
+    // MARK: - Card box
+
+    private static let boxCenterY: CGFloat = 60
+    private static let boxSize = CGSize(width: 214, height: 232)
+
+    private var boxTransform: (offset: CGSize, scale: CGFloat, opacity: Double) {
+        (
+            CGSize(width: boxShake, height: Self.boxCenterY + (boxGone ? 420 : boxShown ? 0 : 50)),
+            boxShown ? 1 : 0.85,
+            boxGone ? 0 : boxShown ? 1 : 0
+        )
+    }
+
+    /// The box itself: cream, the Nasi mascot printed on the front, a red band like a seal.
+    private var boxFront: some View {
+        let transform = boxTransform
+        return VStack(spacing: 10) {
+            Color.sambalRed.frame(height: 26)
+            Spacer(minLength: 0)
+            Image("Avatar_nasi")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96)
+            Text(Copy.savedPickTitle)
+                .font(.makanDisplay(15))
+                .foregroundStyle(Color.kicap)
+            Spacer(minLength: 0)
+        }
+        .frame(width: Self.boxSize.width, height: Self.boxSize.height)
+        .background(Color.surface)
+        .clipShape(.card)
+        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
+        .shadow(color: .black.opacity(0.45), radius: 22, y: 14)
+        .scaleEffect(transform.scale)
+        .offset(transform.offset)
+        .opacity(transform.opacity)
+        .accessibilityHidden(true)
+    }
+
+    /// Hinged at the back edge, so it swings up and away from the viewer when it pops.
+    private var boxLid: some View {
+        let transform = boxTransform
+        return RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(Color.sambalRed)
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).inset(by: 5).strokeBorder(.white.opacity(0.4), lineWidth: 1))
+            .frame(width: Self.boxSize.width + 8, height: 40)
+            .rotation3DEffect(.degrees(lidOpen ? 118 : 0), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.5)
+            .opacity(lidOpen ? 0.55 : 1)
+            .offset(y: -(Self.boxSize.height / 2) - 20)
+            .scaleEffect(transform.scale)
+            .offset(transform.offset)
+            .opacity(transform.opacity)
+            .accessibilityHidden(true)
+    }
+
+    /// Warm light spilling out of the open box.
+    private var boxGlow: some View {
+        let transform = boxTransform
+        return Ellipse()
+            .fill(RadialGradient(colors: [Color.kunyit.opacity(0.7), .clear], center: .center, startRadius: 4, endRadius: 120))
+            .frame(width: 260, height: 120)
+            .offset(y: -(Self.boxSize.height / 2))
+            .offset(transform.offset)
+            .opacity(lidOpen && !boxGone ? 1 : 0)
+            .accessibilityHidden(true)
     }
 
     /// Reduce Motion: one card that cross-fades from its back to the winner — nothing travels.
@@ -486,11 +582,13 @@ struct SavedPickRevealView: View {
         if reduceMotion {
             phase = .stacked
         } else {
-            // Hold the fan until the cards' maps are in (they fade in as they land), capped so a
-            // slow render never stalls the show.
             let start = ContinuousClock.now
+            await openBox()
+            withAnimation(Motion.standard) { phase = .fanned }
+            // Hold the fan until the cards' maps are in (they fade in as they land), capped so a
+            // slow render never stalls the show — the box has usually covered the wait already.
             try? await Task.sleep(for: .milliseconds(800))
-            while deckMaps.count < deck.count, ContinuousClock.now - start < .milliseconds(1400), !Task.isCancelled {
+            while deckMaps.count < deck.count, ContinuousClock.now - start < .milliseconds(3600), !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             try? await Task.sleep(for: .milliseconds(300))
@@ -500,6 +598,29 @@ struct SavedPickRevealView: View {
         await shuffleUntilAnswered()
         await request
         await reveal(exhaustedWhenEmpty: false)
+    }
+
+    /// Rise, shake, pop, climb out, box drops away — about 2.3 s.
+    private func openBox() async {
+        withAnimation(Motion.playful) { boxShown = true }
+        try? await Task.sleep(for: .milliseconds(600))
+
+        boxShakes += 1
+        for x: CGFloat in [-8, 8, -6, 6, 0] {
+            withAnimation(.easeInOut(duration: 0.07)) { boxShake = x }
+            try? await Task.sleep(for: .milliseconds(70))
+        }
+        try? await Task.sleep(for: .milliseconds(250))
+
+        boxPops += 1
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) { lidOpen = true }
+        try? await Task.sleep(for: .milliseconds(350))
+
+        cardsOut = true
+        try? await Task.sleep(for: .milliseconds(850))
+
+        withAnimation(.easeIn(duration: 0.45)) { boxGone = true }
+        try? await Task.sleep(for: .milliseconds(250))
     }
 
     /// "Shuffle again": the winner turns back over, the deck gathers, and the stored pool gets
