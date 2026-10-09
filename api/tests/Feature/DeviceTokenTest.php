@@ -29,6 +29,20 @@ class DeviceTokenTest extends TestCase
         ]);
     }
 
+    public function test_register_accepts_a_simulator_length_token(): void
+    {
+        // Simulator APNs tokens are 80 bytes — 160 hex chars.
+        $token = str_repeat('ab', 80);
+
+        $this->postJson('/api/v1/device-tokens', [
+            'installationId' => 'install-1',
+            'token' => $token,
+            'environment' => 'sandbox',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('device_tokens', ['token' => $token]);
+    }
+
     public function test_claim_after_auth_sets_user_id(): void
     {
         $user = User::factory()->create();

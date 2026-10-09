@@ -15,7 +15,7 @@ class ClaimDeviceTokenRequest extends FormRequest
     {
         return [
             'installationId' => ['required', 'string', 'max:100'],
-            'token' => ['required', 'string', 'max:100'],
+            'token' => ['required', 'string', 'max:255'],
             'environment' => ['required', 'string', 'in:sandbox,production'],
         ];
     }

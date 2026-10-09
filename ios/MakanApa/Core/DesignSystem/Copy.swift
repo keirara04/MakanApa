@@ -1,12 +1,24 @@
 import Foundation
 
-/// Centralized Malaysian-voice copy so tone stays consistent across screens.
+/// Centralized copy so tone stays consistent across screens. Plain English for new and
+/// edited strings — dish names and the brand stay as they are.
 enum Copy {
     static let homeGreeting = "Hungry?"
-    static let homeSubtext = "Okay, what we doing today?"
-    static let quickPickTitle = "Just pick lah"
+    static let homeSubtext = "Let's figure out what to eat."
+    static let quickPickTitle = "Pick for me"
     static let chooseCravingTitle = "I know what I want"
     static let chooseCravingSubtitle = "Craving, budget, distance"
+    static let quickPickHint = "Picks somewhere nearby right away using your usual budget and distance"
+
+    static let recentTitle = "Recent"
+    static let recentEmpty = "Places you pick will show up here."
+    static let recentToday = "Today"
+    static let recentYesterday = "Yesterday"
+    static let recentSourceNearby = "Nearby"
+    static let recentSourceSearch = "Search"
+    static let recentSourceDecide = "Decide"
+    static let openInMaps = "Open in Maps"
+    static let removeFromRecent = "Remove from Recent"
 
     static let soloMoodPrompt = "What mood today?"
     static let soloMoodSubtext = "Craving something in particular?"

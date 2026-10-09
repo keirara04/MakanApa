@@ -40,6 +40,15 @@ final class RecentDecisionStore {
         decisions.removeAll { $0.id == decision.id }
         decisions.insert(decision, at: 0)
         decisions = Array(decisions.prefix(Self.limit))
+        persist()
+    }
+
+    func remove(id: Int) {
+        decisions.removeAll { $0.id == id }
+        persist()
+    }
+
+    private func persist() {
         if let data = try? JSONEncoder().encode(decisions) {
             defaults.set(data, forKey: Self.key)
         }

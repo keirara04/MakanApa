@@ -36,6 +36,11 @@ struct NearbyMapView: UIViewRepresentable {
     /// The place whose sheet is open — kept out of clusters like the winner, so a place picked
     /// from the area panel's list is never hidden inside a count bubble.
     var selectedPlaceId: Int? = nil
+    /// Places the active chips filter out — drawn faded, never removed.
+    var dimmedPlaceIds: Set<Int> = []
+    /// Where the app thinks the user is (LocationService, incl. the debug override) — drawn as
+    /// our own dot rather than Google's, which tracks raw GPS and can disagree with it.
+    var userLocation: CLLocationCoordinate2D? = nil
     let onCameraIdle: (MapViewport, Float) -> Void
     let onMarkerTapped: (NearbyPlace) -> Void
     var onSearchPinTapped: (String) -> Void = { _ in }
@@ -47,7 +52,7 @@ struct NearbyMapView: UIViewRepresentable {
         let options = GMSMapViewOptions()
         let mapView = GMSMapView(options: options)
         mapView.delegate = context.coordinator
-        mapView.isMyLocationEnabled = true
+        mapView.isMyLocationEnabled = false
         mapView.settings.myLocationButton = false
         // Google's logo/legal attribution sits pinned to this padding's bottom-left corner — the
         // Maps Platform ToS require it stay visible and unobscured, so this shifts it clear of
@@ -78,8 +83,10 @@ struct NearbyMapView: UIViewRepresentable {
 
         context.coordinator.sync(
             places: places, isPicking: isPicking, winnerPlaceId: winnerPlaceId,
-            highlightedSearchPlaceId: highlightedSearchPlaceId, selectedPlaceId: selectedPlaceId, on: mapView
+            highlightedSearchPlaceId: highlightedSearchPlaceId, selectedPlaceId: selectedPlaceId,
+            dimmedPlaceIds: dimmedPlaceIds, on: mapView
         )
+        context.coordinator.syncUserMarker(coordinate: userLocation, on: mapView)
         context.coordinator.syncTemporaryMarker(coordinate: temporarySearchCoordinate, on: mapView)
         context.coordinator.syncSearchPins(searchPins, on: mapView)
 
@@ -155,6 +162,8 @@ struct NearbyMapView: UIViewRepresentable {
         private var pulseTimer: Timer?
         private var pulseDim = false
         private var temporarySearchMarker: GMSMarker?
+        private var userMarker: GMSMarker?
+        private var dimmedPlaceIds: Set<Int> = []
 
         // MARK: Clustering state
         /// Last `places` / protected ids clustering ran against — `sync()` fires on every SwiftUI
@@ -253,9 +262,11 @@ struct NearbyMapView: UIViewRepresentable {
 
         func sync(
             places: [NearbyPlace], isPicking: Bool, winnerPlaceId: Int?,
-            highlightedSearchPlaceId: Int?, selectedPlaceId: Int?, on mapView: GMSMapView
+            highlightedSearchPlaceId: Int?, selectedPlaceId: Int?, dimmedPlaceIds: Set<Int>, on mapView: GMSMapView
         ) {
             self.winnerPlaceId = winnerPlaceId
+            // The open sheet's / highlighted result's pin never fades, even if a chip filters it out.
+            self.dimmedPlaceIds = dimmedPlaceIds.subtracting([highlightedSearchPlaceId, selectedPlaceId].compactMap { $0 })
             let currentIds = Set(places.map(\.id))
 
             for (id, marker) in markersById where !currentIds.contains(id) {
@@ -351,6 +362,25 @@ struct NearbyMapView: UIViewRepresentable {
                 marker.zIndex = 20
                 marker.map = mapView
                 temporarySearchMarker = marker
+            }
+        }
+
+        func syncUserMarker(coordinate: CLLocationCoordinate2D?, on mapView: GMSMapView) {
+            guard let coordinate else {
+                userMarker?.map = nil
+                userMarker = nil
+                return
+            }
+            let marker = userMarker ?? GMSMarker()
+            marker.position = coordinate
+            if userMarker == nil {
+                marker.icon = UserLocationRenderer.icon
+                marker.groundAnchor = CGPoint(x: 0.5, y: 0.5)
+                marker.isTappable = false
+                marker.title = "Your location"
+                marker.zIndex = 40
+                marker.map = mapView
+                userMarker = marker
             }
         }
 
@@ -603,7 +633,7 @@ struct NearbyMapView: UIViewRepresentable {
             if winnerPlaceId != nil {
                 marker.opacity = winnerPlaceId == placeId ? 1.0 : 0.35
             } else {
-                marker.opacity = 1.0
+                marker.opacity = dimmedPlaceIds.contains(placeId) ? 0.35 : 1.0
             }
         }
 
@@ -711,6 +741,28 @@ enum RatingBubbleRenderer {
     }
 }
 
+
+/// The "you are here" dot — iOS-style blue with a white ring and a soft halo.
+@MainActor
+enum UserLocationRenderer {
+    static let icon: UIImage = {
+        let dot: CGFloat = 16
+        let ring: CGFloat = 3
+        let halo: CGFloat = 36
+        return UIGraphicsImageRenderer(size: CGSize(width: halo, height: halo)).image { context in
+            let center = CGPoint(x: halo / 2, y: halo / 2)
+            UIColor.systemBlue.withAlphaComponent(0.18).setFill()
+            UIBezierPath(ovalIn: CGRect(origin: .zero, size: CGSize(width: halo, height: halo))).fill()
+            let outer = CGRect(x: center.x - dot / 2 - ring, y: center.y - dot / 2 - ring, width: dot + ring * 2, height: dot + ring * 2)
+            context.cgContext.setShadow(offset: CGSize(width: 0, height: 1), blur: 3, color: UIColor.black.withAlphaComponent(0.3).cgColor)
+            UIColor.white.setFill()
+            UIBezierPath(ovalIn: outer).fill()
+            context.cgContext.setShadow(offset: .zero, blur: 0, color: nil)
+            UIColor.systemBlue.setFill()
+            UIBezierPath(ovalIn: outer.insetBy(dx: ring, dy: ring)).fill()
+        }
+    }()
+}
 
 /// The count bubble a group of overlapping pills folds into — soy-dark rather than white so it
 /// never reads as one more rating pill, and never red so it can't pass for a "Pick one lah" winner.

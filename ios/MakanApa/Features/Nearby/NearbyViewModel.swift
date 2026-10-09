@@ -69,6 +69,9 @@ final class NearbyViewModel {
     var vibe: Vibe? {
         didSet { persistFilters() }
     }
+    /// The vibe rail's chips. Coffee and Late night are left out — the Cafe and Late night modes
+    /// already cover them.
+    static let vibeOptions: [Vibe] = [.chill, .study, .dessert, .brunch]
 
     var isZoomedTooFarOut = false
     var showSearchThisArea = false
@@ -202,6 +205,8 @@ final class NearbyViewModel {
         // Self-heals a persisted state from before this invariant existed (mode=normal with a
         // leftover vibe) instead of carrying it forward indefinitely.
         if discoveryMode == .normal { vibe = nil }
+        // A persisted vibe that no longer has a chip would filter results with nothing on screen to turn it off.
+        if let vibe, !Self.vibeOptions.contains(vibe) { self.vibe = nil }
         didLoadFilters = true
     }
 
@@ -252,11 +257,10 @@ final class NearbyViewModel {
     @MainActor
     func loadDetails(for place: NearbyPlace) async {
         isLoadingDetails = true
-        do {
-            placeDetails = try await APIClient.placeDetails(restaurantId: place.id)
-        } catch {
-            placeDetails = nil
-        }
+        let details = try? await APIClient.placeDetails(restaurantId: place.id)
+        // A quick tap on another place supersedes this one — its late response must not land on that sheet.
+        guard selectedPlace?.id == place.id else { return }
+        placeDetails = details
         isLoadingDetails = false
     }
 
@@ -299,7 +303,7 @@ final class NearbyViewModel {
                 let response = try await APIClient.nearbyPlaces(
                     viewport: viewport, openNow: self.openNowFilter ? true : nil,
                     budgetMax: self.budgetMaxFilter, minRating: self.minRatingFilter,
-                    mode: self.discoveryMode, vibe: self.vibe
+                    mode: self.discoveryMode, vibe: self.vibe, halal: key.filters.halal
                 )
                 guard !Task.isCancelled else { return }
                 self.places = response.places.filter { !PlacePreferencesStore.shared.isExcluded($0.id) }
@@ -519,6 +523,7 @@ final class NearbyViewModel {
             highlightedSearchPlaceId = place.id
             winnerPlaceId = nil
             placeDetails = details
+            isLoadingDetails = false
             selectedPlace = place
             return place
         } catch let error as APIError {
@@ -626,7 +631,7 @@ final class NearbyViewModel {
     /// fast response still gets the full pulse instead of feeling clipped.
     @MainActor
     func pickOneLah(
-        userLocation: CLLocationCoordinate2D, viewport: MapViewport
+        userLocation: CLLocationCoordinate2D?, viewport: MapViewport
     ) async -> (decisionId: Int?, clientToken: String?, recommendation: RecommendationResponse.Recommendation?, error: APIError?) {
         isPicking = true
         winnerPlaceId = nil
@@ -640,9 +645,10 @@ final class NearbyViewModel {
             return (nil, nil, nil, nil)
         }
 
+        let origin = userLocation ?? Self.center(of: viewport)
         do {
             let response = try await APIClient.pickFromVisible(
-                latitude: userLocation.latitude, longitude: userLocation.longitude,
+                latitude: origin.latitude, longitude: origin.longitude,
                 viewport: viewport, visiblePlaceIds: visibleIds,
                 openNow: openNowFilter ? true : nil, budgetMax: budgetMaxFilter, minRating: minRatingFilter,
                 mode: discoveryMode, vibe: vibe

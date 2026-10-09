@@ -40,7 +40,7 @@ enum APIClient {
 
     static func nearbyPlaces(
         viewport: MapViewport, openNow: Bool?, budgetMax: Int?, minRating: Double?,
-        mode: DiscoveryMode? = nil, vibe: Vibe? = nil
+        mode: DiscoveryMode? = nil, vibe: Vibe? = nil, halal: Bool
     ) async throws -> NearbyPlacesResponse {
         var query: [URLQueryItem] = [
             URLQueryItem(name: "north", value: String(viewport.north)),
@@ -53,7 +53,7 @@ enum APIClient {
         if let minRating { query.append(URLQueryItem(name: "minRating", value: String(minRating))) }
         if let mode { query.append(URLQueryItem(name: "mode", value: mode.rawValue)) }
         if let vibe { query.append(URLQueryItem(name: "vibe", value: vibe.rawValue)) }
-        query.append(URLQueryItem(name: "halal", value: HalalPreference.isOn ? "1" : "0"))
+        query.append(URLQueryItem(name: "halal", value: halal ? "1" : "0"))
         return try await get("places/nearby", query: query)
     }
 

@@ -137,7 +137,8 @@ final class SoloViewModel {
 
     /// Quick-pick card subtitle showing the remembered choices (not whatever the preference
     /// flow currently has half-selected), e.g. "Anything · ~RM20 · 10 min".
-    var quickPickSummaryForDisplay: String {
+    /// "Anything", budget, distance — shown as separate chips on Home's quick-pick card.
+    var quickPickSummaryParts: [String] {
         let defaults = UserDefaults.standard
         let budgetTier: Int? = defaults.bool(forKey: Self.lastBudgetAnythingKey)
             ? nil
@@ -146,7 +147,7 @@ final class SoloViewModel {
         let distanceKm = savedDistance > 0 ? savedDistance : 2.0
         let budget = Self.budgetOptions.first { $0.tier == budgetTier }?.amount ?? "Any budget"
         let distance = Self.distanceOptions.first { $0.km == distanceKm }?.label ?? "\(distanceKm.formatted()) km"
-        return "Anything · \(budget) · \(distance)"
+        return [Copy.anythingLabel, budget, distance]
     }
 
     /// How long the last fresh decision took end to end. A slow answer has already made the user

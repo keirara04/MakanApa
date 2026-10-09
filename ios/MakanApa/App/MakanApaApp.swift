@@ -188,7 +188,7 @@ struct MakanApaApp: App {
             }
             .environment(decideRouter)
             .tabItem {
-                Label("Decide", systemImage: "sparkles")
+                Label("Decide", systemImage: "fork.knife")
             }
             .tag(AppTab.decide)
 

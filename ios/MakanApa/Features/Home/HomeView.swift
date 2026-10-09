@@ -6,7 +6,7 @@ private struct PressableCardStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .animation(Motion.quick, value: configuration.isPressed)
     }
 }
 
@@ -95,7 +95,7 @@ struct HomeView: View {
                         showSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.kicap.opacity(0.45))
                             .font(.system(size: 18))
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
@@ -103,16 +103,7 @@ struct HomeView: View {
                     .accessibilityLabel("Settings")
                 }
 
-                VStack(spacing: 6) {
-                    Text(Copy.homeGreeting)
-                        .font(.makanDisplay(28))
-                        .foregroundStyle(Color.kicap)
-                    Text(Copy.homeSubtext)
-                        .font(.makanBody(15))
-                        .foregroundStyle(.secondary)
-                }
-                .multilineTextAlignment(.center)
-                .padding(.top, 12)
+                greeting
 
                 ContextStrip()
 
@@ -126,13 +117,7 @@ struct HomeView: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.97)))
                 }
 
-                if !recentStore.decisions.isEmpty {
-                    recentSection
-                }
-
-                MascotView(mood: .idle, size: 120)
-                    .padding(.top, 8)
-                    .accessibilityHidden(true)
+                recentSection
             }
             .padding()
             .frame(maxWidth: 540)
@@ -141,40 +126,87 @@ struct HomeView: View {
         .scrollIndicators(.hidden)
     }
 
+    // MARK: - Greeting
+
+    /// Nasi sits beside the question instead of at the bottom of the page — the mascot is the
+    /// brand, so it belongs where the eye lands first. Held still: Home is seen too often for a
+    /// looping bob.
+    private var greeting: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(Copy.homeGreeting)
+                    .font(.makanDisplay(34))
+                    .foregroundStyle(Color.kicap)
+                Text(Copy.homeSubtext)
+                    .font(.makanBody(15))
+                    .foregroundStyle(Color.kicap.opacity(0.6))
+            }
+            .accessibilityElement(children: .combine)
+
+            Spacer(minLength: 0)
+
+            MascotView(mood: .wave, size: 92)
+        }
+        .padding(.top, 8)
+    }
+
     // MARK: - Decide entry points
 
-    /// Zero questions: "Anything lah" with the budget/distance used last time. The full
+    /// Zero questions: "Anything" with the budget/distance used last time. The full
     /// preference flow is still one tap below it for when the user actually has a craving.
     private var quickPickCard: some View {
         Button {
             startQuickPick()
         } label: {
             HStack(spacing: 16) {
-                Image("SoloIllustration")
-                    .resizable()
-                    .scaledToFit()
+                Image(systemName: "dice.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
                     .frame(width: 52, height: 52)
+                    .background(.white.opacity(0.18), in: Circle())
                     .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(Copy.quickPickTitle).font(.makanDisplay(20))
-                    Text(soloViewModel.quickPickSummaryForDisplay).font(.makanBody(14))
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(Copy.quickPickTitle)
+                        .font(.makanBody(20))
+                        .fontWeight(.heavy)
+                    quickPickChips
                 }
                 .foregroundStyle(.white)
 
-                Spacer()
+                Spacer(minLength: 0)
 
-                Image(systemName: "sparkles")
-                    .foregroundStyle(.white.opacity(0.9))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.8))
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 22)
-            .background(Color.sambalRed)
-            .clipShape(RoundedRectangle(cornerRadius: 30))
+            .padding(.vertical, 20)
+            .background(Color.sambalRed, in: .card)
             .shadow(color: Color.kicap.opacity(0.12), radius: 8, y: 4)
         }
         .buttonStyle(PressableCardStyle())
-        .accessibilityHint("Picks somewhere nearby right away using your usual budget and distance")
+        .accessibilityHint(Copy.quickPickHint)
+    }
+
+    /// Falls back to a vertical stack when the chips don't fit on one line (small phones,
+    /// large text) instead of wrapping mid-chip.
+    private var quickPickChips: some View {
+        let parts = soloViewModel.quickPickSummaryParts
+        let chips = ForEach(parts, id: \.self) { part in
+            Text(part)
+                .font(.makanBody(13))
+                .monospacedDigit()
+                .lineLimit(1)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.white.opacity(0.18), in: Capsule())
+        }
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { chips }
+            VStack(alignment: .leading, spacing: 6) { chips }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var chooseCravingCard: some View {
@@ -186,30 +218,32 @@ struct HomeView: View {
             }
         } label: {
             HStack(spacing: 16) {
-                Image(systemName: "fork.knife")
+                Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(Color.sambalRed)
                     .frame(width: 52, height: 52)
-                    .background(Color.sambalRed.opacity(0.1))
-                    .clipShape(Circle())
+                    .background(Color.sambalRed.opacity(0.1), in: Circle())
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(Copy.chooseCravingTitle).font(.makanDisplay(18))
-                    Text(Copy.chooseCravingSubtitle).font(.makanBody(14))
-                        .foregroundStyle(.secondary)
+                    Text(Copy.chooseCravingTitle)
+                        .font(.makanBody(18))
+                        .fontWeight(.heavy)
+                    Text(Copy.chooseCravingSubtitle)
+                        .font(.makanBody(14))
+                        .foregroundStyle(Color.kicap.opacity(0.6))
                 }
                 .foregroundStyle(Color.kicap)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.kicap.opacity(0.4))
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
-            .background(Color.kicap.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 26))
+            .background(Color.kicap.opacity(0.06), in: .card)
         }
         .buttonStyle(PressableCardStyle())
     }
@@ -252,16 +286,28 @@ struct HomeView: View {
 
     private var recentSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Recent")
+            Text(Copy.recentTitle)
                 .font(.makanBody(13))
-                .foregroundStyle(.secondary)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.kicap.opacity(0.6))
+                .accessibilityAddTraits(.isHeader)
 
-            VStack(spacing: 8) {
-                ForEach(recentStore.decisions.prefix(3)) { decision in
-                    recentCard(for: decision)
+            if recentStore.decisions.isEmpty {
+                Text(Copy.recentEmpty)
+                    .font(.makanBody(14))
+                    .foregroundStyle(Color.kicap.opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(Color.kicap.opacity(0.04), in: .row)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(recentStore.decisions.prefix(3)) { decision in
+                        recentCard(for: decision)
+                    }
                 }
             }
         }
+        .animation(Motion.standard, value: recentStore.decisions)
     }
 
     private func recentCard(for decision: RecentDecision) -> some View {
@@ -270,30 +316,43 @@ struct HomeView: View {
             pickAgain(decision)
         } label: {
             HStack(spacing: 12) {
-                Text(categoryEmoji(for: decision.foodCategory))
-                    .font(.system(size: 22))
+                Image(systemName: categorySymbol(for: decision.foodCategory))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(width: 36, height: 36)
+                    .background(Color.sambalRed.opacity(0.1), in: Circle())
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(decision.name)
                         .font(.makanBody(15))
                         .foregroundStyle(Color.kicap)
+                        .lineLimit(1)
                     Text("\(relativeDay(decision.timestamp)) · \(sourceLabel(decision.source))")
                         .font(.makanBody(12))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.kicap.opacity(0.55))
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Image(systemName: "arrow.up.right")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.kicap.opacity(0.4))
                     .font(.system(size: 13, weight: .semibold))
+                    .accessibilityHidden(true)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.kicap.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .background(Color.kicap.opacity(0.05), in: .row)
+            .contentShape(.row)
         }
         .buttonStyle(PressableCardStyle())
+        .accessibilityHint(Copy.openInMaps)
+        .contextMenu {
+            Button(Copy.openInMaps, systemImage: "map") { pickAgain(decision) }
+            Button(Copy.removeFromRecent, systemImage: "trash", role: .destructive) {
+                recentStore.remove(id: decision.id)
+            }
+        }
     }
 
     private func pickAgain(_ decision: RecentDecision) {
@@ -307,30 +366,36 @@ struct HomeView: View {
 
     private func sourceLabel(_ source: String) -> String {
         switch source {
-        case "nearby": return "Nearby"
-        case "search": return "Search"
-        default: return "Decide"
+        case "nearby": return Copy.recentSourceNearby
+        case "search": return Copy.recentSourceSearch
+        default: return Copy.recentSourceDecide
         }
     }
 
     private func relativeDay(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Today" }
-        if Calendar.current.isDateInYesterday(date) { return "Yesterday" }
+        if Calendar.current.isDateInToday(date) { return Copy.recentToday }
+        if Calendar.current.isDateInYesterday(date) { return Copy.recentYesterday }
         let formatter = RelativeDateTimeFormatter()
         formatter.dateTimeStyle = .named
+        formatter.formattingContext = .beginningOfSentence
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 
-    private func categoryEmoji(for foodCategory: String?) -> String {
-        switch foodCategory {
-        case "burger", "sandwich", "fast_food": return "🍔"
-        case "chicken": return "🍗"
-        case "pizza": return "🍕"
-        case "ramen": return "🍜"
-        case "sushi", "seafood": return "🍣"
-        case "cafe", "breakfast", "drinks": return "☕️"
-        case "dessert", "bakery": return "🍰"
-        default: return "🍛"
+    /// SF Symbols, not emoji — icons are chrome. Categories arrive both bare ("sushi") and with
+    /// Google's "_restaurant" suffix ("sushi_restaurant"), so match on the stem.
+    private func categorySymbol(for foodCategory: String?) -> String {
+        let stem = foodCategory?.replacingOccurrences(of: "_restaurant", with: "") ?? ""
+        switch stem {
+        case "burger", "sandwich", "fast_food", "pizza", "chicken", "western":
+            return "takeoutbag.and.cup.and.straw.fill"
+        case "sushi", "seafood", "japanese":
+            return "fish.fill"
+        case "cafe", "breakfast", "drinks", "coffee_shop":
+            return "cup.and.saucer.fill"
+        case "dessert", "bakery":
+            return "birthday.cake.fill"
+        default:
+            return "fork.knife"
         }
     }
 }

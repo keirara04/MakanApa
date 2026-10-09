@@ -130,6 +130,7 @@
 		E5515202BB69E04EF0CAE0B7 /* NearbySearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1785012FF34F6617CCA660 /* NearbySearchPanel.swift */; };
 		E653E69EE4296D7E82312CE1 /* SendToGengButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E94307FD21601B0E9845AD /* SendToGengButton.swift */; };
 		E85AC4C35311E38D93FB589D /* NearbyMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD1944D39B475AD84113B38 /* NearbyMapView.swift */; };
+		E868E75E1EFE0A8B115C645D /* Shape.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0296B92CE028B7A88828F03 /* Shape.swift */; };
 		EA06C2C4B780B27B81C2B92E /* AvatarCharacter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8DE43A7CEEEAEB0924E684 /* AvatarCharacter.swift */; };
 		EA6F3C88DE5CFC9E66862D56 /* QuickSignInPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F27F9980315BEAE8DA4BB1 /* QuickSignInPanel.swift */; };
 		EAAA5614E3CE4DF5BEFC12FF /* PhotoGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BCE6EDF523F4942A583F696 /* PhotoGalleryView.swift */; };
@@ -252,6 +253,7 @@
 		B459312E9025F68024DF77A1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		B658EFCF2950D0F56A44B1F9 /* HalalBadge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HalalBadge.swift; sourceTree = "<group>"; };
 		C011ABCD0000000000000002 /* CommunityPressStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPressStyle.swift; sourceTree = "<group>"; };
+		C0296B92CE028B7A88828F03 /* Shape.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Shape.swift; sourceTree = "<group>"; };
 		C24796ABA6D014B8D09AACF2 /* MoodSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodSelectionView.swift; sourceTree = "<group>"; };
 		C5B5432A6DF93D3E3D07F282 /* MakanChoiceTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanChoiceTile.swift; sourceTree = "<group>"; };
 		C8A03FA5A08D77E21884C31C /* MakanApaTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MakanApaTopBar.swift; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 				E4C2E6778243985350051EB2 /* Typography.swift */,
 				FF8FA63B189F8F7327E20578 /* Motion.swift */,
 				5DF9973ADF696EF759A7A0DE /* Components */,
+				C0296B92CE028B7A88828F03 /* Shape.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -916,6 +919,7 @@
 				FA375B15DFD6586960162C05 /* GuestUpgradeCard.swift in Sources */,
 				E4A6D4CFF8B61BAED933A804 /* GuestUpgradeNudge.swift in Sources */,
 				B08EC40C093CC528EB69A808 /* PlainEnglishPreference.swift in Sources */,
+				E868E75E1EFE0A8B115C645D /* Shape.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

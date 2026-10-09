@@ -179,7 +179,7 @@ struct NearbyAreaPanel: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             onPickOneLah()
         } label: {
-            Text(isPicking ? Copy.pickingInProgress : "Pick one lah")
+            Text(isPicking ? Copy.pickingInProgress : "Pick for me")
                 .font(compact ? .makanBody(14) : .makanDisplay(16))
                 .foregroundStyle(.white)
                 .padding(.horizontal, compact ? 16 : 20)
@@ -233,7 +233,7 @@ struct NearbyAreaPanel: View {
         HStack(spacing: 8) {
             ProgressView()
                 .controlSize(.small)
-            Text("Finding makan spots around here…")
+            Text("Finding places to eat around here…")
                 .font(.makanBody(15))
                 .foregroundStyle(Color.kicap)
         }

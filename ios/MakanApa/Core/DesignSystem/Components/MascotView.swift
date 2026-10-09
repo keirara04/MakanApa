@@ -9,6 +9,8 @@ enum MascotMood {
     case celebrate
     case sad
     case geng
+    /// Mascot-only art (no wordmark), held still — for screens seen many times a day.
+    case wave
 
     var imageName: String {
         switch self {
@@ -17,6 +19,7 @@ enum MascotMood {
         case .celebrate: return "MascotCelebrate"
         case .sad: return "MascotSad"
         case .geng: return "MascotGeng"
+        case .wave: return "NasiWave"
         }
     }
 }
@@ -68,14 +71,14 @@ struct MascotView: View {
         switch mood {
         case .idle, .geng: return animate ? -6 : 0
         case .thinking: return animate ? -10 : 0
-        case .celebrate, .sad: return 0
+        case .celebrate, .sad, .wave: return 0
         }
     }
 
     private var rotationDegrees: Double {
         guard !reduceMotion else { return 0 }
         switch mood {
-        case .idle, .geng: return 0
+        case .idle, .geng, .wave: return 0
         case .thinking: return animate ? 4 : -4
         case .celebrate: return animate ? 0 : -6
         case .sad: return animate ? -6 : 6
@@ -94,6 +97,8 @@ struct MascotView: View {
         switch mood {
         case .idle, .geng:
             return .easeInOut(duration: 1.4).repeatForever(autoreverses: true)
+        case .wave:
+            return .easeOut(duration: 0.25)
         case .thinking:
             return .easeInOut(duration: 0.45).repeatForever(autoreverses: true)
         case .sad:

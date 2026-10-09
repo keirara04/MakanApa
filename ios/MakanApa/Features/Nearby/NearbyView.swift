@@ -9,7 +9,7 @@ struct NearbyView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = NearbyViewModel()
-    @State private var halalNoticeDismissed = false
+    @AppStorage("NearbyView.halalNoticeDismissed") private var halalNoticeDismissed = false
     @State private var panelState: NearbyPanelState = .collapsed
     @State private var windowHeight: CGFloat = 0
     @State private var currentViewport: MapViewport?
@@ -198,6 +198,8 @@ struct NearbyView: View {
             panTarget: viewModel.panCoordinate,
             panRequestId: viewModel.panRequestId,
             selectedPlaceId: viewModel.selectedPlace?.id,
+            dimmedPlaceIds: dimmedPlaceIds,
+            userLocation: userCoordinate,
             onCameraIdle: { viewport, zoom in
                 currentViewport = viewport
                 currentZoom = zoom
@@ -216,6 +218,12 @@ struct NearbyView: View {
                 viewModel.expectProgrammaticMove(.clusterExpansion)
             }
         )
+    }
+
+    /// Places the Open now/Budget/Rating chips filter out — still on the map, but faded, so a
+    /// chip visibly does something without emptying the map.
+    private var dimmedPlaceIds: Set<Int> {
+        Set(viewModel.places.map(\.id)).subtracting(viewModel.filteredPlaces.map(\.id))
     }
 
     private var isShowingResultsOnMap: Bool {
@@ -411,7 +419,7 @@ struct NearbyView: View {
     private var vibeRail: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach([Vibe.chill, .study, .coffee, .dessert, .brunch, .lateNight], id: \.self) { option in
+                ForEach(NearbyViewModel.vibeOptions, id: \.self) { option in
                     vibeChip(option)
                 }
             }
@@ -447,7 +455,7 @@ struct NearbyView: View {
 
     private func vibeLabel(_ vibe: Vibe) -> String {
         switch vibe {
-        case .chill: return "☕ Chill"
+        case .chill: return "😌 Chill"
         case .study: return "📚 Study"
         case .dessert: return "🍰 Dessert"
         case .coffee: return "☕ Coffee"
@@ -648,7 +656,7 @@ struct NearbyView: View {
     }
 
     private var zoomPrompt: some View {
-        Text("Zoom in to see makan spots")
+        Text("Zoom in to see places to eat")
             .font(.makanBody(13))
             .foregroundStyle(Color.kicap)
             .padding(.horizontal, 16)
@@ -672,7 +680,7 @@ struct NearbyView: View {
             ProgressView()
                 .controlSize(.small)
                 .tint(Color.kicap)
-            Text("Finding makan spots…")
+            Text("Finding places to eat…")
         }
         .font(.makanBody(13))
         .foregroundStyle(Color.kicap)
@@ -768,9 +776,8 @@ struct NearbyView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             if case .authorized = locationService.state {
                 recenterRequestId += 1
-            } else {
-                locationService.requestLocation()
             }
+            locationService.requestLocation()
         } label: {
             Image(systemName: "location.fill")
                 .font(.system(size: 18, weight: .medium))
@@ -785,8 +792,8 @@ struct NearbyView: View {
     // MARK: - Pick one lah
 
     private func pickOneLah() async {
-        guard let coordinate = userCoordinate, let viewport = currentViewport else { return }
-        let result = await viewModel.pickOneLah(userLocation: coordinate, viewport: viewport)
+        guard let viewport = currentViewport else { return }
+        let result = await viewModel.pickOneLah(userLocation: userCoordinate, viewport: viewport)
 
         // Brief pause after the winner highlight settles before handing off to ResultView —
         // matches the plan's "~300ms pause" beat before the reveal.
@@ -1034,7 +1041,7 @@ struct NearbyView: View {
                 case .sending:
                     ProgressView().tint(Color.sambalRed)
                 case .chosen:
-                    Label("Jom! Saved", systemImage: "checkmark")
+                    Label("Saved", systemImage: "checkmark")
                 case .failed:
                     Text(Copy.tryAgain)
                 case .idle:
