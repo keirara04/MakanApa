@@ -197,6 +197,66 @@ struct CommunityFeedResponse: Decodable, Equatable {
     let community: CommunityInfo
     let trending: [CommunityFeedItem]
     let newInArea: [CommunityFeedItem]
+    /// Optional: absent from older backends.
+    let ambassadorPicks: [AmbassadorPickItem]?
+}
+
+/// A place hand-picked by the viewer's community ambassador, with their optional note.
+struct AmbassadorPickItem: Decodable, Identifiable, Equatable {
+    struct Picker: Decodable, Equatable {
+        let name: String
+        let avatarKey: String?
+    }
+
+    let id: Int
+    let name: String
+    let foodCategory: String?
+    let rating: Double?
+    let priceLevel: Int?
+    let cuisines: [String]
+    let openStatus: String
+    let distanceKm: Double?
+    /// A community-uploaded photo; nil for most places early on (no Google photo calls here).
+    let photoUrl: String?
+    let note: String?
+    let ambassador: Picker
+
+    /// Opens in the existing place sheet.
+    var feedItem: CommunityFeedItem {
+        CommunityFeedItem(
+            id: id, name: name, foodCategory: foodCategory, rating: rating, priceLevel: priceLevel,
+            cuisines: cuisines, openStatus: openStatus, distanceKm: distanceKm, pickCount: nil,
+            pickerCount: nil, trendingVibe: nil, approvedAt: nil
+        )
+    }
+}
+
+struct MyAmbassadorPicksResponse: Decodable {
+    struct Pick: Decodable {
+        let restaurantId: Int
+        let note: String?
+    }
+
+    let picks: [Pick]
+    let max: Int
+}
+
+struct AmbassadorPickRequestBody: Encodable {
+    let restaurantId: Int
+    let note: String?
+}
+
+struct AmbassadorPickSaveResponse: Decodable {
+    struct Pick: Decodable {
+        let restaurantId: Int
+        let note: String?
+    }
+
+    let pick: Pick
+}
+
+struct AmbassadorPickRemoveResponse: Decodable {
+    let removed: Bool
 }
 
 // MARK: - Community places (submissions)

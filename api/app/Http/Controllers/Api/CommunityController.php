@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AmbassadorPick;
 use App\Models\Restaurant;
 use App\Models\RestaurantVibeVote;
+use App\Models\User;
 use App\Services\Community\CommunityPickStats;
 use App\Services\RecommendationService;
 use App\Support\CommunityTag;
@@ -100,6 +102,7 @@ class CommunityController extends Controller
                 'community' => $this->communityInfo($affiliationType, $user->universityShortName(), $user->areaShortName()),
                 'trending' => [],
                 'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $isArea, $user->areaId(), $lat, $lon),
+                'ambassadorPicks' => $this->ambassadorPicks($user, $isUniversity, $isArea, $lat, $lon),
             ]);
         }
 
@@ -141,7 +144,66 @@ class CommunityController extends Controller
             'community' => $this->communityInfo($affiliationType, $user->universityShortName(), $user->areaShortName()),
             'trending' => $trending,
             'newInArea' => $this->newInArea($isUniversity, $user->universityId(), $isArea, $user->areaId(), $lat, $lon),
+            'ambassadorPicks' => $this->ambassadorPicks($user, $isUniversity, $isArea, $lat, $lon),
         ]);
+    }
+
+    /**
+     * Places hand-picked by this community's ambassador(s), newest first. Only picks made *for*
+     * this community by someone who is *still* its ambassador — reassigning an ambassador hides
+     * their old picks with no cleanup. Not cached (unlike trending): one indexed query, and a
+     * new pick should show the next time a member opens the tab. Public has no ambassadors.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function ambassadorPicks(User $user, bool $isUniversity, bool $isArea, ?float $lat, ?float $lon): array
+    {
+        if (! $isUniversity && ! $isArea) {
+            return [];
+        }
+
+        $communityId = $isUniversity ? $user->universityId() : $user->areaId();
+        $pickColumn = $isUniversity ? 'university_id' : 'area_id';
+        $ambassadorColumn = $isUniversity ? 'ambassador_university_id' : 'ambassador_area_id';
+
+        return AmbassadorPick::query()
+            ->where($pickColumn, $communityId)
+            ->whereHas('user', fn ($q) => $q->where($ambassadorColumn, $communityId)->where('status', 'active'))
+            ->whereHas('restaurant', fn ($q) => $q->where('is_active', true))
+            ->with([
+                'user:id,name,avatar_key',
+                'restaurant.cuisines',
+                // Community uploads only — never a Google Places photo call from a feed read.
+                'restaurant.photos' => fn ($q) => $q->where('is_active', true)->where('photo_type', '!=', 'halal_cert')->latest(),
+            ])
+            ->latest()
+            ->limit(AmbassadorPick::MAX_PER_AMBASSADOR * 2)
+            ->get()
+            ->map(function (AmbassadorPick $pick) use ($lat, $lon) {
+                $base = $pick->restaurant->toRecommendationArray();
+
+                return [
+                    'id' => $base['id'],
+                    'name' => $base['name'],
+                    'foodCategory' => $base['food_category'],
+                    'rating' => $base['rating'],
+                    'priceLevel' => $base['price_level'],
+                    'cuisines' => $base['cuisines'],
+                    'openStatus' => $base['open_status'],
+                    'distanceKm' => ($lat !== null && $lon !== null)
+                        ? RecommendationService::distanceKm($lat, $lon, $base['latitude'], $base['longitude'])
+                        : null,
+                    'photoUrl' => $pick->restaurant->photos->map(fn ($photo) => $photo->publicUrl())->filter()->first(),
+                    'note' => $pick->note,
+                    'ambassador' => [
+                        'name' => $pick->user->name ?: 'MakanApa ambassador',
+                        'avatarKey' => $pick->user->avatar_key,
+                    ],
+                    'pickedAt' => $pick->created_at->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

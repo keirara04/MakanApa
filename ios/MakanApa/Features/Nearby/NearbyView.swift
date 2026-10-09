@@ -964,6 +964,8 @@ struct NearbyView: View {
                     )
                 }
 
+                AmbassadorPickButton(restaurantId: place.id, restaurantName: place.name)
+
                 // Right under the actions, not buried below the menu: vouching is the main way
                 // Nearby places get a halal status, so it has to be seen.
                 if let halal = details?.halal {

@@ -19,6 +19,7 @@ struct CommunityRestaurantDetailSheet: View {
             VStack(alignment: .leading, spacing: 20) {
                 header
                 actionRow
+                AmbassadorPickButton(restaurantId: item.id, restaurantName: item.name)
                 if let details, !details.communityPhotos.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         sectionHeader("PHOTOS")

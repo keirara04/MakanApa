@@ -315,6 +315,22 @@ enum APIClient {
         return try await get("community/feed", query: query)
     }
 
+    // MARK: - Ambassador picks
+
+    static func myAmbassadorPicks() async throws -> MyAmbassadorPicksResponse {
+        try await get("me/ambassador-picks", query: [])
+    }
+
+    /// Adds a pick, or updates its note. Surfaces the server's message (limit reached, note
+    /// rejected by the content filter) as `APIError.rejected`.
+    static func saveAmbassadorPick(restaurantId: Int, note: String?) async throws -> AmbassadorPickSaveResponse {
+        try await sendSurfacingMessage("POST", "me/ambassador-picks", body: AmbassadorPickRequestBody(restaurantId: restaurantId, note: note))
+    }
+
+    static func removeAmbassadorPick(restaurantId: Int) async throws -> AmbassadorPickRemoveResponse {
+        try await delete("me/ambassador-picks/\(restaurantId)")
+    }
+
     // MARK: - Community posts
 
     static func communityPosts(restaurantId: Int? = nil, cursor: String? = nil, limit: Int? = nil) async throws -> CommunityPostsResponse {

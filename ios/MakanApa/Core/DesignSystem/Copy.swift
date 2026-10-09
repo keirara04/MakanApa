@@ -37,6 +37,21 @@ enum Copy {
     static func ambassadorBadge(_ community: String) -> String { "Ambassador · \(community)" }
     static func ambassadorBadgeAccessibility(_ community: String) -> String { "\(community) ambassador" }
 
+    static let ambassadorPicksTitle = "Ambassador picks"
+    static func ambassadorPicksSubtitle(names: [String], community: String) -> String {
+        names.count == 1 ? "Chosen by \(names[0]) for \(community)" : "Chosen by \(community)'s ambassadors"
+    }
+    static let ambassadorFirstPickTitle = "Add your first pick"
+    static let ambassadorFirstPickDetail = "Open any place in Community or Nearby and tap Add to my picks. Members of your community will see it here."
+    static let ambassadorAddPick = "Add to my picks"
+    static let ambassadorInPicks = "In your picks"
+    static let ambassadorPickSheetTitle = "Your pick"
+    static let ambassadorPickNotePlaceholder = "What should people order? (optional)"
+    static let ambassadorPickSave = "Save"
+    static let ambassadorPickCancel = "Cancel"
+    static let ambassadorPickRemove = "Remove from my picks"
+    static let ambassadorPickFailed = "Couldn't save your pick. Try again."
+
     // Taste prompt (after a real pick)
     static let tasteTitle = "Want sharper picks?"
     static let tasteSubtext = "Choose up to 4 things you usually go for. We'll lean that way."

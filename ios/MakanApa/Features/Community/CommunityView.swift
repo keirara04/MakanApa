@@ -58,6 +58,12 @@ struct CommunityView: View {
                 if viewModel.isLoading && viewModel.feed == nil {
                     skeletonRows
                 } else if let feed = viewModel.feed {
+                    if isAffiliated, let picks = feed.ambassadorPicks, !picks.isEmpty || isAmbassadorHere {
+                        AmbassadorPicksSection(picks: picks, community: communityShortName, isMine: isAmbassadorHere) { pick in
+                            selectedItem = pick.feedItem
+                        }
+                        .headerEntrance(visible: headerAppeared, delay: 0.18, reduceMotion: reduceMotion)
+                    }
                     if !feed.newInArea.isEmpty {
                         newInAreaSection(feed.newInArea)
                     }
@@ -90,6 +96,8 @@ struct CommunityView: View {
         }
         .scrollIndicators(.hidden)
         .refreshable { await attemptLoad() }
+        // An ambassador added/removed a pick from a place sheet — show it in the rail now.
+        .onChange(of: AmbassadorPickStore.shared.picked) { _, _ in Task { await attemptLoad() } }
         .navigationDestination(isPresented: $showingAllPosts) {
             CommunityPostsView(store: postStore, communityName: communityShortName)
         }
@@ -271,6 +279,12 @@ struct CommunityView: View {
 
     private var isAffiliated: Bool {
         currentAffiliationType == "university" || currentAffiliationType == "area"
+    }
+
+    /// The viewer represents the community whose board they're looking at.
+    private var isAmbassadorHere: Bool {
+        guard let role = AmbassadorPickStore.currentRole else { return false }
+        return role.type == currentAffiliationType && role.name == communityShortName
     }
 
     private var communityShortName: String {
