@@ -18,6 +18,7 @@ class BrainEvaluationReport
         'all' => 'Everyone',
         'solo' => 'Decide (solo)',
         'nearby' => 'Nearby pick',
+        'saved' => 'Saved places pick',
         'halal' => 'Halal-only',
         'returning' => 'Returning (3+ earlier decisions)',
         'new' => 'New (fewer than 3 earlier decisions)',
@@ -177,6 +178,7 @@ class BrainEvaluationReport
         return match ($cohort) {
             'solo' => $query->where('decisions.mode', 'solo'),
             'nearby' => $query->where('decisions.mode', 'nearby'),
+            'saved' => $query->where('decisions.mode', 'saved'),
             'halal' => $query->where('decisions.halal_only', true),
             'returning' => $query->whereRaw("{$prior} >= 3"),
             'new' => $query->whereRaw("{$prior} < 3"),

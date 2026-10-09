@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\PresentsRecommendation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\NearbyPickRequest;
 use App\Http\Requests\NearbyRequest;
+use App\Http\Requests\SavedPickRequest;
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
@@ -22,6 +23,7 @@ use App\Support\ShareLinks;
 use App\Support\Vibe;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -146,6 +148,82 @@ class NearbyController extends Controller
             'halal_only' => $halalOnly,
         ];
 
+        return $this->decideAndRespond($request, $data, $candidates, $preference, $attributes, $halalOnly);
+    }
+
+    /**
+     * "Pick from my saved places" — Nearby's pick minus the viewport gate: the candidates are
+     * whichever of the client's saved ids still exist (merged-away ids resolve to the surviving
+     * row) and are active. Distance only scores, never excludes — a saved place across town is
+     * still one the user chose to keep.
+     */
+    public function pickSaved(SavedPickRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $halalOnly = $this->resolveHalalOnly($request, $data);
+        $latitude = (float) $data['latitude'];
+        $longitude = (float) $data['longitude'];
+
+        $restaurants = Restaurant::query()
+            ->whereIn('id', array_unique($data['savedPlaceIds']))
+            ->with(['cuisines:id,slug', 'tags:id,name', 'activeHalalCertificate:id,authority', 'mergedInto.cuisines:id,slug', 'mergedInto.tags:id,name', 'mergedInto.activeHalalCertificate:id,authority'])
+            ->get()
+            ->map(fn (Restaurant $restaurant) => $restaurant->canonicalRestaurant())
+            ->unique('id')
+            ->filter(fn (Restaurant $restaurant) => $restaurant->is_active)
+            ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
+            ->values()
+            ->all();
+
+        $candidates = $this->applyHardFilters($restaurants, [
+            'budgetMax' => $data['budgetMax'] ?? null,
+            'halalOnly' => $halalOnly,
+        ]);
+
+        $farthestKm = array_reduce($candidates, fn (float $max, array $restaurant) => max(
+            $max, RecommendationService::distanceKm($latitude, $longitude, $restaurant['latitude'], $restaurant['longitude'])
+        ), 0.0);
+
+        $preference = array_merge([
+            'moodTags' => [],
+            'cuisines' => [],
+            'budgetMax' => $data['budgetMax'] ?? null,
+            // Large enough that eligibleRestaurants()'s hard distance cutoff never drops a saved place.
+            'maxDistanceKm' => $farthestKm + 0.01,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'halalOnly' => $halalOnly,
+        ], $this->discoveryPreferenceExtras(null, null, $data['installationId'] ?? null));
+
+        $attributes = [
+            'mode' => 'saved',
+            'client_token' => Str::random(40),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'budget_max' => $data['budgetMax'] ?? null,
+            'max_distance' => $preference['maxDistanceKm'],
+            'discovery_mode' => DiscoveryMode::fromRequest(null)->value,
+            'vibe' => null,
+            'installation_id' => $data['installationId'] ?? null,
+            'halal_only' => $halalOnly,
+        ];
+
+        return $this->decideAndRespond($request, $data, $candidates, $preference, $attributes, $halalOnly, lead: 'One of your saved places');
+    }
+
+    /**
+     * Shared tail of pick()/pickSaved(): Makan Brain when it's on, v1 weighted pick otherwise.
+     * The Decision row is created either way so reroll/accept always have a handle.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<string, mixed>  $preference
+     * @param  array<string, mixed>  $attributes
+     */
+    private function decideAndRespond(Request $request, array $data, array $candidates, array $preference, array $attributes, bool $halalOnly, ?string $lead = null): JsonResponse
+    {
+        $clientToken = $attributes['client_token'];
+
         if (BrainStateFactory::enabled()) {
             $preference['brain'] = $this->brainStates->make(
                 $request->user(), $data['installationId'] ?? null, (float) $data['latitude'], (float) $data['longitude'],
@@ -159,7 +237,7 @@ class NearbyController extends Controller
                 'algorithmVersion' => $result['decision']->algorithm_version,
                 'recommendation' => $result['winner'] ? [
                     ...$this->presentCandidate($result['winner'], $this->enrichWinner($result['winner']['restaurant'])),
-                    ...$this->brainPayload($result['decision'], $result['winnerRow'], withTrace: true),
+                    ...$this->brainPayload($result['decision'], $result['winnerRow'], withTrace: true, lead: $lead),
                 ] : null,
             ]);
         }

@@ -123,6 +123,8 @@ Route::prefix('v1')->group(function () {
             Route::post('decisions/{decision}/reroll', [RecommendationController::class, 'reroll']);
             Route::get('places/nearby', [NearbyController::class, 'index']);
             Route::post('places/nearby/pick', [NearbyController::class, 'pick']);
+            // Enriches the winner via Google Place Details, same cost class as nearby/pick.
+            Route::post('recommendations/saved', [NearbyController::class, 'pickSaved']);
             Route::get('restaurants/{restaurant}/details', [NearbyController::class, 'details']);
             Route::get('community/places/search', [RestaurantSubmissionController::class, 'search']);
             // Resolving a google_fallback result does one live Google Place Details call, same
