@@ -28,7 +28,7 @@
         <meta property="og:image" content="@yield('og_image', asset('images/og.jpg'))">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa: What should we eat today? Decided in seconds. The mascot next to the app showing its pick.')">
+        <meta property="og:image:alt" content="@yield('og_image_alt', 'MakanApa: Hungry? What to eat today? Decided in seconds. The mascot next to the app showing its pick.')">
         @stack('meta')
         <meta name="twitter:card" content="summary_large_image">
 
