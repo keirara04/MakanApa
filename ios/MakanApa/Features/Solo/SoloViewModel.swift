@@ -349,6 +349,8 @@ final class SoloViewModel {
                 recommendation: response.recommendation, error: nil, source: "saved"
             )
         } catch {
+            // The user backed out of the shuffle — don't overwrite whatever pick is current.
+            guard !Task.isCancelled else { return }
             adoptExternalPick(
                 decisionId: nil, clientToken: nil, recommendation: nil,
                 error: error as? APIError ?? .transport(error), source: "saved"
