@@ -276,6 +276,9 @@ enum Copy {
     static func savedPickReasonSavedAgo(_ relative: String) -> String { "You saved it \(relative)" }
     static func savedPickReasonDistance(_ distance: String) -> String { "\(distance) from you" }
     static let savedPickReasonOpen = "Open right now"
+    static func savedPickWalk(minutes: Int) -> String { "\(minutes) min walk" }
+    static func savedPickAway(_ distance: String) -> String { "\(distance) away" }
+    static let savedPickMapLabel = "Map of where it is"
     static let close = "Close"
     static let back = "Back"
     static let cancel = "Cancel"

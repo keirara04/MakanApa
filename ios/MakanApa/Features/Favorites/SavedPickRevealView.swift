@@ -1,24 +1,27 @@
 import SwiftUI
 import CoreLocation
+import MapKit
 
 /// What a saved-places pick starts from. Built by Home's card and Saved's button alike.
 struct SavedPickLaunch: Identifiable {
     let id = UUID()
     let places: [SavedPlace]
     let origin: CLLocationCoordinate2D
+    /// False when `origin` is only the saved places' centroid — then nothing claims "from you".
+    let originIsUser: Bool
 
     /// Nil below two saved places — one place isn't a decision. Without location the centroid of
     /// the saved places stands in for the user, so distance just counts for less.
     static func make(places: [SavedPlace], location: LocationState) -> SavedPickLaunch? {
         guard places.count >= 2 else { return nil }
         if case let .authorized(coordinate) = location {
-            return SavedPickLaunch(places: places, origin: coordinate)
+            return SavedPickLaunch(places: places, origin: coordinate, originIsUser: true)
         }
         let count = Double(places.count)
         return SavedPickLaunch(places: places, origin: CLLocationCoordinate2D(
             latitude: places.map(\.latitude).reduce(0, +) / count,
             longitude: places.map(\.longitude).reduce(0, +) / count
-        ))
+        ), originIsUser: false)
     }
 }
 
@@ -27,7 +30,7 @@ extension View {
     /// ResultView: the pick and why it won are the whole answer here.
     func savedPickCover(_ launch: Binding<SavedPickLaunch?>) -> some View {
         fullScreenCover(item: launch) { launch in
-            SavedPickRevealView(places: launch.places, origin: launch.origin)
+            SavedPickRevealView(places: launch.places, origin: launch.origin, originIsUser: launch.originIsUser)
         }
     }
 }
@@ -40,6 +43,7 @@ extension View {
 struct SavedPickRevealView: View {
     let places: [SavedPlace]
     let origin: CLLocationCoordinate2D
+    let originIsUser: Bool
 
     @Environment(SoloViewModel.self) private var soloViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -61,14 +65,18 @@ struct SavedPickRevealView: View {
     @State private var isAnswered = false
     /// Bumped by "Shuffle again" — keys the sequence task, so closing the cover cancels it.
     @State private var round = 0
+    /// The winner's street, rendered once per reveal — a still image so the card can flip and
+    /// tilt without a live map view glitching inside the 3D transform.
+    @State private var map: MapSnapshot?
 
     private static let deckSize = 6
     private static let minimumRiffles = 2
 
     /// The deck is dealt before the first frame so the fan-in has something to animate.
-    init(places: [SavedPlace], origin: CLLocationCoordinate2D) {
+    init(places: [SavedPlace], origin: CLLocationCoordinate2D, originIsUser: Bool) {
         self.places = places
         self.origin = origin
+        self.originIsUser = originIsUser
         let deck = Array(places.shuffled().prefix(Self.deckSize))
         _deck = State(initialValue: deck)
         _order = State(initialValue: Array(deck.indices))
@@ -193,7 +201,9 @@ struct SavedPickRevealView: View {
             rating: showsWinner ? pick?.rating : deck[index].rating,
             priceLevel: showsWinner ? pick?.priceLevel : deck[index].priceLevel,
             isWinner: showsWinner,
-            sheen: showsWinner && sheen
+            sheen: showsWinner && sheen,
+            map: showsWinner ? .slot(map) : .none,
+            travel: showsWinner ? travelLabel : nil
         )
         .modifier(CardFlip(angle: isFaceUp(isTop: isTop) ? 0 : 180, back: SavedPlaceCardBack()))
         // The riffle: each half bends toward the middle like cards under a thumb.
@@ -275,7 +285,8 @@ struct SavedPickRevealView: View {
             if faceShown, let pick = soloViewModel.currentPick {
                 SavedPlaceCardFace(
                     name: pick.name, category: pick.foodCategory, rating: pick.rating,
-                    priceLevel: pick.priceLevel, isWinner: true, sheen: false
+                    priceLevel: pick.priceLevel, isWinner: true, sheen: false,
+                    map: .slot(map), travel: travelLabel
                 )
                 .transition(.opacity)
             } else {
@@ -320,12 +331,24 @@ struct SavedPickRevealView: View {
         if pick.openStatus == "open" {
             lines.append(WhyLine(symbol: "door.left.hand.open", text: Copy.savedPickReasonOpen))
         }
-        let distance = Measurement(value: pick.distanceKm, unit: UnitLength.kilometers)
-            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
-        lines.append(WhyLine(symbol: "location.fill", text: Copy.savedPickReasonDistance(distance)))
+        if originIsUser {
+            lines.append(WhyLine(symbol: "location.fill", text: Copy.savedPickReasonDistance(Self.distanceText(pick.distanceKm))))
+        }
 
         var seen = Set<String>()
         return Array(lines.filter { seen.insert($0.text).inserted }.prefix(4))
+    }
+
+    private static func distanceText(_ km: Double) -> String {
+        Measurement(value: km, unit: UnitLength.kilometers)
+            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+    }
+
+    /// Walking pace (~5 km/h) up to 2 km, plain distance beyond; nothing without real location.
+    private var travelLabel: String? {
+        guard originIsUser, let km = soloViewModel.currentPick?.distanceKm else { return nil }
+        guard km <= 2 else { return Copy.savedPickAway(Self.distanceText(km)) }
+        return Copy.savedPickWalk(minutes: max(1, Int((km / 5 * 60).rounded())))
     }
 
     private func symbol(forFamily family: String, text: String) -> String {
@@ -445,6 +468,7 @@ struct SavedPickRevealView: View {
         withAnimation(.easeOut(duration: 0.2)) { showReasons = false }
         sheen = false
         withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .easeInOut(duration: 0.45)) { faceShown = false }
+        map = nil
         try? await Task.sleep(for: .milliseconds(reduceMotion ? 200 : 450))
 
         async let request: Void = rerollPick()
@@ -497,6 +521,15 @@ struct SavedPickRevealView: View {
             let failed: Phase = exhaustedWhenEmpty && soloViewModel.apiError == nil ? .exhausted : .failed
             withAnimation(Motion.standard) { phase = failed }
             return
+        }
+        if let pick = soloViewModel.currentPick {
+            // Renders during the reveal beat; fades onto the card whenever it's ready.
+            let place = CLLocationCoordinate2D(latitude: pick.latitude, longitude: pick.longitude)
+            let user = originIsUser ? origin : nil
+            Task {
+                let snapshot = await MapSnapshot.make(place: place, user: user, distanceKm: pick.distanceKm)
+                withAnimation(.easeOut(duration: 0.3)) { map = snapshot }
+            }
         }
 
         if reduceMotion {
@@ -567,17 +600,60 @@ private struct SavedPlaceCardFace: View {
     let isWinner: Bool
     /// One light sweep across the winner's face once it's turned over.
     let sheen: Bool
+    var map: MapSlot = .none
+    var travel: String? = nil
+
+    enum MapSlot {
+        case none
+        /// The winner's map header — `nil` while the snapshot is still rendering.
+        case slot(MapSnapshot?)
+    }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if case let .slot(snapshot) = map {
+                MapHeader(snapshot: snapshot)
+            }
+            details
+        }
+        .frame(width: CardSize.width, height: CardSize.height, alignment: .top)
+        .background(Color.surface, in: .card)
+        .overlay {
+            LinearGradient(colors: [.clear, .white.opacity(0.6), .clear], startPoint: .leading, endPoint: .trailing)
+                .frame(width: 70)
+                .rotationEffect(.degrees(20))
+                .offset(x: sheen ? CardSize.width : -CardSize.width)
+                .opacity(isWinner ? 1 : 0)
+                .allowsHitTesting(false)
+        }
+        .clipShape(.card)
+        .overlay(RoundedRectangle.card.strokeBorder(isWinner ? Color.kunyit : Color.hairline, lineWidth: isWinner ? 2 : 1))
+        .shadow(color: .black.opacity(isWinner ? 0.45 : 0.3), radius: isWinner ? 24 : 10, y: isWinner ? 14 : 6)
+    }
+
+    private var hasMap: Bool {
+        if case .slot = map { return true }
+        return false
+    }
+
+    private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "heart.fill")
-                .font(.subheadline)
-                .foregroundStyle(Color.sambalRed)
+            if !hasMap {
+                Image(systemName: "heart.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.sambalRed)
+            }
+            if let travel {
+                Label(travel, systemImage: "figure.walk")
+                    .font(.makanBody(13).weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
+                    .monospacedDigit()
+            }
             Spacer(minLength: 0)
             Text(name)
                 .font(.makanDisplay(20))
                 .foregroundStyle(Color.kicap)
-                .lineLimit(3)
+                .lineLimit(hasMap ? 2 : 3)
                 .minimumScaleFactor(0.75)
             if let category {
                 Text(category)
@@ -598,20 +674,85 @@ private struct SavedPlaceCardFace: View {
             .font(.makanBody(13))
             .monospacedDigit()
         }
-        .padding(18)
-        .frame(width: CardSize.width, height: CardSize.height, alignment: .leading)
-        .background(Color.surface, in: .card)
-        .overlay {
-            LinearGradient(colors: [.clear, .white.opacity(0.6), .clear], startPoint: .leading, endPoint: .trailing)
-                .frame(width: 70)
-                .rotationEffect(.degrees(20))
-                .offset(x: sheen ? CardSize.width : -CardSize.width)
-                .opacity(isWinner ? 1 : 0)
-                .allowsHitTesting(false)
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+/// A still map of the winner's street: the place's pin, plus the user's dot when they're close
+/// enough to share the frame (within 1.5 km). Rendered in light style to match the card face.
+struct MapSnapshot {
+    let image: UIImage
+    let pin: CGPoint
+    let user: CGPoint?
+
+    static let size = CGSize(width: CardSize.width, height: 116)
+
+    static func make(place: CLLocationCoordinate2D, user: CLLocationCoordinate2D?, distanceKm: Double) async -> MapSnapshot? {
+        let options = MKMapSnapshotter.Options()
+        if let user, distanceKm <= 1.5 {
+            let latitudeSpan = max(abs(place.latitude - user.latitude) * 2.2, 0.004)
+            let longitudeSpan = max(abs(place.longitude - user.longitude) * 2.2, 0.004)
+            options.region = MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: (place.latitude + user.latitude) / 2, longitude: (place.longitude + user.longitude) / 2),
+                span: MKCoordinateSpan(latitudeDelta: latitudeSpan, longitudeDelta: longitudeSpan)
+            )
+        } else {
+            options.region = MKCoordinateRegion(center: place, latitudinalMeters: 450, longitudinalMeters: 450)
         }
-        .clipShape(.card)
-        .overlay(RoundedRectangle.card.strokeBorder(isWinner ? Color.kunyit : Color.hairline, lineWidth: isWinner ? 2 : 1))
-        .shadow(color: .black.opacity(isWinner ? 0.45 : 0.3), radius: isWinner ? 24 : 10, y: isWinner ? 14 : 6)
+        options.size = size
+        options.traitCollection = UITraitCollection(userInterfaceStyle: .light)
+        options.pointOfInterestFilter = .excludingAll
+
+        return await withCheckedContinuation { continuation in
+            MKMapSnapshotter(options: options).start(with: .main) { snapshot, _ in
+                guard let snapshot else { return continuation.resume(returning: nil) }
+                let userPoint = user.map { snapshot.point(for: $0) }
+                let bounds = CGRect(origin: .zero, size: size).insetBy(dx: 6, dy: 6)
+                continuation.resume(returning: MapSnapshot(
+                    image: snapshot.image,
+                    pin: snapshot.point(for: place),
+                    user: userPoint.flatMap { bounds.contains($0) ? $0 : nil }
+                ))
+            }
+        }
+    }
+}
+
+private struct MapHeader: View {
+    let snapshot: MapSnapshot?
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.hairline
+            if let snapshot {
+                Image(uiImage: snapshot.image)
+                    .resizable()
+                    .transition(.opacity)
+                if let user = snapshot.user {
+                    Circle()
+                        .fill(Color(.systemBlue))
+                        .frame(width: 12, height: 12)
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 2.5))
+                        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                        .position(user)
+                }
+                Image(systemName: "mappin.circle.fill")
+                    .font(.system(size: 26))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, Color.sambalRed)
+                    .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                    .position(snapshot.pin)
+            } else {
+                Image(systemName: "map")
+                    .font(.title2)
+                    .foregroundStyle(Color.kicapSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(width: MapSnapshot.size.width, height: MapSnapshot.size.height)
+        .clipped()
+        .accessibilityLabel(Copy.savedPickMapLabel)
     }
 }
 
