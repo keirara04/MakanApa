@@ -92,7 +92,7 @@ struct VibeFollowUpSheet: View {
                     .font(.makanDisplay(18))
                     .foregroundStyle(Color.kicap)
                     .multilineTextAlignment(.center)
-                Text("Pick the vibe — helps the next person decide.")
+                Text("Pick the vibe. It helps the next person decide.")
                     .font(.makanBody(13))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

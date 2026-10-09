@@ -204,4 +204,15 @@ class CommunityAreaTest extends TestCase
         $this->postJson('/api/v1/community/requests', ['type' => 'city', 'name' => 'Nowhere'])
             ->assertStatus(422);
     }
+
+    public function test_me_payload_reports_the_admin_assigned_ambassador_community(): void
+    {
+        $user = $this->actingAsSelf();
+        $bangi = Area::create(['name' => 'Bangi', 'short_name' => 'Bangi', 'active' => true]);
+        $user->update(['ambassador_area_id' => $bangi->id]);
+
+        $response = $this->getJson('/api/v1/auth/me');
+
+        $response->assertJsonPath('user.ambassadorOf', ['type' => 'area', 'name' => 'Bangi']);
+    }
 }

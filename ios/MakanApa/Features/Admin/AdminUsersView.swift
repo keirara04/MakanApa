@@ -143,7 +143,7 @@ private struct AdminUserDetailView: View {
                     HStack {
                         Text("University")
                         Spacer()
-                        Text(user.university ?? "—").foregroundStyle(.secondary)
+                        Text(user.university ?? "None").foregroundStyle(.secondary)
                     }
                     Text("Verified by admin").font(.makanBody(12)).foregroundStyle(.secondary)
                 case "public":

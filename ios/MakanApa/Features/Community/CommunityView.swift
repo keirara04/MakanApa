@@ -119,30 +119,27 @@ struct CommunityView: View {
 
     // MARK: - Header
 
-    /// A compact navigation row and a generous, locally relevant headline.
+    /// One quiet row — which community you're in (tap to switch) and Add — then a generous,
+    /// locally relevant headline. The tab bar already says "Community", so the row doesn't.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            HStack(alignment: .center, spacing: 10) {
-                Label("Community", systemImage: "person.2.fill")
-                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(Color.kicap.opacity(0.7))
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .center, spacing: 12) {
                 communityPill
+                Spacer(minLength: 8)
                 addMenu
             }
             .headerEntrance(visible: headerAppeared, delay: 0, reduceMotion: reduceMotion)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(headline)
-                    .font(.system(.largeTitle, design: .rounded, weight: .heavy))
-                    .tracking(-1.1)
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(Color.kicap)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                     .headerEntrance(visible: headerAppeared, delay: 0.06, reduceMotion: reduceMotion)
                 Text(subtitle)
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(Color.kicap.opacity(0.62))
+                    .font(.subheadline)
+                    .foregroundStyle(Color.kicapSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .headerEntrance(visible: headerAppeared, delay: 0.12, reduceMotion: reduceMotion)
             }
@@ -154,37 +151,45 @@ struct CommunityView: View {
         }
     }
 
-    /// Current community as one compact pill (tag + chevron). When the affiliation changes
-    /// (university ↔ area ↔ public) the tag slides out/in and the pill gives a small bounce.
+    /// Current community as a location-picker style switcher (icon · name · chevron), like a
+    /// delivery app's "Deliver to". When the affiliation changes (university ↔ area ↔ public)
+    /// the name slides out/in and the pill gives a small bounce.
     private var communityPill: some View {
         let badge = CommunityBadge(affiliationType: currentAffiliationType, university: currentUniversity, area: currentArea)
+        let symbol = switch currentAffiliationType {
+        case "university": "graduationcap.fill"
+        case "area": "mappin.and.ellipse"
+        default: "globe.asia.australia.fill"
+        }
 
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             showingCommunityAssignment = true
         } label: {
-            HStack(spacing: 5) {
-                badge
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
+                    .contentTransition(.symbolEffect(.replace))
+                Text(badge.label)
+                    .font(.headline)
+                    .foregroundStyle(Color.kicap)
                     .lineLimit(1)
-                    .fixedSize()
                     .id(badge.label)
                     .transition(reduceMotion ? .opacity : .asymmetric(
                         insertion: .push(from: .bottom).combined(with: .opacity),
                         removal: .push(from: .top).combined(with: .opacity)
                     ))
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.sambalRed)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.kicapSecondary)
             }
-            .padding(.leading, 5)
-            .padding(.trailing, 9)
-            .padding(.vertical, 5)
-            .background(Color.white, in: Capsule())
-            .overlay(Capsule().stroke(Color.kicap.opacity(0.08), lineWidth: 1))
-            .shadow(color: .black.opacity(0.05), radius: 3, y: 1)
-            .clipShape(Capsule())
-            .scaleEffect(pillBounce ? 1.06 : 1)
+            .padding(.horizontal, 14)
             .frame(minHeight: 44)
+            .background(Color.surface, in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+            .clipShape(Capsule())
+            .scaleEffect(pillBounce ? 1.04 : 1)
             .contentShape(Capsule())
         }
         .buttonStyle(CommunityPressStyle())
@@ -214,12 +219,11 @@ struct CommunityView: View {
             }
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 34, height: 34)
-                .background(Color.sambalRed, in: Circle())
-                .shadow(color: Color.sambalRed.opacity(0.3), radius: 4, y: 2)
+                .font(.headline)
+                .foregroundStyle(Color.kicap)
                 .frame(width: 44, height: 44)
+                .background(Color.surface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
                 .contentShape(Circle())
         }
         .accessibilityLabel("Add a place or see your places")

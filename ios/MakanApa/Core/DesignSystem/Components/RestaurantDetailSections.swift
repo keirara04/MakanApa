@@ -76,7 +76,7 @@ struct QuickAddPhotoTile: View {
                     Text("Thanks! Pending review").font(.makanBody(11)).foregroundStyle(.secondary)
                 case .failed:
                     Image(systemName: "camera.fill").font(.system(size: 28))
-                    Text("Couldn't add — tap to retry").font(.makanBody(12))
+                    Text("Couldn't add. Tap to retry").font(.makanBody(12))
                 }
             }
             .foregroundStyle(uploader.state == .done ? Color.kicap : Color.kunyit)
@@ -106,7 +106,7 @@ struct QuickAddPhotoRow: View {
             Button { showingSignIn = true } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "camera.fill")
-                    Text("No photos yet — add one?")
+                    Text("No photos yet. Add one?")
                 }
                 .font(.makanBody(13))
                 .foregroundStyle(Color.sambalRed)
@@ -123,7 +123,7 @@ struct QuickAddPhotoRow: View {
                 switch uploader.state {
                 case .idle:
                     Image(systemName: "camera.fill")
-                    Text("No photos yet — add one?")
+                    Text("No photos yet. Add one?")
                 case .uploading:
                     ProgressView()
                     Text("Uploading…")
@@ -132,7 +132,7 @@ struct QuickAddPhotoRow: View {
                     Text("Thanks! Pending review")
                 case .failed:
                     Image(systemName: "camera.fill")
-                    Text("Couldn't add — tap to retry")
+                    Text("Couldn't add. Tap to retry")
                 }
             }
             .font(.makanBody(13))

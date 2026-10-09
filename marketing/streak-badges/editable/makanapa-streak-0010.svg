@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">MakanApa — 10-day streak — Back for More</title>
+<desc id="desc">10 days: Back for More. A collectible MakanApa streak medal with a smiling rice mascot and flame, a large day count, and a #E8B28A rim. Transparent background.</desc>
+<defs>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF1C6"/><stop offset=".3" stop-color="#E8B28A"/><stop offset="1" stop-color="#B7754F"/></linearGradient>
+  <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F66B4E"/><stop offset="1" stop-color="#D43E2D"/></linearGradient>
+</defs>
+<g id="medal" stroke-linejoin="round">
+  <path d="M256.00,27.00 L283.15,39.78 L309.83,45.09 L339.81,43.67 L365.50,56.34 L382.62,80.98 L403.08,98.92 L429.74,112.68 L445.66,136.50 L448.17,166.40 L456.91,192.17 L473.13,217.41 L475.00,246.00 L462.22,273.15 L456.91,299.83 L458.33,329.81 L445.66,355.50 L421.02,372.62 L403.08,393.08 L389.32,419.74 L365.50,435.66 L335.60,438.17 L309.83,446.91 L284.59,463.13 L256.00,465.00 L228.85,452.22 L202.17,446.91 L172.19,448.33 L146.50,435.66 L129.38,411.02 L108.92,393.08 L82.26,379.32 L66.34,355.50 L63.83,325.60 L55.09,299.83 L38.87,274.59 L37.00,246.00 L49.78,218.85 L55.09,192.17 L53.67,162.19 L66.34,136.50 L90.98,119.38 L108.92,98.92 L122.68,72.26 L146.50,56.34 L176.40,53.83 L202.17,45.09 L227.41,28.87Z" fill="url(#rim)" stroke="#29201D" stroke-width="9"/>
+  <circle cx="256" cy="246" r="201" fill="#B7754F" stroke="#29201D" stroke-width="5"/>
+  
+  <circle cx="256" cy="246" r="182" fill="#FFF1DC" stroke="#29201D" stroke-width="5"/>
+  <path d="M123 145 A169 169 0 0 1 389 145" stroke="#E8B28A" stroke-width="3" opacity=".8" stroke-linecap="round"/>
+</g>
+
+<g id="flame" transform="translate(256 184) scale(0.775) translate(-256 -184)">
+      <path d="M256 70 C263 111 317 108 312 153 C335 143 337 128 336 118 C368 157 364 204 336 231 C300 268 219 265 184 228 C151 192 163 159 183 137 C182 164 196 174 207 175 C199 133 233 117 256 70Z" fill="#E8B28A" stroke="#29201D" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M259 121 C257 151 288 164 282 191 C299 188 304 180 308 171 C324 205 295 241 258 243 C218 242 194 214 208 190 C214 202 224 207 230 208 C220 169 244 155 259 121Z" fill="#FFCF6B"/>
+    </g>
+<polygon points="138.00,159.00 140.43,164.65 146.56,165.22 141.94,169.28 143.29,175.28 138.00,172.14 132.71,175.28 134.06,169.28 129.44,165.22 135.57,164.65" fill="#E8B28A" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="374.00,159.00 376.43,164.65 382.56,165.22 377.94,169.28 379.29,175.28 374.00,172.14 368.71,175.28 370.06,169.28 365.44,165.22 371.57,164.65" fill="#E8B28A" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/>
+<!-- A simplified MakanApa rice mascot, drawn with native vector curves. -->
+<g id="rice-mascot" stroke="#29201D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M197 210 C178 198 181 181 195 174 C185 159 194 143 210 142 C208 126 224 117 238 124 C247 109 264 111 273 123 C290 116 305 125 306 141 C324 144 330 159 319 174 C333 184 333 200 319 210 C315 226 300 230 287 225 C277 237 262 237 252 229 C239 238 223 234 217 224 C204 229 193 223 197 210Z" fill="#FFF4DD"/>
+  <path d="M270 129 C271 109 291 98 308 107 C321 114 326 126 322 141 L273 139Z" fill="#E94B35"/>
+  <path d="M274 138 Q306 137 325 146 Q302 155 279 148Z" fill="#C83D2D"/>
+  <path d="M306 108 Q317 117 316 132" stroke="#B73427" stroke-width="3"/>
+  <path d="M207 153 Q213 148 220 151 M234 131 Q240 127 247 130 M300 174 Q306 171 312 175 M211 212 Q218 208 223 211" stroke="#E8D9BC" stroke-width="4"/>
+  <ellipse cx="235" cy="174" rx="5" ry="8" fill="#29201D" stroke="none"/>
+  <path d="M271 173 Q279 165 287 173" stroke-width="5"/>
+  <ellipse cx="217" cy="190" rx="11" ry="7" fill="#F48C73" stroke="none"/>
+  <ellipse cx="302" cy="190" rx="11" ry="7" fill="#F48C73" stroke="none"/>
+  <path d="M246 190 Q260 198 273 190 Q273 212 260 213 Q247 211 246 190Z" fill="#29201D" stroke-width="3"/>
+  <path d="M253 206 Q261 200 267 206 Q261 213 253 206Z" fill="#E94B35" stroke="none"/>
+</g>
+<g id="day-count" fill="#29201D" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900">
+  <text x="256" y="346" font-size="122" letter-spacing="-4">10</text>
+  <text x="256" y="383" font-size="25" letter-spacing="5">DAYS</text>
+</g>
+<!-- Ribbon provides a consistent silhouette throughout the collection. -->
+<g id="streak-ribbon" stroke="#29201D" stroke-linejoin="round">
+  <path d="M130 407 L58 423 L77 451 L61 479 L149 462Z" fill="#B7754F" stroke-width="6"/>
+  <path d="M382 407 L454 423 L435 451 L451 479 L363 462Z" fill="#B7754F" stroke-width="6"/>
+  <path d="M111 409 Q256 378 401 409 L401 465 Q256 435 111 465Z" fill="url(#ribbon)" stroke-width="7"/>
+  <path d="M125 414 Q256 388 387 414" stroke="#FFB596" stroke-width="3" stroke-linecap="round"/>
+  <text x="256" y="440" fill="#FFF4DD" stroke="none" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="29" letter-spacing="5">STREAK</text>
+  <polygon points="142.00,425.00 144.43,430.65 150.56,431.22 145.94,435.28 147.29,441.28 142.00,438.14 136.71,441.28 138.06,435.28 133.44,431.22 139.57,430.65" fill="#FFF4DD" stroke="#29201D" stroke-width="2" stroke-linejoin="round"/><polygon points="370.00,425.00 372.43,430.65 378.56,431.22 373.94,435.28 375.29,441.28 370.00,438.14 364.71,441.28 366.06,435.28 361.44,431.22 367.57,430.65" fill="#FFF4DD" stroke="#29201D" stroke-width="2" stroke-linejoin="round"/>
+</g>
+
+</svg>

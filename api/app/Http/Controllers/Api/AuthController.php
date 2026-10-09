@@ -481,7 +481,7 @@ class AuthController extends Controller
 
     private function presentUser(User $user): array
     {
-        $user->loadMissing('affiliation.university', 'affiliation.area');
+        $user->loadMissing('affiliation.university', 'affiliation.area', 'ambassadorUniversity', 'ambassadorArea');
 
         return [
             'id' => $user->id,
@@ -496,6 +496,8 @@ class AuthController extends Controller
             'university' => $user->universityShortName(),
             'area' => $user->areaShortName(),
             'affiliationVerificationStatus' => $user->affiliation?->verification_status,
+            // Admin-assigned; perks (badge etc.) read this. null when not an ambassador.
+            'ambassadorOf' => $user->ambassadorOf(),
             // Current document versions, so the app can show the agreement sheet (and send the
             // versions back) before a contribution instead of waiting for a terms_required 403.
             'legal' => [

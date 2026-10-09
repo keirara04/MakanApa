@@ -50,7 +50,7 @@ struct HalalVerificationSection: View {
                 HalalReportCard(report: report)
             }
 
-            Text("Community-sourced — halal info may be incomplete. Always double-check at the restaurant.")
+            Text("Community-sourced: halal info may be incomplete. Always double-check at the restaurant.")
                 .font(.makanBody(11))
                 .foregroundStyle(.secondary)
 
@@ -91,7 +91,7 @@ extension HalalVerificationSection {
     /// more than one person, so it never reads as just "you".
     private var demandLine: String? {
         guard halal.verification == nil, let pickers = halal.recentPickers, pickers >= 2 else { return nil }
-        return "\(pickers) people picked this place in the last 30 days — know if it's halal? Help them out."
+        return "\(pickers) people picked this place in the last 30 days. Know if it's halal? Help them out."
     }
 
     /// The primary ask when this user hasn't vouched yet — one tap into the vouch sheet.
@@ -105,7 +105,7 @@ extension HalalVerificationSection {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(halal.status == .unknown ? "Know if this place is halal?" : "Is this still accurate?")
                         .font(.makanBody(14))
-                    Text("Vouch for it — our team reviews every vouch")
+                    Text("Vouch for it. Our team reviews every vouch")
                         .font(.makanBody(11))
                         .foregroundStyle(.secondary)
                 }
@@ -152,9 +152,9 @@ private struct MyVouchStatusRow: View {
 
     private var title: String {
         switch report.status {
-        case "pending": "You vouched \(claimText) — waiting for review"
+        case "pending": "You vouched \(claimText). Waiting for review"
         case "changes_requested": "Our team needs a bit more evidence"
-        case "approved": "Your vouch was approved — thank you!"
+        case "approved": "Your vouch was approved. Thank you!"
         case "rejected": "Your vouch couldn't be verified"
         default: "Your vouch isn't sent yet"
         }

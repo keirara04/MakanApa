@@ -505,7 +505,7 @@ struct ResultView: View {
 
             PlaceMenuSection(items: pick.menuItems)
 
-            Text("Shared by the MakanApa community — may not be complete or up to date.")
+            Text("Shared by the MakanApa community. It may not be complete or up to date.")
                 .font(.makanBody(10))
                 .foregroundStyle(Color.kicapSecondary)
         }
@@ -573,7 +573,7 @@ struct ResultView: View {
                     .italic()
                     .foregroundStyle(Color.kicap)
 
-                Text("— \(review.authorName)\(review.relativePublishTime.map { " · \($0)" } ?? "")")
+                Text("\(review.authorName)\(review.relativePublishTime.map { " · \($0)" } ?? "")")
                     .font(.makanBody(11))
                     .foregroundStyle(.secondary)
             }

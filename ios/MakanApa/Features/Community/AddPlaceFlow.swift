@@ -608,7 +608,7 @@ struct AddPlaceFlow: View {
             VStack(alignment: .leading, spacing: 24) {
                 stepHeading(
                     submissionType == .editPlace ? "What should change?" : Copy.communityDetailsHeadline,
-                    submissionType == .editPlace ? "Fix anything that's wrong or missing — only what you change gets reviewed." : "Just the basics. Everything else is optional."
+                    submissionType == .editPlace ? "Fix anything that's wrong or missing. Only what you change gets reviewed." : "Just the basics. Everything else is optional."
                 )
 
                 VStack(alignment: .leading, spacing: 18) {
@@ -992,8 +992,8 @@ struct AddPlaceFlow: View {
             } catch {
                 uploadedPhotos.removeAll { $0.id == stateId }
                 switch error as? APIError {
-                case .transport?: photoError = "Photo didn't upload — check your connection and try again."
-                case .rateLimited?: photoError = "Too many photos at once — wait a minute, then add the rest."
+                case .transport?: photoError = "Photo didn't upload. Check your connection and try again."
+                case .rateLimited?: photoError = "Too many photos at once. Wait a minute, then add the rest."
                 case let apiError?: photoError = apiError.serverMessage ?? "Photo didn't upload. Try again in a bit."
                 case nil: photoError = "Photo didn't upload. Try again in a bit."
                 }

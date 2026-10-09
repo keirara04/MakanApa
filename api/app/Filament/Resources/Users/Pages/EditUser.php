@@ -19,6 +19,7 @@ class EditUser extends EditRecord
             UserActions::suspend(),
             UserActions::reactivate(),
             UserActions::changeRole(),
+            UserActions::setAmbassador(),
             UserActions::revokeSessions(),
             UserActions::delete(),
             UserActions::restore(),

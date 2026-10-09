@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Models\Area;
+use App\Models\University;
 use App\Models\User;
 use App\Services\AdminUserService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Get;
 
 /**
  * Shared between UsersTable's row actions and the Edit page's header actions. Every state
@@ -55,6 +58,52 @@ class UserActions
             ->requiresConfirmation()
             ->action(function (User $record, array $data) {
                 self::guarded(fn () => app(AdminUserService::class)->changeRole($record, $data['role'], auth()->user()));
+            });
+    }
+
+    /** Ambassador of any one university or area (or none) — independent of their own community. */
+    public static function setAmbassador(): Action
+    {
+        return Action::make('setAmbassador')
+            ->label('Set ambassador')
+            ->color('gray')
+            ->icon('heroicon-o-star')
+            ->schema([
+                Select::make('type')
+                    ->label('Ambassador of')
+                    ->options(['none' => 'Not an ambassador', 'university' => 'A university', 'area' => 'An area'])
+                    ->required()
+                    ->live(),
+                Select::make('university_id')
+                    ->label('University')
+                    ->options(fn () => University::where('active', true)->orderBy('short_name')->pluck('short_name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->visible(fn (Get $get) => $get('type') === 'university'),
+                Select::make('area_id')
+                    ->label('Area')
+                    ->options(fn () => Area::where('active', true)->orderBy('short_name')->pluck('short_name', 'id'))
+                    ->searchable()
+                    ->required()
+                    ->visible(fn (Get $get) => $get('type') === 'area'),
+            ])
+            ->fillForm(fn (User $record) => [
+                'type' => match (true) {
+                    $record->ambassador_university_id !== null => 'university',
+                    $record->ambassador_area_id !== null => 'area',
+                    default => 'none',
+                },
+                'university_id' => $record->ambassador_university_id,
+                'area_id' => $record->ambassador_area_id,
+            ])
+            ->action(function (User $record, array $data) {
+                $type = $data['type'] === 'none' ? null : $data['type'];
+                $communityId = match ($type) {
+                    'university' => (int) $data['university_id'],
+                    'area' => (int) $data['area_id'],
+                    default => null,
+                };
+                self::guarded(fn () => app(AdminUserService::class)->setAmbassador($record, $type, $communityId, auth()->user()));
             });
     }
 

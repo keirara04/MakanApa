@@ -1,0 +1,9 @@
+Use case: logo-brand
+Asset type: standalone MakanApa university ambassador badge, usable as a digital sticker and promotional emblem.
+Input image: brand mascot reference. Preserve the recognizable cheerful cream rice-ball mascot, dark brown outlines, winking face, red backwards cap and spoon; adapt into a simplified clean emblem illustration.
+Primary request: create one exceptionally polished, cool varsity-style crest badge for MakanApa Uni Ambassador. A compact shield silhouette with a rounded upper edge, thick dark espresso outer outline, warm gold inner trim, rich tomato red panels and cream central field. Center the friendly rice mascot as a proud campus representative, holding its spoon up, with small gold stars framing it. Strong visual hierarchy, confident collegiate character, premium enamel-pin graphic feel with restrained dimensional highlights, crisp illustrated edges, few broad shapes. The mascot sits above a substantial red ribbon across the lower shield.
+Text (verbatim): "MakanApa" prominently across the upper crest in bold rounded cream lettering; "UNI" and "AMBASSADOR" on two centered lines on the broad lower red ribbon, all capitals, extremely legible bold condensed varsity sans serif. No other text, no dates, no university names. Do not reproduce cap slogan so lettering stays uncluttered.
+Color palette: tomato red #E94B35, cream #FFF4DD, warm gold #F4B942, espresso #29201D.
+Composition: one centered upright badge, square canvas, entire badge visible with generous transparent margin. Balanced and punchy, readable at small sizes. Actual transparent background outside the badge, no surface, no scene, no mockup, no watermark.
+
+Generated with the built-in image generation tool.

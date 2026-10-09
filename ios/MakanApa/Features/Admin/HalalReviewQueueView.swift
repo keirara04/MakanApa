@@ -25,7 +25,7 @@ struct HalalReviewQueueView: View {
                             Spacer()
                             Text("P\(report.halal?.reviewPriority ?? 0)").font(.makanBody(11)).foregroundStyle(.secondary)
                         }
-                        Text("Claims \(report.halal?.claim?.pickerLabel ?? "—") · now \(report.halal?.currentStatus?.pickerLabel ?? "—")")
+                        Text("Claims \(report.halal?.claim?.pickerLabel ?? "None") · now \(report.halal?.currentStatus?.pickerLabel ?? "None")")
                             .font(.makanBody(12)).foregroundStyle(.secondary)
                         if report.halal?.duplicatePhoto == true {
                             Text("⚠️ Duplicate photo").font(.makanBody(11)).foregroundStyle(Color.sambalRed)
@@ -220,7 +220,7 @@ private struct HalalReportReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "That didn't go through — check the certificate details and try again."
+            errorMessage = "That didn't go through. Check the certificate details and try again."
         }
     }
 }

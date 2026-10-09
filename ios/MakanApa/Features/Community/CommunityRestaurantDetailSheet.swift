@@ -240,7 +240,7 @@ struct CommunityRestaurantDetailSheet: View {
                         .font(.makanBody(13))
                         .italic()
                         .foregroundStyle(Color.kicap.opacity(0.85))
-                    Text("— \(review.authorName)")
+                    Text(review.authorName)
                         .font(.makanBody(11))
                         .foregroundStyle(.secondary)
                 }

@@ -106,8 +106,8 @@ private struct SubmissionReviewView: View {
                 }
             } else if submission.submissionType == .newPlace {
                 Section("Details") {
-                    HStack { Text("Category"); Spacer(); Text(submission.foodCategory ?? "—").foregroundStyle(.secondary) }
-                    HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "—").foregroundStyle(.secondary) }
+                    HStack { Text("Category"); Spacer(); Text(submission.foodCategory ?? "None").foregroundStyle(.secondary) }
+                    HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "None").foregroundStyle(.secondary) }
                     if let address = submission.address {
                         HStack { Text("Address"); Spacer(); Text(address).foregroundStyle(.secondary) }
                     }
@@ -227,15 +227,15 @@ private struct SubmissionReviewView: View {
     private func fieldValue(_ field: String) -> String {
         switch field {
         case "name": return submission.name
-        case "address": return submission.address ?? "—"
-        case "food_category": return submission.foodCategory ?? "—"
-        case "price_level": return PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "—"
-        case "phone": return submission.phone ?? "—"
-        case "instagram_handle": return submission.instagramHandle ?? "—"
-        case "tiktok_handle": return submission.tiktokHandle ?? "—"
-        case "website_url": return submission.websiteUrl ?? "—"
+        case "address": return submission.address ?? "None"
+        case "food_category": return submission.foodCategory ?? "None"
+        case "price_level": return PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "None"
+        case "phone": return submission.phone ?? "None"
+        case "instagram_handle": return submission.instagramHandle ?? "None"
+        case "tiktok_handle": return submission.tiktokHandle ?? "None"
+        case "website_url": return submission.websiteUrl ?? "None"
         case "menu_items": return "\(submission.menuItems?.count ?? 0) item(s)"
-        default: return "—"
+        default: return "None"
         }
     }
 

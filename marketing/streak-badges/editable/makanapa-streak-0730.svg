@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+<title id="title">MakanApa — 730-day streak — Makan Royalty</title>
+<desc id="desc">730 days: Makan Royalty. A collectible MakanApa streak medal with a smiling rice mascot and flame, a large day count, and a #B4D6E8 rim. Transparent background.</desc>
+<defs>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF1C6"/><stop offset=".3" stop-color="#B4D6E8"/><stop offset="1" stop-color="#6A9CB7"/></linearGradient>
+  <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F66B4E"/><stop offset="1" stop-color="#D43E2D"/></linearGradient>
+</defs>
+<g id="medal" stroke-linejoin="round">
+  <path d="M256.00,27.00 L276.39,39.00 L296.58,42.00 L319.57,36.43 L339.81,43.67 L354.05,62.56 L371.56,73.05 L394.93,76.71 L410.86,91.14 L416.79,114.05 L428.95,130.44 L449.14,142.76 L458.33,162.19 L455.04,185.62 L460.00,205.42 L473.95,224.53 L475.00,246.00 L463.00,266.39 L460.00,286.58 L465.57,309.57 L458.33,329.81 L439.44,344.05 L428.95,361.56 L425.29,384.93 L410.86,400.86 L387.95,406.79 L371.56,418.95 L359.24,439.14 L339.81,448.33 L316.38,445.04 L296.58,450.00 L277.47,463.95 L256.00,465.00 L235.61,453.00 L215.42,450.00 L192.43,455.57 L172.19,448.33 L157.95,429.44 L140.44,418.95 L117.07,415.29 L101.14,400.86 L95.21,377.95 L83.05,361.56 L62.86,349.24 L53.67,329.81 L56.96,306.38 L52.00,286.58 L38.05,267.47 L37.00,246.00 L49.00,225.61 L52.00,205.42 L46.43,182.43 L53.67,162.19 L72.56,147.95 L83.05,130.44 L86.71,107.07 L101.14,91.14 L124.05,85.21 L140.44,73.05 L152.76,52.86 L172.19,43.67 L195.62,46.96 L215.42,42.00 L234.53,28.05Z" fill="url(#rim)" stroke="#29201D" stroke-width="9"/>
+  <circle cx="256" cy="246" r="201" fill="#6A9CB7" stroke="#29201D" stroke-width="5"/>
+  <circle cx="256" cy="246" r="192" fill="none" stroke="#FFF4DD" stroke-width="3" opacity=".65"/>
+  <circle cx="256" cy="246" r="182" fill="#253C59" stroke="#29201D" stroke-width="5"/>
+  <path d="M123 145 A169 169 0 0 1 389 145" stroke="#B4D6E8" stroke-width="3" opacity=".8" stroke-linecap="round"/>
+</g>
+<g id="laurels" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"><path d="M115 325 Q78 252 122 192" fill="none"/><path d="M108 315 Q81 308 87 285 Q108 290 108 315Z"/><path d="M108 315 Q130 304 129 285 Q109 292 108 315Z"/><path d="M105 293 Q78 286 84 263 Q105 268 105 293Z"/><path d="M105 293 Q127 282 126 263 Q106 270 105 293Z"/><path d="M102 271 Q75 264 81 241 Q102 246 102 271Z"/><path d="M102 271 Q124 260 123 241 Q103 248 102 271Z"/><path d="M105 249 Q78 242 84 219 Q105 224 105 249Z"/><path d="M105 249 Q127 238 126 219 Q106 226 105 249Z"/><path d="M108 227 Q81 220 87 197 Q108 202 108 227Z"/><path d="M108 227 Q130 216 129 197 Q109 204 108 227Z"/><g transform="translate(512 0) scale(-1 1)"><path d="M115 325 Q78 252 122 192" fill="none"/><path d="M108 315 Q81 308 87 285 Q108 290 108 315Z"/><path d="M108 315 Q130 304 129 285 Q109 292 108 315Z"/><path d="M105 293 Q78 286 84 263 Q105 268 105 293Z"/><path d="M105 293 Q127 282 126 263 Q106 270 105 293Z"/><path d="M102 271 Q75 264 81 241 Q102 246 102 271Z"/><path d="M102 271 Q124 260 123 241 Q103 248 102 271Z"/><path d="M105 249 Q78 242 84 219 Q105 224 105 249Z"/><path d="M105 249 Q127 238 126 219 Q106 226 105 249Z"/><path d="M108 227 Q81 220 87 197 Q108 202 108 227Z"/><path d="M108 227 Q130 216 129 197 Q109 204 108 227Z"/></g></g>
+<g id="flame" transform="translate(256 184) scale(1.000) translate(-256 -184)">
+      <path d="M256 70 C263 111 317 108 312 153 C335 143 337 128 336 118 C368 157 364 204 336 231 C300 268 219 265 184 228 C151 192 163 159 183 137 C182 164 196 174 207 175 C199 133 233 117 256 70Z" fill="#B4D6E8" stroke="#29201D" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M259 121 C257 151 288 164 282 191 C299 188 304 180 308 171 C324 205 295 241 258 243 C218 242 194 214 208 190 C214 202 224 207 230 208 C220 169 244 155 259 121Z" fill="#FFCF6B"/>
+    </g>
+<polygon points="138.00,159.00 140.43,164.65 146.56,165.22 141.94,169.28 143.29,175.28 138.00,172.14 132.71,175.28 134.06,169.28 129.44,165.22 135.57,164.65" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="123.00,128.00 125.97,134.91 133.46,135.60 127.81,140.56 129.47,147.90 123.00,144.06 116.53,147.90 118.19,140.56 112.54,135.60 120.03,134.91" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="108.00,97.00 111.51,105.16 120.36,105.98 113.69,111.85 115.64,120.52 108.00,115.98 100.36,120.52 102.31,111.85 95.64,105.98 104.49,105.16" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="374.00,159.00 376.43,164.65 382.56,165.22 377.94,169.28 379.29,175.28 374.00,172.14 368.71,175.28 370.06,169.28 365.44,165.22 371.57,164.65" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="389.00,128.00 391.97,134.91 399.46,135.60 393.81,140.56 395.47,147.90 389.00,144.06 382.53,147.90 384.19,140.56 378.54,135.60 386.03,134.91" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/><polygon points="404.00,97.00 407.51,105.16 416.36,105.98 409.69,111.85 411.64,120.52 404.00,115.98 396.36,120.52 398.31,111.85 391.64,105.98 400.49,105.16" fill="#B4D6E8" stroke="#29201D" stroke-width="3" stroke-linejoin="round"/>
+<!-- A simplified MakanApa rice mascot, drawn with native vector curves. -->
+<g id="rice-mascot" stroke="#29201D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M197 210 C178 198 181 181 195 174 C185 159 194 143 210 142 C208 126 224 117 238 124 C247 109 264 111 273 123 C290 116 305 125 306 141 C324 144 330 159 319 174 C333 184 333 200 319 210 C315 226 300 230 287 225 C277 237 262 237 252 229 C239 238 223 234 217 224 C204 229 193 223 197 210Z" fill="#FFF4DD"/>
+  <path d="M270 129 C271 109 291 98 308 107 C321 114 326 126 322 141 L273 139Z" fill="#E94B35"/>
+  <path d="M274 138 Q306 137 325 146 Q302 155 279 148Z" fill="#C83D2D"/>
+  <path d="M306 108 Q317 117 316 132" stroke="#B73427" stroke-width="3"/>
+  <path d="M207 153 Q213 148 220 151 M234 131 Q240 127 247 130 M300 174 Q306 171 312 175 M211 212 Q218 208 223 211" stroke="#E8D9BC" stroke-width="4"/>
+  <ellipse cx="235" cy="174" rx="5" ry="8" fill="#29201D" stroke="none"/>
+  <path d="M271 173 Q279 165 287 173" stroke-width="5"/>
+  <ellipse cx="217" cy="190" rx="11" ry="7" fill="#F48C73" stroke="none"/>
+  <ellipse cx="302" cy="190" rx="11" ry="7" fill="#F48C73" stroke="none"/>
+  <path d="M246 190 Q260 198 273 190 Q273 212 260 213 Q247 211 246 190Z" fill="#29201D" stroke-width="3"/>
+  <path d="M253 206 Q261 200 267 206 Q261 213 253 206Z" fill="#E94B35" stroke="none"/>
+</g>
+<g id="day-count" fill="#FFF4DD" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900">
+  <text x="256" y="346" font-size="110" letter-spacing="-4">730</text>
+  <text x="256" y="383" font-size="25" letter-spacing="5">DAYS</text>
+</g>
+<!-- Ribbon provides a consistent silhouette throughout the collection. -->
+<g id="streak-ribbon" stroke="#29201D" stroke-linejoin="round">
+  <path d="M130 407 L58 423 L77 451 L61 479 L149 462Z" fill="#6A9CB7" stroke-width="6"/>
+  <path d="M382 407 L454 423 L435 451 L451 479 L363 462Z" fill="#6A9CB7" stroke-width="6"/>
+  <path d="M111 409 Q256 378 401 409 L401 465 Q256 435 111 465Z" fill="url(#ribbon)" stroke-width="7"/>
+  <path d="M125 414 Q256 388 387 414" stroke="#FFB596" stroke-width="3" stroke-linecap="round"/>
+  <text x="256" y="440" fill="#FFF4DD" stroke="none" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="29" letter-spacing="5">STREAK</text>
+  <polygon points="142.00,425.00 144.43,430.65 150.56,431.22 145.94,435.28 147.29,441.28 142.00,438.14 136.71,441.28 138.06,435.28 133.44,431.22 139.57,430.65" fill="#FFF4DD" stroke="#29201D" stroke-width="2" stroke-linejoin="round"/><polygon points="370.00,425.00 372.43,430.65 378.56,431.22 373.94,435.28 375.29,441.28 370.00,438.14 364.71,441.28 366.06,435.28 361.44,431.22 367.57,430.65" fill="#FFF4DD" stroke="#29201D" stroke-width="2" stroke-linejoin="round"/>
+</g>
+<g id="crown" fill="#B4D6E8" stroke="#29201D" stroke-width="5" stroke-linejoin="round"><path d="M214 80 L204 47 L233 58 L256 31 L279 58 L308 47 L298 80Z"/><path d="M216 80 H296" fill="none" stroke="#6A9CB7"/><polygon points="256.00,49.00 258.43,54.65 264.56,55.22 259.94,59.28 261.29,65.28 256.00,62.14 250.71,65.28 252.06,59.28 247.44,55.22 253.57,54.65" fill="#FFF4DD" stroke="#29201D" stroke-width="2" stroke-linejoin="round"/></g>
+</svg>

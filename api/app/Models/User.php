@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -20,7 +21,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone', 'halal_preference', 'trusted_contributor', 'contribution_stats', 'is_guest', 'signup_source'])]
+#[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone', 'halal_preference', 'trusted_contributor', 'contribution_stats', 'is_guest', 'signup_source', 'ambassador_university_id', 'ambassador_area_id'])]
 #[Hidden(['password', 'remember_token', 'apple_refresh_token'])]
 class User extends Authenticatable implements FilamentUser, HasEmailAuthentication
 {
@@ -143,6 +144,32 @@ class User extends Authenticatable implements FilamentUser, HasEmailAuthenticati
     public function affiliation(): HasOne
     {
         return $this->hasOne(UserAffiliation::class);
+    }
+
+    /** Admin-assigned, independent of the user's own affiliation. At most one of the two is set. */
+    public function ambassadorUniversity(): BelongsTo
+    {
+        return $this->belongsTo(University::class, 'ambassador_university_id');
+    }
+
+    public function ambassadorArea(): BelongsTo
+    {
+        return $this->belongsTo(Area::class, 'ambassador_area_id');
+    }
+
+    /**
+     * @return array{type: 'university'|'area', name: string}|null
+     */
+    public function ambassadorOf(): ?array
+    {
+        if ($this->ambassadorUniversity) {
+            return ['type' => 'university', 'name' => $this->ambassadorUniversity->short_name];
+        }
+        if ($this->ambassadorArea) {
+            return ['type' => 'area', 'name' => $this->ambassadorArea->short_name];
+        }
+
+        return null;
     }
 
     public function universityId(): ?int

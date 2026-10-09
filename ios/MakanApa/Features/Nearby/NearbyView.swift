@@ -1062,7 +1062,7 @@ struct NearbyView: View {
             .clipShape(Capsule())
         }
         .disabled(state == .sending)
-        .accessibilityHint("Marks this as where you're eating — it shows up in Recent")
+        .accessibilityHint("Marks this as where you're eating. It shows up in Recent")
     }
 
     /// "Open · closes 10:00 PM" / "Closed" — nothing when we genuinely don't know.
@@ -1199,7 +1199,7 @@ struct NearbyView: View {
                         .font(.makanBody(13))
                         .italic()
                         .foregroundStyle(Color.kicap.opacity(0.85))
-                    Text("— \(review.authorName)")
+                    Text(review.authorName)
                         .font(.makanBody(11))
                         .foregroundStyle(.secondary)
                 }

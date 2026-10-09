@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\University;
 use App\Models\User;
 use App\Services\AdminUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,5 +106,15 @@ class AdminUserServiceTest extends TestCase
         app(AdminUserService::class)->restore($target, $admin);
 
         $this->assertDatabaseHas('users', ['id' => $target->id, 'deleted_at' => null]);
+    }
+
+    public function test_rejects_making_a_guest_an_ambassador(): void
+    {
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        $guest = User::factory()->guest()->create();
+        $ukm = University::create(['name' => 'Universiti Kebangsaan Malaysia', 'short_name' => 'UKM', 'active' => true]);
+
+        $this->expectException(RuntimeException::class);
+        app(AdminUserService::class)->setAmbassador($guest, 'university', $ukm->id, $admin);
     }
 }

@@ -52,6 +52,9 @@ class UserInfolist
                         TextEntry::make('community')
                             ->state(fn (User $record) => $record->universityShortName() ?? $record->areaShortName())
                             ->placeholder('Public'),
+                        TextEntry::make('ambassador')->label('Ambassador of')
+                            ->state(fn (User $record) => ($a = $record->ambassadorOf()) ? "{$a['name']} ({$a['type']})" : null)
+                            ->placeholder('—'),
                         TextEntry::make('created_at')->label('Joined')->dateTime(),
                         TextEntry::make('last_active')->label('Last active')
                             ->state(fn (User $record) => $record->tokens()->max('last_used_at'))

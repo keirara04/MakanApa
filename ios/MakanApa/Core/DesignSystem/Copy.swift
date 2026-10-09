@@ -50,7 +50,6 @@ enum Copy {
         }
     }
 
-    static let homeSubtext = "Let's figure out what to eat."
     static let quickPickTitle = "Pick for me"
     static let chooseCravingTitle = "I know what I want"
     static let chooseCravingSubtitle = "Craving, budget, distance"
@@ -129,7 +128,7 @@ enum Copy {
     static let locationPrivacyLine = "We only use your location while you're using MakanApa."
 
     static let tagline = "Less thinking. More eating."
-    static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more eating."
+    static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby. Less thinking, more eating."
     static let privacyPolicyURL = "https://makanapa.hakeemiridza.com/privacy"
     static let termsURL = "https://makanapa.hakeemiridza.com/terms"
     static let communityGuidelinesURL = "https://makanapa.hakeemiridza.com/community-guidelines"
@@ -139,9 +138,9 @@ enum Copy {
     static let signIn = "Sign in"
     static let loginInvalidCredentials = "Email or password doesn't match."
 
-    static let communityHeadlineUniversityFormat = "What's %@ eating? 👀"
+    static let communityHeadlineUniversityFormat = "What's %@ eating?"
     static let communitySubtitleUniversityFormat = "Popular around %@"
-    static let communityHeadlineAreaFormat = "What's %@ eating? 👀"
+    static let communityHeadlineAreaFormat = "What's %@ eating?"
     static let communitySubtitleAreaFormat = "Popular around %@"
     static let communityHeadlinePublic = "What's trending near you"
     static let communitySubtitlePublic = "Trending picks nearby"
@@ -158,8 +157,8 @@ enum Copy {
     static let nudgePicksTitle = "You've been picking well 🍛"
     static let nudgePicksDetail = "MakanApa is learning what you like. Save it to an account so a new phone doesn't mean starting over."
     static let nudgeSavesTitle = "Your food list is growing ❤️"
-    static let nudgeSavesDetail = "Keep your saved places safe — on this phone or the next one."
-    static let continueAsGuestFailed = "Couldn't start — check your connection and try again."
+    static let nudgeSavesDetail = "Keep your saved places safe, on this phone or the next one."
+    static let continueAsGuestFailed = "Couldn't start. Check your connection and try again."
     static let communityLocationDeniedHeadline = "Location is off"
     static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."
     static let communityLocationOpenSettings = "Open Settings"
@@ -204,7 +203,7 @@ enum Copy {
     static let communityPostsReportDetail = "Reports are anonymous. We review every one, and posts with several reports are hidden automatically."
     static let communityPostsReportNotePlaceholder = "Anything else we should know? (optional)"
     static let communityPostsReportSubmit = "Send report"
-    static let communityPostsReportedToast = "Thanks — we'll take a look. You won't see this post again."
+    static let communityPostsReportedToast = "Thanks, we'll take a look. You won't see this post again."
     static let communityPostsBlockTitleFormat = "Block %@?"
     static let communityPostsBlockDetail = "You won't see each other's posts or replies. You can unblock in Settings → Blocked users."
     static let communityPostsDeleteTitle = "Delete this post?"
@@ -252,7 +251,7 @@ enum Copy {
     static let communityAddMoreDetailsSubtitle = "Address, phone & socials"
     static let communityAddMenuTitle = "Add menu"
     static let communityAddMenuSubtitle = "Help people know what's good here."
-    static let communityBlankIsFine = "You can leave these blank — the community can help complete them later."
+    static let communityBlankIsFine = "You can leave these blank. The community can help complete them later."
     static let communityAddMenuItemCTA = "Add another item"
 
     // MARK: - Pick from saved places
@@ -290,7 +289,7 @@ enum Copy {
     // MARK: - Pick explanation
 
     static let whyThisPick = "Why this one?"
-    static let whyNotPrompt = "Help me learn — why not this one?"
+    static let whyNotPrompt = "Help me learn: why not this one?"
     static let pickingInProgress = "Nasi's thinking..."
     static let eatHere = "Eat here"
 }

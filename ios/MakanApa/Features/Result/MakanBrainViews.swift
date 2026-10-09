@@ -265,7 +265,7 @@ struct WhatIfSheet: View {
                 if isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }.listRowBackground(Color.clear)
                 } else if entries.isEmpty {
-                    Text("Nothing would change it — this one wins on every count.")
+                    Text("Nothing would change it. This one wins on every count.")
                         .font(.makanBody(14))
                         .foregroundStyle(Color.kicap)
                 }

@@ -152,10 +152,10 @@ struct HalalReportSheet: View {
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
                     if attachedPhotos > 0 {
-                        Text("\(attachedPhotos) photo(s) from before are already attached — no need to add them again.")
+                        Text("\(attachedPhotos) photo(s) from before are already attached, so no need to add them again.")
                     }
                     if tooManyPhotos {
-                        Text("That's more photos than fit — \(photoSlots) more can be added to this vouch.")
+                        Text("That's more photos than fit. Only \(photoSlots) more can be added to this vouch.")
                             .foregroundStyle(Color.sambalRed)
                     }
                     Text("Your name and comment are shown with your report once approved.")
@@ -194,7 +194,7 @@ struct HalalReportSheet: View {
 
     private var claimHint: String {
         switch claim {
-        case .certified: "Only a valid halal certificate counts — we'll verify it."
+        case .certified: "Only a valid halal certificate counts. We'll verify it."
         case .muslimFriendly: "No halal certificate, but you know something useful (e.g. Muslim-owned, no pork or alcohol on the menu). Tell us how you know."
         case .nonHalal: "Pork, lard or alcohol served. A photo of the menu helps."
         case .unknown: ""
@@ -264,7 +264,7 @@ struct HalalReportSheet: View {
         case .rejected(_, let message):
             message
         case .rateLimited:
-            "You've sent a lot of reports — please wait a bit, or for some to be reviewed."
+            "You've sent a lot of reports. Please wait a bit, or for some to be reviewed."
         case .transport:
             "Couldn't send your report. Check your connection and try again."
         case .unauthorized:

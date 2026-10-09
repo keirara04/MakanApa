@@ -29,7 +29,7 @@ struct OwnerClaimSheet: View {
             Form {
                 if isDone {
                     Section {
-                        Text("Thanks — our team will verify your ownership and get back to you.")
+                        Text("Thanks! Our team will verify your ownership and get back to you.")
                     }
                 } else {
                     Section {
@@ -44,7 +44,7 @@ struct OwnerClaimSheet: View {
                             Label(proofItems.isEmpty ? "Add proof photo (required)" : "\(proofItems.count) photo(s) added", systemImage: "doc.text.image")
                         }
                     } footer: {
-                        Text("Business licence (SSM/premise licence) or a photo of you at the signboard. Proof photos stay private — only our team sees them.")
+                        Text("Business licence (SSM/premise licence) or a photo of you at the signboard. Proof photos stay private. Only our team sees them.")
                     }
                     Section {
                         Button(isSending ? "Sending…" : "Send claim") { Task { await send() } }

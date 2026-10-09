@@ -9,6 +9,16 @@ private struct PressableCardStyle: ButtonStyle {
     }
 }
 
+/// Tight icon + text for the header eyebrow; the default Label spacing is sized for body text.
+private struct EyebrowLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
+
 /// List rows highlight on press instead of scaling — matches how iOS lists behave.
 private struct RowHighlightStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -50,6 +60,8 @@ struct HomeView: View {
     @State private var savedPickTaps = 0
     /// Non-nil while the saved-places shuffle is presented.
     @State private var savedPick: SavedPickLaunch?
+    /// Neighbourhood for the header eyebrow; nil until reverse-geocoded (or without location).
+    @State private var areaName: String?
 
     @MainActor private static var hasEntered = false
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
@@ -124,11 +136,8 @@ struct HomeView: View {
         // list or the cards — the old fixed VStack ran out of height.
         ScrollView {
             VStack(spacing: 32) {
-                VStack(spacing: 16) {
-                    header
-                    greeting
-                }
-                .modifier(Entrance(index: 0, entered: entered))
+                header
+                    .modifier(Entrance(index: 0, entered: entered))
 
                 ContextStrip()
 
@@ -160,39 +169,74 @@ struct HomeView: View {
 
     // MARK: - Header
 
+    /// App Store "Today"-style header: a small eyebrow (where picks come from, or the date when
+    /// location is off), one large mealtime title, Settings beside it. One header, not two —
+    /// the brand already lives on the app icon and launch screen.
     private var header: some View {
-        HStack {
-            (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))
-                .font(.makanDisplay(17))
+        VStack(alignment: .leading, spacing: 2) {
+            eyebrow
+                .font(.footnote.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(Color.kicapSecondary)
+                .lineLimit(1)
 
-            Spacer()
+            HStack(spacing: 12) {
+                Text(Copy.homeGreeting(hour: Calendar.current.component(.hour, from: .now)))
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(Color.kicap)
+                    .accessibilityAddTraits(.isHeader)
 
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.title3)
-                    .foregroundStyle(Color.kicapSecondary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+                Spacer(minLength: 0)
+
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.kicap)
+                        .frame(width: 44, height: 44)
+                        .background(Color.kicap.opacity(0.06), in: Circle())
+                }
+                .accessibilityLabel("Settings")
             }
-            .accessibilityLabel("Settings")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: areaKey) { await loadAreaName() }
+    }
+
+    @ViewBuilder
+    private var eyebrow: some View {
+        if let areaName {
+            Label {
+                Text(areaName)
+            } icon: {
+                Image(systemName: "location.fill").imageScale(.small)
+            }
+            .labelStyle(EyebrowLabelStyle())
+            .transition(.opacity)
+        } else {
+            Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                .transition(.opacity)
         }
     }
 
-    // MARK: - Greeting
+    /// Rounded to ~1 km so walking around doesn't re-geocode on every location update.
+    private var areaKey: String {
+        guard case .authorized(let c) = locationService.state else { return "none" }
+        return String(format: "%.2f,%.2f", c.latitude, c.longitude)
+    }
 
-    private var greeting: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(Copy.homeGreeting(hour: Calendar.current.component(.hour, from: .now)))
-                .font(.largeTitle.weight(.bold))
-                .foregroundStyle(Color.kicap)
-            Text(Copy.homeSubtext)
-                .font(.subheadline)
-                .foregroundStyle(Color.kicapSecondary)
+    private func loadAreaName() async {
+        guard case .authorized(let c) = locationService.state else {
+            areaName = nil
+            return
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        let location = CLLocation(latitude: c.latitude, longitude: c.longitude)
+        let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first
+        guard !Task.isCancelled else { return }
+        withAnimation(Motion.quick) {
+            areaName = placemark?.subLocality ?? placemark?.locality
+        }
     }
 
     // MARK: - Decide entry points

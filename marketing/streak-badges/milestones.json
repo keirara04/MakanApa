@@ -1,0 +1,78 @@
+{
+  "brand": "MakanApa",
+  "type": "consecutive-day-streak",
+  "milestones": [
+    {
+      "days": 1,
+      "name": "First Bite",
+      "asset": "makanapa-streak-0001.svg",
+      "accent": "#D6E1CE"
+    },
+    {
+      "days": 10,
+      "name": "Back for More",
+      "asset": "makanapa-streak-0010.svg",
+      "accent": "#E8B28A"
+    },
+    {
+      "days": 30,
+      "name": "Makan Regular",
+      "asset": "makanapa-streak-0030.svg",
+      "accent": "#F4C55F"
+    },
+    {
+      "days": 60,
+      "name": "On a Roll",
+      "asset": "makanapa-streak-0060.svg",
+      "accent": "#FA9C54"
+    },
+    {
+      "days": 90,
+      "name": "On Fire",
+      "asset": "makanapa-streak-0090.svg",
+      "accent": "#EE654A"
+    },
+    {
+      "days": 120,
+      "name": "Makan Champion",
+      "asset": "makanapa-streak-0120.svg",
+      "accent": "#AA76AD"
+    },
+    {
+      "days": 180,
+      "name": "Unstoppable",
+      "asset": "makanapa-streak-0180.svg",
+      "accent": "#6D91C1"
+    },
+    {
+      "days": 270,
+      "name": "Makan Elite",
+      "asset": "makanapa-streak-0270.svg",
+      "accent": "#6CB8A8"
+    },
+    {
+      "days": 365,
+      "name": "Makan Legend",
+      "asset": "makanapa-streak-0365.svg",
+      "accent": "#F4C55F"
+    },
+    {
+      "days": 500,
+      "name": "Makan Icon",
+      "asset": "makanapa-streak-0500.svg",
+      "accent": "#F5C269"
+    },
+    {
+      "days": 730,
+      "name": "Makan Royalty",
+      "asset": "makanapa-streak-0730.svg",
+      "accent": "#B4D6E8"
+    },
+    {
+      "days": 1000,
+      "name": "Makan Immortal",
+      "asset": "makanapa-streak-1000.svg",
+      "accent": "#F6D487"
+    }
+  ]
+}

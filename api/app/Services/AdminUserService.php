@@ -55,6 +55,35 @@ class AdminUserService
         });
     }
 
+    /**
+     * Makes $target the ambassador of one university or area, or of none ($type null). Setting
+     * one clears the other, so a user is never an ambassador of two communities at once.
+     *
+     * @param  'university'|'area'|null  $type
+     */
+    public function setAmbassador(User $target, ?string $type, ?int $communityId, User $admin): void
+    {
+        if ($type !== null && $target->isGuest()) {
+            throw new RuntimeException('Guest accounts cannot be ambassadors.');
+        }
+        if ($type !== null && $communityId === null) {
+            throw new RuntimeException('Choose a university or area.');
+        }
+
+        DB::transaction(function () use ($target, $type, $communityId, $admin) {
+            $previous = $target->ambassadorOf();
+            $target->update([
+                'ambassador_university_id' => $type === 'university' ? $communityId : null,
+                'ambassador_area_id' => $type === 'area' ? $communityId : null,
+            ]);
+            $target->unsetRelation('ambassadorUniversity')->unsetRelation('ambassadorArea');
+            $this->auditLogger->log($admin, 'user.set_ambassador', $target, metadata: [
+                'from' => $previous,
+                'to' => $target->ambassadorOf(),
+            ]);
+        });
+    }
+
     public function revokeSessions(User $target, User $admin): void
     {
         DB::transaction(function () use ($target, $admin) {
