@@ -31,6 +31,11 @@ class AmbassadorApplicationController extends Controller
         if ($application->communityId() === null) {
             throw new RuntimeException('That community no longer exists.');
         }
+        // setAmbassador overwrites, so approving would quietly move someone who was made an
+        // ambassador elsewhere after applying.
+        if ($application->user->ambassadorOf() !== null) {
+            throw new RuntimeException('They are already an ambassador. Change it from their user page instead.');
+        }
 
         DB::transaction(function () use ($application, $admin) {
             $this->users->setAmbassador($application->user, $application->communityType(), $application->communityId(), $admin);

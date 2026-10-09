@@ -147,4 +147,21 @@ class AmbassadorApplicationTest extends TestCase
         $this->getJson('/api/v1/me/ambassador-application')->assertJsonPath('application.reviewNote', 'We already have one for UKM.');
         $this->apply($user)->assertCreated();
     }
+
+    public function test_approving_never_moves_someone_who_became_an_ambassador_elsewhere(): void
+    {
+        $user = $this->member();
+        $this->apply($user)->assertCreated();
+        $kl = Area::create(['name' => 'Kuala Lumpur', 'short_name' => 'KL', 'active' => true]);
+        $user->update(['ambassador_area_id' => $kl->id]);
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+
+        $this->expectException(\RuntimeException::class);
+        try {
+            app(AmbassadorApplicationController::class)->approve(AmbassadorApplication::sole(), $admin);
+        } finally {
+            $this->assertSame(['type' => 'area', 'name' => 'KL'], $user->fresh()->ambassadorOf());
+            $this->assertSame('pending', AmbassadorApplication::sole()->status);
+        }
+    }
 }
