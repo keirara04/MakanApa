@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
 
 /**
- * "Lunch dah?" — sent inline by MealNudgeDispatcher (not queued: the dispatcher already runs in
+ * "Had lunch yet?" — sent inline by MealNudgeDispatcher (not queued: the dispatcher already runs in
  * the scheduler, and sending inline lets it record a failure on the nudge row). Push only; no
  * inbox entry — a mealtime nudge is stale an hour later.
  */

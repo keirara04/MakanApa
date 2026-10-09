@@ -54,7 +54,7 @@ struct MoodSelectionView: View {
 
             PreferenceChoiceRow(
                 symbol: "dice",
-                title: "Anything lah",
+                title: "Anything",
                 subtitle: "Good food can surprise me.",
                 isSelected: choseAnything,
                 isSecondary: true,

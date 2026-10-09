@@ -47,7 +47,7 @@ struct LocationPermissionView: View {
                 }
                 .frame(width: 130, height: 130)
 
-                Text("Where you at?\nMakanApa uses your location to find makan nearby.")
+                Text("Where are you?\nMakanApa uses your location to find food nearby.")
                     .font(.makanBody(14))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

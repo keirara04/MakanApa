@@ -14,13 +14,13 @@ final class BrainPresenter
     /**
      * @param  array{category: ?string}|null  $rejected  the candidate just rerolled away from, if any
      */
-    public static function forRow(Decision $decision, DecisionRecommendation $row, bool $withTrace, ?array $rejected = null, ?string $lead = null, bool $plainEnglish = false): array
+    public static function forRow(Decision $decision, DecisionRecommendation $row, bool $withTrace, ?array $rejected = null, ?string $lead = null): array
     {
         $facts = $row->reason_facts ?? [];
         $category = $row->breakdown['facts']['category'] ?? null;
         $changed = $rejected !== null && ($rejected['category'] ?? null) !== null && $rejected['category'] !== $category;
 
-        $rendered = ReasonCatalog::render($facts, (int) $decision->id, $changed, $rejected['category'] ?? null, $plainEnglish);
+        $rendered = ReasonCatalog::render($facts, (int) $decision->id, $changed, $rejected['category'] ?? null);
         if ($lead !== null) {
             array_unshift($rendered['reasons'], ['family' => 'match', 'key' => 'tune', 'icon' => '🎯', 'text' => $lead]);
             $rendered['reasons'] = array_slice($rendered['reasons'], 0, 3);
@@ -36,7 +36,7 @@ final class BrainPresenter
             'context' => $context ? ContextEngine::present(new ContextSnapshot(
                 $context['mealSlot'] ?? 'anytime', $context['localTime'] ?? '', $context['signals'] ?? [],
                 $context['generatedAt'] ?? '', $context['weatherAgeMinutes'] ?? null, $context['weatherSource'] ?? null,
-            ), $plainEnglish) : [],
+            )) : [],
             'hasWhatIf' => ($facts['whatIf'] ?? 0) > 0,
             'canTune' => (bool) config('brain.features.tune') && count($decision->tunes ?? []) < (int) config('brain.tune.max_per_decision', 2),
         ];

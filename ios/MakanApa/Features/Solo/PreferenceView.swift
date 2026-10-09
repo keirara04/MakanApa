@@ -53,7 +53,7 @@ struct PreferenceView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isThinking {
                 PreferenceActionFooter(
-                    title: step == 2 ? "Find my makan" : "Continue",
+                    title: step == 2 ? "Find my food" : "Continue",
                     note: footerNote,
                     isEnabled: step != 0 || canContinueMood,
                     action: { if step == 2 { startThinking() } else { advance() } }
@@ -95,7 +95,7 @@ struct PreferenceView: View {
 
     /// Derived directly from `cravingSelection` rather than a parallel `@State` string — typing
     /// is the *only* path that writes `.custom(...)` (via this binding's setter, which only
-    /// fires on real keystrokes). Tapping a card/Quick/Healthy/"Anything lah" sets
+    /// fires on real keystrokes). Tapping a card/Quick/Healthy/"Anything" sets
     /// `cravingSelection` directly; the text field's displayed value then reads back as empty
     /// automatically (the getter returns "" for any non-`.custom` case) with no separate clear
     /// step that could race with — and clobber — the tap's own selection.
@@ -146,12 +146,12 @@ struct PreferenceView: View {
     private var selectedMoodLabel: String {
         switch viewModel.cravingSelection {
         case .tag(let tag):
-            return SoloViewModel.moodOptions.first { $0.tag == tag }?.label ?? "Anything lah"
+            return SoloViewModel.moodOptions.first { $0.tag == tag }?.label ?? "Anything"
         case .custom(let text):
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? "Anything lah" : trimmed
+            return trimmed.isEmpty ? "Anything" : trimmed
         case .anything, nil:
-            return "Anything lah"
+            return "Anything"
         }
     }
 
@@ -164,7 +164,7 @@ struct PreferenceView: View {
 
     private var budgetStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            PreferenceStepHeading(title: "What's the budget?", subtitle: "Per person ya. Good makan at every budget.")
+            PreferenceStepHeading(title: "What's the budget?", subtitle: "Per person. Good food at every budget.")
 
             VStack(spacing: 12) {
                 ForEach(SoloViewModel.budgetOptions, id: \.tier) { option in
@@ -181,8 +181,8 @@ struct PreferenceView: View {
 
             PreferenceChoiceRow(
                 symbol: "dice",
-                title: "Anything lah",
-                subtitle: "No budget limit. Janji sedap.",
+                title: "Anything",
+                subtitle: "No budget limit. Just make it good.",
                 isSelected: viewModel.budgetMax == nil,
                 isSecondary: true
             ) {
@@ -246,7 +246,7 @@ struct PreferenceView: View {
 
     private var distanceStep: some View {
         VStack(alignment: .leading, spacing: 24) {
-            PreferenceStepHeading(title: "How far to jalan?", subtitle: "Stay nearby or go a little further for good food.")
+            PreferenceStepHeading(title: "How far will you go?", subtitle: "Stay nearby or go a little further for good food.")
 
             VStack(spacing: 12) {
                 ForEach(SoloViewModel.distanceOptions, id: \.km) { option in

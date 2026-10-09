@@ -90,19 +90,12 @@ class ContextEngine
     }
 
     private const LABELS = [
-        'rain' => ['Hujan', '☔'],
+        'rain' => ['Raining', '☔'],
         'supper' => ['Supper', '🌙'],
-        'friday' => ['Jumaat', '🕌'],
+        'friday' => ['Friday', '🕌'],
         'iftar' => ['Iftar', '🌅'],
         'sahur' => ['Sahur', '🌙'],
-        'month_end' => ['Hujung bulan', '💸'],
-    ];
-
-    /** Settings → Plain English: the labels above a non-Malay speaker can't read. */
-    private const PLAIN_LABELS = [
-        'rain' => 'Rainy',
-        'friday' => 'Friday',
-        'month_end' => 'Month-end',
+        'month_end' => ['End of month', '💸'],
     ];
 
     /**
@@ -111,7 +104,7 @@ class ContextEngine
      *
      * @return array<int, array{key: string, label: string, icon: string, active: bool, ignored: bool, confidence: float, stale: bool}>
      */
-    public static function present(ContextSnapshot $context, bool $plainEnglish = false): array
+    public static function present(ContextSnapshot $context): array
     {
         $out = [];
         foreach ($context->signals as $key => $signal) {
@@ -120,9 +113,6 @@ class ContextEngine
                 continue;
             }
             [$label, $icon] = self::LABELS[$key] ?? [$key, '•'];
-            if ($plainEnglish) {
-                $label = self::PLAIN_LABELS[$key] ?? $label;
-            }
             $out[] = [
                 'key' => $key,
                 'label' => $label,

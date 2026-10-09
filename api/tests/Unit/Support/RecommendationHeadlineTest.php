@@ -53,7 +53,7 @@ class RecommendationHeadlineTest extends TestCase
         $this->assertSame('KOREAN.', RecommendationHeadline::for($restaurant));
     }
 
-    public function test_falls_back_to_makan_when_nothing_matches(): void
+    public function test_falls_back_to_eat_when_nothing_matches(): void
     {
         $restaurant = [
             'signature_dish' => null,
@@ -61,7 +61,7 @@ class RecommendationHeadlineTest extends TestCase
             'cuisines' => [],
         ];
 
-        $this->assertSame('MAKAN.', RecommendationHeadline::for($restaurant));
+        $this->assertSame('EAT.', RecommendationHeadline::for($restaurant));
     }
 
     public function test_unrecognized_food_category_falls_through_to_cuisine(): void

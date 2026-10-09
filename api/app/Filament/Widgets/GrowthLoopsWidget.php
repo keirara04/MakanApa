@@ -50,7 +50,7 @@ class GrowthLoopsWidget extends StatsOverviewWidget
             Stat::make('Nudges sent', $sent)
                 ->description("{$rate($opened, $sent)} opened"),
             Stat::make('Nudges → a decision', $rate($acted, $sent))
-                ->description("{$acted} led to Makan sini or a quick pick"),
+                ->description("{$acted} led to Eat here or a quick pick"),
         ];
     }
 }

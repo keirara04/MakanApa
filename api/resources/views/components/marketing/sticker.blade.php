@@ -1,6 +1,6 @@
 @props(['tone' => 'cream'])
 
-{{-- Hand-lettered, slightly tilted sticker ("Dekat je", "< RM20"). Decorative: whatever it says
+{{-- Hand-lettered, slightly tilted sticker ("Close by", "< RM20"). Decorative: whatever it says
      is also said in real text or alt nearby, so screen readers skip it. --}}
 <span aria-hidden="true"
       {{ $attributes->class([

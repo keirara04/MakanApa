@@ -21,7 +21,6 @@ class UpdateMyProfileRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'avatarKey' => ['sometimes', 'nullable', 'string', Rule::in(config('avatars.keys'))],
             'halalPreference' => ['sometimes', 'boolean'],
-            'plainEnglish' => ['sometimes', 'boolean'],
         ];
     }
 }

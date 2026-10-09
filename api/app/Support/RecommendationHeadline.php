@@ -43,7 +43,7 @@ final class RecommendationHeadline
             return strtoupper(self::CATEGORY_LABELS[$category]).'.';
         }
 
-        return ! empty($restaurant['cuisines'][0]) ? strtoupper($restaurant['cuisines'][0]).'.' : 'MAKAN.';
+        return ! empty($restaurant['cuisines'][0]) ? strtoupper($restaurant['cuisines'][0]).'.' : 'EAT.';
     }
 
     /** Human label for a food_category ("fast_food" → "Fast Food"), used in Makan Brain copy. */

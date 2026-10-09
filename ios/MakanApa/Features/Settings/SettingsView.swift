@@ -9,7 +9,6 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var authStore = AuthStore.shared
-    private var plainEnglish = PlainEnglishPreference.shared
 
     @State private var showingAboutInfo = false
     @State private var showingIntro = false
@@ -259,21 +258,7 @@ struct SettingsView: View {
 
             SettingsDivider()
 
-            SettingsRow(icon: "character.bubble.fill", tint: .kicap, title: "Plain English", subtitle: "Swap Malay-only phrases for English") {
-                Toggle("", isOn: Binding(
-                    get: { plainEnglish.isOn },
-                    set: { isOn in
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        plainEnglish.set(isOn)
-                    }
-                ))
-                .labelsHidden()
-                .tint(.sambalRed)
-            }
-
-            SettingsDivider()
-
-            SettingsRow(icon: "map.fill", tint: .kicap, title: "Open directions in", subtitle: "Used by Jom Makan & Directions") {
+            SettingsRow(icon: "map.fill", tint: .kicap, title: "Open directions in", subtitle: "Used by Let's eat & Directions") {
                 Menu {
                     Picker("Maps app", selection: $mapProvider) {
                         ForEach(MapProvider.allCases) { provider in
@@ -506,7 +491,7 @@ struct NotificationSettingsView: View {
         ScrollView {
             VStack(spacing: 20) {
                 if let preferences {
-                    SettingsCard(title: "Makan") {
+                    SettingsCard(title: "Meals") {
                         toggle("Mealtime picks", "A pick near you at lunch or dinner · max 1 a day", icon: "fork.knife", tint: .sambalRed,
                                value: preferences.mealtimeNudges) { $0.mealtimeNudges = $1 } body: { UpdateNotificationPreferencesRequestBody(mealtimeNudges: $0) }
                     }
@@ -741,7 +726,7 @@ private enum LocationStatus: Equatable {
         case .on: "On while you use MakanApa"
         case .approximate: "Approximate only. Precise finds closer spots."
         case .locating: "On. Finding you…"
-        case .notAsked: "So MakanApa can find makan near you"
+        case .notAsked: "So MakanApa can find food near you"
         case .off: "Nearby and picks can't see what's around you"
         case .unavailable: "Couldn't get your location just now"
         }

@@ -109,18 +109,17 @@ class MarketingPagesTest extends TestCase
 
     public function test_home_does_not_advertise_unreleased_features_as_available(): void
     {
-        // Geng mode is "coming soon" in the app; the page must say so on its card.
-        $this->get('/')->assertSeeInOrder(['Geng mode', 'Coming soon', 'Everyone votes']);
+        // Group mode is "coming soon" in the app; the page must say so on its card.
+        $this->get('/')->assertSeeInOrder(['Group mode', 'Coming soon', 'Everyone votes']);
     }
 
-    public function test_home_ships_manglish_and_english_copy_with_a_toggle(): void
+    public function test_home_is_plain_english_with_no_language_toggle(): void
     {
         $this->get('/')
-            ->assertSee('id="lang-toggle"', false)
-            ->assertSee('<span class="lang-ms">Makan apa hari ni?</span>', false)
-            ->assertSee('<span class="lang-en">What should I eat today?</span>', false);
-
-        $this->get('/support')->assertDontSee('id="lang-toggle"', false);
+            ->assertSee('What should I eat today?')
+            ->assertDontSee('id="lang-toggle"', false)
+            ->assertDontSee('lang-ms', false)
+            ->assertDontSee('Makan apa hari ni?');
     }
 
     public function test_marketing_pages_set_no_session_or_csrf_cookies(): void
@@ -164,9 +163,8 @@ class MarketingPagesTest extends TestCase
         $this->assertSame(['MobileApplication', 'FAQPage'], array_column($data, '@type'));
         $this->assertSame(config('marketing.app_download_url'), $data[0]['downloadUrl']);
         $this->assertSame('Is it free?', $data[1]['mainEntity'][1]['name']);
-        // The Manglish half of a bilingual answer is dropped, and no markup leaks into the text.
+        // No markup leaks into the text.
         $this->assertStringContainsString('Found a bug? Let us know.', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
-        $this->assertStringNotContainsString('Bagitahu', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
         $this->assertStringNotContainsString('<', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
     }
 
@@ -179,7 +177,7 @@ class MarketingPagesTest extends TestCase
 
     public function test_missing_pages_get_the_sketchbook_404_but_api_404s_stay_json(): void
     {
-        $this->get('/no-such-page')->assertNotFound()->assertSee('This page went out to makan.');
+        $this->get('/no-such-page')->assertNotFound()->assertSee('This page went out to eat.');
         $this->getJson('/api/v1/no-such-endpoint')->assertNotFound()->assertJsonStructure(['message']);
     }
 
@@ -190,7 +188,7 @@ class MarketingPagesTest extends TestCase
         Route::get('/__test/down', fn () => abort(503));
 
         $this->get('/__test/boom')->assertStatus(500)
-            ->assertSee('Aiyo, something broke on our side.')
+            ->assertSee('Oops, something broke on our side.')
             ->assertDontSee('build/assets', false)
             ->assertDontSee('boom');
         $this->get('/__test/down')->assertStatus(503)

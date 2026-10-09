@@ -90,15 +90,15 @@ final class SoloViewModel {
     ]
 
     static let budgetOptions: [BudgetOption] = [
-        BudgetOption(tier: 1, illustration: "BudgetSave", amount: "~RM10", label: "save sikit"),
-        BudgetOption(tier: 2, illustration: "BudgetNormal", amount: "~RM20", label: "normal lah"),
-        BudgetOption(tier: 3, illustration: "BudgetTreat", amount: "~RM35+", label: "feeling kaya"),
+        BudgetOption(tier: 1, illustration: "BudgetSave", amount: "~RM10", label: "Save a bit"),
+        BudgetOption(tier: 2, illustration: "BudgetNormal", amount: "~RM20", label: "Normal"),
+        BudgetOption(tier: 3, illustration: "BudgetTreat", amount: "~RM35+", label: "Treat myself"),
     ]
 
     static let distanceOptions: [DistanceOption] = [
-        DistanceOption(km: 1.0, illustration: "DistanceNear", label: "5 min", subtext: "dekat je"),
-        DistanceOption(km: 2.0, illustration: "DistanceWalk", label: "10 min", subtext: "okay lah"),
-        DistanceOption(km: 5.0, illustration: "DistanceCar", label: "Don't mind", subtext: "janji sedap"),
+        DistanceOption(km: 1.0, illustration: "DistanceNear", label: "5 min", subtext: "Close by"),
+        DistanceOption(km: 2.0, illustration: "DistanceWalk", label: "10 min", subtext: "Short trip"),
+        DistanceOption(km: 5.0, illustration: "DistanceCar", label: "Don't mind", subtext: "Worth the trip"),
     ]
 
     // MARK: - Quick pick ("Just pick lah")
@@ -318,10 +318,12 @@ final class SoloViewModel {
     @MainActor
     func adoptExternalPick(
         decisionId: Int?, clientToken: String?,
-        recommendation: RecommendationResponse.Recommendation?, error: APIError?
+        recommendation: RecommendationResponse.Recommendation?, error: APIError?,
+        source: String = "nearby"
     ) {
-        pickSource = "nearby"
-        // Nearby's own pick pulse already covered the wait — let the trace play normally.
+        pickSource = source
+        // The caller's own animation (Nearby's pulse, the saved-places shuffle) already covered
+        // the wait — let the trace play normally.
         lastDecisionLatency = .zero
         cravingSelection = nil
         budgetMax = nil
@@ -332,5 +334,25 @@ final class SoloViewModel {
         currentPick = recommendation
         apiError = error
         isEmptyResult = recommendation == nil && error == nil
+    }
+
+    /// Makan Brain picks one of the user's saved places. The result lands here exactly like a
+    /// Nearby pick, so ResultView, reroll and Recent all work unchanged.
+    @MainActor
+    func pickFromSaved(_ places: [SavedPlace], origin: CLLocationCoordinate2D) async {
+        do {
+            let response = try await APIClient.pickFromSaved(
+                latitude: origin.latitude, longitude: origin.longitude, savedPlaceIds: places.map(\.id)
+            )
+            adoptExternalPick(
+                decisionId: response.decisionId, clientToken: response.clientToken,
+                recommendation: response.recommendation, error: nil, source: "saved"
+            )
+        } catch {
+            adoptExternalPick(
+                decisionId: nil, clientToken: nil, recommendation: nil,
+                error: error as? APIError ?? .transport(error), source: "saved"
+            )
+        }
     }
 }

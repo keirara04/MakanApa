@@ -92,7 +92,7 @@ class NudgePickFinder
         ];
     }
 
-    /** Only a recent reading may put "Hujan ni" in a push. */
+    /** Only a recent reading may put "Raining out" in a push. */
     private function isFreshRain(float $latitude, float $longitude): bool
     {
         $reading = $this->weather->current($latitude, $longitude);

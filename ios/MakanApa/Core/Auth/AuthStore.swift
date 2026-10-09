@@ -18,8 +18,6 @@ struct AuthUser: Codable, Equatable {
     let affiliationVerificationStatus: String?
     /// Optional: absent from older cached payloads / older backends.
     let halalPreference: Bool?
-    /// Optional: absent from older cached payloads / older backends.
-    let plainEnglish: Bool?
     /// Optional: absent from older cached payloads / older backends, which had no guests.
     let isGuest: Bool?
     /// Optional: absent from older cached payloads / older backends. Nil reads as "nothing to
@@ -88,7 +86,6 @@ final class AuthStore {
             // Sign-in (not every profile refresh): align the local Halal-only choice with the account.
             if case .authenticated(let user) = session, !oldValue.isAuthenticated {
                 HalalPreference.reconcile(with: user)
-                PlainEnglishPreference.shared.reconcile(with: user)
                 OnboardingState.shared.sendSeedIfNeeded()
             }
             switch session {

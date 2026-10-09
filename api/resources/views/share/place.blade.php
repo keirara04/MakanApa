@@ -26,7 +26,7 @@
     @endphp
 
     <article class="mx-auto max-w-xl">
-        <p class="text-sm font-medium text-sambal-600">Someone sent you a makan spot 🍛</p>
+        <p class="text-sm font-medium text-sambal-600">Someone sent you a food spot 🍛</p>
 
         <h1 class="mt-2 text-3xl font-semibold leading-tight">{{ $restaurant->name }}</h1>
 
@@ -67,7 +67,7 @@
         </p>
 
         <section class="mt-10 rounded-3xl bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold">Can't decide where to makan?</h2>
+            <h2 class="text-lg font-semibold">Can't decide where to eat?</h2>
             <p class="mt-2 text-ink/70">MakanApa picks a spot near you in seconds — halal-aware, budget-aware, no scrolling. Free on iPhone.</p>
         </section>
 

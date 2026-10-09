@@ -448,18 +448,18 @@
         <div data-hf-id="hf-9rb1" class="frame two"></div>
       </div>
 
-      <!-- ===== Scene 1 (0–3.4s): the "makan apa?" problem ===== -->
+      <!-- ===== Scene 1 (0–3.4s): the "what to eat?" problem ===== -->
       <section data-hf-id="hf-wvsp" id="hook" class="clip scene" data-start="0" data-duration="3.4" data-track-index="1">
-        <p data-hf-id="hf-7iyh" id="hey" class="hand" data-layout-allow-overlap="">Hai, orang lapar.</p>
+        <p data-hf-id="hf-7iyh" id="hey" class="hand" data-layout-allow-overlap="">Hey, hungry human.</p>
         <h1 data-hf-id="hf-7f3u" id="headline" class="display">
-          <span data-hf-id="hf-6c9z" class="line"><span data-hf-id="hf-jf0z" class="word" data-layout-allow-overlap="">Makan</span><span data-hf-id="hf-12tn" class="word accent" data-layout-allow-overlap="">apa</span></span>
-          <span data-hf-id="hf-tvt3" class="line"><span data-hf-id="hf-fe9p" class="word" data-layout-allow-overlap="">hari ni?</span></span>
+          <span data-hf-id="hf-6c9z" class="line"><span data-hf-id="hf-jf0z" class="word" data-layout-allow-overlap="">What to</span><span data-hf-id="hf-12tn" class="word accent" data-layout-allow-overlap="">eat</span></span>
+          <span data-hf-id="hf-tvt3" class="line"><span data-hf-id="hf-fe9p" class="word" data-layout-allow-overlap="">today?</span></span>
         </h1>
 
         <div data-hf-id="hf-b2y5" id="options" class="hand" data-layout-allow-overlap="">
           <span data-hf-id="hf-8z5b" id="opt-1" class="option">Nasi lemak?<span data-hf-id="hf-2svb" class="strike"></span></span>
-          <span data-hf-id="hf-sgnn" id="opt-2" class="option">Mamak lagi?<span data-hf-id="hf-tt8n" class="strike"></span></span>
-          <span data-hf-id="hf-v2ye" id="opt-3" class="option">Entah lah…</span>
+          <span data-hf-id="hf-sgnn" id="opt-2" class="option">Mamak again?<span data-hf-id="hf-tt8n" class="strike"></span></span>
+          <span data-hf-id="hf-v2ye" id="opt-3" class="option">No idea…</span>
         </div>
 
         <img data-hf-id="hf-brw8" id="mascot-think" src="assets/mascot/thinking.svg" alt="">
@@ -481,11 +481,11 @@
         </p>
         <p data-hf-id="hf-rkru" id="cap-2" class="caption" data-layout-allow-overlap="">
           <span data-hf-id="hf-dgum" class="step hand" data-layout-allow-overlap="">2 / 3</span>
-          <span data-hf-id="hf-1tvs" class="title display">Good makan, every budget.</span>
+          <span data-hf-id="hf-1tvs" class="title display">Good food, every budget.</span>
         </p>
         <p data-hf-id="hf-vivv" id="cap-3" class="caption" data-layout-allow-overlap="">
           <span data-hf-id="hf-qn01" class="step hand" data-layout-allow-overlap="">3 / 3</span>
-          <span data-hf-id="hf-tw9p" class="title display">How far nak jalan?</span>
+          <span data-hf-id="hf-tw9p" class="title display">How far will you go?</span>
         </p>
 
         <div data-hf-id="hf-ueia" id="stamp">
@@ -525,7 +525,7 @@
           </div>
         </div>
 
-        <p data-hf-id="hf-zqcf" id="sekejap" class="hand">Sekejap je.</p>
+        <p data-hf-id="hf-zqcf" id="sekejap" class="hand">That quick.</p>
         <img data-hf-id="hf-0qmg" id="mascot-yay" src="assets/mascot/celebrate.svg" alt="">
       </section>
 
@@ -543,7 +543,7 @@
           <img data-hf-id="hf-1go4" id="badge" src="assets/brand/app-store-badge.svg" alt="Download on the App Store">
           <p data-hf-id="hf-4b9m" id="free">FREE · IPHONE</p>
         </div>
-        <p data-hf-id="hf-kko9" id="jom" class="hand">Jom!</p>
+        <p data-hf-id="hf-kko9" id="jom" class="hand">Let's eat!</p>
       </section>
     </div>
 
@@ -561,7 +561,7 @@
         0,
       );
 
-      // "Nasi lemak? ✗  Mamak lagi? ✗  Entah lah…"
+      // "Nasi lemak? ✗  Mamak again? ✗  No idea…"
       tl.fromTo("#opt-1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 0.75);
       tl.fromTo("#opt-1 .strike", { scaleX: 0 }, { scaleX: 1, duration: 0.22, ease: "power2.in" }, 1.25);
       tl.to("#opt-1", { opacity: 0, y: -30, duration: 0.2, ease: "power2.in" }, 1.55);
@@ -626,7 +626,7 @@
       caption("#cap-3", 7.9, 9.75);
       pick("distance", 8.55);
 
-      // "Find my makan" → result.
+      // "Find my food" → result.
       tap("#tap-go", 9.45);
       slideIn("#page-result", "#page-distance", 9.85);
       tl.fromTo("#phone", { scale: 1 }, { scale: 1.04, duration: 2.2, ease: "sine.out", immediateRender: false }, 10.0);

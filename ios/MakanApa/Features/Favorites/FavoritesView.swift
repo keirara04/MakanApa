@@ -24,11 +24,33 @@ struct FavoritesView: View {
                         row(for: place)
                     }
                     .onDelete(perform: delete)
+
+                    Section {
+                        pickOneButton
+                    } footer: {
+                        if preferences.savedPlaces.count < 2 {
+                            Text(Copy.savedPickNeedMore)
+                        }
+                    }
                 }
             }
         }
         .navigationTitle("Saved")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Hands off to Home, which closes this Settings sheet and runs the card shuffle there.
+    private var pickOneButton: some View {
+        Button {
+            PendingDeepLink.shared.savedPickRequested = true
+        } label: {
+            Label(Copy.savedPickButton, systemImage: "rectangle.stack.fill")
+                .font(.makanBody(15).weight(.semibold))
+                .foregroundStyle(preferences.savedPlaces.count < 2 ? Color.kicapSecondary : Color.sambalRed)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .disabled(preferences.savedPlaces.count < 2)
+        .accessibilityHint(Copy.savedPickHint)
     }
 
     private var emptyState: some View {

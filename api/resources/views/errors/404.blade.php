@@ -16,7 +16,7 @@
         </p>
 
         <h1 class="mt-8 font-display text-[clamp(2.6rem,7vw,4rem)] font-bold uppercase leading-[0.9] tracking-tight text-balance">
-            This page went out to makan.
+            This page went out to eat.
         </h1>
         <p class="mx-auto mt-4 max-w-md text-lg text-ink/75">
             The link might be old, or the page moved. Let's get you back to deciding what to eat.

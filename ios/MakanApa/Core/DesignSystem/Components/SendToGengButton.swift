@@ -1,14 +1,14 @@
 import SwiftUI
 import UIKit
 
-/// "Send to geng" — shares a place with the server-built link. WhatsApp is where most makan
+/// "Send to friends" — shares a place with the server-built link. WhatsApp is where most food
 /// plans get made, so when it's installed the main button goes straight there; the system share
 /// sheet is always one tap away (the small share icon), so a WhatsApp hiccup is never a dead end.
 /// Without WhatsApp the main button *is* the system share sheet.
 struct SendToGengButton: View {
     let restaurantId: Int
     let shareUrl: String
-    /// "Jom makan sini? 🍛 KFC — Jalan Reko, Kajang (1.2 km)"
+    /// "Want to eat here? 🍛 KFC — Jalan Reko, Kajang (1.2 km)"
     let message: String
     /// Called once per share attempt (funnel event / decision interaction).
     var onShare: () -> Void = {}
@@ -33,7 +33,7 @@ struct SendToGengButton: View {
                     recordShare()
                     openURL(whatsAppURL)
                 } label: {
-                    label(title: "Send to geng", systemImage: "paperplane.fill")
+                    label(title: "Send to friends", systemImage: "paperplane.fill")
                 }
                 .accessibilityHint("Opens WhatsApp with this place")
 
@@ -49,7 +49,7 @@ struct SendToGengButton: View {
                 .accessibilityLabel("More ways to share")
             } else {
                 ShareLink(item: fullText) {
-                    label(title: "Send to geng", systemImage: "square.and.arrow.up")
+                    label(title: "Send to friends", systemImage: "square.and.arrow.up")
                 }
                 .simultaneousGesture(TapGesture().onEnded { recordShare() })
             }
@@ -72,9 +72,9 @@ struct SendToGengButton: View {
         Task { _ = try? await APIClient.shareStarted(restaurantId: id) }
     }
 
-    /// The one-line message every surface uses, e.g. "Jom makan sini? 🍛 KFC — Jalan Reko, Kajang (1.2 km)".
+    /// The one-line message every surface uses, e.g. "Want to eat here? 🍛 KFC — Jalan Reko, Kajang (1.2 km)".
     static func message(name: String, whereText: String?, distanceKm: Double?) -> String {
-        var line = "Jom makan sini? 🍛 \(name)"
+        var line = "Want to eat here? 🍛 \(name)"
         if let whereText, !whereText.isEmpty { line += " — \(whereText)" }
         if let distanceKm { line += String(format: " (%.1f km)", distanceKm) }
         return line

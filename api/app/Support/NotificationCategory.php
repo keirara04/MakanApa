@@ -18,7 +18,7 @@ final class NotificationCategory
 
     public const COMMUNITY_REACTIONS = 'community_reactions';
 
-    /** "Lunch dah?" — at most one a day, see config/nudges.php. */
+    /** "Had lunch yet?" — at most one a day, see config/nudges.php. */
     public const MEALTIME_NUDGES = 'mealtime_nudges';
 
     public const ALL = [

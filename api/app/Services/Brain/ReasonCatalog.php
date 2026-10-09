@@ -5,7 +5,7 @@ namespace App\Services\Brain;
 use App\Support\RecommendationHeadline;
 
 /**
- * Stored reason facts → light-Manglish sentences, at response time. The variant is chosen by
+ * Stored reason facts → plain-English sentences, at response time. The variant is chosen by
  * crc32(seed.key), so a decision always reads the same way on reload but different decisions
  * don't sound copy-pasted. Bump `brain.reason_catalog_version` when the wording changes in a
  * way analysis should be able to tell apart.
@@ -19,6 +19,9 @@ final class ReasonCatalog
         'ctx_rain' => '☔', 'ctx_supper' => '🌙', 'ctx_friday' => '🕌', 'ctx_iftar' => '🌅', 'ctx_sahur' => '🌙', 'ctx_month_end' => '💸',
         'novelty' => '🔄', 'fatigue' => '😮‍💨', 'wildcard' => '🎲', 'pulse_reject' => '👌',
     ];
+
+    /** The decision-fatigue line — also the reroll lead in RecommendationController. */
+    public const FATIGUE_LINE = 'Okay, enough choosing 😭 — this is the safest bet';
 
     private const DECIDING = [
         'distance' => 'closest strong match',
@@ -40,27 +43,20 @@ final class ReasonCatalog
         'exploration' => 'a wildcard — you\'ve been playing safe',
     ];
 
-    /** Settings → Plain English: a Malay-only reason line below → its English line. */
-    private const PLAIN = [
-        'Hujan — kept it close ☔' => 'Raining — kept it close ☔',
-        'Jumaat — picked one that\'s open' => 'Friday — picked one that\'s open',
-        'Hujung bulan — kept it cheap 💸' => 'Month-end — kept it cheap 💸',
-    ];
-
     /**
      * @return array{reasons: array<int, array{family: string, key: string, icon: string, text: string}>, decidingFactor: ?string, fit: string}
      */
-    public static function render(array $facts, int $seed, bool $rejectedCategoryChanged = false, ?string $rejectedCategory = null, bool $plainEnglish = false): array
+    public static function render(array $facts, int $seed, bool $rejectedCategoryChanged = false, ?string $rejectedCategory = null): array
     {
         $reasons = [];
         if ($rejectedCategoryChanged && $rejectedCategory) {
-            $reasons[] = self::line('moment', 'pulse_reject', $seed, ['category' => $rejectedCategory], $plainEnglish);
+            $reasons[] = self::line('moment', 'pulse_reject', $seed, ['category' => $rejectedCategory]);
         }
         foreach ($facts['reasons'] ?? [] as $reason) {
             if ($rejectedCategoryChanged && $reason['family'] === 'moment') {
                 continue; // one MOMENT line only — the "not feeling X" acknowledgement wins
             }
-            $line = self::line($reason['family'], $reason['key'], $seed, $reason['facts'] ?? [], $plainEnglish);
+            $line = self::line($reason['family'], $reason['key'], $seed, $reason['facts'] ?? []);
             if ($line !== null) {
                 $reasons[] = $line;
             }
@@ -101,7 +97,7 @@ final class ReasonCatalog
         return $lines;
     }
 
-    private static function line(string $family, string $key, int $seed, array $f, bool $plainEnglish): ?array
+    private static function line(string $family, string $key, int $seed, array $f): ?array
     {
         $variants = self::variants($key, $f);
         if ($variants === []) {
@@ -114,7 +110,7 @@ final class ReasonCatalog
             'family' => $family,
             'key' => $key,
             'icon' => self::ICONS[$key] ?? '•',
-            'text' => $plainEnglish ? (self::PLAIN[$text] ?? $text) : $text,
+            'text' => $text,
         ];
     }
 
@@ -148,21 +144,21 @@ final class ReasonCatalog
                 ? ["Cheapest of your top {$pool}", 'Lightest on the wallet here']
                 : ['Easy on the wallet'],
             'community_picks' => $community
-                ? ["{$f['pickers']} {$community} people makan here this week", "{$community} keeps coming back here ({$f['pickers']} this week)"]
+                ? ["{$f['pickers']} {$community} people ate here this week", "{$community} keeps coming back here ({$f['pickers']} this week)"]
                 : ["{$f['pickers']} people nearby picked this lately"],
             'hidden_gem' => ['Hidden gem — few reviews, high rating', 'Low-key spot the crowd hasn\'t found yet'],
             'popular' => ['A proven crowd favourite'],
             'halal_verified' => ['Halal certified'],
-            'ctx_rain' => ['Hujan — kept it close ☔', 'Raining, so nothing far'],
+            'ctx_rain' => ['Raining — kept it close ☔', 'Raining, so nothing far'],
             'ctx_supper' => ['Still open for supper 🌙', 'Supper sorted — open now'],
-            'ctx_friday' => ['Jumaat — picked one that\'s open'],
+            'ctx_friday' => ['Friday prayers — picked one that\'s open'],
             'ctx_iftar' => ['Iftar soon — close by'],
             'ctx_sahur' => ['Open for sahur'],
-            'ctx_month_end' => ['Hujung bulan — kept it cheap 💸'],
+            'ctx_month_end' => ['End of month — kept it cheap 💸'],
             'novelty' => ($s = RecommendationHeadline::categoryLabel($f['streak'] ?? null))
                 ? ['Something different from your '.mb_strtolower($s).' streak', 'Break from all that '.mb_strtolower($s)]
                 : [],
-            'fatigue' => ['Okay lah, enough choosing 😭 — this is the safest bet'],
+            'fatigue' => [self::FATIGUE_LINE],
             'wildcard' => ['Bit of a wildcard — you\'ve been playing safe', 'Wildcard pick — trust me on this one'],
             'pulse_reject' => $catLower ? ["Not feeling {$catLower}? Trying something different", "No {$catLower} then — how about this"] : ['Okay, trying something different'],
             default => [],

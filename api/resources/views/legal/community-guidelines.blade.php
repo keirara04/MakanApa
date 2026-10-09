@@ -23,7 +23,7 @@
     <div class="mt-10 space-y-10 text-ink/80 leading-relaxed">
 
         <section id="do">
-            <h2 class="{{ $h2 }}">01. Keep it about makan</h2>
+            <h2 class="{{ $h2 }}">01. Keep it about food</h2>
             <ul class="mt-2 list-disc pl-5 space-y-1 text-sm">
                 <li>Talk about food, places and eating around your campus or area.</li>
                 <li>Be kind. Disagree with a place, not a person.</li>

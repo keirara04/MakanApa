@@ -47,15 +47,32 @@ struct HomeView: View {
     @State private var entered = HomeView.hasEntered
     @State private var quickPickTaps = 0
     @State private var recentTaps = 0
+    @State private var savedPickTaps = 0
+    /// Non-nil while the saved-places shuffle is on screen.
+    @State private var savedPick: SavedPickLaunch?
 
     @MainActor private static var hasEntered = false
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
     private var recentStore = RecentDecisionStore.shared
     private var upgradeNudge = GuestUpgradeNudge.shared
+    private var preferences = PlacePreferencesStore.shared
+
+    private struct SavedPickLaunch {
+        let places: [SavedPlace]
+        let origin: CLLocationCoordinate2D
+    }
 
     var body: some View {
         ZStack {
-            if isQuickPicking {
+            if let savedPick {
+                SavedPickRevealView(
+                    places: savedPick.places,
+                    origin: savedPick.origin,
+                    onDealt: finishSavedPick,
+                    onCancel: cancelSavedPick
+                )
+                .transition(.opacity)
+            } else if isQuickPicking {
                 PreferenceLoadingView(
                     mood: Copy.anythingLabel,
                     budget: quickPickBudgetLabel,
@@ -71,6 +88,7 @@ struct HomeView: View {
         .background(Color.nasiCream)
         .sensoryFeedback(.impact(weight: .medium), trigger: quickPickTaps)
         .sensoryFeedback(.impact(weight: .light), trigger: recentTaps)
+        .sensoryFeedback(.impact(weight: .medium), trigger: savedPickTaps)
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
@@ -102,10 +120,21 @@ struct HomeView: View {
             }
             startQuickPick()
         }
+        .onChange(of: pendingDeepLink.savedPickRequested, initial: true) { _, requested in
+            // Saved's "Pick one for me" lives inside the Settings sheet — close it, then shuffle here.
+            guard requested else { return }
+            pendingDeepLink.savedPickRequested = false
+            showSettings = false
+            startSavedPick()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { checkVibeFollowUp() }
         }
-        .onDisappear { cancelQuickPick() }
+        .onDisappear {
+            cancelQuickPick()
+            // Its .task is cancelled with the view — coming back must not land on a frozen deck.
+            savedPick = nil
+        }
     }
 
     private func checkVibeFollowUp() {
@@ -129,6 +158,9 @@ struct HomeView: View {
                 VStack(spacing: 12) {
                     quickPickCard
                     chooseCravingCard
+                    if preferences.savedPlaces.count >= 2 {
+                        savedPickCard
+                    }
                 }
                 .modifier(Entrance(index: 1, entered: entered))
 
@@ -262,6 +294,73 @@ struct HomeView: View {
             .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
         }
         .buttonStyle(PressableCardStyle())
+    }
+
+    private var savedPickCard: some View {
+        Button {
+            startSavedPick()
+        } label: {
+            HStack(spacing: 16) {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.sambalRed)
+                    .symbolEffect(.bounce, value: savedPickTaps)
+                    .frame(width: 52, height: 52)
+                    .background(Color.nasiCream, in: Circle())
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Copy.savedPickTitle)
+                        .font(.headline)
+                        .foregroundStyle(Color.kicap)
+                    Text(Copy.savedPickSubtitle(count: preferences.savedPlaces.count))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.kicapSecondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
+            }
+            .padding(20)
+            .background(Color.surface, in: .card)
+            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
+        }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityHint(Copy.savedPickHint)
+    }
+
+    /// Without location the centroid of the saved places stands in — distance then just counts for less.
+    private func startSavedPick() {
+        let places = preferences.savedPlaces
+        guard places.count >= 2, savedPick == nil, !isQuickPicking else { return }
+        let origin: CLLocationCoordinate2D
+        if case let .authorized(coordinate) = locationService.state {
+            origin = coordinate
+        } else {
+            origin = CLLocationCoordinate2D(
+                latitude: places.map(\.latitude).reduce(0, +) / Double(places.count),
+                longitude: places.map(\.longitude).reduce(0, +) / Double(places.count)
+            )
+        }
+
+        savedPickTaps += 1
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : Motion.standard) {
+            savedPick = SavedPickLaunch(places: places, origin: origin)
+        }
+    }
+
+    private func finishSavedPick() {
+        router.push(.soloResult)
+        savedPick = nil
+    }
+
+    private func cancelSavedPick() {
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : Motion.standard) {
+            savedPick = nil
+        }
     }
 
     private var quickPickBudgetLabel: String {

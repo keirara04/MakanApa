@@ -1,7 +1,7 @@
 import Foundation
 
-/// Centralized copy so tone stays consistent across screens. Plain English for new and
-/// edited strings — dish names and the brand stay as they are.
+/// Centralized copy so tone stays consistent across screens. Plain English only —
+/// dish names, the brand and Selera stay as they are.
 enum Copy {
     /// Mealtime-aware greeting; supper covers the late-night stretch.
     static func homeGreeting(hour: Int) -> String {
@@ -65,12 +65,10 @@ enum Copy {
 
     static let soloMoodPrompt = "What mood today?"
     static let soloMoodSubtext = "Craving something in particular?"
-    static let soloAnythingLah = "🎲 Anything lah"
-    static let anythingLahSubtext = "Surprise me!"
     static let budgetAnythingSubtext = "No limits"
-    static let soloBudgetPrompt = "How much you wanna spend?"
-    static let soloBudgetSubtext = "per person ya!"
-    static let soloDistancePrompt = "How far willing to jalan?"
+    static let soloBudgetPrompt = "How much do you want to spend?"
+    static let soloBudgetSubtext = "Per person"
+    static let soloDistancePrompt = "How far will you go?"
     static let soloDistanceSubtext = "No sweat, we'll find something nice."
     static let soloCTA = "MAKANAPA?"
 
@@ -78,24 +76,24 @@ enum Copy {
     static let moodQuickSubtext = "Fast & convenient"
 
     static let moodNasiKandarSubtext = "Kandar power"
-    static let moodAyamGepukSubtext = "Smashed, spicy, sedap"
+    static let moodAyamGepukSubtext = "Smashed, spicy, delicious"
     static let moodNasiPadangSubtext = "Rendang, gulai, the works"
     static let moodMeeGorengSubtext = "Wok hei, always hits"
     static let moodNasiLemakSubtext = "Anytime, anywhere"
-    static let moodCharKueyTeowSubtext = "Smoky and shiok"
-    static let moodBananaLeafRiceSubtext = "Banjir gravy, no regrets"
+    static let moodCharKueyTeowSubtext = "Smoky and satisfying"
+    static let moodBananaLeafRiceSubtext = "Drowned in curry, no regrets"
     static let moodDimSumSubtext = "Small plates, big satisfaction"
-    @MainActor static var moodCustomCravingPlaceholder: String { plain("Cakap je nak makan apa...", "Tell me what you're craving...") }
+    static let moodCustomCravingPlaceholder = "Tell me what you're craving..."
 
     static let thinking = "Thinking so you don't have to..."
     static let thinkingStep1 = "Finding nearby spots..."
     static let thinkingStep2 = "Checking what fits you..."
     static let thinkingStep3 = "Picking the best one..."
 
-    @MainActor static var rerollHeadline: String { plain("Cari lagi!", "Finding another one!") }
+    static let rerollHeadline = "Finding another one!"
     static let rerollLine1 = "Same preferences"
     static let rerollLine2 = "Different spot"
-    static let rerollLine3 = "Still sedap, don't worry"
+    static let rerollLine3 = "Still good, don't worry"
 
     static let noResultHeadline = "No spots found nearby"
     static let noResultDetail = "Try increasing the distance or changing your preferences."
@@ -106,19 +104,18 @@ enum Copy {
 
     /// One label for "this is your pick" — result eyebrow and the onboarding demo badge.
     static let pickedForYou = "Picked for you"
-    @MainActor static var resultGo: String { plain("Jom makan", "Let's go") }
-    @MainActor static var resultFatigue: String { plain("Okay lah, enough choosing", "Okay, enough choosing") }
-    static let pickAgain = "Cari lain lah"
+    static let resultGo = "Let's eat"
+    static let resultFatigue = "Okay, enough choosing"
     static let anythingLabel = "Anything"
 
-    static let emptyState = "Wah, demanding ah 😭 Try increasing your distance."
+    static let emptyState = "Nothing fits yet 😭 Try increasing your distance."
 
-    static let connectionErrorHeadline = "Aiyo 😭"
-    static let connectionErrorDetail = "Connection gone.\nCouldn't find makan right now."
-    static let genericAPIErrorHeadline = "Aiyo 😭"
-    static let genericAPIErrorDetail = "MakanApa blur kejap.\nTry again in a bit."
+    static let connectionErrorHeadline = "Oops 😭"
+    static let connectionErrorDetail = "No connection.\nCouldn't find food right now."
+    static let genericAPIErrorHeadline = "Oops 😭"
+    static let genericAPIErrorDetail = "MakanApa hit a snag.\nTry again in a bit."
     static let tryAgain = "Try again"
-    static let rateLimitedHeadline = "Slow down a bit lah 😅"
+    static let rateLimitedHeadline = "Slow down a bit 😅"
 
     static func rateLimitedDetail(retryAfterSeconds: Int?) -> String {
         guard let seconds = retryAfterSeconds, seconds > 0 else {
@@ -128,23 +125,23 @@ enum Copy {
     }
     static let backHome = "Back home"
 
-    static let locationDenied = "Can't find makan if we don't know where you are 👀"
+    static let locationDenied = "Can't find food if we don't know where you are 👀"
     static let locationPrivacyLine = "We only use your location while you're using MakanApa."
 
-    static let tagline = "Less thinking. More makan."
-    static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more makan."
+    static let tagline = "Less thinking. More eating."
+    static let aboutDescription = "MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby — less thinking, more eating."
     static let privacyPolicyURL = "https://makanapa.hakeemiridza.com/privacy"
     static let termsURL = "https://makanapa.hakeemiridza.com/terms"
     static let communityGuidelinesURL = "https://makanapa.hakeemiridza.com/community-guidelines"
     static let supportURL = "https://makanapa.hakeemiridza.com/support"
 
-    static let loginTagline = "Makan dulu. Decide later."
+    static let loginTagline = "Eat first. Decide later."
     static let signIn = "Sign in"
     static let loginInvalidCredentials = "Email or password doesn't match."
 
-    @MainActor static var communityHeadlineUniversityFormat: String { plain("%@ tengah makan apa? 👀", "What's %@ eating? 👀") }
+    static let communityHeadlineUniversityFormat = "What's %@ eating? 👀"
     static let communitySubtitleUniversityFormat = "Popular around %@"
-    @MainActor static var communityHeadlineAreaFormat: String { plain("%@ tengah makan apa? 👀", "What's %@ eating? 👀") }
+    static let communityHeadlineAreaFormat = "What's %@ eating? 👀"
     static let communitySubtitleAreaFormat = "Popular around %@"
     static let communityHeadlinePublic = "What's trending near you"
     static let communitySubtitlePublic = "Trending picks nearby"
@@ -158,9 +155,9 @@ enum Copy {
     /// place, so this is literally true, not marketing.
     static let guestCarryOver = "Your picks, saved places and taste profile all come with you. Nothing lost."
     static let guestSettingsDetail = "Sign in to add places and post. Your picks, saves and taste profile come with you."
-    static let nudgePicksTitle = "Wah, you've been picking well 🍛"
+    static let nudgePicksTitle = "You've been picking well 🍛"
     static let nudgePicksDetail = "MakanApa is learning what you like. Save it to an account so a new phone doesn't mean starting over."
-    static let nudgeSavesTitle = "Your makan list is growing ❤️"
+    static let nudgeSavesTitle = "Your food list is growing ❤️"
     static let nudgeSavesDetail = "Keep your saved places safe — on this phone or the next one."
     static let continueAsGuestFailed = "Couldn't start — check your connection and try again."
     static let communityLocationDeniedHeadline = "Location is off"
@@ -219,7 +216,7 @@ enum Copy {
     static let communityAddPlaceCTA = "Know a good spot? Add it →"
     static let communityMyPlacesMenuItem = "My places"
     static let communitySearchTitle = "Add a place"
-    static let communitySearchSubtitle = "Found somewhere sedap? 👀 Let's check if we know it first."
+    static let communitySearchSubtitle = "Found somewhere good? 👀 Let's check if we know it first."
     static let communitySearchPlaceholder = "Search for a place"
     static let communitySearchExistingLabel = "Already on MakanApa"
     static let communitySearchGoogleLabel = "Found on Google"
@@ -258,16 +255,26 @@ enum Copy {
     static let communityBlankIsFine = "You can leave these blank — the community can help complete them later."
     static let communityAddMenuItemCTA = "Add another item"
 
-    // MARK: - Plain English (Settings → Plain English)
-    // Manglish is the voice and the default. Only the Malay-only lines a non-Malay speaker can't
-    // read get a plain pair (the `plain(…)` ones above and below); every other "lah" stays.
+    // MARK: - Pick from saved places
 
-    @MainActor static var whyThisPick: String { plain("Kenapa ni?", "Why this one?") }
-    @MainActor static var whyNotPrompt: String { plain("Help me learn — kenapa tak nak?", "Help me learn — why not this one?") }
-    @MainActor static var pickingInProgress: String { plain("Nasi tengah fikir...", "Nasi's thinking...") }
-    @MainActor static var makanSini: String { plain("Makan sini", "Makan here") }
+    static let savedPickTitle = "Pick from my saved"
+    static func savedPickSubtitle(count: Int) -> String { "Shuffle your \(count) saved places" }
+    static let savedPickHint = "Shuffles your saved places and picks one for you"
+    static let savedPickButton = "Pick one for me"
+    static let savedPickNeedMore = "Save one more place and MakanApa can pick between them."
+    static let savedPickShuffling = "Shuffling your saved places…"
+    static let savedPickDealt = "Here's your pick"
+    static let savedPickNoneAvailable = "None of your saved places can be picked right now. They may be closed, or hidden by Halal-only."
+    static let savedPickFailed = "Couldn't pick right now. Check your connection and try again."
+    static let savedPickRateLimited = "That's a lot of shuffling. Try again in a minute."
+    static let savedPickCardBackLabel = "Saved place, face down"
+    static let back = "Back"
+    static let cancel = "Cancel"
 
-    @MainActor private static func plain(_ manglish: String, _ plain: String) -> String {
-        PlainEnglishPreference.shared.pick(manglish, plain: plain)
-    }
+    // MARK: - Pick explanation
+
+    static let whyThisPick = "Why this one?"
+    static let whyNotPrompt = "Help me learn — why not this one?"
+    static let pickingInProgress = "Nasi's thinking..."
+    static let eatHere = "Eat here"
 }

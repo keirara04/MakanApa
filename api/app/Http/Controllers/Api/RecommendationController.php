@@ -14,6 +14,7 @@ use App\Models\RestaurantVibeVote;
 use App\Services\Brain\BrainStateFactory;
 use App\Services\Brain\ExplorationPolicy;
 use App\Services\Brain\MakanBrain;
+use App\Services\Brain\ReasonCatalog;
 use App\Services\Brain\TasteEventRecorder;
 use App\Services\Craving\CravingIntent;
 use App\Services\Craving\CravingResolver;
@@ -329,7 +330,7 @@ class RecommendationController extends Controller
                 ...$this->brainPayload(
                     $decision, $next, withTrace: false,
                     rejected: ['category' => $current?->breakdown['facts']['category'] ?? null],
-                    lead: $fatigue ? 'Okay lah, enough choosing 😭 — this is the safest bet' : null,
+                    lead: $fatigue ? ReasonCatalog::FATIGUE_LINE : null,
                 ),
                 'fatigue' => $fatigue,
             ],

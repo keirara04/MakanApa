@@ -73,7 +73,7 @@ class SeleraController extends Controller
         return $this->show($request);
     }
 
-    /** The "Right now ☔ Hujan · 🌙 Supper" strip — cache reads only. */
+    /** The "Right now ☔ Raining · 🌙 Supper" strip — cache reads only. */
     public function context(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -89,7 +89,7 @@ class SeleraController extends Controller
 
         return response()->json([
             'mealSlot' => $snapshot->mealSlot,
-            'signals' => ContextEngine::present($snapshot, (bool) $request->user()?->plain_english),
+            'signals' => ContextEngine::present($snapshot),
         ]);
     }
 }

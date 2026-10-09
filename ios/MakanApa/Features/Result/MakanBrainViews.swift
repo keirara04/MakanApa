@@ -14,16 +14,21 @@ struct KenapaNiSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(Copy.whyThisPick)
-                .font(.makanBody(12))
-                .foregroundStyle(.secondary)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.kicapSecondary)
                 .accessibilityAddTraits(.isHeader)
 
             ForEach(Array(reasons.enumerated()), id: \.element) { index, reason in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(reason.icon)
+                    // The server's `icon` is an emoji (older builds render it); draw an SF Symbol
+                    // per family instead so the page stays emoji-free.
+                    Image(systemName: Self.symbol(for: reason.family))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(width: 18)
                         .accessibilityHidden(true)
                     Text(reason.text)
-                        .font(.makanBody(14))
+                        .font(.subheadline)
                         .foregroundStyle(Color.kicap)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -34,8 +39,8 @@ struct KenapaNiSection: View {
 
             if let decidingFactor {
                 Text(decidingFactor)
-                    .font(.makanBody(12))
-                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .font(.footnote)
+                    .foregroundStyle(Color.kicapSecondary)
                     .padding(.top, 2)
                     .opacity(revealedCount >= reasons.count ? 1 : 0)
             }
@@ -51,33 +56,20 @@ struct KenapaNiSection: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.kicap.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .padding(16)
+        .background(Color.surface, in: .card)
+        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
         .accessibilityElement(children: .contain)
     }
-}
 
-struct FitBadge: View {
-    let fit: PickFit
-
-    var body: some View {
-        let (icon, color): (String, Color) = switch fit {
-        case .strong: ("🔥", Color.sambalRed)
-        case .good: ("👌", Color.pandan)
-        case .wildcard: ("🎲", Color.kunyit)
+    /// match = fits you · edge = beat the others · moment = why now.
+    private static func symbol(for family: String) -> String {
+        switch family {
+        case "match": "heart.fill"
+        case "edge": "trophy.fill"
+        case "moment": "clock.fill"
+        default: "checkmark.circle.fill"
         }
-        HStack(spacing: 4) {
-            Text(icon).accessibilityHidden(true)
-            Text(fit.label)
-        }
-        .font(.makanBody(12))
-        .foregroundStyle(color)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(color.opacity(0.12))
-        .clipShape(Capsule())
-        .accessibilityLabel(fit.label)
     }
 }
 
@@ -195,7 +187,7 @@ struct WhyNotChips: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text(answered ? "Noted 👍" : Copy.whyNotPrompt)
+            Text(answered ? "Noted, thanks" : Copy.whyNotPrompt)
                 .font(.makanBody(13))
                 .foregroundStyle(.secondary)
 

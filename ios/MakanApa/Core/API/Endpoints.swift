@@ -822,6 +822,15 @@ struct NearbyPickRequestBody: Encodable {
     var ignoreContext: [String]? = nil
 }
 
+struct SavedPickRequestBody: Encodable {
+    let latitude: Double
+    let longitude: Double
+    let savedPlaceIds: [Int]
+    let installationId: String?
+    let halal: Bool
+    var ignoreContext: [String]? = nil
+}
+
 struct SaveRequestBody: Encodable {
     let installationId: String
 }
@@ -1134,10 +1143,6 @@ struct OwnerClaimResponse: Decodable {
 
 struct UpdateHalalPreferenceRequestBody: Encodable {
     let halalPreference: Bool
-}
-
-struct UpdatePlainEnglishRequestBody: Encodable {
-    let plainEnglish: Bool
 }
 
 // MARK: - Community posts ("What KU is saying")

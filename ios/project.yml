@@ -20,7 +20,7 @@ targets:
       INFOPLIST_KEY_UILaunchScreen_Generation: true
       INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
       INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
-      INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "MakanApa uses your location to find food store or restaurant nearby."
+      INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "MakanApa uses your location to find places to eat nearby."
       TARGETED_DEVICE_FAMILY: "1,2"
     info:
       path: MakanApa/Info.plist

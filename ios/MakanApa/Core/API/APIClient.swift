@@ -111,6 +111,17 @@ enum APIClient {
         return try await post("places/nearby/pick", body: body, timeout: placesTimeout)
     }
 
+    /// "Pick from my saved places" — the on-device saved list is the candidate pool; distance
+    /// only scores, so a saved place across town can still win.
+    static func pickFromSaved(latitude: Double, longitude: Double, savedPlaceIds: [Int]) async throws -> RecommendationResponse {
+        let body = SavedPickRequestBody(
+            latitude: latitude, longitude: longitude, savedPlaceIds: savedPlaceIds,
+            installationId: InstallationID.current, halal: HalalPreference.isOn,
+            ignoreContext: ContextPreferences.ignoredKeys
+        )
+        return try await post("recommendations/saved", body: body, timeout: placesTimeout)
+    }
+
     static func saveRestaurant(id: Int) async throws -> SaveResponse {
         try await post("restaurants/\(id)/save", body: SaveRequestBody(installationId: InstallationID.current))
     }
@@ -253,10 +264,6 @@ enum APIClient {
 
     static func updateHalalPreference(_ isOn: Bool) async throws -> MeResponse {
         try await patch("me/profile", body: UpdateHalalPreferenceRequestBody(halalPreference: isOn))
-    }
-
-    static func updatePlainEnglish(_ isOn: Bool) async throws -> MeResponse {
-        try await patch("me/profile", body: UpdatePlainEnglishRequestBody(plainEnglish: isOn))
     }
 
     // MARK: - Halal trust

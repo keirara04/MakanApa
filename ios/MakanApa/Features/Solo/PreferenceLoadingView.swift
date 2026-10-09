@@ -23,7 +23,7 @@ struct PreferenceLoadingView: View {
                             AnimatedMakanMascot()
 
                             VStack(spacing: 12) {
-                                Text("Finding your\nnext makan.")
+                                Text("Finding your\nnext meal.")
                                     .font(.system(size: titleSize, weight: .bold, design: .rounded))
                                     .tracking(-0.8)
                                     .foregroundStyle(Color.kicap)
@@ -37,7 +37,7 @@ struct PreferenceLoadingView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Your kind of makan")
+                            Text("Your kind of food")
                                 .font(.system(.headline, design: .rounded))
                             Divider().overlay(Color.kicap.opacity(0.04))
                             Label(mood, systemImage: "heart")

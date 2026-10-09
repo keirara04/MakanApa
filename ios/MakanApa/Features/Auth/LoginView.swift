@@ -154,7 +154,7 @@ struct LoginView: View {
 
     private var headline: some View {
         VStack(spacing: 8) {
-            Text("Less thinking.\nMore \(Text("makan.").foregroundStyle(Color.sambalRed))")
+            Text("Less thinking.\nMore \(Text("eating.").foregroundStyle(Color.sambalRed))")
                 .font(.makanDisplay(34))
                 .tracking(-1)
                 .textRenderer(GlyphRevealRenderer(progress: headlineProgress))
@@ -198,7 +198,7 @@ struct LoginView: View {
             }
             .accessibilityHidden(true)
 
-            Text("Join the makan geng near you")
+            Text("Join the food crowd near you")
                 .font(.makanBody(13))
                 .foregroundStyle(Color.kicap.opacity(0.75))
                 .fixedSize(horizontal: false, vertical: true)

@@ -88,7 +88,7 @@ final class ExplorationPolicy
         $eligible = array_keys(array_filter($pool, fn ($c) => $c['relevanceTier'] === $tier));
 
         if ($fatigue) {
-            // "Okay lah, enough choosing" — among near-top scores, the most reliable option.
+            // "Okay, enough choosing" — among near-top scores, the most reliable option.
             $best = max(array_map(fn ($i) => $pool[$i]['score'], $eligible));
             $safe = array_values(array_filter($eligible, fn ($i) => $pool[$i]['score'] >= $best - 6));
             usort($safe, fn ($a, $b) => self::safety($pool[$b]) <=> self::safety($pool[$a]));

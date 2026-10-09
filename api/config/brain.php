@@ -32,7 +32,7 @@ return [
     ],
 
     'algorithm_version' => 'v2',
-    'reason_catalog_version' => 1,
+    'reason_catalog_version' => 2,
     'timezone' => 'Asia/Kuala_Lumpur',
 
     // ── Learning ────────────────────────────────────────────────────────────────
