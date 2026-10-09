@@ -9,7 +9,9 @@ struct NearbyView: View {
     @Environment(LocationService.self) private var locationService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = NearbyViewModel()
-    @AppStorage("NearbyView.halalNoticeDismissed") private var halalNoticeDismissed = false
+    // Not @AppStorage: the Maps SDK writes UserDefaults on every marker update, and AppStorage
+    // re-renders on any defaults change — that feeds updateUIView back into itself forever.
+    @State private var halalNoticeDismissed = UserDefaults.standard.bool(forKey: NearbyView.halalNoticeDismissedKey)
     @State private var panelState: NearbyPanelState = .collapsed
     @State private var windowHeight: CGFloat = 0
     @State private var currentViewport: MapViewport?
@@ -30,6 +32,7 @@ struct NearbyView: View {
 
     private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
     private static let areaPanelHintKey = "NearbyView.hasShownAreaPanelHint"
+    private static let halalNoticeDismissedKey = "NearbyView.halalNoticeDismissed"
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -85,6 +88,9 @@ struct NearbyView: View {
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: isSearchActive)
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: viewModel.halalFilter)
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: halalNoticeDismissed)
+            .onChange(of: halalNoticeDismissed) { _, dismissed in
+                UserDefaults.standard.set(dismissed, forKey: Self.halalNoticeDismissedKey)
+            }
             .animation(reduceMotion ? .easeOut(duration: 0.12) : Motion.standard, value: viewModel.discoveryMode)
             .padding(.horizontal, 12)
             .padding(.top, 16)
