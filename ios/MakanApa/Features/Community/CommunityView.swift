@@ -60,7 +60,7 @@ struct CommunityView: View {
                     skeletonRows
                 } else if let feed = viewModel.feed {
                     if isAffiliated, let picks = feed.ambassadorPicks, !picks.isEmpty || isAmbassadorHere {
-                        AmbassadorPicksSection(picks: picks, community: communityShortName, isMine: isAmbassadorHere) { pick in
+                        AmbassadorPicksSection(picks: picks, community: communityShortName, communityType: currentAffiliationType, isMine: isAmbassadorHere) { pick in
                             selectedItem = pick.feedItem
                         }
                         .headerEntrance(visible: headerAppeared, delay: 0.18, reduceMotion: reduceMotion)

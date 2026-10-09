@@ -96,6 +96,7 @@ struct QuickAddPhotoTile: View {
 /// detail sheet only ever shows a photo section when one exists).
 struct QuickAddPhotoRow: View {
     let restaurantId: Int
+    var prompt = "No photos yet. Add one?"
 
     @State private var uploader = QuickAddPhotoUploader()
     @State private var pickerItem: PhotosPickerItem?
@@ -106,7 +107,7 @@ struct QuickAddPhotoRow: View {
             Button { showingSignIn = true } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "camera.fill")
-                    Text("No photos yet. Add one?")
+                    Text(prompt)
                 }
                 .font(.makanBody(13))
                 .foregroundStyle(Color.sambalRed)
@@ -123,7 +124,7 @@ struct QuickAddPhotoRow: View {
                 switch uploader.state {
                 case .idle:
                     Image(systemName: "camera.fill")
-                    Text("No photos yet. Add one?")
+                    Text(prompt)
                 case .uploading:
                     ProgressView()
                     Text("Uploading…")

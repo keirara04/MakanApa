@@ -51,6 +51,25 @@ enum Copy {
     static let ambassadorPickCancel = "Cancel"
     static let ambassadorPickRemove = "Remove from my picks"
     static let ambassadorPickFailed = "Couldn't save your pick. Try again."
+    static let ambassadorPickAddPhoto = "Add your own photo of this place"
+    static let googlePhotoCredit = "Google Maps"
+    static let ambassadorShareCardLabel = "Your ambassador card"
+    static let ambassadorShareButton = "Share card"
+    static let ambassadorShareDone = "Done"
+    static let ambassadorShareCardRole = "MakanApa ambassador for"
+    static let ambassadorShareCardInvite = "Can't decide what to eat? Ask me, or let MakanApa pick."
+    static let ambassadorShareStory = "Story"
+    static let ambassadorSharePost = "Post"
+    static let ambassadorShareFormatLabel = "Card format"
+    static let ambassadorShareRetry = "Try again"
+    static let ambassadorShareHint = "Choose a size, then share your ambassador card."
+    static let ambassadorShareCardFallbackName = "MakanApa ambassador"
+    static func ambassadorShareMessage(community: String) -> String {
+        "I'm now MakanApa's ambassador for \(community)."
+    }
+    static func ambassadorShareCardAccessibility(name: String, community: String) -> String {
+        "Ambassador card: \(name), MakanApa ambassador for \(community)"
+    }
 
     // Taste prompt (after a real pick)
     static let tasteTitle = "Want sharper picks?"
@@ -156,6 +175,8 @@ enum Copy {
     static let privacyPolicyURL = "https://makanapa.hakeemiridza.com/privacy"
     static let termsURL = "https://makanapa.hakeemiridza.com/terms"
     static let communityGuidelinesURL = "https://makanapa.hakeemiridza.com/community-guidelines"
+    static let websiteURL = "https://makanapa.hakeemiridza.com"
+    static let websiteDisplay = "makanapa.hakeemiridza.com"
     static let supportURL = "https://makanapa.hakeemiridza.com/support"
 
     static let loginTagline = "Eat first. Decide later."

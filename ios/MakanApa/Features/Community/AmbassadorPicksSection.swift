@@ -51,12 +51,15 @@ final class AmbassadorPickStore {
 struct AmbassadorPicksSection: View {
     let picks: [AmbassadorPickItem]
     let community: String
-    /// The viewer is this community's ambassador — shows the first-pick prompt and Remove.
+    /// "university" | "area" — the crest artwork says UNI, so areas get the gold-star mark.
+    let communityType: String?
+    /// The viewer is this community's ambassador — shows the first-pick prompt, Remove and Share.
     let isMine: Bool
     let onSelect: (AmbassadorPickItem) -> Void
 
     @State private var store = AmbassadorPickStore.shared
     @State private var selections = 0
+    @State private var showingShareCard = false
     /// Removed from here this visit — hidden right away instead of waiting for the next feed load.
     @State private var removed: Set<Int> = []
 
@@ -64,21 +67,39 @@ struct AmbassadorPicksSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Label {
-                    Text(Copy.ambassadorPicksTitle)
-                        .foregroundStyle(Color.kicap)
-                } icon: {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(Color.kunyit)
-                }
-                .font(.headline)
-                .accessibilityAddTraits(.isHeader)
+            // The crest as a seal of approval on the row — 64pt is the smallest size it reads at.
+            HStack(alignment: .center, spacing: 12) {
+                AmbassadorCrestMark(isUniversity: communityType == "university")
+                    .frame(width: 64, height: 64)
 
-                if !visiblePicks.isEmpty {
-                    Text(Copy.ambassadorPicksSubtitle(names: pickerNames, community: community))
-                        .font(.subheadline)
-                        .foregroundStyle(Color.kicapSecondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Copy.ambassadorPicksTitle)
+                        .font(.headline)
+                        .foregroundStyle(Color.kicap)
+                        .accessibilityAddTraits(.isHeader)
+
+                    if !visiblePicks.isEmpty {
+                        Text(Copy.ambassadorPicksSubtitle(names: pickerNames, community: community))
+                            .font(.subheadline)
+                            .foregroundStyle(Color.kicapSecondary)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if isMine {
+                    Button {
+                        showingShareCard = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.headline)
+                            .foregroundStyle(Color.kicap)
+                            .frame(width: 44, height: 44)
+                            .background(Color.surface, in: Circle())
+                            .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+                    }
+                    .buttonStyle(CommunityPressStyle())
+                    .accessibilityLabel(Copy.ambassadorShareCardLabel)
                 }
             }
 
@@ -117,6 +138,12 @@ struct AmbassadorPicksSection: View {
         }
         .sensoryFeedback(.selection, trigger: selections)
         .task { if isMine { await store.loadIfNeeded() } }
+        .sheet(isPresented: $showingShareCard) {
+            if let role = AmbassadorPickStore.currentRole {
+                AmbassadorShareSheet(role: role)
+                    .presentationDetents([.large])
+            }
+        }
     }
 
     private var pickerNames: [String] {
@@ -127,6 +154,10 @@ struct AmbassadorPicksSection: View {
 
 struct AmbassadorPickCard: View {
     let pick: AmbassadorPickItem
+
+    /// Google photo fetched lazily when the card is on screen, only when the ambassador hasn't
+    /// added their own (community) photo.
+    @State private var googlePhoto: URL?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -180,9 +211,13 @@ struct AmbassadorPickCard: View {
         .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
         .contentShape(.card)
         .accessibilityElement(children: .combine)
+        .task(id: pick.id) {
+            guard pick.photoUrl == nil else { return }
+            googlePhoto = await PickPhotoLoader.googlePhoto(for: pick.id)
+        }
     }
 
-    /// A community photo when one exists; otherwise the category on a cream tile.
+    /// The ambassador's own photo first, then Google's, else the category on a cream tile.
     @ViewBuilder
     private var image: some View {
         let placeholder = Image(systemName: categorySymbol)
@@ -197,6 +232,21 @@ struct AmbassadorPickCard: View {
                 RemoteImage(url: url, maxPixelSize: 720) { placeholder }
                     .scaledToFill()
             }
+        } else if let googlePhoto {
+            Color.nasiCream.overlay {
+                RemoteImage(url: googlePhoto, maxPixelSize: 720) { placeholder }
+                    .scaledToFill()
+            }
+            // Google's terms: a Places photo is shown with its source.
+            .overlay(alignment: .bottomLeading) {
+                Text(Copy.googlePhotoCredit)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.black.opacity(0.45), in: Capsule())
+                    .padding(8)
+            }
         } else {
             placeholder
         }
@@ -205,7 +255,9 @@ struct AmbassadorPickCard: View {
     /// "Malay · ≈ RM10/person · 1.2 km"
     private var details: String {
         let kind = pick.cuisines.first?.capitalized ?? pick.foodCategory?.replacingOccurrences(of: "_", with: " ").capitalized
-        let distance = pick.distanceKm.map { "\($0.formatted(.number.precision(.fractionLength(1)))) km" }
+        // A university/area board isn't anchored on the viewer — a far-off reading (travelling, a
+        // simulator's default location) is noise, not information.
+        let distance = pick.distanceKm.flatMap { $0 < 50 ? "\($0.formatted(.number.precision(.fractionLength(1)))) km" : nil }
         return [kind, PricePresentation.approximateSpendLabel(for: pick.priceLevel), distance]
             .compactMap { $0 }
             .joined(separator: " · ")
@@ -219,6 +271,22 @@ struct AmbassadorPickCard: View {
         case "sushi", "seafood", "japanese": "fish.fill"
         default: "fork.knife"
         }
+    }
+}
+
+/// Google photo for a pick, via the same place-details call the place sheet makes (cached 10 min
+/// server-side and shared by everyone). Memoised per session; the signed photo URL lives 30 min,
+/// so entries older than 25 min are refetched.
+@MainActor
+private enum PickPhotoLoader {
+    private static var cache: [Int: (url: URL?, at: Date)] = [:]
+
+    static func googlePhoto(for restaurantId: Int) async -> URL? {
+        if let hit = cache[restaurantId], Date.now.timeIntervalSince(hit.at) < 25 * 60 { return hit.url }
+        let url = (try? await APIClient.placeDetails(restaurantId: restaurantId))?
+            .photos.first.flatMap { URL(string: $0.url) }
+        cache[restaurantId] = (url, .now)
+        return url
     }
 }
 
@@ -322,6 +390,9 @@ private struct AmbassadorPickSheet: View {
                         .foregroundStyle(Color.kicapSecondary)
                 }
 
+                // Their own shot of the place — shown on the card once an admin approves it.
+                QuickAddPhotoRow(restaurantId: restaurantId, prompt: Copy.ambassadorPickAddPhoto)
+
                 if store.picked.contains(restaurantId) {
                     Button(Copy.ambassadorPickRemove, role: .destructive) {
                         Task { await run { try await store.remove(restaurantId: restaurantId) } }
@@ -363,6 +434,30 @@ private struct AmbassadorPickSheet: View {
             dismiss()
         } catch {
             errorMessage = (error as? APIError)?.serverMessage ?? Copy.ambassadorPickFailed
+        }
+    }
+}
+
+// MARK: - Crest + share card
+
+/// The crest artwork for universities; a gold star on cream for areas (the art says "UNI").
+struct AmbassadorCrestMark: View {
+    let isUniversity: Bool
+
+    var body: some View {
+        if isUniversity {
+            Image("AmbassadorCrest")
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: "star.fill")
+                .font(.title)
+                .foregroundStyle(Color.kunyit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.surface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+                .accessibilityHidden(true)
         }
     }
 }
