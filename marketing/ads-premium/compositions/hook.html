@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #hook-stack {
+          position: absolute;
+          left: 80px;
+          top: 470px;
+          width: 940px;
+          transform-origin: 30% 50%;
+        }
+        .hook-line {
+          display: block;
+          font-size: 190px;
+          white-space: nowrap;
+          transform-origin: left center;
+        }
+        #hook-eat {
+          display: block;
+          margin-top: 14px;
+          font-size: 430px;
+          line-height: 0.82;
+          color: var(--chili);
+          text-shadow: 0 0 90px rgb(255 91 58 / 0.45);
+          transform-origin: left center;
+        }
+      </style>
+
+      <div id="root" data-composition-id="hook" data-width="1080" data-height="1920">
+        <div id="hook-stack" data-layout-allow-overlap>
+          <span id="hook-1" class="hook-line slam" data-layout-allow-overlap>Where</span>
+          <span id="hook-2" class="hook-line slam" data-layout-allow-overlap>do you</span>
+          <span id="hook-3" class="hook-line slam" data-layout-allow-overlap>want to</span>
+          <span id="hook-eat" class="serif it" data-layout-allow-overlap>eat?</span>
+        </div>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+
+        // Frame 0 already reads "WHERE" (autoplay frame), then every beat slams a line.
+        tl.fromTo("#hook-1", { scale: 1.22 }, { scale: 1, duration: 0.3, ease: "expo.out" }, 0);
+        ["#hook-2", "#hook-3"].forEach((sel, i) => {
+          tl.fromTo(
+            sel,
+            { opacity: 0, scale: 1.55, filter: "blur(16px)" },
+            { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.22, ease: "expo.out" },
+            0.5 * (i + 1),
+          );
+        });
+        tl.fromTo(
+          "#hook-eat",
+          { opacity: 0, scale: 1.8, rotation: -6, filter: "blur(22px)" },
+          { opacity: 1, scale: 1, rotation: 0, filter: "blur(0px)", duration: 0.28, ease: "expo.out" },
+          1.5,
+        );
+
+        // Zoom straight through the words into the next scene.
+        tl.fromTo("#hook-stack", { scale: 1 }, { scale: 1.04, duration: 0.3, ease: "sine.out" }, 1.55);
+        tl.to("#hook-stack", { scale: 1.7, opacity: 0, filter: "blur(18px)", duration: 0.2, ease: "power3.in" }, 1.85);
+
+        window.__timelines["hook"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

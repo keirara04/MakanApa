@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          color: var(--ink);
+        }
+        #st-all {
+          position: absolute;
+          inset: 0;
+        }
+        #st-eyebrow {
+          position: absolute;
+          left: 84px;
+          top: 250px;
+          font-size: 26px;
+          color: var(--ink-60);
+        }
+        #st-head {
+          position: absolute;
+          left: 76px;
+          top: 300px;
+          font-size: 230px;
+          line-height: 1;
+          color: var(--chili-deep);
+        }
+        #st-mascot {
+          position: absolute;
+          right: 30px;
+          top: 240px;
+          width: 330px;
+          height: 330px;
+        }
+        #st-card-wrap {
+          position: absolute;
+          left: 80px;
+          top: 660px;
+          width: 920px;
+          height: 650px;
+        }
+        #st-card {
+          position: absolute;
+          inset: 0;
+          padding: 60px 64px;
+          border-radius: 52px;
+          background: var(--card);
+          box-shadow:
+            0 1px 0 rgb(26 19 16 / 0.05),
+            0 30px 60px -24px rgb(26 19 16 / 0.22),
+            0 90px 140px -50px rgb(184 51 26 / 0.32);
+        }
+        .st-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .st-top .caps {
+          font-size: 24px;
+          color: var(--chili-deep);
+        }
+        .st-rating {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 40px;
+          font-weight: 800;
+          font-variant-numeric: tabular-nums;
+        }
+        .st-rating svg {
+          width: 36px;
+          height: 36px;
+          fill: var(--saffron);
+        }
+        #st-dish {
+          margin-top: 34px;
+          font-size: 156px;
+          line-height: 0.95;
+          white-space: nowrap;
+        }
+        #st-note {
+          margin-top: 16px;
+          font-size: 38px;
+          color: var(--ink-60);
+        }
+        #st-hair {
+          display: block;
+          margin: 44px 0 36px;
+          height: 1.5px;
+          background: rgb(26 19 16 / 0.12);
+          transform-origin: left center;
+        }
+        .st-meta {
+          display: flex;
+          justify-content: space-between;
+        }
+        .st-meta .v {
+          display: block;
+          font-size: 68px;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .st-meta .k {
+          display: block;
+          margin-top: 10px;
+          font-size: 21px;
+          letter-spacing: 0.24em;
+          color: var(--ink-60);
+        }
+        #st-confetti {
+          position: absolute;
+          left: 540px;
+          top: 760px;
+          width: 0;
+          height: 0;
+        }
+        .st-bit {
+          position: absolute;
+          left: -9px;
+          top: -14px;
+          width: 18px;
+          height: 28px;
+          border-radius: 3px;
+        }
+      </style>
+
+      <div id="root" data-composition-id="settled" data-width="1080" data-height="1920">
+        <div id="st-all">
+          <p id="st-eyebrow" class="caps">Decided in 3 taps</p>
+          <h2 id="st-head" class="serif it" data-layout-allow-overlap>Settled.</h2>
+          <img id="st-mascot" src="assets/mascot/celebrate.svg" alt="" />
+
+          <div id="st-card-wrap">
+            <div id="st-card">
+              <div class="st-top">
+                <span class="caps">Today's pick</span>
+                <span class="st-rating">
+                  <svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" /></svg>
+                  <span id="st-rate">4.7</span>
+                </span>
+              </div>
+              <p id="st-dish" class="serif">Nasi Kandar</p>
+              <p id="st-note">Rice, curry, fried chicken. The works.</p>
+              <span id="st-hair"></span>
+              <div class="st-meta">
+                <span class="st-item"><span class="v serif"><span id="st-km">1.2</span> km</span><span class="k caps">Away</span></span>
+                <span class="st-item"><span class="v serif">RM<span id="st-rm">15</span></span><span class="k caps">Per person</span></span>
+                <span class="st-item"><span class="v serif">Open</span><span class="k caps">Until 2 am</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="st-confetti" data-layout-ignore></div>
+      </div>
+
+      <script>
+        // Seeded confetti: pops up from behind the card, then falls with a spin.
+        let seed = 4242;
+        const rand = () => {
+          seed = (seed * 16807) % 2147483647;
+          return seed / 2147483647;
+        };
+        const COLORS = ["#ff5b3a", "#ffb938", "#1a1310", "#b8331a", "#ffb938", "#ff5b3a"];
+        const confetti = document.getElementById("st-confetti");
+        const BITS = [];
+        for (let i = 0; i < 46; i++) {
+          const b = document.createElement("i");
+          b.className = "st-bit";
+          b.id = `st-bit-${i}`;
+          b.style.background = COLORS[i % COLORS.length];
+          confetti.appendChild(b);
+          BITS.push({
+            x1: (rand() * 2 - 1) * 520,
+            y1: -380 - rand() * 520,
+            x2: (rand() * 2 - 1) * 640,
+            y2: 900 + rand() * 500,
+            r: (rand() * 2 - 1) * 900,
+            s: 0.6 + rand() * 0.8,
+            d: rand() * 0.12,
+          });
+        }
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 22.4 (the light burst is finishing).
+
+        tl.fromTo("#st-eyebrow", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, 0.15);
+        tl.fromTo(
+          "#st-head",
+          { opacity: 0, scale: 1.5, rotation: -6, filter: "blur(18px)" },
+          { opacity: 1, scale: 1, rotation: 0, filter: "blur(0px)", duration: 0.4, ease: "expo.out", transformOrigin: "0% 60%" },
+          0.1,
+        );
+        tl.fromTo(
+          "#st-card-wrap",
+          { opacity: 0, y: 160, rotationX: 22, transformPerspective: 1600, transformOrigin: "50% 100%" },
+          { opacity: 1, y: 0, rotationX: 0, duration: 1.0, ease: "expo.out" },
+          0.22,
+        );
+        tl.fromTo(
+          "#st-mascot",
+          { opacity: 0, scale: 0.5, y: 80, rotation: 16 },
+          { opacity: 1, scale: 1, y: 0, rotation: 0, duration: 0.7, ease: "back.out(1.7)" },
+          0.35,
+        );
+        tl.to("#st-mascot", { y: -16, rotation: -4, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.1);
+
+        // Numbers count up so the card feels live.
+        const n = { rate: 0, km: 0, rm: 0 };
+        tl.to(n, {
+          rate: 4.7,
+          km: 1.2,
+          rm: 15,
+          duration: 0.9,
+          ease: "power3.out",
+          onUpdate: () => {
+            document.getElementById("st-rate").textContent = n.rate.toFixed(1);
+            document.getElementById("st-km").textContent = n.km.toFixed(1);
+            document.getElementById("st-rm").textContent = String(Math.round(n.rm));
+          },
+        }, 0.45);
+        tl.fromTo("#st-hair", { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power3.inOut" }, 0.6);
+        tl.fromTo(".st-item", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.07 }, 0.65);
+        tl.to("#st-card", { y: -12, duration: 1.6, ease: "sine.inOut" }, 1.3);
+
+        BITS.forEach((b, i) => {
+          const sel = `#st-bit-${i}`;
+          tl.fromTo(sel, { x: 0, y: 0, rotation: 0, scale: b.s, opacity: 1 }, { x: b.x1, y: b.y1, rotation: b.r * 0.4, duration: 0.5, ease: "power3.out" }, 0.2 + b.d);
+          tl.to(sel, { x: b.x2, y: b.y2, rotation: b.r, duration: 2.2, ease: "power1.in" }, 0.7 + b.d);
+        });
+
+        // Clear the stage for the callback line.
+        tl.to("#st-all", { opacity: 0, y: -80, filter: "blur(14px)", duration: 0.3, ease: "power2.in" }, 3.32);
+
+        window.__timelines["settled"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

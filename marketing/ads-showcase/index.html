@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>MakanApa — 30s showcase film</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Geist"; font-weight: 400; src: url("assets/fonts/geist-sans-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 500; src: url("assets/fonts/geist-sans-latin-500-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 600; src: url("assets/fonts/geist-sans-latin-600-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 700; src: url("assets/fonts/geist-sans-latin-700-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 800; src: url("assets/fonts/geist-sans-latin-800-normal.woff2") format("woff2"); }
+
+      :root {
+        --white: #f5f5f7;
+        --gray: #86868b;
+        --chili: #ff5b3a;
+        --saffron: #ffb938;
+        /* App UI palette (matches the iOS app). */
+        --app-bg: #fff4dd;
+        --app-card: #fffbf3;
+        --app-ink: #291d1d;
+        --app-muted: #8a7a6e;
+        --app-red: #e94b35;
+        --app-sel: #fde9df;
+        --app-line: #e6d9c3;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        color: var(--white);
+        font-family: "Geist", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .clip, .scene { position: absolute; inset: 0; }
+
+      /* Film type: big, tight, quiet. */
+      .hl { font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; color: var(--white); }
+      .sub { font-weight: 500; letter-spacing: -0.01em; color: var(--gray); }
+      .grad {
+        background: linear-gradient(90deg, var(--chili) 0%, #ff8a3d 55%, var(--saffron) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      /* ---------- stage light ---------- */
+      #spot {
+        position: absolute;
+        left: -260px;
+        top: -300px;
+        width: 1600px;
+        height: 1600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(70 70 78 / 0.55) 0%, rgb(30 30 34 / 0.25) 35%, rgb(0 0 0 / 0) 65%);
+      }
+      #warm {
+        position: absolute;
+        left: 40px;
+        top: 760px;
+        width: 1000px;
+        height: 1000px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(255 91 58 / 0.22) 0%, rgb(255 140 60 / 0.08) 40%, rgb(0 0 0 / 0) 66%);
+        opacity: 0;
+      }
+
+      /* ---------- iPhone (shared by phone.html and finale.html) ---------- */
+      .iphone { position: absolute; left: 0; top: 0; width: 620px; height: 1308px; transform-style: preserve-3d; }
+      .ip-depth {
+        position: absolute;
+        inset: 0;
+        border-radius: 104px;
+        background: linear-gradient(90deg, #4a4a4e 0%, #1d1d20 30%, #26262a 70%, #55555a 100%);
+      }
+      .ip-body {
+        position: absolute;
+        inset: 0;
+        padding: 6px;
+        border-radius: 104px;
+        background: linear-gradient(140deg, #a7a7ad 0%, #3d3d41 16%, #1e1e21 48%, #3d3d41 84%, #b0b0b6 100%);
+        box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.2), inset 0 0 0 4px rgb(0 0 0 / 0.55);
+      }
+      .ip-bezel { width: 100%; height: 100%; padding: 9px; border-radius: 98px; background: #050505; }
+      .ip-screen { position: relative; width: 590px; height: 1278px; border-radius: 89px; overflow: hidden; background: #000; }
+      .ip-island { position: absolute; left: 205px; top: 20px; width: 180px; height: 54px; border-radius: 27px; background: #000; z-index: 30; }
+      .ip-glare {
+        position: absolute;
+        left: -50%;
+        top: -10%;
+        width: 200%;
+        height: 120%;
+        background: linear-gradient(115deg, rgb(255 255 255 / 0) 42%, rgb(255 255 255 / 0.16) 48%, rgb(255 255 255 / 0.05) 51%, rgb(255 255 255 / 0) 58%);
+        z-index: 31;
+      }
+      .ip-off {
+        position: absolute;
+        inset: 0;
+        z-index: 32;
+        background: linear-gradient(160deg, #141416 0%, #050505 45%, #0b0b0c 100%);
+      }
+      .ip-btn { position: absolute; width: 7px; border-radius: 3px; background: linear-gradient(90deg, #2a2a2d, #6a6a70); }
+
+      /* ---------- MakanApa app UI, rebuilt at 1.5x iOS points ---------- */
+      .ma-ui { position: absolute; inset: 0; background: var(--app-bg); }
+      .ma-scr {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background: var(--app-bg);
+        color: var(--app-ink);
+        font-family: "Geist", sans-serif;
+        letter-spacing: -0.01em;
+      }
+      .ma-dim { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 9; }
+      .ma-abs { position: absolute; }
+      .ma-status {
+        position: absolute;
+        left: 0; right: 0; top: 0;
+        height: 86px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 50px 0 70px;
+        font-size: 27px;
+        font-weight: 600;
+      }
+      .ma-status svg { height: 22px; }
+      .ma-ico { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .ma-brand { font-weight: 800; font-size: 34px; letter-spacing: -0.03em; }
+      .ma-brand b { color: var(--app-red); font-weight: 800; }
+      .ma-muted { color: var(--app-muted); }
+      .ma-center { left: 0; right: 0; text-align: center; }
+
+      .ma-big { display: flex; align-items: center; gap: 24px; left: 34px; right: 34px; padding: 0 32px; border-radius: 36px; }
+      .ma-big .ma-ic { display: grid; place-items: center; width: 66px; height: 66px; border-radius: 50%; flex: none; }
+      .ma-big .ma-ic svg { width: 36px; height: 36px; }
+      .ma-big b { display: block; font-size: 29px; font-weight: 800; letter-spacing: 0.02em; }
+      .ma-big span { display: block; margin-top: 2px; font-size: 21px; }
+      .ma-big .ma-grow { flex: 1; }
+      .ma-big > svg { width: 28px; height: 28px; }
+
+      .ma-nav { top: 104px; left: 34px; right: 34px; height: 68px; display: flex; align-items: center; justify-content: space-between; }
+      .ma-back { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: rgb(255 255 255 / 0.75); }
+      .ma-back svg { width: 30px; height: 30px; }
+      .ma-prog { top: 198px; left: 34px; right: 34px; display: flex; gap: 14px; }
+      .ma-prog div { flex: 1; font-size: 18px; color: var(--app-muted); }
+      .ma-prog i { display: block; height: 5px; margin-bottom: 12px; border-radius: 3px; background: var(--app-line); }
+      .ma-prog .on { color: var(--app-ink); font-weight: 600; }
+      .ma-prog .on i, .ma-prog .done i { background: var(--app-red); }
+      .ma-title { top: 262px; left: 34px; right: 34px; font-size: 47px; font-weight: 800; letter-spacing: -0.035em; }
+      .ma-desc { top: 330px; left: 34px; right: 34px; font-size: 21px; }
+
+      .ma-card { width: 252px; height: 196px; padding: 22px; border-radius: 30px; background: var(--app-card); box-shadow: 0 1px 0 rgb(41 29 29 / 0.05); }
+      .ma-thumb { width: 66px; height: 66px; border-radius: 50%; }
+      .ma-card b { display: block; margin-top: 14px; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+      .ma-card span { display: block; margin-top: 4px; font-size: 17px; color: var(--app-muted); }
+      .ma-radio { position: absolute; right: 22px; top: 22px; width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid #dccdb8; }
+      .ma-radio-on { position: absolute; right: 20px; top: 20px; width: 36px; height: 36px; border-radius: 50%; background: var(--app-red); display: grid; place-items: center; opacity: 0; }
+      .ma-radio-on svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 3; }
+      .ma-sel { position: absolute; inset: 0; border-radius: inherit; border: 3px solid var(--app-red); background: rgb(233 75 53 / 0.07); opacity: 0; }
+
+      .ma-row { left: 34px; right: 34px; height: 132px; display: flex; align-items: center; gap: 24px; padding: 0 30px; border-radius: 30px; background: var(--app-card); }
+      .ma-row .ma-ri { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; background: #fbeee0; color: var(--app-red); flex: none; }
+      .ma-row .ma-ri svg { width: 36px; height: 36px; }
+      .ma-row .ma-grow { flex: 1; }
+      .ma-row b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+      .ma-row span { display: block; margin-top: 2px; font-size: 20px; color: var(--app-muted); }
+      .ma-row .ma-radio, .ma-row .ma-radio-on { top: 50%; margin-top: -16px; right: 30px; }
+      .ma-row .ma-radio-on { margin-top: -18px; right: 28px; }
+
+      .ma-btn { left: 34px; right: 34px; height: 106px; border-radius: 53px; display: flex; align-items: center; justify-content: space-between; padding: 0 44px; font-size: 29px; font-weight: 700; }
+      .ma-btn svg { width: 32px; height: 32px; }
+      .ma-btn.off { background: #eadfcb; color: #b5a792; }
+      .ma-btn.go { background: var(--app-red); color: #fff; }
+      .ma-btn-on { position: absolute; inset: 0; border-radius: inherit; background: var(--app-red); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 44px; opacity: 0; }
+      .ma-hint { top: 1198px; font-size: 19px; color: var(--app-muted); }
+
+      .ma-tabs { left: 95px; width: 400px; top: 1112px; height: 106px; border-radius: 53px; background: rgb(255 255 255 / 0.94); box-shadow: 0 12px 32px rgb(41 29 29 / 0.12); display: flex; padding: 8px; }
+      .ma-tabs div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 16px; font-weight: 600; border-radius: 45px; color: var(--app-ink); }
+      .ma-tabs svg { width: 34px; height: 34px; }
+      .ma-tabs .on { background: #fde3d7; color: var(--app-red); }
+
+      .ma-chip { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 30px; background: var(--app-card); border: 1.5px solid var(--app-line); font-size: 19px; font-weight: 500; }
+      .ma-tag { display: inline-block; padding: 9px 18px; border-radius: 22px; background: #f4e9d4; font-size: 17px; font-weight: 500; }
+
+      .ma-touch {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        margin: -50px 0 0 -50px;
+        border-radius: 50%;
+        background: rgb(41 29 29 / 0.16);
+        border: 3px solid rgb(255 255 255 / 0.9);
+        box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+        opacity: 0;
+        z-index: 28;
+      }
+    </style>
+
+    <script>
+      // Builds the iPhone + rebuilt app screens as HTML strings. Deterministic, no assets but the mascot.
+      (function () {
+        const I = (d, extra = "") => `<svg class="ma-ico" viewBox="0 0 24 24" ${extra}><path d="${d}"/></svg>`;
+        const ICON = {
+          left: "M15 5l-7 7 7 7",
+          right: "M9 5l7 7-7 7",
+          arrow: "M5 12h14M13 6l6 6-6 6",
+          upRight: "M7 17L17 7M8 7h9v9",
+          gear: "M12 8.8a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 1 0 0-6.4M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
+          person: "M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7",
+          people: "M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M17 6.2a2.8 2.8 0 1 0 0 5.6M15.5 14.2c3.3 0 6 2 6 5.3",
+          sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z",
+          map: "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15",
+          coins: "M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4",
+          walk: "M13 2.5a2 2 0 1 0 0 4a2 2 0 1 0 0-4M9 21l3-7 3 3v5M12 14l-1-5 4 2 3 1M11 9l-3 3",
+          bike: "M6 13.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M18 13.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M6 17l4-8h5l3 8M10 9l2 8",
+          car: "M3 16v-4l2.5-5h13L21 12v4zM3 16v2h3v-2M18 16v2h3v-2M7 12.5h.01M17 12.5h.01",
+          infinity: "M7 9a3 3 0 1 0 0 6c2.5 0 7.5-6 10-6a3 3 0 1 1 0 6c-2.5 0-7.5-6-10-6z",
+          check: "M6 12.5l4 4 8-9",
+          loc: "M20 4L4 11l7 2 2 7z",
+          fork: "M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M16 3c-2 1.5-2.5 4-2.5 6.5V13h2.5v8",
+        };
+        const STAR = '<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#f2b544"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>';
+
+        const status = () => `
+          <div class="ma-status"><span>12:30</span><span style="display:flex;gap:10px;align-items:center">
+            <svg viewBox="0 0 34 22"><rect x="0" y="14" width="6" height="8" rx="1.5" fill="currentColor"/><rect x="9" y="10" width="6" height="12" rx="1.5" fill="currentColor"/><rect x="18" y="5" width="6" height="17" rx="1.5" fill="currentColor"/><rect x="27" y="0" width="6" height="22" rx="1.5" fill="currentColor"/></svg>
+            <svg viewBox="0 0 30 22"><path d="M15 21l4-4.5a6 6 0 0 0-8 0zM7.5 12.5a11 11 0 0 1 15 0l-2.6 2.9a7 7 0 0 0-9.8 0zM3 8a17 17 0 0 1 24 0l-2.6 2.9a13 13 0 0 0-18.8 0z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 46 22"><rect x="1" y="1" width="38" height="20" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/><rect x="4" y="4" width="30" height="14" rx="3.5" fill="currentColor"/><rect x="41" y="7" width="3" height="8" rx="1.5" fill="currentColor" fill-opacity=".45"/></svg>
+          </span></div>`;
+        const radio = (id, on) => `<span class="ma-radio"></span><span class="ma-radio-on" ${id ? `id="${id}"` : ""} style="${on ? "opacity:1" : ""}">${I(ICON.check)}</span>`;
+        const sel = (id, on) => `<span class="ma-sel" ${id ? `id="${id}"` : ""} style="${on ? "opacity:1" : ""}"></span>`;
+        const nav = (step) => `
+          <div class="ma-abs ma-nav">
+            <span class="ma-back">${I(ICON.left)}</span>
+            <span class="ma-brand">Makan<b>Apa?</b></span>
+            <span class="ma-muted" style="font-size:22px;font-weight:500;width:68px;text-align:right">${step} / 3</span>
+          </div>
+          <div class="ma-abs ma-prog">
+            ${["Mood", "Budget", "Distance"].map((l, i) => `<div class="${i + 1 === step ? "on" : i + 1 < step ? "done" : ""}"><i></i>${l}</div>`).join("")}
+          </div>`;
+        const thumb = (a, b) => `background: radial-gradient(circle at 38% 32%, ${a} 0%, ${b} 70%); box-shadow: inset 0 -4px 10px rgb(0 0 0 / 0.18);`;
+
+        const MOODS = [
+          ["Nasi Kandar", "Curry power", "#f0b45c", "#b4581f"],
+          ["Ayam Gepuk", "Smashed & spicy", "#f29b5a", "#a9411f"],
+          ["Nasi Padang", "Rendang & the works", "#d98a52", "#7e3519"],
+          ["Mee Goreng", "Wok-fried, always hits", "#f4c160", "#c9701f"],
+          ["Nasi Lemak", "The national classic", "#f6e3b4", "#c79a4c"],
+          ["Char Kuey Teow", "Smoky wok hei", "#d9a066", "#7a4a2a"],
+        ];
+        const BUDGETS = [["~RM10", "Save a little"], ["~RM20", "Just right"], ["~RM35+", "Treat yourself"], ["Anything", "No limit. Make it good."]];
+        const DISTANCES = [[ICON.walk, "Within 1 km", "Walkable"], [ICON.bike, "Within 2 km", "Short ride"], [ICON.car, "Within 5 km", "Worth the drive"]];
+
+        const MA = {
+          home(p) {
+            return `<div class="ma-scr" id="${p}-home">${status()}
+              <div class="ma-abs" style="top:116px;left:36px;right:36px;display:flex;justify-content:space-between;align-items:center">
+                <span class="ma-brand">Makan<b>Apa?</b></span><span style="color:var(--app-red);width:38px">${I(ICON.gear, 'style="width:38px;height:38px"')}</span>
+              </div>
+              <p class="ma-abs ma-center" style="top:232px;font-size:47px;font-weight:800;letter-spacing:-0.035em">Hungry?</p>
+              <p class="ma-abs ma-center ma-muted" style="top:298px;font-size:22px">Okay, what are we doing today?</p>
+              <div class="ma-abs ma-big" id="${p}-solo" style="top:372px;height:136px;background:var(--app-red);color:#fff">
+                <span class="ma-ic" style="background:rgb(255 255 255 / 0.18)">${I(ICON.person)}</span>
+                <span class="ma-grow"><b>SOLO</b><span style="opacity:.85">Pick for me</span></span>${I(ICON.right)}
+              </div>
+              <div class="ma-abs ma-big" style="top:528px;height:124px;background:#efe3cc">
+                <span class="ma-ic" style="background:#f8efdf;color:var(--app-red)">${I(ICON.people)}</span>
+                <span class="ma-grow"><b>GENG</b><span class="ma-muted">Settle it for us</span></span>
+                <span style="font-size:16px;padding:6px 14px;border-radius:14px;background:rgb(41 29 29 / 0.07)" class="ma-muted">Soon</span>${I(ICON.right, 'style="color:#b5a792"')}
+              </div>
+              <p class="ma-abs ma-muted" style="top:690px;left:40px;font-size:20px">Recent</p>
+              <div class="ma-abs" style="top:726px;left:34px;right:34px;height:104px;border-radius:28px;background:#f4e9d4;display:flex;align-items:center;gap:20px;padding:0 28px">
+                <span class="ma-thumb" style="width:54px;height:54px;flex:none;${thumb("#f0b45c", "#b4581f")}"></span>
+                <span style="flex:1"><b style="display:block;font-size:22px;font-weight:600">Nasi Kandar Express</b><span class="ma-muted" style="font-size:17px">3 days ago · Decide</span></span>
+                <span class="ma-muted" style="width:28px">${I(ICON.upRight)}</span>
+              </div>
+              <img class="ma-abs" id="${p}-home-mascot" src="assets/mascot/default.svg" style="top:860px;left:190px;width:210px;height:210px" alt="" />
+              <div class="ma-abs ma-tabs">
+                <div class="on">${I(ICON.sparkle)}Decide</div><div>${I(ICON.map)}Nearby</div><div>${I(ICON.people)}Community</div>
+              </div>
+              <div class="ma-dim"></div></div>`;
+          },
+          mood(p, picked = -1) {
+            const cards = MOODS.map(([name, tag, a, b], i) => {
+              const x = 34 + (i % 2) * 270;
+              const y = 384 + Math.floor(i / 2) * 214;
+              return `<div class="ma-abs ma-card" style="left:${x}px;top:${y}px">
+                <span class="ma-thumb" style="display:block;${thumb(a, b)}"></span>${radio(`${p}-mood-on-${i}`, picked === i)}
+                <b>${name}</b><span>${tag}</span>${sel(`${p}-mood-sel-${i}`, picked === i)}</div>`;
+            }).join("");
+            return `<div class="ma-scr" id="${p}-mood">${status()}${nav(1)}
+              <p class="ma-abs ma-title">What mood today?</p>
+              <p class="ma-abs ma-desc ma-muted">Go with your gut. What are you craving?</p>
+              ${cards}
+              <div class="ma-abs ma-btn off" style="top:1074px">Continue ${I(ICON.arrow)}<span class="ma-btn-on" id="${p}-mood-go" style="${picked >= 0 ? "opacity:1" : ""}">Continue ${I(ICON.arrow)}</span></div>
+              <p class="ma-abs ma-center ma-hint">Pick a mood, or leave it to us</p>
+              <div class="ma-dim"></div></div>`;
+          },
+          budget(p, picked = -1) {
+            const rows = BUDGETS.map(([price, note], i) => `
+              <div class="ma-abs ma-row" style="top:${384 + i * 152}px">
+                <span class="ma-ri">${I(i === 3 ? ICON.infinity : ICON.coins)}</span>
+                <span class="ma-grow"><b>${price}</b><span>${note}</span></span>${radio(`${p}-budget-on-${i}`, picked === i)}${sel(`${p}-budget-sel-${i}`, picked === i)}
+              </div>`).join("");
+            return `<div class="ma-scr" id="${p}-budget">${status()}${nav(2)}
+              <p class="ma-abs ma-title">What's the budget?</p>
+              <p class="ma-abs ma-desc ma-muted">Per person. Good food at every price.</p>
+              ${rows}
+              <div class="ma-abs ma-btn go" style="top:1074px">Continue ${I(ICON.arrow)}</div>
+              <p class="ma-abs ma-center ma-hint">One last thing: how far?</p>
+              <div class="ma-dim"></div></div>`;
+          },
+          distance(p, picked = -1) {
+            const rows = DISTANCES.map(([icon, d, note], i) => `
+              <div class="ma-abs ma-row" style="top:${384 + i * 152}px">
+                <span class="ma-ri">${I(icon)}</span>
+                <span class="ma-grow"><b>${d}</b><span>${note}</span></span>${radio(`${p}-dist-on-${i}`, picked === i)}${sel(`${p}-dist-sel-${i}`, picked === i)}
+              </div>`).join("");
+            return `<div class="ma-scr" id="${p}-distance">${status()}${nav(3)}
+              <p class="ma-abs ma-title">How far are you going?</p>
+              <p class="ma-abs ma-desc ma-muted">Stay close, or go a little further for good food.</p>
+              ${rows}
+              <p class="ma-abs ma-muted" style="top:850px;left:40px;font-size:19px;display:flex;gap:10px;align-items:center"><span style="width:24px">${I(ICON.loc)}</span>Distance from your current location.</p>
+              <div class="ma-abs ma-btn go" id="${p}-find" style="top:1074px">Find my makan ${I(ICON.arrow)}</div>
+              <p class="ma-abs ma-center ma-hint">We'll take it from here.</p>
+              <div class="ma-dim"></div></div>`;
+          },
+          result(p) {
+            return `<div class="ma-scr" id="${p}-result">${status()}
+              <div class="ma-abs" style="top:110px;left:34px;display:flex;align-items:center;gap:12px"><span style="width:34px">${I(ICON.left)}</span><span class="ma-brand">Makan<b>Apa?</b></span></div>
+              <p class="ma-abs ma-center ma-muted" id="${p}-says" style="top:196px;font-size:21px">MakanApa says…</p>
+              <img class="ma-abs" id="${p}-res-mascot" src="assets/mascot/celebrate.svg" style="top:232px;left:235px;width:120px;height:120px" alt="" />
+              <p class="ma-abs ma-center" id="${p}-res-name" style="top:362px;font-size:56px;font-weight:800;letter-spacing:-0.04em">Kandar Corner</p>
+              <p class="ma-abs ma-center ma-muted" id="${p}-res-settled" style="top:434px;font-size:22px">Settled.</p>
+              <div class="ma-abs" id="${p}-res-img" style="top:488px;left:34px;right:34px;height:340px;border-radius:38px;overflow:hidden;background:linear-gradient(160deg,#f6ddb6,#e5b679)">
+                <span style="position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;background:#f2b544;display:grid;place-items:center;color:#fff;box-shadow:0 10px 30px rgb(150 80 20 / 0.3)">${I(ICON.fork, 'style="width:60px;height:60px;stroke-width:2.2"')}</span>
+                <span style="position:absolute;right:20px;top:20px;display:flex;gap:6px;align-items:center;padding:8px 16px;border-radius:22px;background:#fff;font-size:19px;font-weight:700">${STAR}4.7</span>
+                <span style="position:absolute;left:20px;bottom:20px;padding:6px 14px;border-radius:16px;background:rgb(41 29 29 / 0.55);color:#fff;font-size:16px;font-weight:600">1/5</span>
+              </div>
+              <div class="ma-abs ma-center" id="${p}-res-chips" style="top:852px;display:flex;justify-content:center;gap:14px">
+                <span class="ma-chip">≈ RM15 / person</span><span class="ma-chip">6 min · 450 m</span>
+              </div>
+              <p class="ma-abs ma-center ma-muted" id="${p}-res-open" style="top:934px;font-size:19px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#34a853;margin-right:10px"></span>Open · Closes 2:00 AM</p>
+              <div class="ma-abs ma-center" id="${p}-res-why" style="top:986px">
+                <p class="ma-muted" style="font-size:17px;margin-bottom:12px">Why this?</p>
+                <span class="ma-tag">Nasi Kandar</span> <span class="ma-tag">~RM20</span> <span class="ma-tag">2 km</span>
+              </div>
+              <div class="ma-abs ma-btn go" id="${p}-res-go" style="top:1120px">Let's go ${I(ICON.arrow)}</div>
+              <div class="ma-dim"></div></div>`;
+          },
+          // An iPhone with a stack of screens inside. Side buttons, extruded body, glare, screen-off glass.
+          phone(p, screens, { off = false } = {}) {
+            const depth = Array.from({ length: 10 }, (_, i) => `<div class="ip-depth" style="transform:translateZ(${-(i + 1) * 2.8}px)"></div>`).join("");
+            return `<div class="iphone" id="${p}-phone">${depth}
+              <div class="ip-body" style="transform:translateZ(0.5px)">
+                <span class="ip-btn" style="left:-6px;top:300px;height:62px"></span>
+                <span class="ip-btn" style="left:-6px;top:400px;height:118px"></span>
+                <span class="ip-btn" style="left:-6px;top:540px;height:118px"></span>
+                <span class="ip-btn" style="right:-6px;top:440px;height:180px"></span>
+                <div class="ip-bezel"><div class="ip-screen">
+                  <div class="ma-ui">${screens}</div>
+                  <div class="ip-island"></div>
+                  <div class="ip-glare" id="${p}-glare"></div>
+                  <div class="ip-off" id="${p}-off" style="${off ? "" : "opacity:0"}"></div>
+                  <div class="ma-touch" id="${p}-touch"></div>
+                </div></div>
+              </div></div>`;
+          },
+        };
+        window.MA = MA;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="30" data-track-index="0" data-layout-ignore>
+        <div id="spot"></div>
+        <div id="warm"></div>
+      </div>
+
+      <div id="open" class="scene" data-composition-id="open" data-composition-src="compositions/open.html" data-start="0" data-duration="3.3" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div id="phone" class="scene" data-composition-id="phone" data-composition-src="compositions/phone.html" data-start="3" data-duration="18.2" data-track-index="2" data-width="1080" data-height="1920"></div>
+      <div id="stats" class="scene" data-composition-id="stats" data-composition-src="compositions/stats.html" data-start="21" data-duration="3.2" data-track-index="3" data-width="1080" data-height="1920"></div>
+      <div id="finale" class="scene" data-composition-id="finale" data-composition-src="compositions/finale.html" data-start="24" data-duration="6" data-track-index="4" data-width="1080" data-height="1920"></div>
+
+      <!-- Original score, synthesized by audio/make_score.py on the same event map. -->
+      <audio id="score" src="assets/audio/score.wav" data-start="0" data-duration="30" data-track-index="5" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // Studio light drifts; a warm glow blooms behind the phone once the beat comes in.
+      tl.fromTo("#spot", { x: 0, y: 0, scale: 0.9 }, { x: 180, y: 260, scale: 1.1, duration: 30, ease: "sine.inOut" }, 0);
+      tl.fromTo("#warm", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 3, ease: "power2.inOut" }, 3.5);
+      tl.to("#warm", { opacity: 0.55, y: -300, duration: 6, ease: "sine.inOut" }, 15);
+      tl.to("#warm", { opacity: 1, y: -120, scale: 1.25, duration: 3, ease: "power2.inOut" }, 24);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

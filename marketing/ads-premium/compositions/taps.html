@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        .tap-panel {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+        }
+        .tap-ghost {
+          position: absolute;
+          right: -30px;
+          top: 120px;
+          font-size: 560px;
+          color: transparent;
+          -webkit-text-stroke: 3px rgb(245 238 227 / 0.13);
+          line-height: 0.8;
+        }
+        .tap-step {
+          position: absolute;
+          left: 80px;
+          top: 300px;
+          font-size: 26px;
+          color: var(--chili);
+        }
+        .tap-title {
+          position: absolute;
+          left: 80px;
+          top: 350px;
+          font-size: 176px;
+          line-height: 0.92;
+        }
+        .tap-title .it {
+          display: block;
+          color: var(--chili);
+        }
+        .tap-check {
+          position: absolute;
+          width: 96px;
+          height: 96px;
+          border-radius: 50%;
+          background: var(--chili);
+          box-shadow: 0 0 60px rgb(255 91 58 / 0.55);
+        }
+        .tap-check svg {
+          width: 96px;
+          height: 96px;
+        }
+        .tap-check path {
+          fill: none;
+          stroke: #fff7ee;
+          stroke-width: 6;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+        }
+        .tap-cap {
+          position: absolute;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 24px;
+          color: var(--cream-60);
+        }
+
+        /* 01 mood reel */
+        #tap-pill {
+          position: absolute;
+          left: 80px;
+          top: 1010px;
+          width: 920px;
+          height: 250px;
+          border-radius: 125px;
+          border: 2px solid var(--cream-12);
+          background: rgb(245 238 227 / 0.06);
+          backdrop-filter: blur(20px);
+        }
+        #tap-pill-lock {
+          position: absolute;
+          inset: -2px;
+          border-radius: 125px;
+          border: 4px solid var(--chili);
+          box-shadow: 0 0 90px rgb(255 91 58 / 0.4), inset 0 0 40px rgb(255 91 58 / 0.18);
+          opacity: 0;
+        }
+        #tap-flame {
+          position: absolute;
+          left: 54px;
+          top: 63px;
+          width: 124px;
+          height: 124px;
+          fill: none;
+          stroke: var(--cream);
+          stroke-width: 2.4;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .tap-reel-win {
+          position: absolute;
+          overflow: hidden;
+        }
+        #tap-mood-win {
+          left: 210px;
+          top: 0;
+          width: 560px;
+          height: 250px;
+        }
+        .tap-reel {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+        .tap-reel span {
+          display: block;
+          white-space: nowrap;
+        }
+        #tap-mood-reel span {
+          height: 250px;
+          line-height: 250px;
+          font-size: 116px;
+        }
+        #tap-check-1 {
+          left: 864px;
+          top: 1087px;
+        }
+
+        /* 02 budget counter */
+        #tap-rm {
+          position: absolute;
+          left: 120px;
+          top: 1030px;
+          font-size: 90px;
+          color: var(--cream-60);
+        }
+        #tap-cash-win {
+          left: 300px;
+          top: 920px;
+          width: 620px;
+          height: 330px;
+        }
+        #tap-cash-reel span {
+          height: 330px;
+          line-height: 330px;
+          font-size: 330px;
+          font-variant-numeric: tabular-nums;
+        }
+        #tap-cash-line {
+          position: absolute;
+          left: 120px;
+          top: 1290px;
+          display: block;
+          width: 840px;
+          height: 6px;
+          border-radius: 3px;
+          background: var(--chili);
+          box-shadow: 0 0 30px rgb(255 91 58 / 0.6);
+          transform-origin: left center;
+        }
+        #tap-cap-2 {
+          top: 1340px;
+        }
+        #tap-check-2 {
+          left: 864px;
+          top: 880px;
+        }
+
+        /* 03 distance radar */
+        .tap-ring {
+          position: absolute;
+          border-radius: 50%;
+          border: 2px solid rgb(245 238 227 / 0.22);
+        }
+        #tap-ring-1 {
+          left: 390px;
+          top: 1000px;
+          width: 300px;
+          height: 300px;
+        }
+        #tap-ring-2 {
+          left: 270px;
+          top: 880px;
+          width: 540px;
+          height: 540px;
+        }
+        #tap-ring-3 {
+          left: 150px;
+          top: 760px;
+          width: 780px;
+          height: 780px;
+        }
+        #tap-ping {
+          position: absolute;
+          left: 150px;
+          top: 760px;
+          width: 780px;
+          height: 780px;
+          border-radius: 50%;
+          border: 4px solid var(--chili);
+        }
+        #tap-km-win {
+          left: 0;
+          top: 1060px;
+          width: 1080px;
+          height: 180px;
+        }
+        #tap-km-reel span {
+          height: 180px;
+          line-height: 180px;
+          font-size: 168px;
+          text-align: center;
+        }
+        #tap-cap-3 {
+          top: 1250px;
+        }
+        #tap-check-3 {
+          left: 492px;
+          top: 1400px;
+        }
+      </style>
+
+      <div id="root" data-composition-id="taps" data-width="1080" data-height="1920">
+        <!-- 01 · mood -->
+        <section id="tap-p1" class="tap-panel" data-layout-allow-overlap>
+          <span class="tap-ghost slam" data-layout-ignore>01</span>
+          <p class="tap-step caps" data-layout-allow-overlap>Step one</p>
+          <h2 class="tap-title serif" data-layout-allow-overlap><span data-layout-allow-overlap>Pick a</span><span class="it" data-layout-allow-overlap>mood.</span></h2>
+          <div id="tap-pill">
+            <svg id="tap-flame" viewBox="0 0 46 46"><path d="M23 5c1.5 7 11 10.5 11 21a11 11 0 0 1-22 0c0-5.5 3-8.5 5.5-10.5 0 4 2 6.5 4.5 6.5 0-6.5-1.5-11 1-17z" /></svg>
+            <div id="tap-mood-win" class="tap-reel-win" data-layout-allow-overflow>
+              <div id="tap-mood-reel" class="tap-reel slam">
+                <span data-layout-allow-overlap>Comfort</span><span data-layout-allow-overlap>Light</span><span data-layout-allow-overlap>Quick</span><span data-layout-allow-overlap>Soupy</span><span data-layout-allow-overlap>Spicy</span>
+              </div>
+            </div>
+            <div id="tap-pill-lock"></div>
+          </div>
+          <span id="tap-check-1" class="tap-check"><svg viewBox="0 0 96 96"><path pathLength="1" d="M30 50l12 12 25-27" /></svg></span>
+        </section>
+
+        <!-- 02 · budget -->
+        <section id="tap-p2" class="tap-panel" data-layout-allow-overlap>
+          <span class="tap-ghost slam" data-layout-ignore>02</span>
+          <p class="tap-step caps" data-layout-allow-overlap>Step two</p>
+          <h2 class="tap-title serif" data-layout-allow-overlap><span data-layout-allow-overlap>Set a</span><span class="it" data-layout-allow-overlap>budget.</span></h2>
+          <span id="tap-rm" class="slam">RM</span>
+          <div id="tap-cash-win" class="tap-reel-win" data-layout-allow-overflow>
+            <div id="tap-cash-reel" class="tap-reel slam">
+              <span data-layout-allow-overlap>8</span><span data-layout-allow-overlap>10</span><span data-layout-allow-overlap>12</span><span data-layout-allow-overlap>15</span><span data-layout-allow-overlap>20</span>
+            </div>
+          </div>
+          <span id="tap-cash-line"></span>
+          <p id="tap-cap-2" class="tap-cap caps">Per person</p>
+          <span id="tap-check-2" class="tap-check"><svg viewBox="0 0 96 96"><path pathLength="1" d="M30 50l12 12 25-27" /></svg></span>
+        </section>
+
+        <!-- 03 · distance -->
+        <section id="tap-p3" class="tap-panel" data-layout-allow-overlap>
+          <span class="tap-ghost slam" data-layout-ignore>03</span>
+          <p class="tap-step caps" data-layout-allow-overlap>Step three</p>
+          <h2 class="tap-title serif" data-layout-allow-overlap><span data-layout-allow-overlap>How far</span><span class="it" data-layout-allow-overlap>you'll go.</span></h2>
+          <div id="tap-ring-3" class="tap-ring" data-layout-ignore></div>
+          <div id="tap-ring-2" class="tap-ring" data-layout-ignore></div>
+          <div id="tap-ring-1" class="tap-ring" data-layout-ignore></div>
+          <div id="tap-ping" data-layout-ignore></div>
+          <div id="tap-km-win" class="tap-reel-win" data-layout-allow-overflow>
+            <div id="tap-km-reel" class="tap-reel slam">
+              <span data-layout-allow-overlap>300 m</span><span data-layout-allow-overlap>500 m</span><span data-layout-allow-overlap>1 km</span><span data-layout-allow-overlap>2 km</span>
+            </div>
+          </div>
+          <p id="tap-cap-3" class="tap-cap caps">From you</p>
+          <span id="tap-check-3" class="tap-check"><svg viewBox="0 0 96 96"><path pathLength="1" d="M30 50l12 12 25-27" /></svg></span>
+        </section>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+
+        function panelIn(sel, at) {
+          tl.fromTo(sel, { opacity: 0, x: 260, filter: "blur(16px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.38, ease: "expo.out" }, at);
+          tl.fromTo(`${sel} .tap-ghost`, { xPercent: 12 }, { xPercent: -4, duration: 1.9, ease: "none" }, at);
+          tl.fromTo(`${sel} .tap-title > span`, { yPercent: 60, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: "power4.out", stagger: 0.07 }, at + 0.05);
+        }
+        function panelOut(sel, at) {
+          tl.to(sel, { opacity: 0, x: -260, filter: "blur(16px)", duration: 0.16, ease: "power3.in" }, at);
+        }
+        function reel(sel, step, flips) {
+          flips.forEach((at, i) => {
+            tl.to(sel, { y: -(i + 1) * step, duration: 0.11, ease: "power3.out" }, at);
+          });
+        }
+        function lock(n, at) {
+          tl.fromTo(`#tap-check-${n}`, { scale: 0, rotation: -90 }, { scale: 1, rotation: 0, duration: 0.4, ease: "back.out(2.4)" }, at);
+          tl.to(`#tap-check-${n} path`, { strokeDashoffset: 0, duration: 0.25, ease: "power2.out" }, at + 0.1);
+        }
+
+        // 01 · mood (global 14 – 16). Flips on 14.5, 14.75, 15.0, 15.25; lock on 15.5.
+        panelIn("#tap-p1", 0);
+        tl.fromTo("#tap-mood-reel", { y: 0 }, { y: 0, duration: 0.01 }, 0);
+        reel("#tap-mood-reel", 250, [0.5, 0.75, 1.0, 1.25]);
+        tl.to("#tap-pill-lock", { opacity: 1, duration: 0.2, ease: "power2.out" }, 1.5);
+        tl.to("#tap-flame", { stroke: "#ff5b3a", duration: 0.2 }, 1.5);
+        tl.fromTo("#tap-pill", { scale: 1 }, { scale: 1.04, duration: 0.12, ease: "power2.out", yoyo: true, repeat: 1 }, 1.5);
+        lock(1, 1.5);
+        panelOut("#tap-p1", 1.84);
+
+        // 02 · budget (global 16 – 18).
+        panelIn("#tap-p2", 2.0);
+        tl.fromTo("#tap-cash-reel", { y: 0 }, { y: 0, duration: 0.01 }, 2.0);
+        reel("#tap-cash-reel", 330, [2.5, 2.75, 3.0, 3.25]);
+        tl.fromTo("#tap-cash-line", { scaleX: 0 }, { scaleX: 1, duration: 0.35, ease: "power3.out" }, 3.5);
+        tl.fromTo("#tap-cap-2", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 3.55);
+        lock(2, 3.5);
+        panelOut("#tap-p2", 3.84);
+
+        // 03 · distance (global 18 – 20). Flips 18.5, 18.75, 19.0; lock 19.5.
+        panelIn("#tap-p3", 4.0);
+        tl.fromTo("#tap-km-reel", { y: 0 }, { y: 0, duration: 0.01 }, 4.0);
+        reel("#tap-km-reel", 180, [4.5, 4.75, 5.0]);
+        tl.fromTo("#tap-ping", { scale: 0.3, opacity: 0.9 }, { scale: 1.05, opacity: 0, duration: 0.48, ease: "power2.out", repeat: 3, repeatDelay: 0.02 }, 4.0);
+        tl.to(".tap-ring", { borderColor: "rgb(255 91 58 / 0.55)", duration: 0.25, ease: "power2.out" }, 5.5);
+        tl.fromTo("#tap-cap-3", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 5.1);
+        lock(3, 5.5);
+        panelOut("#tap-p3", 5.86);
+
+        window.__timelines["taps"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

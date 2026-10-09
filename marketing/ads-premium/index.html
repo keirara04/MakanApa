@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>MakanApa — 30s hype ad</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Instrument Serif";
+        font-style: normal;
+        font-weight: 400;
+        src: url("assets/fonts/instrument-serif-latin-400-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Instrument Serif";
+        font-style: italic;
+        font-weight: 400;
+        src: url("assets/fonts/instrument-serif-latin-400-italic.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Geist";
+        font-weight: 400;
+        src: url("assets/fonts/geist-sans-latin-400-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Geist";
+        font-weight: 500;
+        src: url("assets/fonts/geist-sans-latin-500-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Geist";
+        font-weight: 800;
+        src: url("assets/fonts/geist-sans-latin-800-normal.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Geist";
+        font-weight: 900;
+        src: url("assets/fonts/geist-sans-latin-900-normal.woff2") format("woff2");
+      }
+
+      /* Shared tokens + type utilities. Scenes in compositions/ use these too. */
+      :root {
+        --night: #0f0b09;
+        --cream: #f5eee3;
+        --cream-60: rgb(245 238 227 / 0.64);
+        --cream-12: rgb(245 238 227 / 0.12);
+        --chili: #ff5b3a;
+        --chili-deep: #b8331a;
+        --saffron: #ffb938;
+        --day: #f5eee3;
+        --card: #fffaf3;
+        --ink: #1a1310;
+        --ink-60: rgb(26 19 16 / 0.66);
+        --serif: "Instrument Serif", serif;
+        --sans: "Geist", sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--night);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        color: var(--cream);
+        font-family: var(--sans);
+      }
+      .clip,
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+      .serif {
+        font-family: var(--serif);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+      }
+      .it {
+        font-style: italic;
+      }
+      .slam {
+        font-family: var(--sans);
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.045em;
+        line-height: 0.86;
+      }
+      .caps {
+        font-family: var(--sans);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.28em;
+      }
+      .ch {
+        display: inline-block;
+      }
+      .mask {
+        display: block;
+        overflow: hidden;
+        padding: 0 0.12em 0.08em 0;
+      }
+      .mask > span {
+        display: block;
+      }
+
+      /* ---------- camera rigs (shake + punch zoom on hits) ---------- */
+      .cam {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* ---------- night world ---------- */
+      #bg-night {
+        background: var(--night);
+      }
+      #night-pulse {
+        position: absolute;
+        inset: 0;
+      }
+      .glow {
+        position: absolute;
+        border-radius: 50%;
+      }
+      #glow-a {
+        left: 260px;
+        top: -420px;
+        width: 1300px;
+        height: 1300px;
+        background: radial-gradient(circle, rgb(255 91 58 / 0.34) 0%, rgb(255 91 58 / 0) 64%);
+      }
+      #glow-b {
+        left: -520px;
+        top: 1040px;
+        width: 1200px;
+        height: 1200px;
+        background: radial-gradient(circle, rgb(255 185 56 / 0.16) 0%, rgb(255 185 56 / 0) 64%);
+      }
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% 45%, rgb(15 11 9 / 0) 40%, rgb(6 4 3 / 0.72) 100%);
+      }
+
+      /* ---------- day world (revealed by a circle of light from the wheel) ---------- */
+      #day-fill {
+        position: absolute;
+        inset: 0;
+        background: var(--day);
+        clip-path: circle(0px at 540px 1100px);
+      }
+      #day-pulse {
+        position: absolute;
+        inset: 0;
+      }
+      #day-glow-a {
+        position: absolute;
+        left: -160px;
+        top: -260px;
+        width: 1400px;
+        height: 1400px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(255 185 56 / 0.32) 0%, rgb(255 185 56 / 0) 62%);
+      }
+      #day-glow-b {
+        position: absolute;
+        left: 260px;
+        top: 1100px;
+        width: 1200px;
+        height: 1200px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(255 91 58 / 0.14) 0%, rgb(255 91 58 / 0) 62%);
+      }
+
+      /* ---------- finishing ---------- */
+      #flash {
+        background: #fff6ea;
+        opacity: 0;
+      }
+      #grain {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="30"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="bg-night" class="clip" data-start="0" data-duration="23" data-track-index="0" data-layout-ignore>
+        <div id="night-pulse">
+          <div id="glow-a" class="glow"></div>
+          <div id="glow-b" class="glow"></div>
+        </div>
+        <div id="vignette"></div>
+      </div>
+
+      <div id="cam-night" class="cam">
+        <div id="hook" class="scene" data-composition-id="hook" data-composition-src="compositions/hook.html" data-start="0" data-duration="2.05" data-track-index="1" data-width="1080" data-height="1920"></div>
+        <div id="chat" class="scene" data-composition-id="chat" data-composition-src="compositions/chat.html" data-start="2" data-duration="6" data-track-index="2" data-width="1080" data-height="1920"></div>
+        <div id="familiar" class="scene" data-composition-id="familiar" data-composition-src="compositions/familiar.html" data-start="8" data-duration="4" data-track-index="3" data-width="1080" data-height="1920"></div>
+        <div id="drop" class="scene" data-composition-id="drop" data-composition-src="compositions/drop.html" data-start="12" data-duration="2.05" data-track-index="4" data-width="1080" data-height="1920"></div>
+        <div id="taps" class="scene" data-composition-id="taps" data-composition-src="compositions/taps.html" data-start="14" data-duration="6.05" data-track-index="5" data-width="1080" data-height="1920"></div>
+        <div id="wheel" class="scene" data-composition-id="wheel" data-composition-src="compositions/wheel.html" data-start="20" data-duration="2.85" data-track-index="6" data-width="1080" data-height="1920"></div>
+      </div>
+
+      <div id="bg-day" class="clip" data-start="22.15" data-duration="7.85" data-track-index="7" data-layout-ignore>
+        <div id="day-fill">
+          <div id="day-pulse">
+            <div id="day-glow-a"></div>
+            <div id="day-glow-b"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="cam-day" class="cam">
+        <div id="settled" class="scene" data-composition-id="settled" data-composition-src="compositions/settled.html" data-start="22.4" data-duration="3.65" data-track-index="8" data-width="1080" data-height="1920"></div>
+        <div id="callback" class="scene" data-composition-id="callback" data-composition-src="compositions/callback.html" data-start="26" data-duration="2.05" data-track-index="9" data-width="1080" data-height="1920"></div>
+        <div id="end" class="scene" data-composition-id="end" data-composition-src="compositions/end.html" data-start="28" data-duration="2" data-track-index="10" data-width="1080" data-height="1920"></div>
+      </div>
+
+      <div id="flash" class="clip" data-start="0" data-duration="30" data-track-index="11" data-layout-ignore></div>
+      <div id="grain" class="clip" data-start="0" data-duration="30" data-track-index="12" data-layout-ignore></div>
+
+      <!-- Original track, synthesized by audio/make_soundtrack.py on the same event map. -->
+      <audio id="soundtrack" src="assets/audio/soundtrack.wav" data-start="0" data-duration="30" data-track-index="13" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const CAMS = ["#cam-night", "#cam-day"];
+
+      // Seeded PRNG so every render shakes identically.
+      let seed = 1337;
+      const rand = () => {
+        seed = (seed + 0x6d2b79f5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+
+      // [time, strength px] — every hit in the soundtrack gets a camera kick.
+      const HITS = [
+        [0, 12], [0.5, 14], [1.0, 16], [1.5, 26],
+        [6.0, 22], [7.0, 12],
+        [12.0, 34], [14.0, 10], [15.5, 8], [16.0, 10], [17.5, 8], [18.0, 10], [19.5, 8],
+        [20.5, 14], [22.0, 30],
+        [26.0, 14], [26.5, 12], [26.75, 12], [27.25, 10], [28.0, 22],
+      ];
+      HITS.forEach(([at, amp]) => {
+        const steps = 6;
+        for (let i = 0; i < steps; i++) {
+          const k = 1 - i / steps;
+          tl.to(
+            CAMS,
+            {
+              x: (rand() * 2 - 1) * amp * k,
+              y: (rand() * 2 - 1) * amp * k,
+              rotation: (rand() * 2 - 1) * 0.5 * k,
+              scale: 1 + 0.035 * k * (amp / 20),
+              duration: 0.034,
+              ease: "none",
+            },
+            at + i * 0.034,
+          );
+        }
+        tl.to(CAMS, { x: 0, y: 0, rotation: 0, scale: 1, duration: 0.03, ease: "power1.out" }, at + steps * 0.034);
+      });
+
+      // Light flashes on the biggest hits.
+      [
+        [1.5, 0.35], [6.0, 0.3], [12.0, 0.9], [22.0, 0.85], [28.0, 0.55],
+      ].forEach(([at, peak]) => {
+        // immediateRender off on every flash: the CSS opacity 0 is the resting state.
+        tl.fromTo("#flash", { opacity: peak }, { opacity: 0, duration: 0.4, ease: "power2.out", immediateRender: false }, at);
+      });
+
+      // Ambient drift + glow pumping on every kick of both drops.
+      tl.fromTo("#glow-a", { x: 0, y: 0 }, { x: -160, y: 110, duration: 11.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#glow-b", { x: 0, y: 0 }, { x: 140, y: -120, duration: 11.5, ease: "sine.inOut", yoyo: true, repeat: 1 }, 0);
+      tl.fromTo("#night-pulse", { scale: 1.14 }, { scale: 1, duration: 0.5, ease: "power2.out", repeat: 19, transformOrigin: "50% 40%" }, 12.0);
+      tl.fromTo("#day-pulse", { scale: 1.1 }, { scale: 1, duration: 0.5, ease: "power2.out", repeat: 14, transformOrigin: "50% 40%" }, 22.5);
+      tl.fromTo("#day-glow-a", { x: 0, y: 0 }, { x: 180, y: 140, duration: 7.5, ease: "sine.inOut" }, 22.5);
+      tl.fromTo("#day-glow-b", { x: 0 }, { x: -200, duration: 7.5, ease: "sine.inOut" }, 22.5);
+
+      // The pick floods the frame with light (wheel band sits at 540, 1100).
+      tl.fromTo(
+        "#day-fill",
+        { clipPath: "circle(0px at 540px 1100px)" },
+        { clipPath: "circle(1340px at 540px 1100px)", duration: 0.6, ease: "power4.inOut" },
+        22.2,
+      );
+
+      tl.fromTo("#grain", { backgroundPosition: "0px 0px" }, { backgroundPosition: "240px 720px", duration: 30, ease: "steps(360)" }, 0);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

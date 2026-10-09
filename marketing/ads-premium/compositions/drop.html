@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #drop-all {
+          position: absolute;
+          inset: 0;
+        }
+        .drop-ring {
+          position: absolute;
+          left: 290px;
+          top: 520px;
+          width: 500px;
+          height: 500px;
+          border-radius: 50%;
+          border: 6px solid var(--cream);
+        }
+        #drop-ring-2 {
+          border-color: var(--chili);
+          border-width: 10px;
+        }
+        #drop-shards {
+          position: absolute;
+          left: 540px;
+          top: 770px;
+          width: 0;
+          height: 0;
+        }
+        .shard {
+          position: absolute;
+          left: -7px;
+          top: -20px;
+          width: 14px;
+          height: 40px;
+          border-radius: 7px;
+        }
+        #drop-eyebrow {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 400px;
+          text-align: center;
+          font-size: 26px;
+          color: var(--cream-60);
+        }
+        #drop-beat {
+          position: absolute;
+          left: 290px;
+          top: 520px;
+          width: 500px;
+          height: 500px;
+        }
+        #drop-mascot {
+          position: absolute;
+          inset: 0;
+          width: 500px;
+          height: 500px;
+        }
+        #drop-word {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1060px;
+          text-align: center;
+          font-size: 236px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        #drop-word .apa {
+          color: var(--chili);
+        }
+        #drop-tag {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1330px;
+          text-align: center;
+          font-size: 48px;
+          font-weight: 500;
+          color: var(--cream-60);
+        }
+        #drop-tag b {
+          font-weight: 800;
+          color: var(--cream);
+        }
+      </style>
+
+      <div id="root" data-composition-id="drop" data-width="1080" data-height="1920">
+        <div id="drop-all">
+          <div id="drop-ring-1" class="drop-ring" data-layout-ignore></div>
+          <div id="drop-ring-2" class="drop-ring" data-layout-ignore></div>
+          <div id="drop-shards" data-layout-ignore></div>
+          <p id="drop-eyebrow" class="caps">Introducing</p>
+          <div id="drop-beat">
+            <img id="drop-mascot" src="assets/mascot/celebrate.svg" alt="" />
+          </div>
+          <h1 id="drop-word" class="serif" data-layout-allow-overlap><span data-split>Makan</span><span class="apa it" data-split>Apa?</span></h1>
+          <p id="drop-tag">Lunch, decided in <b>3 taps.</b></p>
+        </div>
+      </div>
+
+      <script>
+        document.querySelectorAll('[data-composition-id="drop"] [data-split]').forEach((el) => {
+          const text = el.textContent.trim();
+          el.textContent = "";
+          for (const ch of text) {
+            const s = document.createElement("span");
+            s.className = "ch";
+            s.setAttribute("data-layout-allow-overlap", "");
+            s.textContent = ch;
+            el.appendChild(s);
+          }
+        });
+
+        // Seeded burst of shards from behind the mascot.
+        let seed = 77;
+        const rand = () => {
+          seed = (seed * 16807) % 2147483647;
+          return seed / 2147483647;
+        };
+        const COLORS = ["#ff5b3a", "#ffb938", "#f5eee3", "#ff5b3a", "#ffb938"];
+        const shards = document.getElementById("drop-shards");
+        const BURST = [];
+        for (let i = 0; i < 30; i++) {
+          const s = document.createElement("i");
+          s.className = "shard";
+          s.id = `drop-shard-${i}`;
+          s.style.background = COLORS[i % COLORS.length];
+          shards.appendChild(s);
+          const angle = (i / 30) * Math.PI * 2 + rand() * 0.3;
+          const dist = 380 + rand() * 520;
+          BURST.push({ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, r: (rand() * 2 - 1) * 540, deg: (angle * 180) / Math.PI + 90 });
+        }
+
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo("#drop-ring-1", { scale: 0.2, opacity: 1 }, { scale: 4.2, opacity: 0, duration: 0.8, ease: "power3.out" }, 0);
+        tl.fromTo("#drop-ring-2", { scale: 0.1, opacity: 1 }, { scale: 3.2, opacity: 0, duration: 0.9, ease: "power3.out" }, 0.06);
+        BURST.forEach((b, i) => {
+          tl.fromTo(
+            `#drop-shard-${i}`,
+            { x: 0, y: 0, rotation: b.deg, scale: 1, opacity: 1 },
+            { x: b.x, y: b.y, rotation: b.deg + b.r, scale: 0.4, opacity: 0, duration: 0.95, ease: "power3.out" },
+            0.02,
+          );
+        });
+
+        tl.fromTo(
+          "#drop-mascot",
+          { scale: 2.3, rotation: -14, opacity: 0, filter: "blur(16px)" },
+          { scale: 1, rotation: 0, opacity: 1, filter: "blur(0px)", duration: 0.45, ease: "back.out(1.5)" },
+          0,
+        );
+        // The mascot bounces on every kick.
+        tl.fromTo("#drop-beat", { scale: 1.07 }, { scale: 1, duration: 0.5, ease: "power2.out", repeat: 2, transformOrigin: "50% 80%" }, 0.5);
+
+        tl.fromTo("#drop-eyebrow", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 0.08);
+        tl.fromTo(
+          "#drop-word .ch",
+          { opacity: 0, y: 90, filter: "blur(14px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "expo.out", stagger: 0.03 },
+          0.1,
+        );
+        tl.fromTo("#drop-tag", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 0.5);
+
+        // Whip pan out.
+        tl.to("#drop-all", { x: -320, opacity: 0, filter: "blur(18px)", duration: 0.2, ease: "power3.in" }, 1.85);
+
+        window.__timelines["drop"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

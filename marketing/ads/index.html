@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <title>MakanApa — 15s vertical ad</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      /* Brand fonts: same files the marketing site ships (api/public). */
+      @font-face {
+        font-family: "Amatic SC";
+        font-weight: 700;
+        src: url("assets/fonts/amatic-sc-latin-700.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Caveat";
+        font-weight: 700;
+        src: url("assets/fonts/caveat-latin-700.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        font-weight: 400;
+        src: url("assets/fonts/instrument-sans-400.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Instrument Sans";
+        font-weight: 600;
+        src: url("assets/fonts/instrument-sans-600.woff2") format("woff2");
+      }
+
+      /* Marketing palette (api/resources/og/og-image.html). */
+      :root {
+        --paper: #f4efe6;
+        --paper-50: #fbf8f2;
+        --ink: #2b1c14;
+        --ink-70: rgb(43 28 20 / 0.7);
+        --sambal: #cc3814;
+        --kunyit: #f4b942;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--paper);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        color: var(--ink);
+        font-family: "Instrument Sans", sans-serif;
+      }
+      .clip {
+        position: absolute;
+      }
+      .scene {
+        inset: 0;
+      }
+      .display {
+        font-family: "Amatic SC", cursive;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .hand {
+        font-family: "Caveat", cursive;
+        font-weight: 700;
+      }
+
+      /* ---------- Background: paper grain + double hand-drawn frame ---------- */
+      #bg {
+        inset: 0;
+        background-color: var(--paper);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      .frame {
+        position: absolute;
+        inset: 28px;
+        border: 4px solid var(--ink);
+        border-radius: 26px;
+        filter: url(#rough);
+      }
+      .frame.two {
+        inset: 34px 24px 24px 34px;
+        border-width: 2px;
+        opacity: 0.45;
+        filter: url(#rough2);
+      }
+
+      /* ---------- Scene 1: hook ---------- */
+      #hey {
+        position: absolute;
+        left: 92px;
+        top: 150px;
+        font-size: 64px;
+        color: var(--ink-70);
+      }
+      #headline {
+        position: absolute;
+        left: 86px;
+        top: 220px;
+        width: 908px;
+        font-size: 220px;
+        line-height: 0.84;
+        letter-spacing: -2px;
+      }
+      #headline .line {
+        display: block;
+        white-space: nowrap;
+      }
+      #headline .word {
+        display: inline-block;
+        margin-right: 36px;
+        transform-origin: left bottom;
+      }
+      #headline .accent {
+        color: var(--sambal);
+      }
+
+      /* The card wrapper is untimed (the videos inside carry the timing). */
+      #hook-media {
+        position: absolute;
+        left: 110px;
+        top: 700px;
+        width: 860px;
+        height: 485px;
+      }
+      #hook-tilt {
+        position: absolute;
+        inset: 0;
+        rotate: -3deg;
+      }
+      .hook-video {
+        inset: 0;
+        width: 860px;
+        height: 485px;
+        object-fit: cover;
+        border: 14px solid var(--paper-50);
+        border-radius: 22px;
+        box-shadow:
+          0 2px 0 rgb(43 28 20 / 0.06),
+          0 46px 70px -34px rgb(43 28 20 / 0.55);
+      }
+      .tape {
+        width: 170px;
+        height: 44px;
+        background: color-mix(in srgb, var(--kunyit) 45%, rgb(255 255 255 / 0.35));
+        clip-path: polygon(
+          0 8%, 4% 0, 9% 10%, 14% 0, 86% 0, 91% 12%, 96% 0, 100% 10%,
+          100% 92%, 95% 100%, 90% 88%, 85% 100%, 14% 100%, 9% 90%, 4% 100%, 0 90%
+        );
+      }
+      #hook-tape {
+        left: 345px;
+        top: -22px;
+        rotate: 4deg;
+        z-index: 2;
+      }
+
+      #options {
+        position: absolute;
+        left: 96px;
+        top: 1268px;
+        width: 620px;
+        height: 150px;
+      }
+      .option {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: inline-block;
+        font-size: 108px;
+        line-height: 1.2;
+        color: var(--sambal);
+        white-space: nowrap;
+      }
+      .option .strike {
+        position: absolute;
+        left: -8px;
+        right: -8px;
+        top: 54%;
+        display: block;
+        height: 9px;
+        border-radius: 6px;
+        background: var(--ink);
+        transform-origin: left center;
+      }
+      #opt-3 {
+        color: var(--ink);
+      }
+
+      #mascot-think {
+        position: absolute;
+        right: 36px;
+        top: 1300px;
+        width: 380px;
+        height: 380px;
+      }
+
+      /* ---------- Scene 2: the app flow ---------- */
+      .caption {
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        top: 150px;
+        text-align: center;
+      }
+      .caption .step {
+        display: block;
+        margin-bottom: 22px;
+        font-size: 64px;
+        line-height: 1;
+        color: var(--sambal);
+      }
+      .caption .title {
+        display: block;
+        text-wrap: balance;
+        font-size: 168px;
+        line-height: 0.86;
+        letter-spacing: -1px;
+      }
+
+      #phone {
+        position: absolute;
+        left: 240px;
+        top: 590px;
+        width: 600px;
+        height: 1276px;
+        padding: 12px;
+        border-radius: 66px;
+        background: var(--ink);
+        box-shadow:
+          0 2px 0 rgb(43 28 20 / 0.06),
+          0 60px 90px -40px rgb(43 28 20 / 0.6);
+      }
+      #phone-tape {
+        position: absolute;
+        left: 215px;
+        top: -20px;
+        rotate: -4deg;
+        z-index: 3;
+      }
+      #screen {
+        position: relative;
+        width: 576px;
+        height: 1252px;
+        border-radius: 54px;
+        overflow: hidden;
+        background: #fff4dd;
+      }
+      .page {
+        position: absolute;
+        inset: 0;
+      }
+      .shot {
+        display: block;
+        width: 576px;
+        height: 1252px;
+      }
+      .mark {
+        position: absolute;
+        overflow: visible;
+      }
+      .mark path {
+        fill: none;
+        stroke: var(--sambal);
+        stroke-width: 7;
+        stroke-linecap: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      #mark-mood {
+        left: 14px;
+        top: 384px;
+        width: 284px;
+        height: 256px;
+      }
+      #mark-budget,
+      #mark-distance {
+        left: 8px;
+        top: 534px;
+        width: 560px;
+        height: 178px;
+      }
+      .tap {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        margin: -60px 0 0 -60px;
+        border-radius: 50%;
+        background: rgb(204 56 20 / 0.35);
+        border: 5px solid var(--sambal);
+        opacity: 0;
+      }
+      #tap-mood {
+        left: 156px;
+        top: 511px;
+      }
+      #tap-budget,
+      #tap-distance {
+        left: 300px;
+        top: 622px;
+      }
+      #tap-go {
+        left: 288px;
+        top: 1105px;
+      }
+
+      #stamp {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 170px;
+        display: flex;
+        justify-content: center;
+      }
+      #stamp-tilt {
+        rotate: -6deg;
+      }
+      #stamp-box {
+        display: block;
+        padding: 6px 54px 0;
+        border: 9px solid var(--sambal);
+        border-radius: 28px;
+        color: var(--sambal);
+        font-size: 250px;
+        line-height: 1;
+        filter: url(#rough);
+      }
+      #sekejap {
+        position: absolute;
+        left: 40px;
+        top: 1480px;
+        rotate: -7deg;
+        padding: 8px 34px 14px;
+        font-size: 84px;
+        color: var(--ink);
+        background: color-mix(in srgb, var(--kunyit) 70%, white);
+        clip-path: polygon(
+          0 6%, 3% 0, 97% 0, 100% 8%, 100% 94%, 97% 100%, 3% 100%, 0 92%
+        );
+      }
+      #mascot-yay {
+        position: absolute;
+        right: -10px;
+        top: 1180px;
+        width: 400px;
+        height: 400px;
+      }
+
+      /* ---------- Scene 3: end card ---------- */
+      #end-stack {
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        top: 230px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      #mascot-end {
+        display: block;
+        width: 470px;
+        height: 470px;
+      }
+      #wordmark {
+        display: block;
+        margin-top: -10px;
+        font-size: 250px;
+        line-height: 0.9;
+        letter-spacing: -2px;
+      }
+      #wordmark .apa {
+        color: var(--sambal);
+      }
+      #tagline {
+        position: relative;
+        display: block;
+        margin-top: 26px;
+        font-size: 104px;
+        line-height: 1;
+        color: var(--sambal);
+      }
+      #underline {
+        position: absolute;
+        left: -2%;
+        bottom: -26px;
+        width: 104%;
+        height: 26px;
+        overflow: visible;
+      }
+      #underline path {
+        fill: none;
+        stroke: var(--sambal);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      #badge {
+        display: block;
+        margin-top: 96px;
+        width: 400px;
+        height: auto;
+      }
+      #free {
+        display: block;
+        margin-top: 26px;
+        font-size: 40px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: var(--ink-70);
+      }
+      #jom {
+        position: absolute;
+        right: 120px;
+        top: 360px;
+        rotate: -10deg;
+        font-size: 96px;
+        color: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hand-drawn wobble for the frames and stamp (deterministic: fixed seeds). -->
+    <svg data-hf-id="hf-p3r6" width="0" height="0" style="position: absolute" aria-hidden="true">
+      <filter data-hf-id="hf-7m9r" id="rough">
+        <feturbulence data-hf-id="hf-g36f" type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4" />
+        <fedisplacementmap data-hf-id="hf-wp2l" in="SourceGraphic" scale="7" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <filter data-hf-id="hf-fodz" id="rough2">
+        <feturbulence data-hf-id="hf-w0p0" type="fractalNoise" baseFrequency="0.024" numOctaves="2" seed="11" />
+        <fedisplacementmap data-hf-id="hf-0pg9" in="SourceGraphic" scale="9" xChannelSelector="G" yChannelSelector="R" />
+      </filter>
+    </svg>
+
+    <div data-hf-id="hf-qv3y" id="root" data-composition-id="main" data-start="0" data-duration="15" data-width="1080" data-height="1920">
+      <div data-hf-id="hf-endj" id="bg" class="clip" data-start="0" data-duration="15" data-track-index="0">
+        <div data-hf-id="hf-d9wv" class="frame"></div>
+        <div data-hf-id="hf-9rb1" class="frame two"></div>
+      </div>
+
+      <!-- ===== Scene 1 (0–3.4s): the "makan apa?" problem ===== -->
+      <section data-hf-id="hf-wvsp" id="hook" class="clip scene" data-start="0" data-duration="3.4" data-track-index="1">
+        <p data-hf-id="hf-7iyh" id="hey" class="hand" data-layout-allow-overlap="">Hai, orang lapar.</p>
+        <h1 data-hf-id="hf-7f3u" id="headline" class="display">
+          <span data-hf-id="hf-6c9z" class="line"><span data-hf-id="hf-jf0z" class="word" data-layout-allow-overlap="">Makan</span><span data-hf-id="hf-12tn" class="word accent" data-layout-allow-overlap="">apa</span></span>
+          <span data-hf-id="hf-tvt3" class="line"><span data-hf-id="hf-fe9p" class="word" data-layout-allow-overlap="">hari ni?</span></span>
+        </h1>
+
+        <div data-hf-id="hf-b2y5" id="options" class="hand" data-layout-allow-overlap="">
+          <span data-hf-id="hf-8z5b" id="opt-1" class="option">Nasi lemak?<span data-hf-id="hf-2svb" class="strike"></span></span>
+          <span data-hf-id="hf-sgnn" id="opt-2" class="option">Mamak lagi?<span data-hf-id="hf-tt8n" class="strike"></span></span>
+          <span data-hf-id="hf-v2ye" id="opt-3" class="option">Entah lah…</span>
+        </div>
+
+        <img data-hf-id="hf-brw8" id="mascot-think" src="assets/mascot/thinking.svg" alt="">
+      </section>
+
+      <div data-hf-id="hf-h3y3" id="hook-media">
+        <div data-hf-id="hf-ycyw" id="hook-tilt">
+          <video data-hf-id="hf-wwds" id="v-satay" class="clip hook-video" src="assets/video/satay.mp4" muted playsinline data-start="0" data-duration="1.8" data-track-index="2"></video>
+          <video data-hf-id="hf-0yfu" id="v-night" class="clip hook-video" src="assets/video/night-market.mp4" muted playsinline data-start="1.8" data-duration="1.6" data-track-index="2"></video>
+          <div data-hf-id="hf-xgd4" id="hook-tape" class="clip tape" data-start="0" data-duration="3.4" data-track-index="3"></div>
+        </div>
+      </div>
+
+      <!-- ===== Scene 2 (3.2–12.6s): three taps to a decision ===== -->
+      <section data-hf-id="hf-1p8a" id="flow" class="clip scene" data-start="3.2" data-duration="9.4" data-track-index="4">
+        <p data-hf-id="hf-nmnt" id="cap-1" class="caption" data-layout-allow-overlap="">
+          <span data-hf-id="hf-nqdn" class="step hand" data-layout-allow-overlap="">1 / 3</span>
+          <span data-hf-id="hf-ervq" class="title display">Pick your mood.</span>
+        </p>
+        <p data-hf-id="hf-rkru" id="cap-2" class="caption" data-layout-allow-overlap="">
+          <span data-hf-id="hf-dgum" class="step hand" data-layout-allow-overlap="">2 / 3</span>
+          <span data-hf-id="hf-1tvs" class="title display">Good makan, every budget.</span>
+        </p>
+        <p data-hf-id="hf-vivv" id="cap-3" class="caption" data-layout-allow-overlap="">
+          <span data-hf-id="hf-qn01" class="step hand" data-layout-allow-overlap="">3 / 3</span>
+          <span data-hf-id="hf-tw9p" class="title display">How far nak jalan?</span>
+        </p>
+
+        <div data-hf-id="hf-ueia" id="stamp">
+          <div data-hf-id="hf-x7y6" id="stamp-tilt">
+            <span data-hf-id="hf-x269" id="stamp-box" class="display">Settled.</span>
+          </div>
+        </div>
+
+        <div data-hf-id="hf-4w9o" id="phone" data-layout-allow-overflow="">
+          <div data-hf-id="hf-ndfj" id="phone-tape" class="tape"></div>
+          <div data-hf-id="hf-ccvt" id="screen">
+            <div data-hf-id="hf-lp8x" id="page-mood" class="page" data-layout-allow-overflow="">
+              <img data-hf-id="hf-3a4a" class="shot" src="assets/screens/mood-720.webp" alt="">
+              <svg data-hf-id="hf-lz9v" id="mark-mood" class="mark" viewBox="0 0 284 256" preserveAspectRatio="none">
+                <path data-hf-id="hf-3nwr" pathLength="1" d="M150 10 C 60 6, 8 50, 10 132 C 12 214, 70 250, 150 246 C 232 242, 276 196, 274 124 C 272 52, 222 12, 140 14 C 118 15, 100 20, 92 24" />
+              </svg>
+              <div data-hf-id="hf-d3v0" id="tap-mood" class="tap"></div>
+            </div>
+            <div data-hf-id="hf-4dqb" id="page-budget" class="page" data-layout-allow-overflow="">
+              <img data-hf-id="hf-pdkg" class="shot" src="assets/screens/budget-720.webp" alt="">
+              <svg data-hf-id="hf-y82n" id="mark-budget" class="mark" viewBox="0 0 560 178" preserveAspectRatio="none">
+                <path data-hf-id="hf-vbsn" pathLength="1" d="M300 8 C 120 4, 10 30, 8 90 C 6 150, 120 172, 290 170 C 460 168, 554 146, 552 88 C 550 30, 452 6, 280 10 C 240 11, 210 16, 196 22" />
+              </svg>
+              <div data-hf-id="hf-fk9m" id="tap-budget" class="tap"></div>
+            </div>
+            <div data-hf-id="hf-674p" id="page-distance" class="page" data-layout-allow-overflow="">
+              <img data-hf-id="hf-p07u" class="shot" src="assets/screens/distance-720.webp" alt="">
+              <svg data-hf-id="hf-owud" id="mark-distance" class="mark" viewBox="0 0 560 178" preserveAspectRatio="none">
+                <path data-hf-id="hf-npii" pathLength="1" d="M260 10 C 100 8, 6 36, 10 94 C 14 152, 130 174, 300 168 C 470 162, 556 140, 550 82 C 544 24, 440 4, 270 8 C 236 9, 212 14, 200 20" />
+              </svg>
+              <div data-hf-id="hf-zim4" id="tap-distance" class="tap"></div>
+              <div data-hf-id="hf-98jv" id="tap-go" class="tap"></div>
+            </div>
+            <div data-hf-id="hf-yi77" id="page-result" class="page" data-layout-allow-overflow="">
+              <img data-hf-id="hf-2wa4" class="shot" src="assets/screens/result-720.webp" alt="">
+            </div>
+          </div>
+        </div>
+
+        <p data-hf-id="hf-zqcf" id="sekejap" class="hand">Sekejap je.</p>
+        <img data-hf-id="hf-0qmg" id="mascot-yay" src="assets/mascot/celebrate.svg" alt="">
+      </section>
+
+      <!-- ===== Scene 3 (12.4–15s): end card ===== -->
+      <section data-hf-id="hf-rvjp" id="end" class="clip scene" data-start="12.4" data-duration="2.6" data-track-index="5">
+        <div data-hf-id="hf-xywv" id="end-stack">
+          <img data-hf-id="hf-znlk" id="mascot-end" src="assets/mascot/default.svg" alt="">
+          <h2 data-hf-id="hf-nyxm" id="wordmark" class="display">Makan<span data-hf-id="hf-gsxq" class="apa">Apa?</span></h2>
+          <p data-hf-id="hf-1rzk" id="tagline" class="hand">
+            Decided in seconds.
+            <svg data-hf-id="hf-0z7p" id="underline" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true">
+              <path data-hf-id="hf-63qh" pathLength="1" d="M4 13c52-7 104-9 150-6s98 7 142 1" />
+            </svg>
+          </p>
+          <img data-hf-id="hf-1go4" id="badge" src="assets/brand/app-store-badge.svg" alt="Download on the App Store">
+          <p data-hf-id="hf-4b9m" id="free">FREE · IPHONE</p>
+        </div>
+        <p data-hf-id="hf-kko9" id="jom" class="hand">Jom!</p>
+      </section>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // ---------- Scene 1: hook (0–3.4) ----------
+      tl.fromTo("#hook-media", { scale: 1.08, y: 30 }, { scale: 1, y: 0, duration: 0.9, ease: "power3.out" }, 0);
+      tl.fromTo("#hey", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, 0.05);
+      // Headline is on screen from frame 0 (the autoplay frame), then settles.
+      tl.fromTo(
+        "#headline .word",
+        { scale: 1.08, rotation: -3 },
+        { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2)", stagger: 0.08 },
+        0,
+      );
+
+      // "Nasi lemak? ✗  Mamak lagi? ✗  Entah lah…"
+      tl.fromTo("#opt-1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 0.75);
+      tl.fromTo("#opt-1 .strike", { scaleX: 0 }, { scaleX: 1, duration: 0.22, ease: "power2.in" }, 1.25);
+      tl.to("#opt-1", { opacity: 0, y: -30, duration: 0.2, ease: "power2.in" }, 1.55);
+      tl.fromTo("#opt-2", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 1.65);
+      tl.fromTo("#opt-2 .strike", { scaleX: 0 }, { scaleX: 1, duration: 0.22, ease: "power2.in" }, 2.1);
+      tl.to("#opt-2", { opacity: 0, y: -30, duration: 0.2, ease: "power2.in" }, 2.4);
+      tl.fromTo("#opt-3", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, 2.5);
+
+      tl.fromTo(
+        "#mascot-think",
+        { opacity: 0, scale: 0.6, rotation: -12 },
+        { opacity: 1, scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2)" },
+        0.55,
+      );
+      tl.to("#mascot-think", { y: -16, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 3 }, 1.05);
+
+      // Hook exits as the phone rises.
+      tl.to("#hook-media", { x: -1100, rotation: -8, duration: 0.4, ease: "power3.in" }, 3.0);
+      tl.to(["#hey", "#headline", "#options"], { y: -120, opacity: 0, duration: 0.3, ease: "power2.in", stagger: 0.03 }, 3.05);
+      tl.to("#mascot-think", { x: 500, opacity: 0, duration: 0.3, ease: "power2.in" }, 3.05);
+
+      // ---------- Scene 2: app flow (3.2–12.6) ----------
+      tl.fromTo("#phone", { y: 1400, rotation: 6 }, { y: 0, rotation: 0, duration: 0.65, ease: "power3.out" }, 3.2);
+
+      // Off-stage screens wait to the right of the visible one.
+      tl.fromTo(["#page-budget", "#page-distance", "#page-result"], { xPercent: 100 }, { xPercent: 100, duration: 0.01 }, 3.2);
+
+      function caption(sel, inAt, outAt) {
+        tl.fromTo(`${sel} .step`, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, inAt);
+        tl.fromTo(
+          `${sel} .title`,
+          { opacity: 0, y: 70 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
+          inAt + 0.06,
+        );
+        tl.to(sel, { opacity: 0, y: -50, duration: 0.25, ease: "power2.in" }, outAt);
+      }
+
+      function tap(sel, at) {
+        tl.fromTo(sel, { scale: 0.2, opacity: 0 }, { scale: 0.5, opacity: 1, duration: 0.08, ease: "none" }, at);
+        tl.to(sel, { scale: 1.6, opacity: 0, duration: 0.5, ease: "power2.out" }, at + 0.08);
+      }
+
+      function pick(name, at) {
+        tap(`#tap-${name}`, at);
+        tl.to(`#mark-${name} path`, { strokeDashoffset: 0, duration: 0.5, ease: "power2.inOut" }, at + 0.08);
+      }
+
+      function slideIn(next, prev, at) {
+        tl.to(prev, { xPercent: -35, duration: 0.45, ease: "power3.inOut" }, at);
+        tl.to(next, { xPercent: 0, duration: 0.45, ease: "power3.inOut" }, at);
+      }
+
+      caption("#cap-1", 3.45, 5.5);
+      pick("mood", 4.25);
+
+      slideIn("#page-budget", "#page-mood", 5.6);
+      caption("#cap-2", 5.7, 7.7);
+      pick("budget", 6.35);
+
+      slideIn("#page-distance", "#page-budget", 7.8);
+      caption("#cap-3", 7.9, 9.75);
+      pick("distance", 8.55);
+
+      // "Find my makan" → result.
+      tap("#tap-go", 9.45);
+      slideIn("#page-result", "#page-distance", 9.85);
+      tl.fromTo("#phone", { scale: 1 }, { scale: 1.04, duration: 2.2, ease: "sine.out", immediateRender: false }, 10.0);
+
+      tl.fromTo(
+        "#stamp-box",
+        { opacity: 0, scale: 1.9 },
+        { opacity: 1, scale: 1, duration: 0.35, ease: "power4.in" },
+        10.05,
+      );
+      tl.fromTo("#stamp", { y: 0 }, { y: 8, duration: 0.08, ease: "power1.out", yoyo: true, repeat: 1 }, 10.4);
+      tl.fromTo(
+        "#mascot-yay",
+        { opacity: 0, y: 260, rotation: 14 },
+        { opacity: 1, y: 0, rotation: 0, duration: 0.55, ease: "back.out(1.8)" },
+        10.35,
+      );
+      tl.fromTo(
+        "#sekejap",
+        { opacity: 0, scale: 0.6 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)" },
+        10.6,
+      );
+
+      // Scene 2 exits.
+      tl.to("#phone", { y: 1500, rotation: -6, duration: 0.45, ease: "power3.in" }, 12.1);
+      tl.to(["#stamp", "#sekejap", "#mascot-yay"], { opacity: 0, y: -60, duration: 0.3, ease: "power2.in" }, 12.15);
+
+      // ---------- Scene 3: end card (12.4–15) ----------
+      tl.fromTo(
+        "#mascot-end",
+        { opacity: 0, scale: 0.5, y: 80 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.9)" },
+        12.45,
+      );
+      tl.fromTo("#wordmark", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out" }, 12.65);
+      tl.fromTo("#tagline", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 12.9);
+      tl.to("#underline path", { strokeDashoffset: 0, duration: 0.5, ease: "power2.inOut" }, 13.15);
+      tl.fromTo("#badge", { opacity: 0, y: 40, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: "back.out(1.6)" }, 13.35);
+      tl.fromTo("#free", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power1.out" }, 13.55);
+      tl.fromTo(
+        "#jom",
+        { opacity: 0, scale: 0.4, rotation: -30 },
+        { opacity: 1, scale: 1, rotation: 0, duration: 0.45, ease: "back.out(2.4)" },
+        13.7,
+      );
+      tl.to("#mascot-end", { y: -14, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 14.1);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

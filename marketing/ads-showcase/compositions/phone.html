@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #ph-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #ph-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        .ph-head {
+          position: absolute;
+          left: 40px;
+          right: 40px;
+          top: 215px;
+          text-align: center;
+        }
+        .ph-head .hl {
+          display: block;
+          font-size: 128px;
+        }
+        .ph-head .sub {
+          display: block;
+          margin-top: 22px;
+          font-size: 40px;
+        }
+        #ph-intro {
+          top: 1410px;
+        }
+        #ph-intro .sub {
+          margin: 0 0 6px;
+          font-size: 40px;
+        }
+        #ph-intro .hl {
+          font-size: 132px;
+        }
+        #ph-f4 .hl {
+          font-size: 156px;
+        }
+        #ph-f5 {
+          top: 150px;
+        }
+        #ph-f5 .hl {
+          font-size: 74px;
+          font-weight: 600;
+        }
+      </style>
+
+      <div id="root" data-composition-id="phone" data-width="1080" data-height="1920">
+        <div id="ph-intro" class="ph-head" data-layout-allow-overlap>
+          <span class="sub">Introducing</span>
+          <span class="hl">Makan<span class="grad">Apa</span>.</span>
+        </div>
+        <div id="ph-f1" class="ph-head" data-layout-allow-overlap><span class="hl">Pick a mood.</span><span class="sub">Tell it what you're craving.</span></div>
+        <div id="ph-f2" class="ph-head" data-layout-allow-overlap><span class="hl">Set a budget.</span><span class="sub">Good food at every price.</span></div>
+        <div id="ph-f3" class="ph-head" data-layout-allow-overlap><span class="hl">Choose how far.</span><span class="sub">Walk, ride or road trip.</span></div>
+        <div id="ph-f4" class="ph-head" data-layout-allow-overlap><span class="hl grad">Settled.</span><span class="sub">The place. The price. The walk.</span></div>
+        <div id="ph-f5" class="ph-head" data-layout-allow-overlap><span class="hl">Rated. Priced. Mapped.</span></div>
+
+        <div id="ph-rig" data-layout-allow-overflow>
+          <div id="ph-3d" data-layout-allow-overflow></div>
+        </div>
+      </div>
+
+      <script>
+        const screens = MA.home("ph") + MA.mood("ph") + MA.budget("ph") + MA.distance("ph") + MA.result("ph");
+        document.getElementById("ph-3d").innerHTML = MA.phone("ph", screens, { off: true });
+        // The phone is product imagery: its stacked, clipped screens are not page copy.
+        document.querySelectorAll('[data-composition-id="phone"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 3.0. Taps / pushes match the score's event map.
+
+        // ---- Camera: rig carries position + scale, #ph-3d carries rotation. ----
+        tl.fromTo("#ph-rig", { x: 0, y: 900, scale: 0.78, opacity: 1 }, { y: -150, duration: 2.7, ease: "power3.out" }, 0);
+        tl.fromTo(
+          "#ph-3d",
+          { rotationY: -70, rotationX: 16, rotationZ: -5, transformPerspective: 2600 },
+          { rotationY: -14, rotationX: 6, rotationZ: 0, duration: 3.0, ease: "power2.out" },
+          0,
+        );
+        tl.to("#ph-rig", { y: 290, scale: 0.9, duration: 0.8, ease: "power3.inOut" }, 3.0);
+        tl.to("#ph-3d", { rotationY: -12, rotationX: 5, duration: 0.8, ease: "power2.inOut" }, 3.0);
+        tl.to("#ph-3d", { rotationY: 12, rotationX: 5, duration: 0.9, ease: "power2.inOut" }, 5.85);
+        tl.to("#ph-3d", { rotationY: -8, rotationX: 4, duration: 0.9, ease: "power2.inOut" }, 8.85);
+        tl.to("#ph-rig", { y: 120, scale: 1.04, duration: 0.7, ease: "power2.inOut" }, 10.3);
+        tl.to("#ph-rig", { y: 260, scale: 0.92, duration: 1.1, ease: "power3.inOut" }, 11.5);
+        tl.to("#ph-3d", { rotationY: 0, rotationX: 0, duration: 1.1, ease: "power3.inOut" }, 11.5);
+        tl.to("#ph-rig", { y: 218, scale: 1.28, duration: 2.6, ease: "sine.inOut" }, 13.4);
+        tl.to("#ph-3d", { rotationY: -10, rotationX: 6, duration: 2.6, ease: "sine.inOut" }, 13.4);
+        tl.to("#ph-rig", { x: -120, y: -160, scale: 0.6, opacity: 0, duration: 1.3, ease: "power3.in" }, 16.8);
+        tl.to("#ph-3d", { rotationY: 55, rotationX: 10, rotationZ: 6, duration: 1.3, ease: "power3.in" }, 16.8);
+
+        // Light sweeping across the glass.
+        tl.fromTo("#ph-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.8, ease: "power2.inOut" }, 0.5);
+        tl.fromTo("#ph-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut", immediateRender: false }, 6.0);
+        tl.fromTo("#ph-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut", immediateRender: false }, 12.3);
+
+        // ---- Screen on (global 5.25) ----
+        tl.to("#ph-off", { opacity: 0, duration: 0.7, ease: "power2.out" }, 2.25);
+        tl.fromTo("#ph-home-mascot", { y: 40, scale: 0.85 }, { y: 0, scale: 1, duration: 0.7, ease: "back.out(2)" }, 2.4);
+
+        // ---- Screens stack offstage right until pushed in ----
+        tl.fromTo(["#ph-mood", "#ph-budget", "#ph-distance", "#ph-result"], { xPercent: 100 }, { xPercent: 100, duration: 0.01 }, 0);
+
+        function push(next, prev, at) {
+          tl.to(next, { xPercent: 0, duration: 0.55, ease: "power3.inOut" }, at);
+          tl.to(prev, { xPercent: -28, duration: 0.55, ease: "power3.inOut" }, at);
+          tl.to(`${prev} .ma-dim`, { opacity: 0.18, duration: 0.55, ease: "power2.out" }, at);
+        }
+        function tap(x, y, at) {
+          tl.set("#ph-touch", { x, y }, at - 0.14);
+          tl.fromTo("#ph-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, at - 0.14);
+          tl.to("#ph-touch", { opacity: 0, scale: 1.15, duration: 0.32, ease: "power2.out" }, at + 0.02);
+        }
+        function pick(prefix, i, at) {
+          tl.to(`#ph-${prefix}-sel-${i}`, { opacity: 1, duration: 0.2, ease: "power2.out" }, at);
+          tl.fromTo(`#ph-${prefix}-on-${i}`, { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.6)" }, at);
+        }
+
+        // Feature 1 · mood (global 6 – 9)
+        tap(295, 440, 3.375);
+        push("#ph-mood", "#ph-home", 3.5);
+        tap(160, 482, 4.5);
+        pick("mood", 0, 4.55);
+        tl.to("#ph-mood-go", { opacity: 1, duration: 0.25, ease: "power2.out" }, 4.65);
+        tap(295, 1127, 5.25);
+        push("#ph-budget", "#ph-mood", 5.4);
+
+        // Feature 2 · budget (global 9 – 12)
+        tap(295, 602, 6.75);
+        pick("budget", 1, 6.8);
+        tap(295, 1127, 7.875);
+        push("#ph-distance", "#ph-budget", 8.0);
+
+        // Feature 3 · distance (global 12 – 15)
+        tap(295, 602, 9.75);
+        pick("dist", 1, 9.8);
+        tap(295, 1127, 11.25);
+
+        // Result cross-dissolves in (global 14.4), then comes alive on the downbeat at 15.0.
+        tl.fromTo("#ph-result", { xPercent: 0, opacity: 0, scale: 1.06 }, { xPercent: 0, opacity: 1, scale: 1, duration: 0.5, ease: "power2.out", immediateRender: false }, 11.4);
+        tl.fromTo("#ph-res-mascot", { scale: 0, rotation: -20 }, { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)" }, 12.0);
+        tl.fromTo(
+          ["#ph-says", "#ph-res-name", "#ph-res-settled", "#ph-res-img", "#ph-res-chips", "#ph-res-open", "#ph-res-why", "#ph-res-go"],
+          { opacity: 0, y: 30 },
+          { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.06 },
+          11.75,
+        );
+
+        // ---- Headlines ----
+        function head(sel, inAt, outAt) {
+          tl.fromTo(`${sel} > span`, { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out", stagger: 0.1 }, inAt);
+          tl.to(sel, { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+        head("#ph-intro", 2.4, 3.0);
+        head("#ph-f1", 3.25, 5.85);
+        head("#ph-f2", 6.05, 8.85);
+        head("#ph-f3", 9.05, 10.4);
+        head("#ph-f4", 12.0, 13.3);
+        head("#ph-f5", 14.0, 16.6);
+
+        window.__timelines["phone"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

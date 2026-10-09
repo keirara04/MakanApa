@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #fam-a {
+          position: absolute;
+          inset: 0;
+        }
+        #fam-q {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 520px;
+          text-align: center;
+          font-size: 200px;
+          line-height: 0.95;
+        }
+        #fam-q .l2 {
+          display: block;
+          color: var(--chili);
+        }
+        #fam-mascot {
+          position: absolute;
+          left: 320px;
+          top: 1060px;
+          width: 440px;
+          height: 440px;
+        }
+
+        /* The build: one word per hit, a ring of light closing in. */
+        #fam-b {
+          position: absolute;
+          inset: 0;
+        }
+        #fam-glow {
+          position: absolute;
+          left: -60px;
+          top: 460px;
+          width: 1200px;
+          height: 1200px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgb(255 91 58 / 0.55) 0%, rgb(255 91 58 / 0) 60%);
+        }
+        #fam-ring {
+          position: absolute;
+          left: -160px;
+          top: 360px;
+          width: 1400px;
+          height: 1400px;
+          border-radius: 50%;
+          border: 4px solid var(--chili);
+          box-shadow: 0 0 60px rgb(255 91 58 / 0.6), inset 0 0 60px rgb(255 91 58 / 0.4);
+        }
+        .fam-word {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 960px;
+          display: block;
+          text-align: center;
+          font-size: 200px;
+          white-space: nowrap;
+          opacity: 0;
+        }
+        #fam-w5 {
+          color: var(--chili);
+        }
+      </style>
+
+      <div id="root" data-composition-id="familiar" data-width="1080" data-height="1920">
+        <div id="fam-a">
+          <h2 id="fam-q" class="serif" data-layout-allow-overlap>
+            <span class="l1" data-split>Sound</span>
+            <span class="l2 it" data-split>familiar?</span>
+          </h2>
+          <img id="fam-mascot" src="assets/mascot/thinking.svg" alt="" />
+        </div>
+
+        <div id="fam-b" data-layout-allow-overlap>
+          <div id="fam-glow" data-layout-ignore></div>
+          <div id="fam-ring" data-layout-ignore></div>
+          <span id="fam-w1" class="fam-word slam" data-layout-allow-overlap>What if</span>
+          <span id="fam-w2" class="fam-word slam" data-layout-allow-overlap>lunch</span>
+          <span id="fam-w3" class="fam-word slam" data-layout-allow-overlap>just</span>
+          <span id="fam-w4" class="fam-word slam" data-layout-allow-overlap>decided</span>
+          <span id="fam-w5" class="fam-word slam" data-layout-allow-overlap>itself?</span>
+        </div>
+      </div>
+
+      <script>
+        document.querySelectorAll('[data-composition-id="familiar"] [data-split]').forEach((el) => {
+          const text = el.textContent.trim();
+          el.textContent = "";
+          for (const ch of text) {
+            const s = document.createElement("span");
+            s.className = "ch";
+            s.setAttribute("data-layout-allow-overlap", "");
+            s.textContent = ch === " " ? " " : ch;
+            el.appendChild(s);
+          }
+        });
+
+        const tl = gsap.timeline({ paused: true });
+
+        // Beat of stillness after the tape stop.
+        tl.fromTo(
+          "#fam-q .ch",
+          { opacity: 0, yPercent: 30, filter: "blur(16px)" },
+          { opacity: 1, yPercent: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out", stagger: 0.035 },
+          0.12,
+        );
+        tl.fromTo("#fam-a", { scale: 1 }, { scale: 1.05, duration: 1.75, ease: "sine.inOut", transformOrigin: "50% 45%" }, 0);
+        tl.fromTo("#fam-mascot", { y: 520, rotation: 10 }, { y: 0, rotation: 0, duration: 0.6, ease: "back.out(1.6)" }, 0.5);
+        tl.to("#fam-mascot", { rotation: -8, duration: 0.32, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.12);
+        tl.to("#fam-a", { opacity: 0, filter: "blur(14px)", duration: 0.2, ease: "power2.in" }, 1.78);
+
+        // Build: words land on the kicks (10.0, 10.5, 11.0, 11.25, 11.5 global).
+        const WORDS = [["#fam-w1", 2.0], ["#fam-w2", 2.5], ["#fam-w3", 3.0], ["#fam-w4", 3.25], ["#fam-w5", 3.5]];
+        WORDS.forEach(([sel, at], i) => {
+          const until = WORDS[i + 1] ? WORDS[i + 1][1] : 3.75;
+          tl.fromTo(
+            sel,
+            { opacity: 0, scale: 1.45, filter: "blur(14px)" },
+            { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.14, ease: "expo.out" },
+            at,
+          );
+          tl.to(sel, { opacity: 0, duration: 0.04, ease: "none" }, until - 0.04);
+        });
+        tl.fromTo("#fam-ring", { scale: 1.1, opacity: 0 }, { scale: 0.12, opacity: 1, duration: 1.75, ease: "power2.in" }, 2.0);
+        tl.fromTo("#fam-glow", { scale: 0.5, opacity: 0 }, { scale: 1.25, opacity: 1, duration: 1.75, ease: "power2.in" }, 2.0);
+        tl.fromTo("#fam-b", { scale: 1 }, { scale: 1.12, duration: 1.75, ease: "power2.in", transformOrigin: "50% 55%" }, 2.0);
+        // The gap before the drop: a quarter beat of black.
+        tl.to("#fam-b", { opacity: 0, duration: 0.03, ease: "none" }, 3.75);
+
+        window.__timelines["familiar"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

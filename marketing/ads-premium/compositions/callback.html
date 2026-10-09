@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          color: var(--ink);
+        }
+        #cb-block {
+          position: absolute;
+          left: 80px;
+          top: 560px;
+          width: 940px;
+          transform-origin: 30% 50%;
+        }
+        #cb-no {
+          display: block;
+          font-size: 200px;
+          white-space: nowrap;
+          transform-origin: left center;
+        }
+        .cb-q {
+          position: relative;
+          display: block;
+          margin-top: 6px;
+          font-size: 236px;
+          line-height: 0.95;
+          white-space: nowrap;
+          color: var(--chili-deep);
+          transform-origin: left center;
+        }
+        .cb-strike {
+          position: absolute;
+          left: -10px;
+          right: -10px;
+          top: 52%;
+          display: block;
+          height: 20px;
+          border-radius: 10px;
+          background: var(--ink);
+          transform-origin: left center;
+        }
+        #cb-sub {
+          position: absolute;
+          left: 84px;
+          top: 1290px;
+          font-size: 26px;
+          color: var(--ink-60);
+        }
+      </style>
+
+      <div id="root" data-composition-id="callback" data-width="1080" data-height="1920">
+        <div id="cb-block" data-layout-allow-overlap>
+          <span id="cb-no" class="slam" data-layout-allow-overlap>No more</span>
+          <span id="cb-q1" class="cb-q serif it" data-layout-allow-overlap>“Anywhere<span id="cb-s1" class="cb-strike"></span></span>
+          <span id="cb-q2" class="cb-q serif it" data-layout-allow-overlap>is fine.”<span id="cb-s2" class="cb-strike"></span></span>
+        </div>
+        <p id="cb-sub" class="caps">Ever again.</p>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // Global 26.0 / 26.5 / 26.75 slams, strike on 27.25.
+        tl.fromTo("#cb-no", { opacity: 0, scale: 1.6, filter: "blur(16px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.22, ease: "expo.out" }, 0);
+        tl.fromTo("#cb-q1", { opacity: 0, scale: 1.6, rotation: -5, filter: "blur(16px)" }, { opacity: 1, scale: 1, rotation: 0, filter: "blur(0px)", duration: 0.22, ease: "expo.out" }, 0.5);
+        tl.fromTo("#cb-q2", { opacity: 0, scale: 1.6, rotation: 5, filter: "blur(16px)" }, { opacity: 1, scale: 1, rotation: 0, filter: "blur(0px)", duration: 0.22, ease: "expo.out" }, 0.75);
+        tl.fromTo("#cb-s1", { scaleX: 0 }, { scaleX: 1, duration: 0.18, ease: "power3.out" }, 1.25);
+        tl.fromTo("#cb-s2", { scaleX: 0 }, { scaleX: 1, duration: 0.18, ease: "power3.out" }, 1.31);
+        tl.fromTo("#cb-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 1.4);
+        tl.fromTo("#cb-block", { scale: 1 }, { scale: 1.035, duration: 1.8, ease: "sine.out" }, 0);
+        tl.to(["#cb-block", "#cb-sub"], { opacity: 0, filter: "blur(16px)", duration: 0.18, ease: "power2.in" }, 1.86);
+
+        window.__timelines["callback"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

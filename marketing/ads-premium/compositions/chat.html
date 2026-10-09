@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #chat-all,
+        #chat-ui {
+          position: absolute;
+          inset: 0;
+        }
+
+        /* Header: a floating glass bar, like the top of a group chat. */
+        #chat-head {
+          position: absolute;
+          left: 60px;
+          right: 60px;
+          top: 210px;
+          height: 150px;
+          display: flex;
+          align-items: center;
+          gap: 26px;
+          padding: 0 40px;
+          border-radius: 48px;
+          border: 1.5px solid var(--cream-12);
+          background: rgb(245 238 227 / 0.06);
+          backdrop-filter: blur(20px);
+        }
+        #chat-avatars {
+          display: flex;
+        }
+        .chat-av {
+          display: grid;
+          place-items: center;
+          width: 64px;
+          height: 64px;
+          margin-right: -16px;
+          border-radius: 50%;
+          border: 3px solid var(--night);
+          font-weight: 800;
+          font-size: 26px;
+          color: var(--night);
+        }
+        #chat-title {
+          flex: 1;
+          margin-left: 22px;
+        }
+        #chat-title b {
+          display: block;
+          font-weight: 800;
+          font-size: 46px;
+          letter-spacing: -0.02em;
+        }
+        #chat-title span {
+          display: block;
+          margin-top: 6px;
+          font-size: 20px;
+          color: var(--cream-60);
+        }
+        #chat-clock {
+          text-align: right;
+          font-weight: 800;
+          font-size: 58px;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: -0.02em;
+        }
+        #chat-clock small {
+          display: block;
+          font-size: 20px;
+          font-weight: 500;
+          letter-spacing: 0.28em;
+          color: var(--cream-60);
+        }
+
+        /* Message list */
+        #chat-view {
+          position: absolute;
+          left: 60px;
+          right: 60px;
+          top: 400px;
+          height: 1080px;
+          overflow: hidden;
+          -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 110px);
+          mask-image: linear-gradient(180deg, transparent 0, #000 110px);
+        }
+        #chat-col {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+        }
+        .msg {
+          position: absolute;
+          left: 0;
+          right: 0;
+          height: 128px;
+          display: flex;
+          align-items: flex-end;
+          gap: 18px;
+        }
+        .msg.you {
+          justify-content: flex-end;
+        }
+        .msg .chat-av {
+          flex: none;
+          margin: 0;
+          border: 0;
+        }
+        .bubble {
+          padding: 18px 34px 20px;
+          border-radius: 40px 40px 40px 12px;
+          background: rgb(245 238 227 / 0.09);
+          border: 1.5px solid rgb(245 238 227 / 0.1);
+        }
+        .msg.you .bubble {
+          border-radius: 40px 40px 12px 40px;
+          background: #e0442a;
+          border-color: transparent;
+          color: #fff7ee;
+        }
+        .bubble small {
+          display: block;
+          font-size: 19px;
+          font-weight: 500;
+          letter-spacing: 0.24em;
+          text-transform: uppercase;
+          opacity: 0.66;
+        }
+        .bubble p {
+          margin-top: 4px;
+          font-size: 42px;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+        .dots {
+          display: flex;
+          gap: 10px;
+          padding: 14px 0 6px;
+        }
+        .dots i {
+          display: block;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: var(--cream);
+          opacity: 0.6;
+        }
+
+        /* "47 minutes later" */
+        #chat-later {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 560px;
+          text-align: center;
+        }
+        #chat-47 {
+          display: block;
+          font-size: 560px;
+          line-height: 0.8;
+          color: var(--chili);
+          font-variant-numeric: tabular-nums;
+          text-shadow: 0 0 120px rgb(255 91 58 / 0.4);
+        }
+        #chat-min {
+          display: block;
+          margin-top: 18px;
+          font-size: 118px;
+        }
+        #chat-still {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1300px;
+          text-align: center;
+          font-size: 150px;
+          line-height: 1;
+        }
+      </style>
+
+      <div id="root" data-composition-id="chat" data-width="1080" data-height="1920">
+        <div id="chat-all">
+          <div id="chat-ui">
+            <div id="chat-head">
+              <div id="chat-avatars"></div>
+              <div id="chat-title"><b>Lunch squad</b><span class="caps">4 members · all hungry</span></div>
+              <div id="chat-clock"><span id="chat-time">12:30</span><small>PM</small></div>
+            </div>
+            <div id="chat-view" data-layout-allow-overflow>
+              <div id="chat-col"></div>
+            </div>
+          </div>
+
+          <div id="chat-later" data-layout-allow-overlap>
+            <span id="chat-47" class="slam" data-layout-allow-overlap>47</span>
+            <span id="chat-min" class="slam" data-layout-allow-overlap>Minutes later.</span>
+          </div>
+          <p id="chat-still" class="serif it" data-layout-allow-overlap>Still no lunch.</p>
+        </div>
+      </div>
+
+      <script>
+        const PEOPLE = {
+          you: { initial: "Y", color: "#ff5b3a" },
+          Aisha: { initial: "A", color: "#ffb938" },
+          Jun: { initial: "J", color: "#f5eee3" },
+          Mei: { initial: "M", color: "#e9b9a6" },
+        };
+        // [local time, sender, text]. Global time = local + 2s. Matches CHAT_POPS in the soundtrack.
+        const MESSAGES = [
+          [0.25, "you", "Where should we eat?"],
+          [0.75, "Aisha", "Anywhere is fine"],
+          [1.25, "Jun", "You pick"],
+          [1.75, "you", "Sushi?"],
+          [2.0, "Aisha", "Had it yesterday"],
+          [2.25, "Mei", "Burgers?"],
+          [2.5, "Jun", "Too far"],
+          [2.75, "you", "Pizza?"],
+          [2.875, "Aisha", "Nah"],
+          [3.0, "Mei", "Something healthy?"],
+          [3.125, "Jun", "Ew. No."],
+          [3.25, "you", "Okay YOU pick then"],
+          [3.375, "Aisha", "I picked last time"],
+          [3.5, "Mei", "Anywhere is fine"],
+          [3.625, "Jun", null],
+        ];
+        const STEP = 150;
+        const VISIBLE = 7;
+
+        const avatars = document.getElementById("chat-avatars");
+        ["you", "Aisha", "Jun", "Mei"].forEach((p) => {
+          const a = document.createElement("span");
+          a.className = "chat-av";
+          a.style.background = PEOPLE[p].color;
+          a.textContent = PEOPLE[p].initial;
+          avatars.appendChild(a);
+        });
+
+        const col = document.getElementById("chat-col");
+        MESSAGES.forEach(([, who, text], i) => {
+          const row = document.createElement("div");
+          row.className = "msg" + (who === "you" ? " you" : "");
+          row.id = `chat-msg-${i}`;
+          row.style.top = `${i * STEP}px`;
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+          bubble.innerHTML = `<small>${who === "you" ? "You" : who}</small>`;
+          if (text) {
+            const p = document.createElement("p");
+            p.textContent = text;
+            bubble.appendChild(p);
+          } else {
+            bubble.insertAdjacentHTML("beforeend", '<span class="dots"><i></i><i></i><i></i></span>');
+          }
+          if (who !== "you") {
+            const av = document.createElement("span");
+            av.className = "chat-av";
+            av.style.background = PEOPLE[who].color;
+            av.textContent = PEOPLE[who].initial;
+            row.appendChild(av);
+          }
+          row.appendChild(bubble);
+          col.appendChild(row);
+        });
+
+        const tl = gsap.timeline({ paused: true });
+
+        tl.fromTo("#chat-head", { opacity: 0, y: -40 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 0);
+
+        // Bubbles pop in on the beat, then the list scrolls once it's full.
+        MESSAGES.forEach(([at, who], i) => {
+          const next = MESSAGES[i + 1] ? MESSAGES[i + 1][0] : at + 0.3;
+          tl.fromTo(
+            `#chat-msg-${i}`,
+            { opacity: 0, y: 46, scale: 0.84 },
+            {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.32,
+              ease: "back.out(2.2)",
+              transformOrigin: who === "you" ? "100% 100%" : "0% 100%",
+            },
+            at,
+          );
+          if (i >= VISIBLE) {
+            tl.to("#chat-col", { y: -(i - VISIBLE + 1) * STEP, duration: Math.min(0.22, (next - at) * 0.9), ease: "power3.out" }, at);
+          }
+        });
+        tl.fromTo(
+          `#chat-msg-${MESSAGES.length - 1} .dots i`,
+          { y: 0 },
+          { y: -10, duration: 0.15, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.08 },
+          3.7,
+        );
+
+        // 47 minutes later: the chat sinks back, the clock spins, the number counts up.
+        tl.to("#chat-ui", { opacity: 0.28, scale: 0.95, filter: "blur(12px)", duration: 0.25, ease: "power2.out" }, 4.0);
+        const clock = { m: 30 };
+        tl.to(clock, {
+          m: 77,
+          duration: 0.6,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            const total = Math.round(clock.m);
+            const h = total >= 60 ? 1 : 12;
+            document.getElementById("chat-time").textContent = `${h}:${String(total % 60).padStart(2, "0")}`;
+          },
+        }, 4.0);
+        const count = { n: 0 };
+        tl.to(count, {
+          n: 47,
+          duration: 0.45,
+          ease: "power3.out",
+          onUpdate: () => {
+            document.getElementById("chat-47").textContent = String(Math.round(count.n));
+          },
+        }, 4.0);
+        tl.fromTo("#chat-47", { opacity: 0, scale: 1.6, filter: "blur(20px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.26, ease: "expo.out" }, 4.0);
+        tl.fromTo("#chat-min", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.4, ease: "expo.out" }, 4.12);
+        tl.fromTo(
+          "#chat-still",
+          { opacity: 0, y: 50, filter: "blur(14px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.45, ease: "expo.out" },
+          5.0,
+        );
+
+        // Tape stop: everything drains and droops with the music.
+        tl.to("#chat-all", { scale: 0.9, y: 70, rotation: -2.5, filter: "grayscale(1) brightness(0.35)", duration: 0.4, ease: "power2.in" }, 5.6);
+
+        window.__timelines["chat"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

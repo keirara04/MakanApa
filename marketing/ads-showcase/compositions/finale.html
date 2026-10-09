@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        .fn-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        .fn-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        #fn-head {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 250px;
+          text-align: center;
+        }
+        #fn-head span {
+          display: block;
+          font-size: 168px;
+        }
+        #fn-lock {
+          position: absolute;
+          inset: 0;
+        }
+        #fn-mascot {
+          position: absolute;
+          left: 380px;
+          top: 520px;
+          width: 320px;
+          height: 320px;
+        }
+        #fn-word {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 880px;
+          text-align: center;
+          font-size: 156px;
+          font-weight: 800;
+        }
+        #fn-tag {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1070px;
+          text-align: center;
+          font-size: 50px;
+        }
+        #fn-cta {
+          position: absolute;
+          left: 280px;
+          width: 520px;
+          top: 1190px;
+          height: 96px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 48px;
+          border: 2px solid rgb(245 245 247 / 0.35);
+          font-size: 36px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+      </style>
+
+      <div id="root" data-composition-id="finale" data-width="1080" data-height="1920">
+        <div id="fn-rig-l" class="fn-rig" data-layout-allow-overflow><div id="fn-3d-l" class="fn-3d"></div></div>
+        <div id="fn-rig-r" class="fn-rig" data-layout-allow-overflow><div id="fn-3d-r" class="fn-3d"></div></div>
+        <div id="fn-rig-c" class="fn-rig" data-layout-allow-overflow><div id="fn-3d-c" class="fn-3d"></div></div>
+
+        <div id="fn-head" data-layout-allow-overlap>
+          <span class="hl">Lunch.</span>
+          <span class="hl grad">Decided.</span>
+        </div>
+
+        <div id="fn-lock" data-layout-allow-overlap>
+          <img id="fn-mascot" src="assets/mascot/default.svg" alt="" />
+          <p id="fn-word" class="hl">Makan<span class="grad">Apa?</span></p>
+          <p id="fn-tag" class="sub">Lunch, decided.</p>
+          <p id="fn-cta">Free on the App Store</p>
+        </div>
+      </div>
+
+      <script>
+        document.getElementById("fn-3d-l").innerHTML = MA.phone("fl", MA.mood("fl", 0));
+        document.getElementById("fn-3d-c").innerHTML = MA.phone("fc", MA.result("fc"));
+        document.getElementById("fn-3d-r").innerHTML = MA.phone("fr", MA.budget("fr", 1));
+        // The phone is product imagery: its stacked, clipped screens are not page copy.
+        document.querySelectorAll('[data-composition-id="finale"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 24.0. Logo lands on 27.0, fade to black from 29.4.
+
+        const POSE = {
+          l: { x: -330, y: 340, scale: 0.5, rotY: 30 },
+          c: { x: 0, y: 300, scale: 0.62, rotY: 0 },
+          r: { x: 330, y: 340, scale: 0.5, rotY: -30 },
+        };
+        ["l", "r", "c"].forEach((k, i) => {
+          const p = POSE[k];
+          tl.fromTo(`#fn-rig-${k}`, { x: p.x * 1.4, y: p.y + 900, scale: p.scale, opacity: 1 }, { x: p.x, y: p.y, duration: 1.5, ease: "power3.out" }, 0.05 + i * 0.1);
+          tl.fromTo(
+            `#fn-3d-${k}`,
+            { rotationY: p.rotY * 2, rotationX: 14, transformPerspective: 2600 },
+            { rotationY: p.rotY, rotationX: 4, duration: 1.7, ease: "power3.out" },
+            0.05 + i * 0.1,
+          );
+          // Slow drift while the line reads.
+          tl.to(`#fn-3d-${k}`, { rotationY: p.rotY - 6, rotationX: 2, duration: 0.85, ease: "sine.inOut" }, 2.0);
+          tl.to(`#fn-rig-${k}`, { y: p.y + 260, scale: p.scale * 0.9, opacity: 0, duration: 0.6, ease: "power2.in" }, 2.85 + i * 0.04);
+        });
+        tl.fromTo("#fc-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 1.0);
+
+        tl.fromTo("#fn-head span", { opacity: 0, y: 40, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "expo.out", stagger: 0.25 }, 0.3);
+        tl.to("#fn-head", { opacity: 0, y: -40, filter: "blur(12px)", duration: 0.4, ease: "power2.in" }, 2.75);
+
+        // Logo lockup on 27.0.
+        tl.fromTo("#fn-mascot", { opacity: 0, scale: 0.7, y: 40 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: "back.out(1.6)" }, 3.0);
+        tl.fromTo("#fn-word", { opacity: 0, y: 30, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 3.15);
+        tl.fromTo("#fn-tag", { opacity: 0 }, { opacity: 1, duration: 0.7, ease: "power2.out" }, 3.5);
+        tl.fromTo("#fn-cta", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 3.7);
+        tl.to("#fn-mascot", { y: -12, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 }, 3.85);
+        tl.to("#fn-lock", { opacity: 0, duration: 0.6, ease: "power1.in" }, 5.4);
+
+        window.__timelines["finale"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

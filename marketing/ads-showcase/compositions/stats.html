@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        .st-block {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 560px;
+          text-align: center;
+        }
+        .st-num {
+          display: block;
+          overflow: hidden;
+          height: 430px;
+        }
+        .st-num span {
+          display: block;
+          font-size: 440px;
+          line-height: 430px;
+        }
+        .st-unit {
+          display: block;
+          margin-top: 10px;
+          font-size: 104px;
+        }
+        .st-note {
+          display: block;
+          margin-top: 26px;
+          font-size: 40px;
+        }
+      </style>
+
+      <div id="root" data-composition-id="stats" data-width="1080" data-height="1920">
+        <div id="st-1" class="st-block" data-layout-allow-overlap>
+          <span class="st-num"><span class="hl" data-layout-allow-overlap>3</span></span>
+          <span class="st-unit hl">taps.</span>
+          <span class="st-note sub">From hungry to decided.</span>
+        </div>
+        <div id="st-2" class="st-block" data-layout-allow-overlap>
+          <span class="st-num"><span class="hl" data-layout-allow-overlap>10</span></span>
+          <span class="st-unit hl">seconds.</span>
+          <span class="st-note sub">Give or take.</span>
+        </div>
+        <div id="st-3" class="st-block" data-layout-allow-overlap>
+          <span class="st-num"><span class="hl grad" data-layout-allow-overlap>0</span></span>
+          <span class="st-unit hl">arguments.</span>
+          <span class="st-note sub">Finally.</span>
+        </div>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // Global 21.0 / 22.125 / 23.25, one soft hit each.
+        const AT = [0, 1.125, 2.25];
+        ["#st-1", "#st-2", "#st-3"].forEach((sel, i) => {
+          const at = AT[i];
+          tl.fromTo(`${sel} .st-num span`, { yPercent: 100 }, { yPercent: 0, duration: 0.6, ease: "power4.out" }, at);
+          tl.fromTo(`${sel} .st-unit`, { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, at + 0.08);
+          tl.fromTo(`${sel} .st-note`, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, at + 0.25);
+          const out = i < 2 ? AT[i + 1] - 0.18 : 2.9;
+          tl.to(sel, { opacity: 0, y: -50, filter: "blur(12px)", duration: 0.2, ease: "power2.in" }, out);
+        });
+
+        window.__timelines["stats"] = tl;
+      </script>
+    </template>
+  </body>
+</html>
