@@ -61,6 +61,15 @@ final class PlacePreferencesStore {
         if nowSaved { GuestUpgradeNudge.shared.recordSave() }
     }
 
+    /// Saves from places that aren't a `NearbyPlace` (Saved's own search). No-op if already saved.
+    func save(_ place: SavedPlace) {
+        guard !isSaved(place.id) else { return }
+        savedPlaces.insert(place, at: 0)
+        persistSaved()
+        syncSaveState(true, placeId: place.id)
+        GuestUpgradeNudge.shared.recordSave()
+    }
+
     /// Favorites' swipe-to-delete — must go through the same server sync as the heart toggle,
     /// otherwise the two paths diverge (server keeps thinking it's saved after this removes it
     /// locally).

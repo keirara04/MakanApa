@@ -30,6 +30,8 @@ struct AddPlaceFlow: View {
     /// user search for it again.
     var prefillExisting: ExistingPlaceResult?
     var prefillShowMenuSection = false
+    /// Starts the search already typed — Saved's "Can't find it?" hands over what was searched.
+    var prefillQuery: String?
 
     @State private var step: AddPlaceStep = .search
     @State private var goingForward = true
@@ -179,6 +181,9 @@ struct AddPlaceFlow: View {
             }
         }
         .onAppear {
+            if prefillExisting == nil, let prefillQuery, searchQuery.isEmpty, step == .search {
+                searchQuery = prefillQuery
+            }
             guard let prefillExisting, restaurantId == nil else { return }
             selectExisting(prefillExisting)
             showingMenuSection = prefillShowMenuSection

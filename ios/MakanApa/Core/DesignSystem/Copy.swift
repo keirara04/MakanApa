@@ -289,6 +289,22 @@ enum Copy {
     static let communityLocationOff = "Location is off for MakanApa. Turn it on in Settings, or choose the spot on the map."
     static let communityLocationUnavailable = "Couldn't get your location. Try again, or choose the spot on the map."
 
+    // MARK: - Saved: search and save
+
+    static let savedSearchPrompt = "Search places to save"
+    static let savedSearchYourPlaces = "Your saved places"
+    static let savedSearchSaveHeader = "Save a place"
+    static func savedSearchNoResults(_ query: String) -> String { "No places match \"\(query)\" around you." }
+    static let savedSearchNeedsLocation = "Turn on location to search places around you."
+    static let savedSearchSaveFailed = "Couldn't save that place. Try again."
+    static let savedSearchAddNew = "Can't find it? Add it as a new place"
+    static let savedSearchAddNewDetail = "We'll check MakanApa and Google first. New places show up after a quick review."
+    static let savedEmptyTitle = "No saved places yet"
+    static let savedEmptyDetail = "Tap the heart on a place in Nearby, or search above to save one."
+    static let savedStateSaved = "Saved"
+    static let savedStateNotSaved = "Not saved"
+    static let savedToggleHint = "Saves or removes this place"
+
     // MARK: - Pick from saved places
 
     static let savedPickTitle = "Pick from my saved"
