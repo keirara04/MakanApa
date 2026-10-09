@@ -282,6 +282,9 @@ struct GooglePlaceCandidate: Decodable, Identifiable, Equatable {
     let rating: Double?
     let latitude: Double
     let longitude: Double
+    /// Optional so an older backend still decodes.
+    var address: String? = nil
+    var distanceKm: Double? = nil
 
     var id: String { googlePlaceId }
 }

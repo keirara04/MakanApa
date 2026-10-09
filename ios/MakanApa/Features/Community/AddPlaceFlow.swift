@@ -84,6 +84,9 @@ struct AddPlaceFlow: View {
     @State private var latitude: Double?
     @State private var longitude: Double?
     @State private var showingMapPicker = false
+    /// "Use my current location" asked for permission or a fix; the pin lands when it arrives.
+    @State private var awaitingLocation = false
+    @State private var locationProblem: String?
 
     // Draft submission (created at the top of Review, so photos have a real ID to attach to
     // before "Submit for review" — see the draft->pending lifecycle change). The fingerprints
@@ -159,6 +162,22 @@ struct AddPlaceFlow: View {
                 }
             }
         }
+        .onChange(of: locationService.state) { _, state in
+            guard awaitingLocation else { return }
+            switch state {
+            case .authorized(let coordinate):
+                awaitingLocation = false
+                pinCurrentLocation(coordinate)
+            case .denied:
+                awaitingLocation = false
+                locationProblem = Copy.communityLocationOff
+            case .unavailable:
+                awaitingLocation = false
+                locationProblem = Copy.communityLocationUnavailable
+            case .notDetermined:
+                break
+            }
+        }
         .onAppear {
             guard let prefillExisting, restaurantId == nil else { return }
             selectExisting(prefillExisting)
@@ -204,9 +223,12 @@ struct AddPlaceFlow: View {
     }
 
     /// Search only counts as a step when the user actually searched — the "Know the menu?" edit
-    /// entry starts at Details, so its progress is 3 steps, not 4 with a skipped first one.
+    /// entry starts at Details, so its progress is 3 steps, not 4 with a skipped first one. An edit
+    /// never moves the place, so it skips Location entirely.
     private var visibleSteps: [AddPlaceStep] {
-        prefillExisting == nil ? [.search, .details, .location, .review] : [.details, .location, .review]
+        var steps: [AddPlaceStep] = prefillExisting == nil ? [.search, .details, .location, .review] : [.details, .location, .review]
+        if submissionType == .editPlace { steps.removeAll { $0 == .location } }
+        return steps
     }
 
     private var currentVisibleIndex: Int {
@@ -340,8 +362,24 @@ struct AddPlaceFlow: View {
 
                 searchField
 
+                // Without a location the server can't ask Google, so "No matches" would be a lie.
+                if currentCoordinate == nil {
+                    Button(action: turnOnLocationForSearch) {
+                        Label(Copy.communitySearchNeedsLocation, systemImage: "location.slash")
+                            .font(.makanBody(13))
+                            .foregroundStyle(Color.sambalRed)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    }
+                }
+
                 if let searchError {
-                    InlineMessage(text: searchError, isError: true)
+                    VStack(alignment: .leading, spacing: 8) {
+                        InlineMessage(text: searchError, isError: true)
+                        Button(Copy.tryAgain) { Task { await search() } }
+                            .font(.makanBody(14).weight(.semibold))
+                            .foregroundStyle(Color.sambalRed)
+                            .frame(minHeight: 44)
+                    }
                 }
 
                 if let results = searchResults {
@@ -350,7 +388,8 @@ struct AddPlaceFlow: View {
                             ForEach(results.existing) { place in
                                 PlaceResultRow(
                                     title: place.name,
-                                    subtitle: [place.foodCategory, place.address].compactMap { $0 }.first,
+                                    subtitle: [place.foodCategory, distanceText(place.distanceKm)].compactMap { $0 }.joined(separator: " · ").nilIfEmpty,
+                                    address: place.address,
                                     badge: "Suggest an edit",
                                     systemImage: "pencil",
                                     tint: .kunyit
@@ -363,7 +402,8 @@ struct AddPlaceFlow: View {
                             ForEach(results.google) { candidate in
                                 PlaceResultRow(
                                     title: candidate.name,
-                                    subtitle: candidate.foodCategory,
+                                    subtitle: [candidate.foodCategory, distanceText(candidate.distanceKm)].compactMap { $0 }.joined(separator: " · ").nilIfEmpty,
+                                    address: candidate.address,
                                     badge: "Add",
                                     systemImage: "plus",
                                     tint: .sambalRed
@@ -386,6 +426,10 @@ struct AddPlaceFlow: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .task(id: searchQuery) { await debouncedSearch() }
+        // Location just came on: search again so Google results join the list without retyping.
+        .onChange(of: currentCoordinate == nil) { _, missing in
+            if !missing, searchResults != nil { Task { await search() } }
+        }
         .onAppear { if searchResults == nil { searchFocused = true } }
     }
 
@@ -448,7 +492,7 @@ struct AddPlaceFlow: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.kunyit.opacity(0.15))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(PressCompressStyle())
     }
@@ -481,7 +525,15 @@ struct AddPlaceFlow: View {
             searchResults = results
         } catch {
             guard !Task.isCancelled else { return }
-            searchError = "Couldn't search right now. Check your connection and try again."
+            searchError = Copy.communitySearchFailed
+        }
+    }
+
+    private func turnOnLocationForSearch() {
+        if case .denied = locationService.state {
+            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+        } else {
+            locationService.requestLocation()
         }
     }
 
@@ -512,7 +564,7 @@ struct AddPlaceFlow: View {
         restaurantId = nil
         setFields(
             name: candidate.name, foodCategory: candidate.foodCategory ?? "", averageSpend: spendString(for: candidate.priceLevel),
-            address: "", phone: "", instagram: "", tiktok: "", website: "", menu: []
+            address: candidate.address ?? "", phone: "", instagram: "", tiktok: "", website: "", menu: []
         )
         snapshotOriginals()
         locationSource = .google
@@ -590,6 +642,11 @@ struct AddPlaceFlow: View {
         }
     }
 
+    /// The spend was filled in from Google's price tier and the user hasn't touched it.
+    private var spendIsGoogleEstimate: Bool {
+        sourceType == .google && !averageSpend.isEmpty && averageSpend == originalAverageSpend
+    }
+
     private func spendString(for priceLevel: Int?) -> String {
         switch priceLevel {
         case 1: return "10"
@@ -647,7 +704,7 @@ struct AddPlaceFlow: View {
 
                     FormField(
                         label: "Spend per person",
-                        footer: showSpendError ? nil : Copy.communitySpendFooter,
+                        footer: showSpendError ? nil : (spendIsGoogleEstimate ? Copy.communitySpendEstimated : Copy.communitySpendFooter),
                         error: showSpendError ? Copy.communitySpendErrorInline : nil
                     ) {
                         HStack(spacing: 6) {
@@ -738,7 +795,7 @@ struct AddPlaceFlow: View {
                     withAnimation { showSpendError = true }
                     return
                 }
-                go(to: .location)
+                go(to: submissionType == .editPlace ? .review : .location)
             }
         }
     }
@@ -750,26 +807,19 @@ struct AddPlaceFlow: View {
         return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
+    /// New places only — an edit never moves the place, so it skips this step.
     private var locationStep: some View {
-        let isEdit = submissionType != .newPlace
         let hasPin = pinnedCoordinate != nil
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                stepHeading(
-                    isEdit ? "Location stays the same" : (hasPin ? "Is this the right spot?" : "Where is it?"),
-                    isEdit ? Copy.communityLocationImmutable : locationSubtitle
-                )
+                stepHeading(hasPin ? "Is this the right spot?" : "Where is it?", locationSubtitle)
 
                 if let coordinate = pinnedCoordinate {
                     LocationPreview(coordinate: coordinate, name: trimmedName)
-                    if !isEdit {
-                        Label(locationSourceLabel, systemImage: locationSourceIcon)
-                            .font(.makanBody(13))
-                            .foregroundStyle(.secondary)
-                    }
-                } else if isEdit {
-                    InlineMessage(text: "We couldn't load this place's location. Go back and pick it from search again.", isError: true)
+                    Label(locationSourceLabel, systemImage: locationSourceIcon)
+                        .font(.makanBody(13))
+                        .foregroundStyle(.secondary)
                 } else {
                     VStack(spacing: 12) {
                         LocationOptionButton(
@@ -783,17 +833,35 @@ struct AddPlaceFlow: View {
                             subtitle: "Drag the map to drop a pin"
                         ) { showingMapPicker = true }
                     }
+
+                    if awaitingLocation {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text(Copy.communityLocationWaiting)
+                                .font(.makanBody(13))
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if let locationProblem {
+                        VStack(alignment: .leading, spacing: 8) {
+                            InlineMessage(text: locationProblem, isError: true)
+                            if case .denied = locationService.state, let url = URL(string: UIApplication.openSettingsURLString) {
+                                Button(Copy.communityLocationOpenSettings) { UIApplication.shared.open(url) }
+                                    .font(.makanBody(14).weight(.semibold))
+                                    .foregroundStyle(Color.sambalRed)
+                                    .frame(minHeight: 44)
+                            }
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
         .safeAreaInset(edge: .bottom) {
-            if isEdit || hasPin {
+            if hasPin {
                 actionBar(
-                    isEdit ? "Continue" : "Looks right",
-                    enabled: hasPin,
-                    secondary: isEdit ? nil : SecondaryAction(title: sourceType == .google ? "Adjust pin" : "Change location") { showingMapPicker = true }
+                    "Looks right",
+                    secondary: SecondaryAction(title: sourceType == .google ? "Adjust pin" : "Change location") { showingMapPicker = true }
                 ) { go(to: .review) }
             }
         }
@@ -820,11 +888,23 @@ struct AddPlaceFlow: View {
         }
     }
 
+    /// Asking for permission (or a fresh fix) used to just return, leaving the user to tap again,
+    /// and a denied permission did nothing at all — now the pin lands when the location arrives
+    /// (see the `.onChange(of: locationService.state)`), and a refusal says what to do instead.
     private func useCurrentLocation() {
-        guard case .authorized(let coordinate) = locationService.state else {
+        locationProblem = nil
+        switch locationService.state {
+        case .authorized(let coordinate):
+            pinCurrentLocation(coordinate)
+        case .denied:
+            locationProblem = Copy.communityLocationOff
+        case .notDetermined, .unavailable:
+            awaitingLocation = true
             locationService.requestLocation()
-            return
         }
+    }
+
+    private func pinCurrentLocation(_ coordinate: CLLocationCoordinate2D) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             latitude = coordinate.latitude
             longitude = coordinate.longitude
@@ -855,7 +935,7 @@ struct AddPlaceFlow: View {
                     ReviewRow(label: "Contact", value: [phone, instagramHandle, tiktokHandle, websiteUrl].filter { !$0.isEmpty }.joined(separator: " · ").nilIfEmpty)
                     ReviewRow(label: "Menu", value: menuItems.isEmpty ? nil : "\(menuItems.count) item\(menuItems.count == 1 ? "" : "s")")
                     if submissionType == .editPlace {
-                        ReviewRow(label: "Changes", value: computeChangedFields().isEmpty ? "Nothing changed yet" : "\(computeChangedFields().count) field\(computeChangedFields().count == 1 ? "" : "s")")
+                        ReviewRow(label: "Changes", value: changedFieldNames.isEmpty ? Copy.communityEditNoChanges : changedFieldNames.joined(separator: ", "))
                     }
                 }
 
@@ -894,14 +974,29 @@ struct AddPlaceFlow: View {
         .safeAreaInset(edge: .bottom) {
             actionBar(
                 Copy.communitySubmitForReview,
-                enabled: draftSubmissionId != nil && pinnedCoordinate != nil && !uploadedPhotos.contains(where: \.isUploading),
+                enabled: draftSubmissionId != nil && pinnedCoordinate != nil && !uploadedPhotos.contains(where: \.isUploading) && editHasSomethingToSend,
                 loading: isSubmitting || isCreatingDraft,
-                hint: uploadedPhotos.contains(where: \.isUploading) ? "Waiting for photos to finish uploading…" : nil
+                hint: !editHasSomethingToSend ? Copy.communityEditNothingChanged
+                    : uploadedPhotos.contains(where: \.isUploading) ? "Waiting for photos to finish uploading…" : nil
             ) {
                 Task { await submitForReview() }
             }
         }
         .task { await syncDraft() }
+    }
+
+    /// An edit needs at least one change, a note, or a photo — otherwise reviewers get an empty edit.
+    private var editHasSomethingToSend: Bool {
+        submissionType != .editPlace || !computeChangedFields().isEmpty || notes.nilIfEmpty != nil || !uploadedPhotos.isEmpty
+    }
+
+    /// The changed fields by the names the form uses, e.g. "Name, Category".
+    private var changedFieldNames: [String] {
+        let labels = [
+            "name": "Name", "address": "Address", "food_category": "Category", "price_level": "Spend", "phone": "Phone",
+            "instagram_handle": "Instagram", "tiktok_handle": "TikTok", "website_url": "Website", "menu_items": "Menu",
+        ]
+        return computeChangedFields().compactMap { labels[$0] }
     }
 
     private var photosRow: some View {
@@ -922,10 +1017,10 @@ struct AddPlaceFlow: View {
                             .resizable()
                             .scaledToFill()
                             .frame(width: 76, height: 76)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay {
                                 if photo.isUploading {
-                                    RoundedRectangle(cornerRadius: 12).fill(.black.opacity(0.35))
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.black.opacity(0.35))
                                     ProgressView().tint(.white)
                                 }
                             }
@@ -949,7 +1044,7 @@ struct AddPlaceFlow: View {
                         .foregroundStyle(Color.sambalRed)
                         .frame(width: 76, height: 76)
                         .background(Color.sambalRed.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .accessibilityLabel("Add photos")
                 }
@@ -1180,6 +1275,12 @@ private struct UploadedPhotoState: Identifiable {
     var uploadedId: Int?
 }
 
+private func distanceText(_ km: Double?) -> String? {
+    guard let km else { return nil }
+    return Measurement(value: km, unit: UnitLength.kilometers)
+        .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+}
+
 private extension String {
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1199,9 +1300,9 @@ private struct FieldChrome: ViewModifier {
             .padding(.horizontal, 14)
             .frame(minHeight: 48)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(isError ? Color.sambalRed : (isFocused ? Color.sambalRed.opacity(0.6) : Color.kicap.opacity(0.12)), lineWidth: isFocused || isError ? 1.5 : 1)
             )
     }
@@ -1279,6 +1380,8 @@ private struct InlineMessage: View {
 private struct PlaceResultRow: View {
     let title: String
     let subtitle: String?
+    /// Second line: tells apart same-name branches ("KFC" x5).
+    var address: String? = nil
     let badge: String
     let systemImage: String
     let tint: Color
@@ -1296,6 +1399,13 @@ private struct PlaceResultRow: View {
                         Text(subtitle)
                             .font(.makanBody(13))
                             .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                    }
+                    if let address {
+                        Label(address, systemImage: "mappin")
+                            .font(.makanBody(12))
+                            .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
                 }
@@ -1311,7 +1421,7 @@ private struct PlaceResultRow: View {
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(PressCompressStyle())
         .accessibilityHint(badge)
@@ -1364,7 +1474,7 @@ private struct DisclosureCard<Content: View>: View {
         }
         .padding(16)
         .background(Color.white.opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -1394,7 +1504,7 @@ private struct LocationOptionButton: View {
             }
             .padding(14)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(PressCompressStyle())
     }
@@ -1413,7 +1523,7 @@ private struct LocationPreview: View {
         }
         .id("\(coordinate.latitude),\(coordinate.longitude)")
         .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .allowsHitTesting(false)
         .accessibilityLabel("Map showing the pinned location")
     }
@@ -1448,7 +1558,7 @@ private struct ReviewCard<Content: View>: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

@@ -278,6 +278,17 @@ enum Copy {
     static let communityBlankIsFine = "You can leave these blank. The community can help complete them later."
     static let communityAddMenuItemCTA = "Add another item"
 
+    // MARK: - Add a place
+
+    static let communitySearchNeedsLocation = "Turn on location to also search Google."
+    static let communitySearchFailed = "Couldn't search right now. Check your connection and try again."
+    static let communitySpendEstimated = "Estimated from Google. Change it if you know better."
+    static let communityEditNothingChanged = "Change something, or add a note or photo, to send this edit."
+    static let communityEditNoChanges = "Nothing changed yet"
+    static let communityLocationWaiting = "Getting your location…"
+    static let communityLocationOff = "Location is off for MakanApa. Turn it on in Settings, or choose the spot on the map."
+    static let communityLocationUnavailable = "Couldn't get your location. Try again, or choose the spot on the map."
+
     // MARK: - Pick from saved places
 
     static let savedPickTitle = "Pick from my saved"
