@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Filament\Resources\AmbassadorApplications\AmbassadorApplicationResource;
 use App\Filament\Resources\CommunityPosts\CommunityPostResource;
 use App\Filament\Resources\CommunityRequests\CommunityRequestResource;
 use App\Filament\Resources\RestaurantSubmissions\RestaurantSubmissionResource;
+use App\Models\AmbassadorApplication;
 use App\Models\CommunityPost;
 use App\Models\CommunityRequest;
 use App\Models\RestaurantSubmission;
@@ -59,6 +61,16 @@ class AdminAlertService
             'New community request',
             ucfirst($request->type).': '.$request->name,
             CommunityRequestResource::getUrl('index', panel: 'admin'),
+            'info',
+        );
+    }
+
+    public function ambassadorApplicationCreated(AmbassadorApplication $application): void
+    {
+        $this->send(
+            'New ambassador application',
+            ($application->user?->name ?? 'Someone').' for '.($application->communityName() ?? 'their community'),
+            AmbassadorApplicationResource::getUrl('index', panel: 'admin'),
             'info',
         );
     }

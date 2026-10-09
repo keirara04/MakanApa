@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\RestaurantSubmissionController as AdminRestau
 use App\Http\Controllers\Api\Admin\SubmissionPhotoController as AdminSubmissionPhotoController;
 use App\Http\Controllers\Api\Admin\UniversityController as AdminUniversityController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\AmbassadorApplicationController;
 use App\Http\Controllers\Api\AmbassadorPickController;
 use App\Http\Controllers\Api\AppSessionController;
 use App\Http\Controllers\Api\AreaController;
@@ -124,6 +125,10 @@ Route::prefix('v1')->group(function () {
         // "My university/area isn't listed" — a rare, deliberate action, same throttle class
         // as community/submissions store below.
         Route::post('community/requests', [CommunityRequestController::class, 'store'])->middleware(['registered', 'terms', 'throttle:5,1,community-requests']);
+
+        // "Become an ambassador" for the member's own community — reviewed by an admin.
+        Route::get('me/ambassador-application', [AmbassadorApplicationController::class, 'show'])->middleware('registered');
+        Route::post('me/ambassador-application', [AmbassadorApplicationController::class, 'store'])->middleware(['registered', 'terms', 'throttle:5,1,ambassador-applications']);
 
         // Google Places-backed endpoints are rate limited per client/IP so a runaway client
         // can't turn this into a Google Places billing incident during the beta.
