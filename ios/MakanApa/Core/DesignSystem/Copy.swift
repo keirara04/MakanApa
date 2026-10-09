@@ -305,6 +305,33 @@ enum Copy {
     static let savedStateNotSaved = "Not saved"
     static let savedToggleHint = "Saves or removes this place"
 
+    // MARK: - Community guide
+
+    static let communityGuideTitle = "How Community works"
+    static let communityGuideFooterTitle = "New to Community?"
+    static let communityGuideFooterDetail = "See how to add places, post and react."
+    static let communityGuideNext = "Next"
+    static let communityGuideDone = "Got it"
+    static let communityGuideCommunityTitle = "Pick your community"
+    static let communityGuideCommunityBody = "Tap the name at the top to switch between your university, your area, or everyone nearby."
+    static let communityGuideAddTitle = "Add a place"
+    static let communityGuideAddBody = "Tap + and choose Add a place. Search first: if it's already listed you can suggest an edit, and if it's on Google we fill in the details for you."
+    static let communityGuideTrackTitle = "Track what you added"
+    static let communityGuideTrackBody = "Tap + and choose My places to see what's in review and what's live. We'll notify you once it's checked."
+    static let communityGuidePostTitle = "Share a thought"
+    static let communityGuidePostBody = "Tap Share a thought under the posts. Tag a place so others can open it straight from your post."
+    static let communityGuideReactTitle = "React and reply"
+    static let communityGuideReactBody = "Tap a reaction under any post, or the speech bubble to reply."
+    static let communityGuidePlaceTitle = "Open any place"
+    static let communityGuidePlaceBody = "Tap a place for directions, photos and the menu. You can add photos or menu items, or help confirm if it's halal."
+    static let communityGuideSafetyTitle = "Keep it friendly"
+    static let communityGuideSafetyBody = "Tap the three dots on a post to report it or block someone. Our team reviews every report."
+    static let communityGuideStatusReview = "In review"
+    static let communityGuideStatusLive = "Live"
+    static let communityGuideReport = "Report"
+    static let communityGuideBlock = "Block"
+    static let communityGuidePageFormat = "Page %d of %d"
+
     // MARK: - Pick from saved places
 
     static let savedPickTitle = "Pick from my saved"

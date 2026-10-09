@@ -11,6 +11,7 @@ struct CommunityView: View {
     @State private var showingAddPlace = false
     @State private var showingMyPlaces = false
     @State private var showingCommunityAssignment = false
+    @State private var showingGuide = false
     @State private var postStore = CommunityPostStore()
     @State private var postInteractions = CommunityPostInteractions()
     @State private var showingAllPosts = false
@@ -89,6 +90,9 @@ struct CommunityView: View {
                 } else if let apiError = viewModel.apiError {
                     errorState(for: apiError)
                 }
+
+                CommunityGuideFooter { showingGuide = true }
+                    .padding(.top, 8)
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
@@ -117,6 +121,9 @@ struct CommunityView: View {
             NavigationStack {
                 MySubmissionsView()
             }
+        }
+        .sheet(isPresented: $showingGuide) {
+            CommunityGuideSheet()
         }
         .sheet(isPresented: $showingCommunityAssignment) {
             CommunityAssignmentSheet(currentUniversity: currentUniversity, currentArea: currentArea) {
@@ -508,5 +515,412 @@ private struct HeaderEntrance: ViewModifier {
 private extension View {
     func headerEntrance(visible: Bool, delay: Double, reduceMotion: Bool) -> some View {
         modifier(HeaderEntrance(visible: visible, delay: delay, reduceMotion: reduceMotion))
+    }
+}
+
+
+// MARK: - How Community works
+
+/// The last thing in the feed: a quiet card that opens the picture guide.
+private struct CommunityGuideFooter: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: "questionmark.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.sambalRed)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Copy.communityGuideFooterTitle)
+                        .font(.headline)
+                        .foregroundStyle(Color.kicap)
+                    Text(Copy.communityGuideFooterDetail)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.kicapSecondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.surface, in: .card)
+            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
+        }
+        .buttonStyle(CommunityPressStyle())
+    }
+}
+
+private struct CommunityGuidePage {
+    enum Art { case community, addPlace, myPlaces, post, react, place, safety }
+
+    let art: Art
+    let title: String
+    let body: String
+
+    static let all: [CommunityGuidePage] = [
+        .init(art: .community, title: Copy.communityGuideCommunityTitle, body: Copy.communityGuideCommunityBody),
+        .init(art: .addPlace, title: Copy.communityGuideAddTitle, body: Copy.communityGuideAddBody),
+        .init(art: .myPlaces, title: Copy.communityGuideTrackTitle, body: Copy.communityGuideTrackBody),
+        .init(art: .post, title: Copy.communityGuidePostTitle, body: Copy.communityGuidePostBody),
+        .init(art: .react, title: Copy.communityGuideReactTitle, body: Copy.communityGuideReactBody),
+        .init(art: .place, title: Copy.communityGuidePlaceTitle, body: Copy.communityGuidePlaceBody),
+        .init(art: .safety, title: Copy.communityGuideSafetyTitle, body: Copy.communityGuideSafetyBody),
+    ]
+}
+
+/// Swipeable picture guide: each page draws the real control in miniature, rings the one to tap,
+/// and says what it does in a line or two.
+private struct CommunityGuideSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var page = 0
+    private let pages = CommunityGuidePage.all
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                TabView(selection: $page) {
+                    ForEach(pages.indices, id: \.self) { index in
+                        pageView(pages[index])
+                            .tag(index)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("\(String(format: Copy.communityGuidePageFormat, index + 1, pages.count)). \(pages[index].title). \(pages[index].body)")
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .always))
+                .indexViewStyle(.page(backgroundDisplayMode: .always))
+
+                Button {
+                    if page == pages.count - 1 {
+                        dismiss()
+                    } else {
+                        withAnimation(Motion.standard) { page += 1 }
+                    }
+                } label: {
+                    Text(page == pages.count - 1 ? Copy.communityGuideDone : Copy.communityGuideNext)
+                        .font(.makanBody(16).weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(Color.sambalRed, in: Capsule())
+                }
+                .buttonStyle(PressCompressStyle())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+            }
+            .background(Color.nasiCream.ignoresSafeArea())
+            .navigationTitle(Copy.communityGuideTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(Copy.close) { dismiss() }
+                }
+            }
+            .sensoryFeedback(.selection, trigger: page)
+        }
+    }
+
+    private func pageView(_ page: CommunityGuidePage) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                CommunityGuideArt(art: page.art)
+                Text(page.title)
+                    .font(.makanDisplay(22))
+                    .foregroundStyle(Color.kicap)
+                Text(page.body)
+                    .font(.makanBody(16))
+                    .foregroundStyle(Color.kicapSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 48)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+    }
+}
+
+/// Wireframe drawings of the real controls: grey bars stand in for text, and only the control
+/// being taught carries its actual label.
+private struct CommunityGuideArt: View {
+    let art: CommunityGuidePage.Art
+
+    var body: some View {
+        ZStack {
+            switch art {
+            case .community: communityArt
+            case .addPlace: addPlaceArt
+            case .myPlaces: myPlacesArt
+            case .post: postArt
+            case .react: reactArt
+            case .place: placeArt
+            case .safety: safetyArt
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 240)
+        .background(Color.surface, in: .card)
+        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
+        .accessibilityHidden(true)
+    }
+
+    private var communityArt: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "graduationcap.fill").foregroundStyle(Color.kicapSecondary)
+                GuideBar(width: 90)
+                Image(systemName: "chevron.down").font(.caption.weight(.bold)).foregroundStyle(Color.kicapSecondary)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .background(Color.nasiCream, in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+            .modifier(GuideTapHint(cornerRadius: 22))
+
+            GuideMenu {
+                GuideMenuRow(systemImage: "graduationcap.fill", highlighted: true) { GuideBar(width: 80) }
+                GuideMenuRow(systemImage: "mappin.and.ellipse") { GuideBar(width: 64) }
+                GuideMenuRow(systemImage: "globe.asia.australia.fill") { GuideBar(width: 72) }
+            }
+        }
+    }
+
+    private var addPlaceArt: some View {
+        VStack(alignment: .trailing, spacing: 12) {
+            Image(systemName: "plus")
+                .font(.headline)
+                .foregroundStyle(Color.kicap)
+                .frame(width: 40, height: 40)
+                .background(Color.nasiCream, in: Circle())
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
+                .modifier(GuideTapHint(cornerRadius: 22))
+            GuideMenu {
+                GuideMenuRow(systemImage: "plus", highlighted: true) { Text(Copy.communityAddPlaceMenuItem) }
+                GuideMenuRow(systemImage: "list.bullet") { Text(Copy.communityMyPlacesMenuItem) }
+            }
+        }
+    }
+
+    private var myPlacesArt: some View {
+        GuideMenu {
+            GuideStatusRow(status: Copy.communityGuideStatusReview, tint: .kunyit)
+            GuideStatusRow(status: Copy.communityGuideStatusLive, tint: .pandan)
+            GuideStatusRow(status: Copy.communityGuideStatusLive, tint: .pandan)
+        }
+        .frame(width: 250)
+    }
+
+    private var postArt: some View {
+        VStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                GuideBar(width: 180)
+                GuideBar(width: 130)
+                Label(Copy.communityPostsTagPlace, systemImage: "mappin.and.ellipse")
+                    .font(.makanBody(12).weight(.semibold))
+                    .foregroundStyle(Color.sambalRed)
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(Color.sambalRed.opacity(0.1), in: Capsule())
+            }
+            .padding(14)
+            .frame(width: 240, alignment: .leading)
+            .background(Color.nasiCream, in: .row)
+
+            Label(Copy.communityPostsShareCTA, systemImage: "square.and.pencil")
+                .font(.makanBody(14).weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 240, height: 44)
+                .background(Color.sambalRed, in: .row)
+                .modifier(GuideTapHint(cornerRadius: 20))
+        }
+    }
+
+    private var reactArt: some View {
+        GuidePostCard {
+            HStack(spacing: 8) {
+                ForEach(Array(CommunityReactionType.allCases.enumerated()), id: \.element) { index, type in
+                    let chip = HStack(spacing: 4) {
+                        Text(type.emoji)
+                        Text("\([3, 5, 2][index % 3])").monospacedDigit()
+                    }
+                    .font(.makanBody(13))
+                    .foregroundStyle(Color.kicap)
+                    .padding(.horizontal, 10)
+                    .frame(height: 30)
+                    .background(Color.surface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+                    if type == .fire {
+                        chip.modifier(GuideTapHint(cornerRadius: 18))
+                    } else {
+                        chip
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "bubble.left")
+                    .foregroundStyle(Color.kicapSecondary)
+            }
+        }
+    }
+
+    private var placeArt: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GuideBar(width: 150, height: 12)
+            HStack(spacing: 6) {
+                Image(systemName: "star.fill").foregroundStyle(Color.kunyit)
+                GuideBar(width: 60)
+            }
+            .font(.caption)
+            HStack(spacing: 18) {
+                ForEach(["arrow.triangle.turn.up.right.circle.fill", "phone.fill", "camera.fill", "menucard"], id: \.self) { symbol in
+                    Image(systemName: symbol)
+                        .font(.title3)
+                        .foregroundStyle(Color.sambalRed)
+                        .frame(width: 40, height: 40)
+                        .background(Color.sambalRed.opacity(0.1), in: Circle())
+                }
+            }
+        }
+        .padding(16)
+        .frame(width: 260, alignment: .leading)
+        .background(Color.nasiCream, in: .row)
+        .modifier(GuideTapHint(cornerRadius: 22))
+    }
+
+    private var safetyArt: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            GuidePostCard(menuHighlighted: true) {
+                GuideBar(width: 120)
+            }
+            GuideMenu {
+                GuideMenuRow(systemImage: "flag") { Text(Copy.communityGuideReport) }
+                GuideMenuRow(systemImage: "hand.raised") { Text(Copy.communityGuideBlock) }
+            }
+            .padding(.trailing, 24)
+        }
+    }
+}
+
+/// A grey bar standing in for a line of text.
+private struct GuideBar: View {
+    var width: CGFloat
+    var height: CGFloat = 9
+
+    var body: some View {
+        Capsule().fill(Color.hairline).frame(width: width, height: height)
+    }
+}
+
+private struct GuideMenu<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) { content() }
+            .padding(6)
+            .frame(width: 210)
+            .background(Color.nasiCream, in: .row)
+            .overlay(RoundedRectangle.row.strokeBorder(Color.hairline, lineWidth: 1))
+            .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+    }
+}
+
+private struct GuideMenuRow<Label: View>: View {
+    let systemImage: String
+    var highlighted = false
+    @ViewBuilder var label: () -> Label
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .frame(width: 20)
+                .foregroundStyle(highlighted ? Color.sambalRed : Color.kicapSecondary)
+            label()
+                .font(.makanBody(14))
+                .foregroundStyle(Color.kicap)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 38)
+        .background(highlighted ? Color.sambalRed.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct GuideStatusRow: View {
+    let status: String
+    let tint: Color
+
+    var body: some View {
+        HStack {
+            GuideBar(width: 100)
+            Spacer()
+            Text(status)
+                .font(.makanBody(12).weight(.semibold))
+                .foregroundStyle(Color.kicap)
+                .padding(.horizontal, 10)
+                .frame(height: 26)
+                .background(tint.opacity(0.25), in: Capsule())
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 44)
+    }
+}
+
+/// A post in miniature: avatar, name bar, two lines, then whatever the page is teaching.
+private struct GuidePostCard<Footer: View>: View {
+    var menuHighlighted = false
+    @ViewBuilder var footer: () -> Footer
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Circle().fill(Color.hairline).frame(width: 26, height: 26)
+                GuideBar(width: 80)
+                Spacer()
+                let dots = Image(systemName: "ellipsis")
+                    .foregroundStyle(Color.kicapSecondary)
+                    .frame(width: 30, height: 26)
+                if menuHighlighted {
+                    dots.modifier(GuideTapHint(cornerRadius: 14))
+                } else {
+                    dots
+                }
+            }
+            GuideBar(width: 200)
+            GuideBar(width: 150)
+            footer()
+        }
+        .padding(14)
+        .frame(width: 270, alignment: .leading)
+        .background(Color.nasiCream, in: .row)
+    }
+}
+
+/// Rings the control to tap with a soft pulse and puts a tapping hand beside it.
+private struct GuideTapHint: ViewModifier {
+    var cornerRadius: CGFloat = 16
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(Color.sambalRed, lineWidth: 2)
+                    .padding(-6)
+                    .scaleEffect(pulse ? 1.06 : 1)
+                    .opacity(pulse ? 0.4 : 1)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "hand.tap.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.kicap)
+                    .shadow(color: .white, radius: 2)
+                    .offset(x: 16, y: 20)
+            }
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pulse = true }
+            }
     }
 }
