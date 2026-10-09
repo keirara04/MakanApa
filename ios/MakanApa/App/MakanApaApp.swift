@@ -16,6 +16,7 @@ struct MakanApaApp: App {
     @State private var onboardingState = OnboardingState.shared
     @State private var pendingDeepLink = PendingDeepLink.shared
     @State private var selectedTab: AppTab = .decide
+    @State private var ambassadorWelcome: AmbassadorRole?
     private var authStore = AuthStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -169,6 +170,13 @@ struct MakanApaApp: App {
         .background(Color.nasiCream)
     }
 
+    private static let celebratedAmbassadorKey = "ambassador.celebratedRole"
+
+    private var currentAmbassador: AmbassadorRole? {
+        if case .authenticated(let user) = authStore.session { return user.ambassadorOf }
+        return nil
+    }
+
     private var appShell: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $decideRouter.path) {
@@ -219,6 +227,18 @@ struct MakanApaApp: App {
         }
         .environment(soloViewModel)
         .environment(locationService)
+        // Admin just made this user an ambassador (or moved them): celebrate once per role.
+        .task(id: currentAmbassador) {
+            guard let role = currentAmbassador,
+                  UserDefaults.standard.string(forKey: Self.celebratedAmbassadorKey) != role.id else { return }
+            ambassadorWelcome = role
+        }
+        .fullScreenCover(item: $ambassadorWelcome) { role in
+            AmbassadorWelcomeView(role: role) {
+                UserDefaults.standard.set(role.id, forKey: Self.celebratedAmbassadorKey)
+                ambassadorWelcome = nil
+            }
+        }
         .tint(.sambalRed)
         .preferredColorScheme(.light)
         .task {

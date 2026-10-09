@@ -35,7 +35,6 @@ struct ContextStrip: View {
             Task { await load() }
         } label: {
             HStack(spacing: 4) {
-                Text(signal.icon).accessibilityHidden(true)
                 Text(signal.label)
                     .strikethrough(off)
             }

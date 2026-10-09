@@ -148,6 +148,10 @@ struct SettingsView: View {
                             .background(Color.sambalRed.opacity(0.1), in: Capsule())
                             .padding(.top, 2)
                     }
+                    if let role = user.ambassadorOf {
+                        AmbassadorBadge(role: role)
+                            .padding(.top, 2)
+                    }
                     if contributions?.trustedContributor == true {
                         Label("Trusted contributor", systemImage: "checkmark.seal.fill")
                             .font(.makanBody(12))

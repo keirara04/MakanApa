@@ -461,12 +461,12 @@ struct NearbyView: View {
 
     private func vibeLabel(_ vibe: Vibe) -> String {
         switch vibe {
-        case .chill: return "😌 Chill"
-        case .study: return "📚 Study"
-        case .dessert: return "🍰 Dessert"
-        case .coffee: return "☕ Coffee"
-        case .brunch: return "🥐 Brunch"
-        case .lateNight: return "🌙 Late night"
+        case .chill: return "Chill"
+        case .study: return "Study"
+        case .dessert: return "Dessert"
+        case .coffee: return "Coffee"
+        case .brunch: return "Brunch"
+        case .lateNight: return "Late night"
         }
     }
 

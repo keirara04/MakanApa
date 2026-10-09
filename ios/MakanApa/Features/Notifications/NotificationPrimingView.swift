@@ -21,7 +21,7 @@ struct NotificationPrimingView: View {
 
             VStack(spacing: 16) {
                 VStack(spacing: 6) {
-                    Text("Stay in the loop 🍜")
+                    Text("Stay in the loop")
                         .font(.makanDisplay(24))
                         .foregroundStyle(Color.kicap)
                         .multilineTextAlignment(.center)

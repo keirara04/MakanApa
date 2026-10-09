@@ -50,3 +50,28 @@ struct CommunityBadge: View {
             .accessibilityLabel("Community, \(label)")
     }
 }
+
+/// "★ Ambassador · UKM" — next to an author's name, and in their own profile. Text, not the crest
+/// artwork: the crest turns into a blob below ~48pt, this stays legible at any size. Gold star to
+/// echo the crest's trim.
+struct AmbassadorBadge: View {
+    let role: AmbassadorRole
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "star.fill")
+                .foregroundStyle(Color.kunyit)
+            Text(Copy.ambassadorBadge(role.name))
+                .foregroundStyle(Color.kicap)
+                .lineLimit(1)
+        }
+        .font(.caption2.weight(.semibold))
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Color.surface, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Copy.ambassadorBadgeAccessibility(role.name))
+    }
+}

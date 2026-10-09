@@ -64,7 +64,7 @@ struct FavoritesView: View {
             Text("No saved places yet")
                 .font(.makanBody(15))
                 .foregroundStyle(.secondary)
-            Text("Tap ♡ on a place in Nearby to save it here.")
+            Text("Tap the heart on a place in Nearby to save it here.")
                 .font(.makanBody(13))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -99,11 +99,11 @@ struct VibeFollowUpSheet: View {
             }
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 90))], spacing: 10) {
-                tagButton(.chill, label: "☕ Chill")
-                tagButton(.study, label: "📚 Study")
-                tagButton(.studentBudget, label: "💸 Student")
-                tagButton(.lateNight, label: "🌙 Late night")
-                tagButton(.hiddenGem, label: "✨ Hidden gem")
+                tagButton(.chill, label: "Chill")
+                tagButton(.study, label: "Study")
+                tagButton(.studentBudget, label: "Student")
+                tagButton(.lateNight, label: "Late night")
+                tagButton(.hiddenGem, label: "Hidden gem")
             }
 
             Button("Skip", action: onSkip)

@@ -188,7 +188,7 @@ extension CommunityPost {
     /// only reads `id` and loads everything else itself.
     static func placeholder(id: Int) -> CommunityPost {
         CommunityPost(
-            id: id, parentId: nil, body: "", createdAt: "", author: CommunityPostAuthor(id: nil, name: "", avatarKey: nil),
+            id: id, parentId: nil, body: "", createdAt: "", author: CommunityPostAuthor(id: nil, name: "", avatarKey: nil, ambassadorOf: nil),
             isMine: false, restaurant: nil, reactionCount: 0, reactions: [:], myReaction: nil, replyCount: 0, replies: nil
         )
     }

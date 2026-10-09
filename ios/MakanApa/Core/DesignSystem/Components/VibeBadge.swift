@@ -8,14 +8,14 @@ struct VibeBadge: View {
 
     private var label: String {
         switch vibe {
-        case "chill": return "☕ Chill"
-        case "study": return "📚 Study"
-        case "student_budget": return "💸 Student budget"
-        case "hidden_gem": return "✨ Hidden gem"
-        case "date": return "💕 Date"
-        case "lepak": return "🛋️ Hangout"
-        case "family": return "👨‍👩‍👧 Family"
-        case "late_night": return "🌙 Late night"
+        case "chill": return "Chill"
+        case "study": return "Study"
+        case "student_budget": return "Student budget"
+        case "hidden_gem": return "Hidden gem"
+        case "date": return "Date"
+        case "lepak": return "Hangout"
+        case "family": return "Family"
+        case "late_night": return "Late night"
         default: return vibe.capitalized
         }
     }

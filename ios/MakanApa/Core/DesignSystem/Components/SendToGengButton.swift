@@ -8,7 +8,7 @@ import UIKit
 struct SendToGengButton: View {
     let restaurantId: Int
     let shareUrl: String
-    /// "Want to eat here? 🍛 KFC · Jalan Reko, Kajang (1.2 km)"
+    /// "Want to eat here? KFC · Jalan Reko, Kajang (1.2 km)"
     let message: String
     /// Called once per share attempt (funnel event / decision interaction).
     var onShare: () -> Void = {}
@@ -72,9 +72,9 @@ struct SendToGengButton: View {
         Task { _ = try? await APIClient.shareStarted(restaurantId: id) }
     }
 
-    /// The one-line message every surface uses, e.g. "Want to eat here? 🍛 KFC · Jalan Reko, Kajang (1.2 km)".
+    /// The one-line message every surface uses, e.g. "Want to eat here? KFC · Jalan Reko, Kajang (1.2 km)".
     static func message(name: String, whereText: String?, distanceKm: Double?) -> String {
-        var line = "Want to eat here? 🍛 \(name)"
+        var line = "Want to eat here? \(name)"
         if let whereText, !whereText.isEmpty { line += " · \(whereText)" }
         if let distanceKm { line += String(format: " (%.1f km)", distanceKm) }
         return line

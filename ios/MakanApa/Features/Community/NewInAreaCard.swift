@@ -12,7 +12,7 @@ struct NewInAreaCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("✨ New")
+                Text("New")
                     .font(.makanBody(10))
                     .foregroundStyle(Color.pandan)
 

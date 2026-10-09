@@ -21,7 +21,7 @@ final class ReasonCatalog
     ];
 
     /** The decision-fatigue line — also the reroll lead in RecommendationController. */
-    public const FATIGUE_LINE = 'Okay, enough choosing 😭 This is the safest bet';
+    public const FATIGUE_LINE = 'Okay, enough choosing. This is the safest bet';
 
     private const DECIDING = [
         'distance' => 'closest strong match',
@@ -130,7 +130,7 @@ final class ReasonCatalog
             'pulse' => $catLower ? ["You've been into {$catLower} lately", "Riding your {$catLower} wave"] : [],
             'selera_match' => $catLower ? ["Your kind of place: you love {$catLower}", "Very your Selera: {$catLower}"] : ['Very your Selera'],
             'lens_cheap_today' => ['Cheap today: '.(self::price($f['priceLevel'] ?? null) ?? 'easy on the wallet')],
-            'lens_treat_myself' => ['Treat yourself, you deserve it ✨'],
+            'lens_treat_myself' => ['Treat yourself, you deserve it'],
             'lens_surprise_me' => ['Surprise! Something you wouldn\'t usually pick'],
             'lens_quick_one' => ['Quick one: '.($distance ?? 'close by').' and ready to go'],
             'lens_community_favs' => [($community ? "{$community} favourite" : 'Local favourite').' right now'],
@@ -149,12 +149,12 @@ final class ReasonCatalog
             'hidden_gem' => ['Hidden gem: few reviews, high rating', 'Low-key spot the crowd hasn\'t found yet'],
             'popular' => ['A proven crowd favourite'],
             'halal_verified' => ['Halal certified'],
-            'ctx_rain' => ['Raining, so I kept it close ☔', 'Raining, so nothing far'],
-            'ctx_supper' => ['Still open for supper 🌙', 'Supper sorted, open now'],
+            'ctx_rain' => ['Raining, so I kept it close', 'Raining, so nothing far'],
+            'ctx_supper' => ['Still open for supper', 'Supper sorted, open now'],
             'ctx_friday' => ['Friday prayers, so I picked one that\'s open'],
             'ctx_iftar' => ['Iftar soon, so close by'],
             'ctx_sahur' => ['Open for sahur'],
-            'ctx_month_end' => ['End of month, so I kept it cheap 💸'],
+            'ctx_month_end' => ['End of month, so I kept it cheap'],
             'novelty' => ($s = RecommendationHeadline::categoryLabel($f['streak'] ?? null))
                 ? ['Something different from your '.mb_strtolower($s).' streak', 'Break from all that '.mb_strtolower($s)]
                 : [],

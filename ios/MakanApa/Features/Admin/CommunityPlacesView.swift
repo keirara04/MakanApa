@@ -48,7 +48,7 @@ struct CommunityPlacesView: View {
                 .font(.makanBody(12))
                 .foregroundStyle(.secondary)
             if let duplicate = submission.possibleDuplicate {
-                Text("⚠️ Possible duplicate: \(duplicate.name) (\(duplicate.distanceMeters)m away)")
+                Label("Possible duplicate: \(duplicate.name) (\(duplicate.distanceMeters)m away)", systemImage: "exclamationmark.triangle.fill")
                     .font(.makanBody(11))
                     .foregroundStyle(Color.kunyit)
             }

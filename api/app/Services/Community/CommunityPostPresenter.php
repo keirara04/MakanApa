@@ -30,7 +30,7 @@ class CommunityPostPresenter
 
         $previews = $withReplyPreview ? $this->replyPreviews($posts->pluck('id')->all(), $viewer) : collect();
         $all = new EloquentCollection($posts->concat($previews->flatten(1))->all());
-        $all->loadMissing(['user', 'restaurant']);
+        $all->loadMissing(['user.ambassadorUniversity', 'user.ambassadorArea', 'restaurant']);
 
         [$tallies, $mine] = $this->reactionData($all->pluck('id')->all(), $viewer);
 
@@ -66,6 +66,8 @@ class CommunityPostPresenter
                 'id' => $authorGone ? null : $author->id,
                 'name' => $authorGone ? 'Deleted user' : ($author->name ?: 'MakanApa user'),
                 'avatarKey' => $authorGone ? null : $author->avatar_key,
+                // Admin-assigned community role; the app shows an "Ambassador · UKM" badge.
+                'ambassadorOf' => $authorGone ? null : $author->ambassadorOf(),
             ],
             'isMine' => $post->user_id === $viewer->id,
             'restaurant' => $post->restaurant && $post->restaurant->is_active ? [

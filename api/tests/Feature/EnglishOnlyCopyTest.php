@@ -94,5 +94,7 @@ class EnglishOnlyCopyTest extends TestCase
         foreach (self::MALAY_WORDS as $word) {
             $this->assertDoesNotMatchRegularExpression('/\b'.$word.'\b/iu', $text, "Malay word \"{$word}\" in: {$text}");
         }
+        // The rating star (★) is typography, not emoji.
+        $this->assertDoesNotMatchRegularExpression('/(?!\x{2605})\p{Extended_Pictographic}/u', $text, "Emoji in: {$text}");
     }
 }

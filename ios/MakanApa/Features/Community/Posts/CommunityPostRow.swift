@@ -106,6 +106,12 @@ struct CommunityPostRow: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                // Own line, not beside the name: a long community name at large text sizes
+                // would otherwise squeeze the author's name to "…".
+                if let role = post.author.ambassadorOf {
+                    AmbassadorBadge(role: role)
+                        .padding(.vertical, 2)
+                }
                 if let date = post.createdDate {
                     Text(date, format: .relative(presentation: .named, unitsStyle: .abbreviated))
                         .font(.makanBody(12))

@@ -28,6 +28,15 @@ enum Copy {
     static let onboardingHalalYes = "Yes, hide non-halal"
     static let onboardingHalalNo = "No, show everything"
 
+    // Ambassador
+    static let ambassadorWelcomeTitle = "You're an ambassador!"
+    static func ambassadorWelcomeBody(_ community: String) -> String {
+        "You now represent \(community) on MakanApa. Your posts carry an Ambassador badge from today."
+    }
+    static let ambassadorWelcomeCTA = "Continue"
+    static func ambassadorBadge(_ community: String) -> String { "Ambassador · \(community)" }
+    static func ambassadorBadgeAccessibility(_ community: String) -> String { "\(community) ambassador" }
+
     // Taste prompt (after a real pick)
     static let tasteTitle = "Want sharper picks?"
     static let tasteSubtext = "Choose up to 4 things you usually go for. We'll lean that way."
@@ -107,14 +116,14 @@ enum Copy {
     static let resultFatigue = "Okay, enough choosing"
     static let anythingLabel = "Anything"
 
-    static let emptyState = "Nothing fits yet 😭 Try increasing your distance."
+    static let emptyState = "Nothing fits yet. Try increasing your distance."
 
-    static let connectionErrorHeadline = "Oops 😭"
+    static let connectionErrorHeadline = "Oops"
     static let connectionErrorDetail = "No connection.\nCouldn't find food right now."
-    static let genericAPIErrorHeadline = "Oops 😭"
+    static let genericAPIErrorHeadline = "Oops"
     static let genericAPIErrorDetail = "MakanApa hit a snag.\nTry again in a bit."
     static let tryAgain = "Try again"
-    static let rateLimitedHeadline = "Slow down a bit 😅"
+    static let rateLimitedHeadline = "Slow down a bit"
 
     static func rateLimitedDetail(retryAfterSeconds: Int?) -> String {
         guard let seconds = retryAfterSeconds, seconds > 0 else {
@@ -124,7 +133,7 @@ enum Copy {
     }
     static let backHome = "Back home"
 
-    static let locationDenied = "Can't find food if we don't know where you are 👀"
+    static let locationDenied = "Can't find food if we don't know where you are."
     static let locationPrivacyLine = "We only use your location while you're using MakanApa."
 
     static let tagline = "Less thinking. More eating."
@@ -144,7 +153,7 @@ enum Copy {
     static let communitySubtitleAreaFormat = "Popular around %@"
     static let communityHeadlinePublic = "What's trending near you"
     static let communitySubtitlePublic = "Trending picks nearby"
-    static let communityEmptyHeadline = "Nothing trending yet 👀"
+    static let communityEmptyHeadline = "Nothing trending yet"
     static let communityEmptyDetail = "Every recommendation your community picks helps build this page."
     static let communityLocationPromptHeadline = "See what's trending around you"
     static let communityLocationPromptDetail = "MakanApa uses your location to find popular picks nearby."
@@ -154,9 +163,9 @@ enum Copy {
     /// place, so this is literally true, not marketing.
     static let guestCarryOver = "Your picks, saved places and taste profile all come with you. Nothing lost."
     static let guestSettingsDetail = "Sign in to add places and post. Your picks, saves and taste profile come with you."
-    static let nudgePicksTitle = "You've been picking well 🍛"
+    static let nudgePicksTitle = "You've been picking well"
     static let nudgePicksDetail = "MakanApa is learning what you like. Save it to an account so a new phone doesn't mean starting over."
-    static let nudgeSavesTitle = "Your food list is growing ❤️"
+    static let nudgeSavesTitle = "Your food list is growing"
     static let nudgeSavesDetail = "Keep your saved places safe, on this phone or the next one."
     static let continueAsGuestFailed = "Couldn't start. Check your connection and try again."
     static let communityLocationDeniedHeadline = "Location is off"
@@ -182,16 +191,16 @@ enum Copy {
     static let communityRequestUniversityPlaceholder = "e.g. Universiti Malaya"
     static let communityRequestAreaPlaceholder = "e.g. Shah Alam, Cheras, your neighbourhood"
     static let communityRequestSubmit = "Send request"
-    static let communityRequestSentConfirmation = "Thanks, we'll take a look! 👀"
+    static let communityRequestSentConfirmation = "Thanks, we'll take a look!"
 
     // Community posts ("What KU is saying")
     static let communityPostsSectionFormat = "WHAT %@ IS SAYING"
     static let communityPostsSectionPublic = "WHAT PEOPLE ARE SAYING"
     static let communityPostsSeeAll = "See all ›"
     static let communityPostsEmptyHeadline = "No one's said anything yet"
-    static let communityPostsEmptyDetailFormat = "Be the first to share what %@ is eating 🍛"
+    static let communityPostsEmptyDetailFormat = "Be the first to share what %@ is eating"
     static let communityPostsJoinPrompt = "Join a university or area community to see and share thoughts."
-    static let communityPostsComposePlaceholder = "Share a thought… best teh tarik? new spot? 👀"
+    static let communityPostsComposePlaceholder = "Share a thought… best teh tarik? new spot?"
     static let communityPostsReplyPlaceholder = "Write a reply…"
     static let communityPostsShareCTA = "Share a thought"
     static let communityPostsPost = "Post"
@@ -215,7 +224,7 @@ enum Copy {
     static let communityAddPlaceCTA = "Know a good spot? Add it →"
     static let communityMyPlacesMenuItem = "My places"
     static let communitySearchTitle = "Add a place"
-    static let communitySearchSubtitle = "Found somewhere good? 👀 Let's check if we know it first."
+    static let communitySearchSubtitle = "Found somewhere good? Let's check if we know it first."
     static let communitySearchPlaceholder = "Search for a place"
     static let communitySearchExistingLabel = "Already on MakanApa"
     static let communitySearchGoogleLabel = "Found on Google"

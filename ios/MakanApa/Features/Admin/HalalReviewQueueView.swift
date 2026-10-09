@@ -28,7 +28,7 @@ struct HalalReviewQueueView: View {
                         Text("Claims \(report.halal?.claim?.pickerLabel ?? "None") · now \(report.halal?.currentStatus?.pickerLabel ?? "None")")
                             .font(.makanBody(12)).foregroundStyle(.secondary)
                         if report.halal?.duplicatePhoto == true {
-                            Text("⚠️ Duplicate photo").font(.makanBody(11)).foregroundStyle(Color.sambalRed)
+                            Label("Duplicate photo", systemImage: "exclamationmark.triangle.fill").font(.makanBody(11)).foregroundStyle(Color.sambalRed)
                         }
                     }
                 }

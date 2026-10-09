@@ -116,9 +116,9 @@ brand asks for it AND you can say why it fits MakanApa.
 4. **Shape lock.** State the radius rule once (e.g. "CTAs are capsules,
    cards 20, chips capsule, inputs 12") and never violate it.
 5. **Voice and emoji.** All copy is plain English — no Manglish or Malay
-   slang (dish names and the brand stay). Emoji are allowed **in copy**
-   (`Copy.swift`) sparingly, one per message max. Never as icons, buttons,
-   or chrome. UI icons are SF Symbols.
+   slang (dish names and the brand stay). No emoji anywhere: not in copy,
+   icons, buttons or chrome. UI icons are SF Symbols. No em dashes in
+   user-facing strings.
 6. **One label per intent.** Pick one phrasing per action and reuse it from
    `Copy.swift` everywhere it appears.
 7. **Emphasis stays in the family.** Emphasize with weight of the same

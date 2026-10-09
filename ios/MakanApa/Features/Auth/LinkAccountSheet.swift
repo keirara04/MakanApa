@@ -34,7 +34,7 @@ struct LinkAccountSheet: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             } else {
                 VStack(spacing: 8) {
-                    Text("Looks like you've been here before 👀")
+                    Text("Looks like you've been here before")
                         .font(.system(.title3, design: .rounded, weight: .bold))
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)

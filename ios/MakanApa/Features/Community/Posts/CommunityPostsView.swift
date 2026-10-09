@@ -73,7 +73,7 @@ struct CommunityPostsEmptyState: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("💬")
+            Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 34))
                 .accessibilityHidden(true)
             Text(Copy.communityPostsEmptyHeadline)

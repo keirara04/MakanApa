@@ -143,6 +143,7 @@
 		FA375B15DFD6586960162C05 /* GuestUpgradeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C864BC8CE109DF717B344D1 /* GuestUpgradeCard.swift */; };
 		FA3F54141E484DB188AB3822 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 00CB700906F64060AE286E78 /* GoogleSignInSwift */; };
 		FA6D6507FA7C4D24A5904DF7 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1C6F81AA004B2DABE13679 /* AppleNonce.swift */; };
+		FD8204400E3E75ACACD3BDA6 /* AmbassadorWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F9257D72D9EFE262A4F3BA /* AmbassadorWelcomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -197,6 +198,7 @@
 		529E77FFBB95943BE6EC19D7 /* HalalHistoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HalalHistoryView.swift; sourceTree = "<group>"; };
 		5596DA671559CAAC3DB5E2C0 /* MoodChoiceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodChoiceCard.swift; sourceTree = "<group>"; };
 		58BA487AAE3CA7B448B9D13F /* LoginButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginButtonStyle.swift; sourceTree = "<group>"; };
+		59F9257D72D9EFE262A4F3BA /* AmbassadorWelcomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AmbassadorWelcomeView.swift; sourceTree = "<group>"; };
 		5A923D5B0BA60CA5578E2243 /* CommunityPostPresentations.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityPostPresentations.swift; sourceTree = "<group>"; };
 		651EAF0CDE373FFCEA468C00 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		65E5A743CB85443D8CD5A533 /* CommunityTrendingCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CommunityTrendingCard.swift; sourceTree = "<group>"; };
@@ -606,6 +608,7 @@
 				EC5D2C8579DE408BB70E28F7 /* MapPinPickerView.swift */,
 				E4EAEC1DF3E04B0780656E78 /* MySubmissionsView.swift */,
 				644EC2A776E62B35CC093EF8 /* Posts */,
+				59F9257D72D9EFE262A4F3BA /* AmbassadorWelcomeView.swift */,
 			);
 			path = Community;
 			sourceTree = "<group>";
@@ -920,6 +923,7 @@
 				E4A6D4CFF8B61BAED933A804 /* GuestUpgradeNudge.swift in Sources */,
 				E868E75E1EFE0A8B115C645D /* Shape.swift in Sources */,
 				309ADCF4ED49E0F3293FA1D3 /* SavedPickRevealView.swift in Sources */,
+				FD8204400E3E75ACACD3BDA6 /* AmbassadorWelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

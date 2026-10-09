@@ -72,6 +72,16 @@ class CommunityPostTest extends TestCase
         $this->assertDatabaseHas('community_posts', ['user_id' => $author->id, 'university_id' => $this->ku->id, 'area_id' => null]);
     }
 
+    public function test_feed_shows_the_authors_ambassador_community(): void
+    {
+        $author = $this->member(attributes: ['ambassador_university_id' => $this->ku->id]);
+        $this->publish($author);
+
+        $response = $this->signIn($this->member())->getJson('/api/v1/community/posts');
+
+        $response->assertJsonPath('posts.0.author.ambassadorOf', ['type' => 'university', 'name' => 'KU']);
+    }
+
     public function test_posts_never_leak_across_communities(): void
     {
         $this->publish($this->member($this->ku));

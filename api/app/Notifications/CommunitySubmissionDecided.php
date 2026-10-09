@@ -49,7 +49,7 @@ class CommunitySubmissionDecided extends Notification implements ShouldQueue
     private function title(): string
     {
         return $this->decision === 'approved'
-            ? 'Your submission was approved 🎉'
+            ? 'Your submission was approved'
             : 'Your submission needs a look';
     }
 

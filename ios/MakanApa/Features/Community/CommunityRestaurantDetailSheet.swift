@@ -187,18 +187,22 @@ struct CommunityRestaurantDetailSheet: View {
 
     private func aboutSection(_ details: PlaceDetails) -> some View {
         let rows: [(String, String)] = [
-            details.closesAt.map { ("🕐", "Open until \($0)") },
-            details.phone.map { ("☎️", $0) },
-            details.websiteUrl.map { ("🌐", $0) },
+            details.closesAt.map { ("clock", "Open until \($0)") },
+            details.phone.map { ("phone", $0) },
+            details.websiteUrl.map { ("globe", $0) },
         ].compactMap { $0 }
 
         return Group {
             if !rows.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     sectionHeader("ABOUT")
-                    ForEach(rows, id: \.1) { emoji, text in
+                    ForEach(rows, id: \.1) { symbol, text in
                         HStack(spacing: 8) {
-                            Text(emoji)
+                            Image(systemName: symbol)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 18)
+                                .accessibilityHidden(true)
                             Text(text).font(.makanBody(13)).foregroundStyle(Color.kicap.opacity(0.85))
                         }
                     }

@@ -214,7 +214,7 @@ struct PreferenceView: View {
                             viewModel.lens = selected ? nil : lens
                         } label: {
                             HStack(spacing: 6) {
-                                Text(lens.emoji).accessibilityHidden(true)
+                                Image(systemName: lens.symbol).accessibilityHidden(true)
                                 Text(lens.label(community: communityName))
                             }
                             .font(.system(.subheadline, design: .rounded, weight: .semibold))

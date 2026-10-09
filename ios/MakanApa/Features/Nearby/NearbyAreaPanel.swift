@@ -276,17 +276,17 @@ struct NearbyAreaPanel: View {
     private func personalityTagsRow(_ tags: [AreaPersonalityTag]) -> some View {
         HStack(spacing: 8) {
             ForEach(tags) { tag in
-                Text("\(personalityEmoji(for: tag.key)) \(tag.label)")
+                Label(tag.label, systemImage: personalitySymbol(for: tag.key))
                     .capsuleTagStyle()
             }
         }
     }
 
-    private func personalityEmoji(for key: String) -> String {
+    private func personalitySymbol(for key: String) -> String {
         switch key {
-        case "budget_friendly": return "💸"
-        case "category_heavy": return "🍛"
-        default: return "✨"
+        case "budget_friendly": return "banknote"
+        case "category_heavy": return "fork.knife"
+        default: return "star"
         }
     }
 

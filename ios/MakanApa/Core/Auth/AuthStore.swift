@@ -23,6 +23,8 @@ struct AuthUser: Codable, Equatable {
     /// Optional: absent from older cached payloads / older backends. Nil reads as "nothing to
     /// agree to" — the server still refuses an unagreed contribution with `terms_required`.
     let legal: LegalStatus?
+    /// Optional: absent from older cached payloads / older backends.
+    let ambassadorOf: AmbassadorRole?
 
     var isSuperadmin: Bool { role == "superadmin" }
     var isGuestAccount: Bool { isGuest == true }

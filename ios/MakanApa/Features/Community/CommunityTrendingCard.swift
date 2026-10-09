@@ -45,7 +45,7 @@ struct CommunityTrendingCard: View {
                     HStack(spacing: 8) {
                         if let pickerCount = item.pickerCount {
                             HStack(spacing: 3) {
-                                Text("🔥")
+                                Image(systemName: "flame.fill").accessibilityHidden(true)
                                 Text("\(pickerCount)")
                                     .contentTransition(.numericText())
                                 Text(pickerCount == 1 ? "person picked this" : "people picked this")

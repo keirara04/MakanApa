@@ -1196,6 +1196,17 @@ struct CommunityPostAuthor: Decodable, Equatable, Hashable {
     let id: Int?
     let name: String
     let avatarKey: String?
+    /// Optional: absent from older backends.
+    let ambassadorOf: AmbassadorRole?
+}
+
+/// Admin-assigned: this person represents one university or area. Independent of their own
+/// community. `name` is the short name ("UKM", "Bangi").
+struct AmbassadorRole: Codable, Equatable, Hashable, Identifiable {
+    let type: String
+    let name: String
+
+    var id: String { "\(type):\(name)" }
 }
 
 struct CommunityPostPlace: Decodable, Equatable, Hashable {
@@ -1309,13 +1320,13 @@ enum Lens: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var emoji: String {
+    var symbol: String {
         switch self {
-        case .cheapToday: "💸"
-        case .treatMyself: "✨"
-        case .quickOne: "⚡"
-        case .surpriseMe: "🎲"
-        case .communityFavs: "🔥"
+        case .cheapToday: "banknote"
+        case .treatMyself: "gift"
+        case .quickOne: "bolt"
+        case .surpriseMe: "dice"
+        case .communityFavs: "flame"
         }
     }
 
