@@ -321,7 +321,9 @@ struct SavedPickRevealView: View {
     private func opacity(isTop: Bool) -> Double {
         guard entered else { return 0 }
         switch phase {
-        case .boxed: return 1
+        // Hidden while sealed: the box rocks and squashes but the cards inside don't, so a corner
+        // would poke out past the lid. Once it's open they're below the rim until they climb.
+        case .boxed: return cardsOut || box.lidAngle > 60 ? 1 : 0
         case .fanned, .stacked: return 1
         case .revealing, .revealed: return isTop ? 1 : 0
         case .failed, .exhausted: return 0.2
@@ -906,7 +908,7 @@ struct CardBoxMotion {
     var sunk = false
 
     /// Where the box sits in the deck area, and where the cards ride inside it.
-    static let centerY: CGFloat = 60
+    static let centerY: CGFloat = 0
     static let cardsInside = CGSize(width: -12, height: centerY + 46)
 }
 
