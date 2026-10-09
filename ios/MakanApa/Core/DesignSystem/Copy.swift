@@ -374,6 +374,33 @@ enum Copy {
     static let nearbyGuideModeCafe = "Cafe"
     static let nearbyGuideSearchExample = "nasi lemak"
 
+    // MARK: - My places
+
+    static let myPlacesStatLive = "Live"
+    static let myPlacesStatReview = "In review"
+    static let myPlacesStatChanges = "Needs changes"
+    static let myPlacesFilterAll = "All"
+    static let myPlacesFilterLabel = "Show"
+    static let myPlacesTypeNew = "New place"
+    static let myPlacesTypeEdit = "Edit"
+    static let myPlacesTypeHalal = "Halal report"
+    static let myPlacesTypeOwner = "Ownership claim"
+    static let myPlacesTypeClosure = "Closure report"
+    static let myPlacesTypeReopen = "Reopen report"
+    static let myPlacesStepSent = "Sent"
+    static let myPlacesStepReviewing = "Reviewing"
+    static let myPlacesStepLive = "Live"
+    static let myPlacesReviewerNote = "Reviewer's note"
+    static let myPlacesEmptyTitle = "Nothing here yet"
+    static let myPlacesEmptyDetail = "Places you add or fix show up here, with where they are in review."
+    static let myPlacesEmptyFiltered = "Nothing in this list right now."
+    static let myPlacesAddPlace = "Add a place"
+    static let myPlacesLoadFailed = "Couldn't load your places."
+    static let myPlacesWithdraw = "Withdraw"
+    static let myPlacesWithdrawTitle = "Withdraw this submission?"
+    static let myPlacesWithdrawMessage = "It won't be reviewed. You can always add it again."
+    static let myPlacesWithdrawFailed = "Couldn't withdraw it. Try again."
+
     // MARK: - Community guide
 
     static let communityGuideTitle = "How Community works"
