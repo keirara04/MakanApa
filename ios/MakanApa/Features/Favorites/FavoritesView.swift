@@ -7,6 +7,8 @@ import UIKit
 struct FavoritesView: View {
     private var preferences = PlacePreferencesStore.shared
     private var upgradeNudge = GuestUpgradeNudge.shared
+    @Environment(LocationService.self) private var locationService
+    @State private var savedPick: SavedPickLaunch?
 
     var body: some View {
         Group {
@@ -35,14 +37,15 @@ struct FavoritesView: View {
                 }
             }
         }
+        .savedPickCover($savedPick)
         .navigationTitle("Saved")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// Hands off to Home, which closes this Settings sheet and runs the card shuffle there.
+    /// Opens the card shuffle right over this sheet; closing it lands back on this list.
     private var pickOneButton: some View {
         Button {
-            PendingDeepLink.shared.savedPickRequested = true
+            savedPick = SavedPickLaunch.make(places: preferences.savedPlaces, location: locationService.state)
         } label: {
             Label(Copy.savedPickButton, systemImage: "rectangle.stack.fill")
                 .font(.makanBody(15).weight(.semibold))

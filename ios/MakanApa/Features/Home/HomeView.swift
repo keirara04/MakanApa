@@ -48,7 +48,7 @@ struct HomeView: View {
     @State private var quickPickTaps = 0
     @State private var recentTaps = 0
     @State private var savedPickTaps = 0
-    /// Non-nil while the saved-places shuffle is on screen.
+    /// Non-nil while the saved-places shuffle is presented.
     @State private var savedPick: SavedPickLaunch?
 
     @MainActor private static var hasEntered = false
@@ -57,22 +57,9 @@ struct HomeView: View {
     private var upgradeNudge = GuestUpgradeNudge.shared
     private var preferences = PlacePreferencesStore.shared
 
-    private struct SavedPickLaunch {
-        let places: [SavedPlace]
-        let origin: CLLocationCoordinate2D
-    }
-
     var body: some View {
         ZStack {
-            if let savedPick {
-                SavedPickRevealView(
-                    places: savedPick.places,
-                    origin: savedPick.origin,
-                    onDealt: finishSavedPick,
-                    onCancel: cancelSavedPick
-                )
-                .transition(.opacity)
-            } else if isQuickPicking {
+            if isQuickPicking {
                 PreferenceLoadingView(
                     mood: Copy.anythingLabel,
                     budget: quickPickBudgetLabel,
@@ -120,21 +107,11 @@ struct HomeView: View {
             }
             startQuickPick()
         }
-        .onChange(of: pendingDeepLink.savedPickRequested, initial: true) { _, requested in
-            // Saved's "Pick one for me" lives inside the Settings sheet — close it, then shuffle here.
-            guard requested else { return }
-            pendingDeepLink.savedPickRequested = false
-            showSettings = false
-            startSavedPick()
-        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { checkVibeFollowUp() }
         }
-        .onDisappear {
-            cancelQuickPick()
-            // Its .task is cancelled with the view — coming back must not land on a frozen deck.
-            savedPick = nil
-        }
+        .onDisappear { cancelQuickPick() }
+        .savedPickCover($savedPick)
     }
 
     private func checkVibeFollowUp() {
@@ -332,35 +309,10 @@ struct HomeView: View {
         .accessibilityHint(Copy.savedPickHint)
     }
 
-    /// Without location the centroid of the saved places stands in — distance then just counts for less.
     private func startSavedPick() {
-        let places = preferences.savedPlaces
-        guard places.count >= 2, savedPick == nil, !isQuickPicking else { return }
-        let origin: CLLocationCoordinate2D
-        if case let .authorized(coordinate) = locationService.state {
-            origin = coordinate
-        } else {
-            origin = CLLocationCoordinate2D(
-                latitude: places.map(\.latitude).reduce(0, +) / Double(places.count),
-                longitude: places.map(\.longitude).reduce(0, +) / Double(places.count)
-            )
-        }
-
+        guard !isQuickPicking else { return }
         savedPickTaps += 1
-        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : Motion.standard) {
-            savedPick = SavedPickLaunch(places: places, origin: origin)
-        }
-    }
-
-    private func finishSavedPick() {
-        router.push(.soloResult)
-        savedPick = nil
-    }
-
-    private func cancelSavedPick() {
-        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : Motion.standard) {
-            savedPick = nil
-        }
+        savedPick = SavedPickLaunch.make(places: preferences.savedPlaces, location: locationService.state)
     }
 
     private var quickPickBudgetLabel: String {

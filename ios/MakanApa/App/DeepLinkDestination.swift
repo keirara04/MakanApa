@@ -112,9 +112,6 @@ final class PendingDeepLink {
     var placeRequest: PlaceOpenRequest?
     /// Set when something wants Home's "Just pick lah" run; `HomeView` runs it and clears it.
     var quickPickRequest: QuickPickRequest?
-    /// Set by Saved's "Pick one for me" (inside the Settings sheet); `HomeView` closes the sheet,
-    /// runs the saved-places shuffle, and clears it.
-    var savedPickRequested = false
 
     private init() {}
 }

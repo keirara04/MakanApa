@@ -14,4 +14,7 @@ extension Color {
     static let surface = Color("Surface")
     /// Borders, dividers, pressed-row highlight.
     static let hairline = Color("Hairline")
+    /// The near-black stage behind the saved-places card shuffle — the same in both themes, so
+    /// text on it is always white.
+    static let stage = Color("Stage")
 }

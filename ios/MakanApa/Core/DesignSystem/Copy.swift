@@ -268,6 +268,15 @@ enum Copy {
     static let savedPickFailed = "Couldn't pick right now. Check your connection and try again."
     static let savedPickRateLimited = "That's a lot of shuffling. Try again in a minute."
     static let savedPickCardBackLabel = "Saved place, face down"
+    static let savedPickRevealing = "And the pick is…"
+    static let savedPickWhyTitle = "Why this one"
+    static let savedPickShuffleAgain = "Shuffle again"
+    static let savedPickNoMore = "That was every saved place that fits right now."
+    static let savedPickReasonSaved = "One of your saved places"
+    static func savedPickReasonSavedAgo(_ relative: String) -> String { "You saved it \(relative)" }
+    static func savedPickReasonDistance(_ distance: String) -> String { "\(distance) from you" }
+    static let savedPickReasonOpen = "Open right now"
+    static let close = "Close"
     static let back = "Back"
     static let cancel = "Cancel"
 
