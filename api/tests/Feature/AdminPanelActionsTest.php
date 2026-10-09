@@ -6,6 +6,7 @@ use App\Filament\Resources\Restaurants\Pages\EditRestaurant;
 use App\Filament\Resources\RestaurantSubmissions\Pages\ListRestaurantSubmissions;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\AdminAuditLog;
+use App\Models\Area;
 use App\Models\Restaurant;
 use App\Models\RestaurantSubmission;
 use App\Models\University;
@@ -128,5 +129,49 @@ class AdminPanelActionsTest extends TestCase
         $target->refresh();
         $this->assertSame($oldHash, $target->password);
         $this->assertSame(0, AdminAuditLog::where('action', 'user.change_password')->count());
+    }
+
+    public function test_set_ambassador_action_assigns_a_university_and_audits(): void
+    {
+        $admin = $this->superadmin();
+        $target = User::factory()->create();
+        $ukm = University::create(['name' => 'Universiti Kebangsaan Malaysia', 'short_name' => 'UKM', 'active' => true]);
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->callAction('setAmbassador', data: ['type' => 'university', 'university_id' => $ukm->id]);
+
+        $this->assertSame($ukm->id, $target->fresh()->ambassador_university_id);
+        $this->assertNull($target->fresh()->ambassador_area_id);
+        $this->assertSame(1, AdminAuditLog::where('action', 'user.set_ambassador')->count());
+    }
+
+    public function test_switching_ambassador_to_an_area_clears_the_university(): void
+    {
+        $admin = $this->superadmin();
+        $ukm = University::create(['name' => 'Universiti Kebangsaan Malaysia', 'short_name' => 'UKM', 'active' => true]);
+        $bangi = Area::create(['name' => 'Bangi', 'short_name' => 'Bangi', 'active' => true]);
+        $target = User::factory()->create(['ambassador_university_id' => $ukm->id]);
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->callAction('setAmbassador', data: ['type' => 'area', 'area_id' => $bangi->id]);
+
+        $this->assertNull($target->fresh()->ambassador_university_id);
+        $this->assertSame($bangi->id, $target->fresh()->ambassador_area_id);
+    }
+
+    public function test_setting_ambassador_to_none_removes_it(): void
+    {
+        $admin = $this->superadmin();
+        $bangi = Area::create(['name' => 'Bangi', 'short_name' => 'Bangi', 'active' => true]);
+        $target = User::factory()->create(['ambassador_area_id' => $bangi->id]);
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->callAction('setAmbassador', data: ['type' => 'none']);
+
+        $this->assertNull($target->fresh()->ambassador_university_id);
+        $this->assertNull($target->fresh()->ambassador_area_id);
     }
 }
