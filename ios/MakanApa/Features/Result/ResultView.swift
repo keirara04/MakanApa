@@ -7,18 +7,18 @@ struct ResultView: View {
     @Environment(SoloViewModel.self) private var viewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var showIntro = false
-    @State private var showMascot = false
-    @State private var showHeadline = false
-    @State private var showInfo = false
-    @State private var showCTA = false
+    /// One switch for the whole reveal; each piece staggers off it with its own delay.
+    @State private var revealed = false
+    @State private var revealTick = 0
+    @State private var rerollTaps = 0
+    @State private var rejectTaps = 0
     @State private var isRerolling = false
     @State private var rerollTask: Task<Void, Never>?
     @State private var photoPage = 0
     @State private var exitEdge: Edge = .leading
-    @State private var acceptSettle = false
     @State private var revealedReasonCount = 0
     @State private var showNotificationPriming = false
+    @State private var showTastePrompt = false
     @State private var showingAddMenu = false
     @State private var showTrace = false
     @State private var showingWhatIf = false
@@ -30,26 +30,32 @@ struct ResultView: View {
     private static let traceReplayLatencyLimit: Duration = .seconds(2)
 
     var body: some View {
-        VStack(spacing: 20) {
-            MakanApaTopBar(onBack: { router.pop() })
-
-            Spacer().frame(height: 20)
-
-            if isRerolling {
-                rerollingContent
-            } else if let error = viewModel.apiError {
-                errorContent(for: error)
-            } else if let pick = viewModel.currentPick {
+        Group {
+            if !isRerolling, viewModel.apiError == nil, let pick = viewModel.currentPick {
                 resultContent(for: pick)
             } else {
-                noResultContent
+                VStack(spacing: 20) {
+                    if isRerolling {
+                        rerollingContent
+                    } else if let error = viewModel.apiError {
+                        errorContent(for: error)
+                    } else {
+                        noResultContent
+                    }
+                    Spacer()
+                }
+                .padding()
             }
-
-            Spacer()
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.nasiCream)
-        .toolbar(.hidden, for: .navigationBar)
+        // System back (keeps the edge swipe) instead of a hand-rolled bar + wordmark — the pick
+        // is the headline here, nothing should sit above it. The photo runs up under the bar.
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .sensoryFeedback(.success, trigger: revealTick)
+        .sensoryFeedback(.impact(weight: .light), trigger: rerollTaps)
+        .sensoryFeedback(.impact(weight: .medium), trigger: rejectTaps)
         .task(id: viewModel.currentPick?.id) {
             guard !isRerolling else { return }
             photoPage = 0
@@ -72,6 +78,15 @@ struct ResultView: View {
                 showNotificationPriming = false
             })
             .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showTastePrompt, onDismiss: {
+            // Swiped away counts as "Not now" — don't ask on every accept.
+            if OnboardingState.shared.shouldAskTaste {
+                OnboardingState.shared.finishTastePrompt(saved: false)
+            }
+        }) {
+            TastePromptSheet()
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingAddMenu) {
             if let pick = viewModel.currentPick {
@@ -98,165 +113,204 @@ struct ResultView: View {
     /// moment is instead where a first-time user is asked about notifications — right after
     /// the app has actually been useful, not before they've even signed in.
     private func afterAccept() {
+        // One ask per accept: notifications on the first, cravings on the next.
         if !NotificationPrimingState.shared.hasSeenPriming {
             showNotificationPriming = true
+        } else if OnboardingState.shared.shouldAskTaste {
+            showTastePrompt = true
         }
     }
 
     // MARK: - Result
 
+    /// The photo is the hero, the name and one details line sit under it, and the decision lives
+    /// in a bar pinned above the tab bar — always reachable, never at the end of a long scroll.
+    /// While a real thinking trace replays, it takes the whole page; then the result reveals.
     @ViewBuilder
     private func resultContent(for pick: RecommendationResponse.Recommendation) -> some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                if showTrace, let trace = pick.thinkingTrace, !trace.isEmpty {
-                    ThinkingTraceView(lines: trace)
-                        .padding(.horizontal, 24)
-                        .transition(.opacity)
-                } else {
-                    Text(pick.fatigue == true ? "Okay lah, enough choosing 😭" : Copy.resultIntro)
-                        .font(.makanBody(15))
-                        .foregroundStyle(.secondary)
-                        .opacity(showIntro ? 1 : 0)
-                        .animation(.easeOut(duration: 0.2), value: showIntro)
-                }
+        if showTrace, let trace = pick.thinkingTrace, !trace.isEmpty {
+            ThinkingTraceView(lines: trace)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.opacity)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    heroPhoto(for: pick)
+                        .reveal(revealed, delay: 0)
 
-                MascotView(mood: .celebrate, size: 64)
-                    .opacity(showMascot ? 1 : 0)
-                    .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.6), value: showMascot)
+                    VStack(alignment: .leading, spacing: 24) {
+                        header(for: pick)
 
-                VStack(spacing: 8) {
-                    Text(pick.name)
-                        .font(.makanDisplay(36))
-                        .foregroundStyle(Color.kicap)
-                        .multilineTextAlignment(.center)
-                        .scaleEffect(showHeadline ? 1 : 0.85)
-                        .opacity(showHeadline ? 1 : 0)
-                        .animation(reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.4, dampingFraction: 0.7), value: showHeadline)
+                        VStack(alignment: .leading, spacing: 16) {
+                            if let reasons = pick.reasons, !reasons.isEmpty {
+                                KenapaNiSection(
+                                    reasons: reasons,
+                                    decidingFactor: pick.decidingFactor,
+                                    revealedCount: revealedReasonCount,
+                                    hasWhatIf: pick.hasWhatIf == true,
+                                    onWhatIf: openWhatIf
+                                )
+                            } else {
+                                reasonChips
+                            }
 
-                    Text(Copy.resultThatsIt)
-                        .font(.makanBody(16))
-                        .foregroundStyle(.secondary)
-                        .opacity(showHeadline ? 1 : 0)
+                            if let from = viewModel.rerolledAwayFrom {
+                                VStack(spacing: 4) {
+                                    Text("Skipped \(from)")
+                                        .font(.footnote)
+                                        .foregroundStyle(Color.kicapSecondary)
+                                    WhyNotChips { reason, detail in viewModel.sendWhyNot(reason, detail: detail) }
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 4)
+                            }
 
-                    if let fit = pick.fit {
-                        FitBadge(fit: fit)
-                            .opacity(showHeadline ? 1 : 0)
-                    }
-                }
+                            if let shareUrl = pick.shareUrl {
+                                SendToGengButton(
+                                    restaurantId: pick.id,
+                                    shareUrl: shareUrl,
+                                    message: SendToGengButton.message(name: pick.name, whereText: pick.foodCategory.map { $0.replacingOccurrences(of: "_", with: " ").capitalized }, distanceKm: pick.distanceKm)
+                                ) {
+                                    viewModel.logInteraction("shared")
+                                }
+                            }
 
-                VStack(spacing: 16) {
-                    resultCard(for: pick)
+                            if let adjustment = viewModel.searchWider {
+                                SearchWiderBanner(message: viewModel.searchWiderMessage ?? "Nothing better nearby. Search a bit wider?", adjustment: adjustment) {
+                                    Task { await viewModel.acceptSearchWider() }
+                                }
+                            } else if viewModel.canTune {
+                                TuneRow(used: viewModel.tunesUsed) { direction in tune(direction) }
+                                    .disabled(isTuning)
+                                    .opacity(isTuning ? 0.5 : 1)
+                            }
 
-                    nameBlock(for: pick)
+                            if !pick.menuItems.isEmpty {
+                                menuSection(for: pick)
+                            } else {
+                                menuNudge
+                            }
 
-                    if let reasons = pick.reasons, !reasons.isEmpty {
-                        KenapaNiSection(
-                            reasons: reasons,
-                            decidingFactor: pick.decidingFactor,
-                            revealedCount: revealedReasonCount,
-                            hasWhatIf: pick.hasWhatIf == true,
-                            onWhatIf: openWhatIf
-                        )
-                    } else {
-                        reasonChips
-                    }
+                            if let halal = pick.halal {
+                                HalalVerificationSection(restaurantId: pick.id, restaurantName: pick.name, halal: halal)
+                            }
 
-                    if let from = viewModel.rerolledAwayFrom {
-                        VStack(spacing: 4) {
-                            Text("Skipped \(from)")
-                                .font(.makanBody(12))
-                                .foregroundStyle(.secondary)
-                            WhyNotChips { reason, detail in viewModel.sendWhyNot(reason, detail: detail) }
+                            if !pick.reviews.isEmpty {
+                                reviewsSection(for: pick)
+                            }
+
+                            if pick.photos.contains(where: { !$0.authorAttributions.isEmpty }) || !pick.reviews.isEmpty {
+                                Text("Photo & reviews from Google Maps")
+                                    .font(.caption2)
+                                    .foregroundStyle(Color.kicapSecondary)
+                                    .frame(maxWidth: .infinity)
+                            }
                         }
-                        .padding(.vertical, 4)
+                        .reveal(revealed, delay: 0.25)
                     }
-
-                    if !pick.menuItems.isEmpty {
-                        menuSection(for: pick)
-                    } else {
-                        menuNudge
-                    }
-
-                    if let halal = pick.halal {
-                        HalalVerificationSection(restaurantId: pick.id, restaurantName: pick.name, halal: halal)
-                    }
-
-                    if !pick.reviews.isEmpty {
-                        reviewsSection(for: pick)
-                    }
-
-                    if pick.photos.contains(where: { !$0.authorAttributions.isEmpty }) || !pick.reviews.isEmpty {
-                        Text("Photo & reviews from Google Maps")
-                            .font(.makanBody(10))
-                            .foregroundStyle(Color.kicap.opacity(0.4))
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 24)
                 }
-                .padding(.horizontal, 8)
-                .offset(y: showInfo ? 0 : 12)
-                .opacity(showInfo ? 1 : 0)
-                .animation(.easeOut(duration: 0.25), value: showInfo)
-
-                VStack(spacing: 14) {
-                    MakanPrimaryButton(title: Copy.jomMakan) {
-                        openInMaps(pick)
-                    }
-                    .scaleEffect(acceptSettle ? 1.0 : 1.03)
-                    .animation(Motion.playful, value: acceptSettle)
-
-                    if let shareUrl = pick.shareUrl {
-                        SendToGengButton(
-                            restaurantId: pick.id,
-                            shareUrl: shareUrl,
-                            message: SendToGengButton.message(name: pick.name, whereText: pick.foodCategory.map { $0.replacingOccurrences(of: "_", with: " ").capitalized }, distanceKm: pick.distanceKm)
-                        ) {
-                            viewModel.logInteraction("shared")
-                        }
-                    }
-
-                    feedbackRow
-
-                    if let adjustment = viewModel.searchWider {
-                        SearchWiderBanner(message: viewModel.searchWiderMessage ?? "Nothing better nearby. Search a bit wider?", adjustment: adjustment) {
-                            Task { await viewModel.acceptSearchWider() }
-                        }
-                    } else if viewModel.canTune {
-                        TuneRow(used: viewModel.tunesUsed) { direction in tune(direction) }
-                            .disabled(isTuning)
-                            .opacity(isTuning ? 0.5 : 1)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .offset(y: showCTA ? 0 : 16)
-                .opacity(showCTA ? 1 : 0)
-                .animation(.easeOut(duration: 0.25), value: showCTA)
             }
+            .scrollIndicators(.hidden)
+            .ignoresSafeArea(edges: .top)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                actionBar(for: pick)
+                    .reveal(revealed, delay: 0.1)
+            }
+            .transition(.asymmetric(
+                insertion: .opacity,
+                removal: .move(edge: exitEdge).combined(with: .opacity)
+            ))
         }
-        .transition(.asymmetric(
-            insertion: .opacity,
-            removal: .move(edge: exitEdge).combined(with: .opacity)
-        ))
     }
 
-    // MARK: - Accept / reroll / reject
+    // MARK: - Header
 
-    private var feedbackRow: some View {
-        HStack(spacing: 28) {
-            feedbackButton(emoji: "👍", label: "Works for me") {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                acceptSettle = false
-                withAnimation(Motion.playful) { acceptSettle = true }
-                Task { await viewModel.acceptCurrentPick() }
-                afterAccept()
+    private func header(for pick: RecommendationResponse.Recommendation) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Label(pick.fatigue == true ? Copy.resultFatigue : Copy.pickedForYou, systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(Color.sambalRed)
+                if let fit = pick.fit {
+                    Text("·")
+                        .foregroundStyle(Color.kicapSecondary)
+                        .accessibilityHidden(true)
+                    Label(fit.label, systemImage: fitSymbol(fit))
+                        .foregroundStyle(Color.kicapSecondary)
+                }
             }
-            feedbackButton(emoji: "🔄", label: "Another one") {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            .font(.footnote.weight(.semibold))
+            .reveal(revealed, delay: 0.05)
+
+            Text(pick.name)
+                .font(.title.weight(.bold))
+                .foregroundStyle(Color.kicap)
+                .lineLimit(3)
+                .minimumScaleFactor(0.8)
+                .accessibilityAddTraits(.isHeader)
+                .reveal(revealed, delay: 0.1)
+
+            Text(detailsLine(for: pick))
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(Color.kicapSecondary)
+                .reveal(revealed, delay: 0.15)
+
+            if let halal = pick.halal {
+                HalalBadge(display: halal.display)
+                    .padding(.top, 4)
+                    .reveal(revealed, delay: 0.2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// "Cafe · ≈ RM10/person · 12 min walk · Open until 10 PM" — unknown hours are left out, not
+    /// announced.
+    private func detailsLine(for pick: RecommendationResponse.Recommendation) -> String {
+        let kind = categorySubtitleLabel(pick.foodCategory) ?? pick.cuisines.first?.capitalized
+        let distance = pick.distanceKm < 1.5
+            ? "\(walkingMinutes(for: pick.distanceKm)) min walk"
+            : "\(pick.distanceKm.formatted(.number.precision(.fractionLength(1)))) km"
+        let hours: String? = switch pick.openStatus {
+        case "open": pick.closesAt.map { "Open until \($0)" } ?? "Open"
+        case "closed": "Closed"
+        default: nil
+        }
+        return [kind, PricePresentation.approximateSpendLabel(for: pick.priceLevel), distance, hours]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    private func fitSymbol(_ fit: PickFit) -> String {
+        switch fit {
+        case .strong: "flame.fill"
+        case .good: "hand.thumbsup.fill"
+        case .wildcard: "dice.fill"
+        }
+    }
+
+    // MARK: - Action bar
+
+    /// Going is the accept: "Let's go" records it and opens Maps. Another one / Not this sit
+    /// beside it as icon buttons.
+    private func actionBar(for pick: RecommendationResponse.Recommendation) -> some View {
+        HStack(spacing: 12) {
+            MakanPrimaryButton(title: Copy.resultGo) {
+                openInMaps(pick)
+            }
+
+            barButton("arrow.triangle.2.circlepath", label: "Another one") {
+                rerollTaps += 1
                 exitEdge = .leading
                 withAnimation(Motion.standard) { startReroll() }
             }
-            feedbackButton(emoji: "👎", label: "Not this") {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+            barButton("hand.thumbsdown", label: "Not this") {
+                rejectTaps += 1
                 if let id = viewModel.currentPick?.id {
                     PlacePreferencesStore.shared.exclude(id)
                 }
@@ -264,151 +318,86 @@ struct ResultView: View {
                 withAnimation(Motion.standard) { startReroll() }
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .background(Color.nasiCream)
+        .overlay(alignment: .top) {
+            Color.hairline.frame(height: 1)
+        }
     }
 
-    private func feedbackButton(emoji: String, label: String, action: @escaping () -> Void) -> some View {
+    private func barButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Text(emoji).font(.system(size: 22))
-                Text(label)
-                    .font(.makanBody(11))
-                    .foregroundStyle(.secondary)
-            }
+            Image(systemName: symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.kicap)
+                .frame(width: 56, height: 56)
+                .background(Color.surface, in: Circle())
+                .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
         }
         .buttonStyle(PressCompressStyle())
+        .accessibilityLabel(label)
     }
 
-    // MARK: - Photo card
+    // MARK: - Photo
 
-    @ViewBuilder
-    private func resultCard(for pick: RecommendationResponse.Recommendation) -> some View {
-        ZStack(alignment: .topTrailing) {
-            if pick.photos.isEmpty {
-                VStack {
-                    Spacer()
+    /// Full-bleed, under the nav bar. Settles from a slight zoom as it reveals.
+    private func heroPhoto(for pick: RecommendationResponse.Recommendation) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            Group {
+                if pick.photos.isEmpty {
                     Image(systemName: categoryIcon(for: pick.foodCategory))
-                        .font(.system(size: 56))
+                        .font(.largeTitle)
+                        .imageScale(.large)
                         .foregroundStyle(Color.kunyit)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 160)
-            } else {
-                TabView(selection: $photoPage) {
-                    ForEach(Array(pick.photos.enumerated()), id: \.offset) { index, photo in
-                        AsyncImage(url: URL(string: photo.url)) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            default:
-                                ZStack {
-                                    Color.kicap.opacity(0.06)
-                                    Image(systemName: categoryIcon(for: pick.foodCategory))
-                                        .font(.system(size: 48))
-                                        .foregroundStyle(Color.kunyit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.surface)
+                } else {
+                    TabView(selection: $photoPage) {
+                        ForEach(Array(pick.photos.enumerated()), id: \.offset) { index, photo in
+                            Color.surface
+                                .overlay {
+                                    AsyncImage(url: URL(string: photo.url)) { phase in
+                                        if case .success(let image) = phase {
+                                            image.resizable().scaledToFill()
+                                        } else {
+                                            Image(systemName: categoryIcon(for: pick.foodCategory))
+                                                .font(.largeTitle)
+                                                .foregroundStyle(Color.kunyit)
+                                        }
+                                    }
                                 }
-                            }
+                                .clipped()
+                                .tag(index)
                         }
-                        .tag(index)
                     }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: 160)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-
-                if pick.photos.count > 1 {
-                    Text("\(photoPage + 1)/\(pick.photos.count)")
-                        .font(.makanBody(10))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.black.opacity(0.5))
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
-                        .padding(10)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    .tabViewStyle(.page(indexDisplayMode: pick.photos.count > 1 ? .automatic : .never))
                 }
             }
+            .scaleEffect(revealed || reduceMotion ? 1 : 1.06)
+            .animation(revealed ? Motion.standard : nil, value: revealed)
 
             if let rating = pick.rating {
-                HStack(spacing: 4) {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(Color.kunyit)
-                    Text("\(rating, specifier: "%.1f")")
-                        .foregroundStyle(Color.kicap)
-                }
-                .font(.makanBody(12))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(.white)
-                .clipShape(Capsule())
-                .padding(12)
+                Label(rating.formatted(.number.precision(.fractionLength(1))), systemImage: "star.fill")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.kicap)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.surface, in: Capsule())
+                    .padding(16)
             }
         }
-        .background(Color.kicap.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 24))
-        .shadow(color: Color.kicap.opacity(0.07), radius: 8, y: 4)
-
-        HStack(spacing: 10) {
-            if let spend = PricePresentation.approximateSpendLabel(for: pick.priceLevel) {
-                detailChip(icon: "dollarsign.circle", text: spend)
-            }
-            detailChip(icon: "figure.walk", text: "~\(walkingMinutes(for: pick.distanceKm)) min (\(String(format: "%.1f", pick.distanceKm)) km)")
+        .frame(height: 340)
+        .frame(maxWidth: .infinity)
+        .clipped()
+        // The app is light-only, so the status bar is dark text — a cream fade (not a dark scrim)
+        // keeps it and the back button legible over dark photos.
+        .overlay(alignment: .top) {
+            LinearGradient(colors: [Color.nasiCream.opacity(0.75), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: 120)
+                .allowsHitTesting(false)
         }
-    }
-
-    private func detailChip(icon: String, text: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-            Text(text)
-        }
-        .font(.makanBody(12))
-        .foregroundStyle(Color.kicap.opacity(0.8))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.kicap.opacity(0.06))
-        .clipShape(Capsule())
-    }
-
-    // MARK: - Name block
-
-    @ViewBuilder
-    private func nameBlock(for pick: RecommendationResponse.Recommendation) -> some View {
-        VStack(spacing: 4) {
-            let subtitle = [categorySubtitleLabel(pick.foodCategory), pick.cuisines.first?.capitalized]
-                .compactMap { $0 }
-                .joined(separator: " · ")
-            if !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.makanBody(12))
-                    .foregroundStyle(.secondary)
-            }
-
-            openStatusRow(pick.openStatus, closesAt: pick.closesAt)
-
-            if let halal = pick.halal {
-                HalalBadge(display: halal.display)
-                    .padding(.top, 2)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func openStatusRow(_ status: String, closesAt: String?) -> some View {
-        let (color, text): (Color, String) = switch status {
-        case "open": (Color.pandan, "Open")
-        case "closed": (Color.kicap.opacity(0.4), "Closed")
-        default: (Color.kicap.opacity(0.25), "Hours unknown")
-        }
-        HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 7, height: 7)
-            if status == "open", let closesAt {
-                Text("\(text) · Closes \(closesAt)")
-            } else {
-                Text(text)
-            }
-        }
-        .font(.makanBody(12))
-        .foregroundStyle(.secondary)
     }
 
     // MARK: - Reason chips
@@ -419,18 +408,18 @@ struct ResultView: View {
         if !chips.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Why this?")
-                    .font(.makanBody(11))
-                    .foregroundStyle(.secondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
 
                 HStack(spacing: 8) {
                     ForEach(Array(chips.enumerated()), id: \.offset) { index, chip in
                         Text(chip)
-                            .font(.makanBody(11))
+                            .font(.footnote)
                             .foregroundStyle(Color.kicap)
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.kicap.opacity(0.06))
-                            .clipShape(Capsule())
+                            .padding(.vertical, 6)
+                            .background(Color.surface, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
                             .opacity(index < revealedReasonCount ? 1 : 0)
                             .offset(x: index < revealedReasonCount ? 0 : -6)
                             .animation(Motion.quick, value: revealedReasonCount)
@@ -496,44 +485,42 @@ struct ResultView: View {
         } label: {
             HStack {
                 Text("Know the menu? Add it")
-                    .font(.makanBody(13))
+                    .font(.subheadline)
                     .foregroundStyle(Color.kicap)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(14)
-            .background(Color.kicap.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .padding(16)
+            .panel()
         }
     }
 
     private func menuSection(for pick: RecommendationResponse.Recommendation) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Potential menu")
-                .font(.makanBody(10))
-                .foregroundStyle(.secondary)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.kicapSecondary)
 
             PlaceMenuSection(items: pick.menuItems)
 
             Text("Shared by the MakanApa community — may not be complete or up to date.")
                 .font(.makanBody(10))
-                .foregroundStyle(Color.kicap.opacity(0.4))
+                .foregroundStyle(Color.kicapSecondary)
         }
-        .padding(14)
-        .background(Color.kicap.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .padding(16)
+        .panel()
     }
 
     private func reviewsSection(for pick: RecommendationResponse.Recommendation) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 4) {
                 Text("Reviews from Google Maps · ordered by relevance")
-                    .font(.makanBody(10))
-                    .foregroundStyle(.secondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
                 Image(systemName: "info.circle")
-                    .font(.system(size: 10))
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 
@@ -549,15 +536,14 @@ struct ResultView: View {
                             .foregroundStyle(Color.kicap)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11))
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .padding(14)
-        .background(Color.kicap.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .padding(16)
+        .panel()
     }
 
     @ViewBuilder
@@ -569,7 +555,7 @@ struct ResultView: View {
                 } else {
                     Image(systemName: "person.crop.circle.fill")
                         .resizable()
-                        .foregroundStyle(Color.kicap.opacity(0.3))
+                        .foregroundStyle(Color.hairline)
                 }
             }
             .frame(width: 32, height: 32)
@@ -578,14 +564,14 @@ struct ResultView: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let rating = review.rating {
                     Text(String(repeating: "★", count: Int(rating.rounded())))
-                        .font(.system(size: 11))
+                        .font(.caption)
                         .foregroundStyle(Color.kunyit)
                 }
 
                 Text("\"\(truncated(review.text))\"")
                     .font(.makanBody(13))
                     .italic()
-                    .foregroundStyle(Color.kicap.opacity(0.85))
+                    .foregroundStyle(Color.kicap)
 
                 Text("— \(review.authorName)\(review.relativePublishTime.map { " · \($0)" } ?? "")")
                     .font(.makanBody(11))
@@ -652,15 +638,15 @@ struct ResultView: View {
     // MARK: - Reveal sequence
 
     private func runRevealSequence() async {
-        showIntro = false; showMascot = false; showHeadline = false; showInfo = false; showCTA = false
+        revealed = false
         revealedReasonCount = 0
         guard viewModel.currentPick != nil else { return }
 
         if reduceMotion {
             showTrace = false
-            showIntro = true; showMascot = true; showHeadline = true; showInfo = true; showCTA = true
+            revealed = true
             revealedReasonCount = reasonCount
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            revealTick += 1
             return
         }
 
@@ -675,20 +661,12 @@ struct ResultView: View {
             withAnimation(.easeOut(duration: 0.2)) { showTrace = false }
         }
 
-        showIntro = true
-        try? await Task.sleep(for: .milliseconds(100))
+        revealed = true
+        revealTick += 1
+        // Reasons tick in once the details have landed.
+        try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
-        showMascot = true
-        try? await Task.sleep(for: .milliseconds(120))
-        guard !Task.isCancelled else { return }
-        showHeadline = true
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        try? await Task.sleep(for: .milliseconds(150))
-        guard !Task.isCancelled else { return }
-        showInfo = true
         await revealReasonChips()
-        guard !Task.isCancelled else { return }
-        showCTA = true
     }
 
     // MARK: - Reroll
@@ -869,5 +847,33 @@ struct ResultView: View {
             googleMapsURL: recommendation.placeGoogleMapsUrl.flatMap(URL.init(string:))
         )
         PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
+    }
+}
+
+/// Staggered entrance: fade + 10pt rise, delayed per piece. Hiding is instant so a reroll resets
+/// cleanly. Reduce Motion keeps the fade only.
+private struct Reveal: ViewModifier {
+    let isShown: Bool
+    let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isShown ? 1 : 0)
+            .offset(y: isShown || reduceMotion ? 0 : 10)
+            .animation(isShown ? (reduceMotion ? .easeOut(duration: 0.2) : Motion.standard.delay(delay)) : nil, value: isShown)
+    }
+}
+
+private extension View {
+    func reveal(_ isShown: Bool, delay: Double) -> some View {
+        modifier(Reveal(isShown: isShown, delay: delay))
+    }
+
+    /// Secondary sections under the header: one surface, one border, one radius.
+    func panel() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.surface, in: .card)
+            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
     }
 }

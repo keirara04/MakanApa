@@ -12,6 +12,7 @@ struct SettingsView: View {
     private var plainEnglish = PlainEnglishPreference.shared
 
     @State private var showingAboutInfo = false
+    @State private var showingIntro = false
     @State private var showingDeleteAccount = false
     @State private var confirmingLogout = false
     @State private var showingSignIn = false
@@ -76,6 +77,10 @@ struct SettingsView: View {
                 Button("Log out", role: .destructive) {
                     Task { await authStore.logout() }
                 }
+            }
+            .fullScreenCover(isPresented: $showingIntro) {
+                OnboardingView(onFinished: { showingIntro = false }, onClose: { showingIntro = false })
+                    .environment(locationService)
             }
             .sheet(isPresented: $showingDeleteAccount) {
                 DeleteAccountSheet()
@@ -380,6 +385,12 @@ struct SettingsView: View {
         SettingsCard(title: "Help") {
             Button { showingAboutInfo = true } label: {
                 SettingsRow(icon: "questionmark.circle.fill", tint: .kunyit, title: "What is MakanApa?", subtitle: nil) { Chevron() }
+            }
+            .buttonStyle(.plain)
+
+            SettingsDivider()
+            Button { showingIntro = true } label: {
+                SettingsRow(icon: "play.circle.fill", tint: .pandan, title: "Replay the intro", subtitle: nil) { Chevron() }
             }
             .buttonStyle(.plain)
 

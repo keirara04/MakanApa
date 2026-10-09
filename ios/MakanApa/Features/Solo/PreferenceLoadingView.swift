@@ -28,7 +28,7 @@ struct PreferenceLoadingView: View {
                                     .tracking(-0.8)
                                     .foregroundStyle(Color.kicap)
                                     .accessibilityAddTraits(.isHeader)
-                                Text("Sekejap ya. We're looking for a spot\nthat fits your craving.")
+                                Text("Hang tight. We're looking for a spot\nthat fits your craving.")
                                     .font(.subheadline)
                                     .foregroundStyle(Color.kicap.opacity(0.65))
                             }

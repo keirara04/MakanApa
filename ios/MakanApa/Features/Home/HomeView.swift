@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 import CoreLocation
 
 private struct PressableCardStyle: ButtonStyle {
@@ -10,17 +9,46 @@ private struct PressableCardStyle: ButtonStyle {
     }
 }
 
+/// List rows highlight on press instead of scaling — matches how iOS lists behave.
+private struct RowHighlightStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Color.hairline : .clear)
+            .animation(Motion.quick, value: configuration.isPressed)
+    }
+}
+
+/// Sections rise in once per app launch, staggered — never on tab switches (Home is seen too
+/// often for that). Reduce Motion drops the offset and keeps a plain fade.
+private struct Entrance: ViewModifier {
+    let index: Int
+    let entered: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(entered ? 1 : 0)
+            .offset(y: entered || reduceMotion ? 0 : 8)
+            .animation(Motion.standard.delay(Double(index) * 0.04), value: entered)
+    }
+}
+
 struct HomeView: View {
     @Environment(AppRouter.self) private var router
     @Environment(LocationService.self) private var locationService
     @Environment(SoloViewModel.self) private var soloViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showSettings = false
     @State private var isQuickPicking = false
     @State private var vibeFollowUp: PendingVibePrompt?
     @State private var pendingDeepLink = PendingDeepLink.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var quickPickTask: Task<Void, Never>?
+    @State private var entered = HomeView.hasEntered
+    @State private var quickPickTaps = 0
+    @State private var recentTaps = 0
 
+    @MainActor private static var hasEntered = false
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
     private var recentStore = RecentDecisionStore.shared
     private var upgradeNudge = GuestUpgradeNudge.shared
@@ -40,8 +68,9 @@ struct HomeView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: isQuickPicking)
         .background(Color.nasiCream)
+        .sensoryFeedback(.impact(weight: .medium), trigger: quickPickTaps)
+        .sensoryFeedback(.impact(weight: .light), trigger: recentTaps)
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
@@ -59,7 +88,11 @@ struct HomeView: View {
             )
             .presentationDetents([.height(260)])
         }
-        .onAppear { checkVibeFollowUp() }
+        .onAppear {
+            checkVibeFollowUp()
+            Self.hasEntered = true
+            entered = true
+        }
         .onChange(of: pendingDeepLink.quickPickRequest, initial: true) { _, request in
             // A generic mealtime nudge (or "Pick something else") asked for a one-tap pick.
             guard let request else { return }
@@ -84,26 +117,12 @@ struct HomeView: View {
         // Scrolls so large Dynamic Type sizes and small phones (SE/mini) never clip the recent
         // list or the cards — the old fixed VStack ran out of height.
         ScrollView {
-            VStack(spacing: 24) {
-                HStack {
-                    (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))
-                        .font(.makanDisplay(20))
-
-                    Spacer()
-
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .foregroundStyle(Color.kicap.opacity(0.45))
-                            .font(.system(size: 18))
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .accessibilityLabel("Settings")
+            VStack(spacing: 32) {
+                VStack(spacing: 16) {
+                    header
+                    greeting
                 }
-
-                greeting
+                .modifier(Entrance(index: 0, entered: entered))
 
                 ContextStrip()
 
@@ -111,6 +130,7 @@ struct HomeView: View {
                     quickPickCard
                     chooseCravingCard
                 }
+                .modifier(Entrance(index: 1, entered: entered))
 
                 if let reason = upgradeNudge.activeReason {
                     GuestUpgradeCard(reason: reason)
@@ -118,36 +138,52 @@ struct HomeView: View {
                 }
 
                 recentSection
+                    .modifier(Entrance(index: 2, entered: entered))
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
             .frame(maxWidth: 540)
             .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
     }
 
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            (Text("Makan").foregroundStyle(Color.kicap) + Text("Apa?").foregroundStyle(Color.sambalRed))
+                .font(.makanDisplay(17))
+
+            Spacer()
+
+            Button {
+                showSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+                    .foregroundStyle(Color.kicapSecondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Settings")
+        }
+    }
+
     // MARK: - Greeting
 
-    /// Nasi sits beside the question instead of at the bottom of the page — the mascot is the
-    /// brand, so it belongs where the eye lands first. Held still: Home is seen too often for a
-    /// looping bob.
     private var greeting: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(Copy.homeGreeting)
-                    .font(.makanDisplay(34))
-                    .foregroundStyle(Color.kicap)
-                Text(Copy.homeSubtext)
-                    .font(.makanBody(15))
-                    .foregroundStyle(Color.kicap.opacity(0.6))
-            }
-            .accessibilityElement(children: .combine)
-
-            Spacer(minLength: 0)
-
-            MascotView(mood: .wave, size: 92)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(Copy.homeGreeting(hour: Calendar.current.component(.hour, from: .now)))
+                .font(.largeTitle.weight(.bold))
+                .foregroundStyle(Color.kicap)
+            Text(Copy.homeSubtext)
+                .font(.subheadline)
+                .foregroundStyle(Color.kicapSecondary)
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Decide entry points
@@ -160,53 +196,34 @@ struct HomeView: View {
         } label: {
             HStack(spacing: 16) {
                 Image(systemName: "dice.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.title3.weight(.semibold))
+                    .symbolEffect(.bounce, value: quickPickTaps)
                     .frame(width: 52, height: 52)
                     .background(.white.opacity(0.18), in: Circle())
                     .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(Copy.quickPickTitle)
-                        .font(.makanBody(20))
-                        .fontWeight(.heavy)
-                    quickPickChips
+                        .font(.title3.weight(.bold))
+                    Text(soloViewModel.quickPickSummaryParts.joined(separator: " · "))
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .lineLimit(2)
                 }
-                .foregroundStyle(.white)
 
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.8))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
+            .foregroundStyle(.white)
+            .padding(20)
             .background(Color.sambalRed, in: .card)
-            .shadow(color: Color.kicap.opacity(0.12), radius: 8, y: 4)
+            .shadow(color: Color.sambalRed.opacity(0.28), radius: 16, y: 8)
         }
         .buttonStyle(PressableCardStyle())
         .accessibilityHint(Copy.quickPickHint)
-    }
-
-    /// Falls back to a vertical stack when the chips don't fit on one line (small phones,
-    /// large text) instead of wrapping mid-chip.
-    private var quickPickChips: some View {
-        let parts = soloViewModel.quickPickSummaryParts
-        let chips = ForEach(parts, id: \.self) { part in
-            Text(part)
-                .font(.makanBody(13))
-                .monospacedDigit()
-                .lineLimit(1)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.white.opacity(0.18), in: Capsule())
-        }
-        return ViewThatFits(in: .horizontal) {
-            HStack(spacing: 6) { chips }
-            VStack(alignment: .leading, spacing: 6) { chips }
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private var chooseCravingCard: some View {
@@ -219,31 +236,30 @@ struct HomeView: View {
         } label: {
             HStack(spacing: 16) {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Color.sambalRed)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.kicap)
                     .frame(width: 52, height: 52)
-                    .background(Color.sambalRed.opacity(0.1), in: Circle())
+                    .background(Color.nasiCream, in: Circle())
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Copy.chooseCravingTitle)
-                        .font(.makanBody(18))
-                        .fontWeight(.heavy)
+                        .font(.headline)
+                        .foregroundStyle(Color.kicap)
                     Text(Copy.chooseCravingSubtitle)
-                        .font(.makanBody(14))
-                        .foregroundStyle(Color.kicap.opacity(0.6))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.kicapSecondary)
                 }
-                .foregroundStyle(Color.kicap)
 
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.kicap.opacity(0.4))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .background(Color.kicap.opacity(0.06), in: .card)
+            .padding(20)
+            .background(Color.surface, in: .card)
+            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
         }
         .buttonStyle(PressableCardStyle())
     }
@@ -258,9 +274,11 @@ struct HomeView: View {
             return
         }
 
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        quickPickTaps += 1
         soloViewModel.prepareQuickPick()
-        isQuickPicking = true
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : Motion.playful) {
+            isQuickPicking = true
+        }
 
         quickPickTask = Task {
             let start = ContinuousClock.now
@@ -279,7 +297,10 @@ struct HomeView: View {
     private func cancelQuickPick() {
         quickPickTask?.cancel()
         quickPickTask = nil
-        isQuickPicking = false
+        guard isQuickPicking else { return }
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : Motion.standard) {
+            isQuickPicking = false
+        }
     }
 
     // MARK: - Recent
@@ -287,65 +308,76 @@ struct HomeView: View {
     private var recentSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(Copy.recentTitle)
-                .font(.makanBody(13))
-                .fontWeight(.semibold)
-                .foregroundStyle(Color.kicap.opacity(0.6))
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.kicapSecondary)
+                .padding(.leading, 4)
                 .accessibilityAddTraits(.isHeader)
 
-            if recentStore.decisions.isEmpty {
-                Text(Copy.recentEmpty)
-                    .font(.makanBody(14))
-                    .foregroundStyle(Color.kicap.opacity(0.5))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color.kicap.opacity(0.04), in: .row)
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(recentStore.decisions.prefix(3)) { decision in
-                        recentCard(for: decision)
+            Group {
+                if recentStore.decisions.isEmpty {
+                    Text(Copy.recentEmpty)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.kicapSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                } else {
+                    // One grouped container with hairlines, not a stack of floating cards.
+                    VStack(spacing: 0) {
+                        ForEach(Array(recentStore.decisions.prefix(3).enumerated()), id: \.element.id) { index, decision in
+                            if index > 0 {
+                                Color.hairline
+                                    .frame(height: 1)
+                                    .padding(.leading, 64)
+                            }
+                            recentRow(for: decision)
+                        }
                     }
                 }
             }
+            .background(Color.surface)
+            .clipShape(.card)
+            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
         }
         .animation(Motion.standard, value: recentStore.decisions)
     }
 
-    private func recentCard(for decision: RecentDecision) -> some View {
+    private func recentRow(for decision: RecentDecision) -> some View {
         Button {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            recentTaps += 1
             pickAgain(decision)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: categorySymbol(for: decision.foodCategory))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.sambalRed)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicap)
                     .frame(width: 36, height: 36)
-                    .background(Color.sambalRed.opacity(0.1), in: Circle())
+                    .background(Color.nasiCream, in: Circle())
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(decision.name)
-                        .font(.makanBody(15))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(Color.kicap)
                         .lineLimit(1)
-                    Text("\(relativeDay(decision.timestamp)) · \(sourceLabel(decision.source))")
-                        .font(.makanBody(12))
-                        .foregroundStyle(Color.kicap.opacity(0.55))
+                    Text(recentDetail(for: decision))
+                        .font(.footnote)
+                        .foregroundStyle(Color.kicapSecondary)
+                        .lineLimit(1)
                 }
 
                 Spacer(minLength: 0)
 
                 Image(systemName: "arrow.up.right")
-                    .foregroundStyle(Color.kicap.opacity(0.4))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.kicapSecondary)
                     .accessibilityHidden(true)
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.kicap.opacity(0.05), in: .row)
-            .contentShape(.row)
+            .frame(minHeight: 60)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(PressableCardStyle())
+        .buttonStyle(RowHighlightStyle())
         .accessibilityHint(Copy.openInMaps)
         .contextMenu {
             Button(Copy.openInMaps, systemImage: "map") { pickAgain(decision) }
@@ -364,28 +396,43 @@ struct HomeView: View {
         PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
     }
 
-    private func sourceLabel(_ source: String) -> String {
-        switch source {
-        case "nearby": return Copy.recentSourceNearby
-        case "search": return Copy.recentSourceSearch
-        default: return Copy.recentSourceDecide
-        }
+    /// "Coffee Shop · ≈ RM10/person · Tue" — what the place is, not which tab it came from.
+    private func recentDetail(for decision: RecentDecision) -> String {
+        [
+            categoryLabel(for: decision.foodCategory),
+            PricePresentation.approximateSpendLabel(for: decision.priceLevel),
+            relativeDay(decision.timestamp),
+        ]
+        .compactMap { $0 }
+        .joined(separator: " · ")
     }
 
     private func relativeDay(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return Copy.recentToday }
-        if Calendar.current.isDateInYesterday(date) { return Copy.recentYesterday }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.dateTimeStyle = .named
-        formatter.formattingContext = .beginningOfSentence
-        return formatter.localizedString(for: date, relativeTo: Date())
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return Copy.recentToday }
+        if calendar.isDateInYesterday(date) { return Copy.recentYesterday }
+        if let days = calendar.dateComponents([.day], from: date, to: .now).day, days < 7 {
+            return date.formatted(.dateTime.weekday(.abbreviated))
+        }
+        return date.formatted(.dateTime.day().month(.abbreviated))
     }
 
-    /// SF Symbols, not emoji — icons are chrome. Categories arrive both bare ("sushi") and with
-    /// Google's "_restaurant" suffix ("sushi_restaurant"), so match on the stem.
+    /// Categories arrive both bare ("sushi") and with Google's "_restaurant" suffix
+    /// ("sushi_restaurant"), so match on the stem.
+    private func categoryStem(_ foodCategory: String?) -> String {
+        foodCategory?.replacingOccurrences(of: "_restaurant", with: "") ?? ""
+    }
+
+    /// Nil for the generic "restaurant" — it says nothing the row doesn't already.
+    private func categoryLabel(for foodCategory: String?) -> String? {
+        let stem = categoryStem(foodCategory)
+        guard !stem.isEmpty, stem != "restaurant" else { return nil }
+        return stem.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+
+    /// SF Symbols, not emoji — icons are chrome.
     private func categorySymbol(for foodCategory: String?) -> String {
-        let stem = foodCategory?.replacingOccurrences(of: "_restaurant", with: "") ?? ""
-        switch stem {
+        switch categoryStem(foodCategory) {
         case "burger", "sandwich", "fast_food", "pizza", "chicken", "western":
             return "takeoutbag.and.cup.and.straw.fill"
         case "sushi", "seafood", "japanese":

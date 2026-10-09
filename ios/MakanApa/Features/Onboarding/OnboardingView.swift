@@ -1,19 +1,24 @@
 import SwiftUI
 import UIKit
 
-/// Runs once, before the auth gate (see MakanApaApp.swift), so a first-time opener sees the
-/// value prop and gives location before anything ever asks for an account. No auth language
-/// anywhere in here on purpose — "you're already in" is the whole point of this screen existing.
+/// Runs once, before the auth gate (see MakanApaApp.swift): show the product working, get
+/// location, ask halal — then straight into the app as a guest. No auth language anywhere in
+/// here on purpose; an account is offered later, when there's something worth saving.
+/// Cravings aren't asked here either — `TastePromptSheet` asks after a real pick.
 struct OnboardingView: View {
     let onFinished: () -> Void
+    /// Set when replayed from Settings — shows a Close button so the intro isn't a trap.
+    var onClose: (() -> Void)? = nil
 
     @State private var page = 0
     /// Which way the last move went, so Back slides the other way. Set a beat before `page` —
     /// the outgoing page only picks up a new transition if it re-renders with it first.
     @State private var isMovingForward = true
+    @State private var isFinishing = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let pageCount = 4
+    private let pageCount = 3
+    private var isFirstRun: Bool { onClose == nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,16 +28,18 @@ struct OnboardingView: View {
             ZStack {
                 switch page {
                 case 0:
-                    OnboardingValuePropPage(onContinue: { advance(from: 0) })
-                        .transition(pageTransition)
+                    OnboardingHeroPage(
+                        onContinue: { advance(from: 0) },
+                        // Replay is already signed in — no "I already have an account" there.
+                        showsSignIn: isFirstRun,
+                        onHaveAccount: signInInstead
+                    )
+                    .transition(pageTransition)
                 case 1:
                     OnboardingLocationPage(onContinue: { advance(from: 1) })
                         .transition(pageTransition)
-                case 2:
-                    OnboardingHalalPage(onContinue: { advance(from: 2) })
-                        .transition(pageTransition)
                 default:
-                    OnboardingTastePage(onFinish: finish)
+                    OnboardingHalalPage(isBusy: isFinishing, onContinue: finish)
                         .transition(pageTransition)
                 }
             }
@@ -53,30 +60,41 @@ struct OnboardingView: View {
         )
     }
 
-    /// Back on the left, progress in the middle. An empty slot of the same width on the right
-    /// keeps the dots centred whether or not Back is showing.
+    /// Back on the left, progress in the middle, Close (replay only) on the right. The right slot
+    /// is always 44pt wide so the dots stay centred.
     private var topBar: some View {
         HStack {
             Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 go(to: page - 1)
             } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(Color.kicap)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-            .opacity(page > 0 ? 1 : 0)
-            .disabled(page == 0)
+            .opacity(page > 0 && !isFinishing ? 1 : 0)
+            .disabled(page == 0 || isFinishing)
             .accessibilityLabel("Back")
             .accessibilityHidden(page == 0)
+            .sensoryFeedback(.selection, trigger: page) { old, new in new < old }
 
             Spacer()
             progressDots
             Spacer()
 
-            Color.clear.frame(width: 44, height: 44)
+            if let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.kicap)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Close")
+            } else {
+                Color.clear.frame(width: 44, height: 44)
+            }
         }
         .padding(.horizontal, 12)
     }
@@ -85,7 +103,7 @@ struct OnboardingView: View {
         HStack(spacing: 6) {
             ForEach(0..<pageCount, id: \.self) { index in
                 Capsule()
-                    .fill(index <= page ? Color.sambalRed : Color.kicap.opacity(0.15))
+                    .fill(index <= page ? Color.sambalRed : Color.hairline)
                     .frame(width: index == page ? 18 : 6, height: 6)
                     .animation(reduceMotion ? .easeOut(duration: 0.15) : Motion.quick, value: page)
             }
@@ -112,7 +130,30 @@ struct OnboardingView: View {
         }
     }
 
+    /// First run with no saved token: become a guest *before* completing, so the root swaps
+    /// straight to the app — never a login-screen frame in between. A kept keychain token
+    /// (reinstall) means `bootstrap()` is already restoring that account; don't make a second.
+    /// Offline or failed: complete anyway and let the login screen's guest button be the retry.
     private func finish() {
+        guard !isFinishing else { return }
+        guard isFirstRun, CredentialStore.shared.token == nil else {
+            complete()
+            return
+        }
+        isFinishing = true
+        Task {
+            try? await AuthStore.shared.continueAsGuest()
+            complete()
+        }
+    }
+
+    /// Returning user on a new phone: skip ahead to sign-in. Location and halal are covered later
+    /// (the location prompt route, and the account's halal setting on sign-in).
+    private func signInInstead() {
+        complete()
+    }
+
+    private func complete() {
         OnboardingState.shared.complete()
         onFinished()
     }
@@ -120,67 +161,112 @@ struct OnboardingView: View {
 
 // MARK: - Pages
 
-private struct OnboardingValuePropPage: View {
+/// Shows the product instead of describing it: a pick card shuffling through dishes and
+/// settling on one, with Nasi peeking over the corner.
+private struct OnboardingHeroPage: View {
     let onContinue: () -> Void
+    let showsSignIn: Bool
+    let onHaveAccount: () -> Void
 
     var body: some View {
         OnboardingPageLayout(
-            content: {
-                ZStack {
-                    ForEach(Array(floatingLabels.enumerated()), id: \.offset) { index, label in
-                        FloatingLabelChip(text: label, index: index)
-                            .offset(floatingOffset(for: index))
-                    }
-                    MascotView(mood: .idle, size: 140)
-                }
-                .frame(height: 220)
-                .accessibilityHidden(true)
-            },
-            headline: "What should we makan? 👀",
-            subtext: "Discover places nearby, hidden gems, and spots your community is actually picking.",
-            primaryTitle: "Jom explore",
-            primaryAction: onContinue
+            content: { PickDemoCard() },
+            headline: Copy.onboardingHeroTitle,
+            subtext: Copy.onboardingHeroSubtext,
+            primaryTitle: Copy.onboardingHeroCTA,
+            primaryAction: onContinue,
+            secondaryTitle: showsSignIn ? Copy.onboardingHaveAccount : nil,
+            secondaryAction: onHaveAccount
         )
-    }
-
-    private let floatingLabels = ["Under RM10", "Late night", "Cafe", "Community find"]
-
-    private func floatingOffset(for index: Int) -> CGSize {
-        switch index {
-        case 0: return CGSize(width: -105, height: -70)
-        case 1: return CGSize(width: 100, height: -50)
-        case 2: return CGSize(width: -100, height: 60)
-        default: return CGSize(width: 100, height: 75)
-        }
     }
 }
 
-/// Decorative tag around the mascot — drifts gently, each on its own rhythm so they never move
-/// in lockstep. Still under Reduce Motion.
-private struct FloatingLabelChip: View {
-    let text: String
-    let index: Int
+/// Seen once, so it's allowed to loop: shuffle fast-then-slow like a slot settling, land with a
+/// "Picked for you" badge, hold, repeat. Reduce Motion gets the settled card, still.
+private struct PickDemoCard: View {
+    private struct Sample {
+        let image: String
+        let name: String
+        let meta: String
+    }
+
+    private let samples = [
+        Sample(image: "MoodNasiLemak", name: "Nasi lemak", meta: "350 m · ≈ RM10/person"),
+        Sample(image: "MoodCharKueyTeow", name: "Char kuey teow", meta: "800 m · ≈ RM10/person"),
+        Sample(image: "MoodDimSum", name: "Dim sum", meta: "1.2 km · ≈ RM20/person"),
+        Sample(image: "MoodNasiKandar", name: "Nasi kandar", meta: "600 m · ≈ RM20/person"),
+    ]
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isUp = false
+    @State private var index = 0
+    @State private var settled = false
 
     var body: some View {
-        Text(text)
-            .font(.makanBody(12))
-            .foregroundStyle(Color.kicap.opacity(0.8))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white, in: Capsule())
-            .shadow(color: Color.kicap.opacity(0.08), radius: 4, y: 2)
-            .offset(y: isUp ? -4 : 4)
-            .animation(
-                reduceMotion ? nil : .easeInOut(duration: 2.2 + Double(index) * 0.35).repeatForever(autoreverses: true),
-                value: isUp
-            )
-            .onAppear {
-                guard !reduceMotion else { return }
-                isUp = true
+        let sample = samples[index]
+        VStack(alignment: .leading, spacing: 0) {
+            Image(sample.image)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 160)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .id(index)
+                .transition(.push(from: .bottom))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(sample.name)
+                    .font(.headline)
+                    .foregroundStyle(Color.kicap)
+                Text(sample.meta)
+                    .font(.subheadline)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.kicapSecondary)
             }
+            .contentTransition(.opacity)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 260)
+        .background(Color.surface)
+        .clipShape(.card)
+        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
+        .overlay(alignment: .topLeading) {
+            if settled {
+                Label(Copy.pickedForYou, systemImage: "checkmark")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.sambalRed, in: Capsule())
+                    .padding(12)
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+        }
+        .shadow(color: Color.kicap.opacity(0.10), radius: 24, y: 12)
+        .overlay(alignment: .bottomTrailing) {
+            MascotView(mood: .idle, size: 76)
+                .offset(x: 30, y: 26)
+        }
+        .padding(.bottom, 26)
+        .accessibilityHidden(true)
+        .task { await shuffle() }
+    }
+
+    private func shuffle() async {
+        guard !reduceMotion else {
+            settled = true
+            return
+        }
+        while !Task.isCancelled {
+            withAnimation(Motion.quick) { settled = false }
+            for delay in [140, 150, 170, 210, 260, 340] {
+                try? await Task.sleep(for: .milliseconds(delay))
+                guard !Task.isCancelled else { return }
+                withAnimation(Motion.quick) { index = (index + 1) % samples.count }
+            }
+            withAnimation(Motion.playful) { settled = true }
+            try? await Task.sleep(for: .seconds(2.6))
+        }
     }
 }
 
@@ -205,26 +291,27 @@ private struct OnboardingLocationPage: View {
                         .resizable()
                         .scaledToFit()
                 }
-                .frame(width: 150, height: 150)
+                .frame(width: 160, height: 160)
                 .accessibilityHidden(true)
                 // Overlaid, not stacked, so the confirmation never pushes the headline down.
                 .overlay(alignment: .bottom) {
                     if showConfirmation {
-                        Label("Nice, location's on", systemImage: "checkmark.circle.fill")
-                            .font(.makanBody(13).weight(.semibold))
+                        Label(Copy.onboardingLocationConfirmed, systemImage: "checkmark.circle.fill")
+                            .font(.footnote.weight(.semibold))
                             .foregroundStyle(Color.pandan)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color.white, in: Capsule())
+                            .background(Color.surface, in: Capsule())
+                            .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
                             .fixedSize()
                             .offset(y: 18)
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
                     }
                 }
             },
-            headline: "Find good food around you 📍",
-            subtext: "We use your location to show places nearby, what's trending around you, and better \"Pick one lah\" results.",
-            footnote: OnboardingFootnote(icon: "lock.fill", text: "Your location is never shown to other people."),
+            headline: Copy.onboardingLocationTitle,
+            subtext: Copy.onboardingLocationSubtext,
+            footnote: OnboardingFootnote(icon: "lock.fill", text: Copy.onboardingLocationFootnote),
             // App Review (guideline 5.1.1(iv)): a pre-permission screen must use neutral wording
             // and always lead to the system prompt — no "Maybe later" to dodge it. The system
             // dialog itself is where the user says no.
@@ -233,6 +320,7 @@ private struct OnboardingLocationPage: View {
             // Waiting on the system prompt — a second tap would only re-ask.
             isPrimaryEnabled: !didRequest || didFinish
         )
+        .sensoryFeedback(.success, trigger: showConfirmation) { _, shown in shown }
         // The permission answer, not the first GPS fix — that can take seconds after "Allow",
         // which used to leave this screen looking frozen.
         .onChange(of: locationService.authorization) { _, status in
@@ -280,7 +368,6 @@ private struct OnboardingLocationPage: View {
     private func confirmAndContinue() {
         guard !didFinish else { return }
         didFinish = true
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
         withAnimation(reduceMotion ? .easeOut(duration: 0.15) : Motion.playful) { showConfirmation = true }
         Task {
             try? await Task.sleep(for: .milliseconds(700))
@@ -296,30 +383,37 @@ private struct OnboardingLocationPage: View {
 }
 
 /// Asked once, up front — a dietary requirement shouldn't be buried in Settings. Changeable
-/// anytime with the "Hide non-halal" chip on the Nearby map.
+/// anytime with the "Hide non-halal" chip on the Nearby map. Last page, so either answer
+/// finishes onboarding (and may wait on guest sign-in — hence `isBusy`).
 private struct OnboardingHalalPage: View {
+    let isBusy: Bool
     let onContinue: () -> Void
 
     var body: some View {
         OnboardingPageLayout(
             content: {
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color.pandan)
-                    .frame(width: 132, height: 132)
-                    .background(Color.pandan.opacity(0.12), in: Circle())
-                    .frame(height: 150)
+                MascotView(mood: .idle, size: 136)
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(Color.pandan)
+                            .padding(6)
+                            .background(Color.nasiCream, in: Circle())
+                            .offset(x: 10, y: 4)
+                    }
+                    .frame(height: 160)
                     .accessibilityHidden(true)
             },
-            headline: "Do you only eat halal?",
-            subtext: "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked. Change it anytime from the map.",
-            footnote: OnboardingFootnote(icon: "info.circle.fill", text: "Halal info comes from the community. Always double-check at the restaurant."),
-            primaryTitle: "Yes, hide non-halal",
+            headline: Copy.onboardingHalalTitle,
+            subtext: Copy.onboardingHalalSubtext,
+            footnote: OnboardingFootnote(icon: "info.circle.fill", text: Copy.onboardingHalalFootnote),
+            primaryTitle: Copy.onboardingHalalYes,
             primaryAction: {
                 HalalPreference.isOn = true
                 onContinue()
             },
-            secondaryTitle: "No, show everything",
+            isBusy: isBusy,
+            secondaryTitle: Copy.onboardingHalalNo,
             secondaryAction: {
                 HalalPreference.isOn = false
                 onContinue()
@@ -328,88 +422,120 @@ private struct OnboardingHalalPage: View {
     }
 }
 
-private struct OnboardingTastePage: View {
-    let onFinish: () -> Void
+// MARK: - Taste prompt
 
+/// "Want sharper picks?" — shown after a real accepted pick (see ResultView.afterAccept()), when
+/// the user has just seen what a pick is. Grouped so food and style don't read as one muddled
+/// list; the 8 options are the server's fixed seed keys.
+struct TastePromptSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var state = OnboardingState.shared
     /// Bumped when a tap is refused at the limit — shakes the counter so the limit is seen.
     @State private var limitNudge = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var toggles = 0
 
-    private let cuisines = ["Mamak", "Cafe", "Korean", "Malay", "Dessert", "Cheap eats", "Late night", OnboardingState.anythingPick]
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 10)]
     private let maxPicks = OnboardingState.maxPicks
-
     private var isFull: Bool { state.selectedCuisines.count >= maxPicks }
 
     var body: some View {
-        OnboardingPageLayout(
-            content: {
-                VStack(spacing: 12) {
-                    LazyVGrid(columns: columns, spacing: 10) {
-                        ForEach(cuisines, id: \.self) { cuisine in
-                            cuisineChip(cuisine)
-                        }
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(Copy.tasteTitle)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(Color.kicap)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(Copy.tasteSubtext)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.kicapSecondary)
                     }
+
+                    group(Copy.tasteFoodHeader, keys: OnboardingState.foodPicks)
+                    group(Copy.tasteStyleHeader, keys: OnboardingState.stylePicks + [OnboardingState.anythingPick])
+
                     Text(counterText)
-                        .font(.makanBody(12).weight(.semibold))
-                        .foregroundStyle(isFull ? Color.sambalRed : Color.kicap.opacity(0.6))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(isFull ? Color.sambalRed : Color.kicapSecondary)
                         .contentTransition(.numericText())
                         .modifier(ShakeEffect(trigger: reduceMotion ? 0 : limitNudge))
                         .animation(.easeOut(duration: 0.35), value: limitNudge)
                         .animation(Motion.quick, value: state.selectedCuisines.count)
                 }
-                .padding(.horizontal, 8)
-            },
-            headline: "What are you usually craving?",
-            subtext: "Pick up to \(maxPicks). They shape your first few picks.",
-            primaryTitle: "Start exploring",
-            primaryAction: onFinish,
-            // Nothing picked is what "Skip for now" is for — two buttons doing the same thing
-            // was just confusing.
-            isPrimaryEnabled: !state.selectedCuisines.isEmpty,
-            secondaryTitle: "Skip for now",
-            secondaryAction: onFinish
-        )
+                .padding(20)
+            }
+            .background(Color.nasiCream.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(Copy.tasteNotNow) { close(saved: false) }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(Copy.tasteSave) { close(saved: true) }
+                        .fontWeight(.semibold)
+                        .disabled(state.selectedCuisines.isEmpty)
+                }
+            }
+        }
+        .sensoryFeedback(.selection, trigger: toggles)
+        .sensoryFeedback(.warning, trigger: limitNudge)
+    }
+
+    /// Either button stops future asks; only Save sends the picks.
+    private func close(saved: Bool) {
+        state.finishTastePrompt(saved: saved)
+        dismiss()
+    }
+
+    private func group(_ title: String, keys: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.kicapSecondary)
+                .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(keys, id: \.self) { chip($0) }
+            }
+        }
     }
 
     private var counterText: String {
         let count = state.selectedCuisines.count
-        return count == 0 ? "None picked yet" : "\(count) of \(maxPicks) picked"
+        return count == 0 ? Copy.tasteNonePicked : Copy.tastePickedCount(count, of: maxPicks)
     }
 
-    private func cuisineChip(_ cuisine: String) -> some View {
-        let isSelected = state.selectedCuisines.contains(cuisine)
-        // "Anything lah" replaces the others instead of adding to them, so it's never locked.
-        let isLocked = isFull && !isSelected && cuisine != OnboardingState.anythingPick
+    private func chip(_ key: String) -> some View {
+        let isSelected = state.selectedCuisines.contains(key)
+        // "Anything" replaces the others instead of adding to them, so it's never locked.
+        let isLocked = isFull && !isSelected && key != OnboardingState.anythingPick
 
         return Button {
             if isLocked {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 limitNudge += 1
                 return
             }
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            toggles += 1
             withAnimation(reduceMotion ? .easeOut(duration: 0.12) : Motion.playful) {
-                state.toggleCuisine(cuisine)
+                state.toggleCuisine(key)
             }
         } label: {
             HStack(spacing: 5) {
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.caption.weight(.bold))
                         .transition(.scale.combined(with: .opacity))
                 }
-                Text(cuisine)
+                Text(Copy.tasteLabel(key))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
-            .font(.makanBody(14))
+            .font(.subheadline.weight(.medium))
             .foregroundStyle(isSelected ? .white : Color.kicap)
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .background(isSelected ? Color.sambalRed : Color.white, in: Capsule())
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(isSelected ? Color.sambalRed : Color.surface, in: Capsule())
+            .overlay(Capsule().strokeBorder(isSelected ? .clear : Color.hairline, lineWidth: 1))
             .opacity(isLocked ? 0.45 : 1)
         }
         .buttonStyle(PressCompressStyle())
@@ -418,7 +544,7 @@ private struct OnboardingTastePage: View {
     }
 }
 
-/// Hori - Layout
+// MARK: - Layout
 
 /// Small icon + note under the subtext — the privacy promise / safety caveat, kept visually
 /// separate so the main explanation stays short.
@@ -441,6 +567,8 @@ private struct OnboardingPageLayout<Content: View>: View {
     let primaryTitle: String
     let primaryAction: () -> Void
     var isPrimaryEnabled = true
+    /// A finishing network call is in flight: both buttons lock, a spinner replaces the secondary.
+    var isBusy = false
     var secondaryTitle: String? = nil
     var secondaryAction: (() -> Void)? = nil
 
@@ -449,7 +577,7 @@ private struct OnboardingPageLayout<Content: View>: View {
         // and the buttons stay pinned either way.
         GeometryReader { proxy in
             ScrollView {
-                VStack(spacing: 28) {
+                VStack(spacing: 32) {
                     Spacer(minLength: 0)
                     content()
                     copy
@@ -468,22 +596,22 @@ private struct OnboardingPageLayout<Content: View>: View {
     private var copy: some View {
         VStack(spacing: 10) {
             Text(headline)
-                .font(.makanDisplay(24))
+                .font(.title.weight(.bold))
                 .foregroundStyle(Color.kicap)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
             Text(subtext)
-                .font(.makanBody(15))
-                .foregroundStyle(Color.kicap.opacity(0.72))
+                .font(.body)
+                .foregroundStyle(Color.kicapSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let footnote {
                 Label(footnote.text, systemImage: footnote.icon)
-                    .font(.makanBody(12))
-                    .foregroundStyle(Color.kicap.opacity(0.6))
+                    .font(.footnote)
+                    .foregroundStyle(Color.kicapSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 4)
@@ -493,27 +621,29 @@ private struct OnboardingPageLayout<Content: View>: View {
     }
 
     private var buttons: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             MakanPrimaryButton(title: primaryTitle, action: primaryAction)
-                .disabled(!isPrimaryEnabled)
-                .opacity(isPrimaryEnabled ? 1 : 0.45)
-                .animation(Motion.quick, value: isPrimaryEnabled)
-                .padding(.horizontal, 32)
+                .disabled(!isPrimaryEnabled || isBusy)
+                .opacity(isPrimaryEnabled && !isBusy ? 1 : 0.45)
+                .animation(Motion.quick, value: isPrimaryEnabled && !isBusy)
 
-            if let secondaryTitle {
+            if isBusy {
+                ProgressView()
+                    .tint(Color.kicapSecondary)
+                    .frame(minHeight: 44)
+            } else if let secondaryTitle {
                 Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     secondaryAction?()
                 } label: {
                     Text(secondaryTitle)
-                        .font(.makanBody(15).weight(.semibold))
-                        .foregroundStyle(Color.kicap.opacity(0.7))
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.kicapSecondary)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 32)
             }
         }
+        .padding(.horizontal, 32)
         .padding(.top, 12)
         .padding(.bottom, 16)
         .background(Color.nasiCream)
@@ -523,4 +653,8 @@ private struct OnboardingPageLayout<Content: View>: View {
 #Preview {
     OnboardingView(onFinished: {})
         .environment(LocationService())
+}
+
+#Preview("Taste prompt") {
+    TastePromptSheet()
 }

@@ -3,7 +3,53 @@ import Foundation
 /// Centralized copy so tone stays consistent across screens. Plain English for new and
 /// edited strings — dish names and the brand stay as they are.
 enum Copy {
-    static let homeGreeting = "Hungry?"
+    /// Mealtime-aware greeting; supper covers the late-night stretch.
+    static func homeGreeting(hour: Int) -> String {
+        switch hour {
+        case 5..<11: return "Breakfast?"
+        case 11..<15: return "Lunch?"
+        case 15..<18: return "Tea time?"
+        case 18..<22: return "Dinner?"
+        default: return "Supper?"
+        }
+    }
+    // Onboarding
+    static let onboardingHeroTitle = "Can't decide what to eat?"
+    static let onboardingHeroSubtext = "Tap once and we'll pick somewhere good nearby. No endless scrolling, no group-chat debates."
+    static let onboardingHeroCTA = "Get started"
+    static let onboardingHaveAccount = "I already have an account"
+    static let onboardingLocationTitle = "Find good food around you"
+    static let onboardingLocationSubtext = "We use your location to pick places near you and show what's popular in your area."
+    static let onboardingLocationFootnote = "Your location is never shown to other people."
+    static let onboardingLocationConfirmed = "Location is on"
+    static let onboardingHalalTitle = "Do you only eat halal?"
+    static let onboardingHalalSubtext = "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked. Change it anytime from the map."
+    static let onboardingHalalFootnote = "Halal info comes from the community. Always double-check at the restaurant."
+    static let onboardingHalalYes = "Yes, hide non-halal"
+    static let onboardingHalalNo = "No, show everything"
+
+    // Taste prompt (after a real pick)
+    static let tasteTitle = "Want sharper picks?"
+    static let tasteSubtext = "Choose up to 4 things you usually go for. We'll lean that way."
+    static let tasteFoodHeader = "Food"
+    static let tasteStyleHeader = "Style"
+    static let tasteSave = "Save"
+    static let tasteNotNow = "Not now"
+    static let tasteNonePicked = "None picked yet"
+    static func tastePickedCount(_ count: Int, of max: Int) -> String { "\(count) of \(max) picked" }
+    static func tasteLabel(_ key: String) -> String {
+        switch key {
+        case "malay": return "Malay"
+        case "mamak": return "Mamak"
+        case "korean": return "Korean"
+        case "cafe": return "Cafe"
+        case "dessert": return "Dessert"
+        case "cheap_eats": return "Cheap eats"
+        case "late_night": return "Late night"
+        default: return "Anything"
+        }
+    }
+
     static let homeSubtext = "Let's figure out what to eat."
     static let quickPickTitle = "Pick for me"
     static let chooseCravingTitle = "I know what I want"
@@ -14,9 +60,6 @@ enum Copy {
     static let recentEmpty = "Places you pick will show up here."
     static let recentToday = "Today"
     static let recentYesterday = "Yesterday"
-    static let recentSourceNearby = "Nearby"
-    static let recentSourceSearch = "Search"
-    static let recentSourceDecide = "Decide"
     static let openInMaps = "Open in Maps"
     static let removeFromRecent = "Remove from Recent"
 
@@ -61,9 +104,10 @@ enum Copy {
     static let trustBadgePrivacy = "We respect privacy"
     static let trustBadgeNearby = "Nearby spots"
 
-    static let resultIntro = "MakanApa says..."
-    static let resultThatsIt = "Settled."
-    static let jomMakan = "JOM MAKAN"
+    /// One label for "this is your pick" — result eyebrow and the onboarding demo badge.
+    static let pickedForYou = "Picked for you"
+    @MainActor static var resultGo: String { plain("Jom makan", "Let's go") }
+    @MainActor static var resultFatigue: String { plain("Okay lah, enough choosing", "Okay, enough choosing") }
     static let pickAgain = "Cari lain lah"
     static let anythingLabel = "Anything"
 

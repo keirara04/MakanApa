@@ -14,16 +14,16 @@ final class OnboardingState {
         static let completed = "OnboardingState.completed"
         static let cuisines = "OnboardingState.cuisines"
         static let seedSent = "OnboardingState.seedSent"
+        static let tasteAsked = "OnboardingState.tasteAsked"
     }
 
     static let maxPicks = 4
     /// "No lean" — can't sit alongside specific picks.
-    static let anythingPick = "Anything lah"
-    /// Chip label → the server's key (api TasteEventRecorder::ONBOARDING_SEEDS).
-    static let seedKeys: [String: String] = [
-        "Mamak": "mamak", "Cafe": "cafe", "Korean": "korean", "Malay": "malay", "Dessert": "dessert",
-        "Cheap eats": "cheap_eats", "Late night": "late_night", anythingPick: "anything",
-    ]
+    static let anythingPick = "anything"
+    /// Stored picks are the server's keys (api TasteEventRecorder::ONBOARDING_SEEDS, which
+    /// allowlists them) — labels live in `Copy.tasteLabel(_:)` so copy can change freely.
+    static let foodPicks = ["malay", "mamak", "korean", "cafe", "dessert"]
+    static let stylePicks = ["cheap_eats", "late_night"]
 
     private(set) var hasCompletedOnboarding: Bool
     private(set) var selectedCuisines: Set<String>
@@ -31,7 +31,30 @@ final class OnboardingState {
     private init() {
         let defaults = UserDefaults.standard
         hasCompletedOnboarding = defaults.bool(forKey: Keys.completed)
-        selectedCuisines = Set(defaults.stringArray(forKey: Keys.cuisines) ?? [])
+        // Older builds stored display labels ("Cheap eats", "Anything lah") — fold them to keys.
+        selectedCuisines = Set((defaults.stringArray(forKey: Keys.cuisines) ?? []).map { stored in
+            let key = stored.lowercased().replacingOccurrences(of: " ", with: "_")
+            return key == "anything_lah" ? Self.anythingPick : key
+        })
+    }
+
+    /// Cravings are asked after a real pick, not during onboarding. Anyone whose seed already
+    /// went out (older onboarding) counts as asked.
+    var shouldAskTaste: Bool {
+        let defaults = UserDefaults.standard
+        return !defaults.bool(forKey: Keys.tasteAsked) && !defaults.bool(forKey: Keys.seedSent)
+    }
+
+    /// Saved or dismissed — either way, don't ask again. Dismissing drops anything tapped so it
+    /// can't be sent later on sign-in.
+    func finishTastePrompt(saved: Bool) {
+        UserDefaults.standard.set(true, forKey: Keys.tasteAsked)
+        if saved {
+            sendSeedIfNeeded()
+        } else {
+            selectedCuisines = []
+            UserDefaults.standard.removeObject(forKey: Keys.cuisines)
+        }
     }
 
     func toggleCuisine(_ cuisine: String) {
@@ -60,11 +83,9 @@ final class OnboardingState {
     func sendSeedIfNeeded() {
         guard hasCompletedOnboarding, !UserDefaults.standard.bool(forKey: Keys.seedSent),
               case .authenticated = AuthStore.shared.session else { return }
-        let picks = selectedCuisines.compactMap { Self.seedKeys[$0] }.sorted()
-        guard !picks.isEmpty else {
-            UserDefaults.standard.set(true, forKey: Keys.seedSent)
-            return
-        }
+        // Nothing picked yet isn't "sent" — the taste prompt may still fill it in later.
+        let picks = selectedCuisines.sorted()
+        guard !picks.isEmpty else { return }
         Task {
             guard (try? await APIClient.seedSelera(picks: picks)) != nil else { return }
             UserDefaults.standard.set(true, forKey: Keys.seedSent)
