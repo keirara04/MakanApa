@@ -222,7 +222,7 @@ struct ResultView: View {
             }
             .transition(.asymmetric(
                 insertion: .opacity,
-                removal: .move(edge: exitEdge).combined(with: .opacity)
+                removal: reduceMotion ? .opacity : .move(edge: exitEdge).combined(with: .opacity)
             ))
         }
     }

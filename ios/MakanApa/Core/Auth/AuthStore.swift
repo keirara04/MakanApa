@@ -264,7 +264,7 @@ final class AuthStore {
         try? await APIClient.unclaimDeviceToken(installationId: InstallationID.current, environment: PushEnvironment.current)
         _ = try? await APIClient.logout()
         CredentialStore.shared.token = nil
-        NearbyPlacesCache.clear()
+        clearAccountLocalState()
         session = .unauthenticated
     }
 
@@ -274,8 +274,15 @@ final class AuthStore {
     func deleteAccount(password: String?) async throws {
         _ = try await APIClient.deleteAccount(password: password)
         CredentialStore.shared.token = nil
-        NearbyPlacesCache.clear()
+        clearAccountLocalState()
         session = .unauthenticated
+    }
+
+    /// Per-account state cached on the device — the next account on this phone starts clean.
+    private func clearAccountLocalState() {
+        NearbyPlacesCache.clear()
+        OnboardingState.shared.resetForSignOut()
+        AmbassadorPickStore.shared.reset()
     }
 
     /// Called from call sites that catch `APIError.unauthorized` — a mid-session revoke or an
@@ -286,6 +293,7 @@ final class AuthStore {
         print("[AuthStore] handleUnauthorized() called — clearing token, bouncing to login")
         #endif
         CredentialStore.shared.token = nil
+        clearAccountLocalState()
         session = .unauthenticated
     }
 

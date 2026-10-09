@@ -197,8 +197,21 @@ struct CommunityFeedResponse: Decodable, Equatable {
     let community: CommunityInfo
     let trending: [CommunityFeedItem]
     let newInArea: [CommunityFeedItem]
-    /// Optional: absent from older backends.
+    /// Optional: absent from older backends. Decoded leniently — a malformed pick hides the
+    /// rail, never the whole Community feed.
     let ambassadorPicks: [AmbassadorPickItem]?
+
+    private enum CodingKeys: String, CodingKey {
+        case community, trending, newInArea, ambassadorPicks
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        community = try c.decode(CommunityInfo.self, forKey: .community)
+        trending = try c.decode([CommunityFeedItem].self, forKey: .trending)
+        newInArea = try c.decode([CommunityFeedItem].self, forKey: .newInArea)
+        ambassadorPicks = try? c.decodeIfPresent([AmbassadorPickItem].self, forKey: .ambassadorPicks)
+    }
 }
 
 /// A place hand-picked by the viewer's community ambassador, with their optional note.

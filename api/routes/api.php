@@ -94,7 +94,7 @@ Route::prefix('v1')->group(function () {
         // Ambassador picks — only ambassadors can write (checked in the controller); a short
         // curated list, so a tight write limit is plenty.
         Route::get('me/ambassador-picks', [AmbassadorPickController::class, 'index'])->middleware('throttle:60,1,ambassador-picks-read');
-        Route::middleware(['registered', 'throttle:30,1,ambassador-picks-write'])->group(function () {
+        Route::middleware(['registered', 'terms', 'throttle:30,1,ambassador-picks-write'])->group(function () {
             Route::post('me/ambassador-picks', [AmbassadorPickController::class, 'store']);
             Route::delete('me/ambassador-picks/{restaurant}', [AmbassadorPickController::class, 'destroy'])->whereNumber('restaurant');
         });

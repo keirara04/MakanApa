@@ -15,13 +15,15 @@ final class AmbassadorPickStore {
     private(set) var max = 8
     /// Keyed by account so a different sign-in never inherits the previous ambassador's picks.
     private var loadedForUserId: Int?
+    /// Bumped by every local save/remove, so a load that started before one can't overwrite it.
+    private var edits = 0
 
     func loadIfNeeded() async {
         guard case .authenticated(let user) = AuthStore.shared.session, user.ambassadorOf != nil,
               loadedForUserId != user.id else { return }
-        picked = []
-        notes = [:]
-        guard let response = try? await APIClient.myAmbassadorPicks() else { return }
+        if loadedForUserId != nil { reset() }
+        let editsAtStart = edits
+        guard let response = try? await APIClient.myAmbassadorPicks(), edits == editsAtStart else { return }
         picked = Set(response.picks.map(\.restaurantId))
         notes = Dictionary(uniqueKeysWithValues: response.picks.compactMap { pick in pick.note.map { (pick.restaurantId, $0) } })
         max = response.max
@@ -30,14 +32,24 @@ final class AmbassadorPickStore {
 
     func save(restaurantId: Int, note: String?) async throws {
         let response = try await APIClient.saveAmbassadorPick(restaurantId: restaurantId, note: note)
+        edits += 1
         picked.insert(restaurantId)
         notes[restaurantId] = response.pick.note
     }
 
     func remove(restaurantId: Int) async throws {
         _ = try await APIClient.removeAmbassadorPick(restaurantId: restaurantId)
+        edits += 1
         picked.remove(restaurantId)
         notes[restaurantId] = nil
+    }
+
+    /// Sign-out: nothing of this account's picks stays on screen for the next one.
+    func reset() {
+        picked = []
+        notes = [:]
+        loadedForUserId = nil
+        edits += 1
     }
 
     static var currentRole: AmbassadorRole? {

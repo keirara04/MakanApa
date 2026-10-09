@@ -45,6 +45,16 @@ final class OnboardingState {
         return !defaults.bool(forKey: Keys.tasteAsked) && !defaults.bool(forKey: Keys.seedSent)
     }
 
+    /// Cravings and the seed belong to an account, not the phone — a different sign-in on this
+    /// device gets asked (and seeded) for itself. Onboarding itself stays completed.
+    func resetForSignOut() {
+        selectedCuisines = []
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: Keys.cuisines)
+        defaults.removeObject(forKey: Keys.seedSent)
+        defaults.removeObject(forKey: Keys.tasteAsked)
+    }
+
     /// Saved or dismissed — either way, don't ask again. Dismissing drops anything tapped so it
     /// can't be sent later on sign-in.
     func finishTastePrompt(saved: Bool) {

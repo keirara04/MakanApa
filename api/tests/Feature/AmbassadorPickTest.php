@@ -97,6 +97,17 @@ class AmbassadorPickTest extends TestCase
         $this->assertSame(0, AmbassadorPick::count());
     }
 
+    public function test_returns_403_when_the_ambassador_has_not_agreed_to_the_terms(): void
+    {
+        $ukm = $this->university();
+        $ambassador = User::factory()->unacceptedTerms()->create(['role' => 'user', 'status' => 'active', 'ambassador_university_id' => $ukm->id]);
+
+        $response = $this->addPick($ambassador, $this->restaurant());
+
+        $response->assertForbidden()->assertJsonPath('code', 'terms_required');
+        $this->assertSame(0, AmbassadorPick::count());
+    }
+
     public function test_returns_422_for_a_pick_beyond_the_limit(): void
     {
         $ambassador = $this->ambassadorOf($this->university());

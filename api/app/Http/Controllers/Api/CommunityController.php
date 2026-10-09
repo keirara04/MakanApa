@@ -109,7 +109,7 @@ class CommunityController extends Controller
         $restaurantIds = $aggregates->pluck('restaurant_id')->all();
         // is_active filter: a closure-approved (soft-deleted) restaurant must drop out of the
         // live feed even though its historical decisions/vibe votes stay untouched for analytics.
-        $restaurants = Restaurant::whereIn('id', $restaurantIds)->where('is_active', true)->with('cuisines')->get()->keyBy('id');
+        $restaurants = Restaurant::whereIn('id', $restaurantIds)->where('is_active', true)->with(['cuisines', 'tags', 'activeHalalCertificate'])->get()->keyBy('id');
         $trendingVibes = $this->trendingVibes($restaurantIds, $isUniversity, $user->universityId(), $isArea, $user->areaId());
 
         $trending = $aggregates
@@ -172,7 +172,10 @@ class CommunityController extends Controller
             ->whereHas('restaurant', fn ($q) => $q->where('is_active', true))
             ->with([
                 'user:id,name,avatar_key',
+                // toRecommendationArray() reads tags + the halal certificate too.
                 'restaurant.cuisines',
+                'restaurant.tags',
+                'restaurant.activeHalalCertificate',
                 // Community uploads only — never a Google Places photo call from a feed read.
                 'restaurant.photos' => fn ($q) => $q->where('is_active', true)->where('photo_type', '!=', 'halal_cert')->latest(),
             ])
@@ -229,7 +232,7 @@ class CommunityController extends Controller
             ->where('is_active', true)
             ->whereNotNull('source_submission_id')
             ->where('created_at', '>=', $since)
-            ->with('cuisines');
+            ->with(['cuisines', 'tags', 'activeHalalCertificate']);
 
         if ($isUniversity) {
             $query->whereHas('sourceSubmission', fn ($q) => $q->where('university_id', $universityId));

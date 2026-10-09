@@ -172,6 +172,12 @@ struct MakanApaApp: App {
 
     private static let celebratedAmbassadorKey = "ambassador.celebratedRole"
 
+    /// Per account + role, so a second account on this phone still gets its own welcome.
+    private func celebrationMarker(_ role: AmbassadorRole) -> String {
+        if case .authenticated(let user) = authStore.session { return "\(user.id)|\(role.id)" }
+        return role.id
+    }
+
     private var currentAmbassador: AmbassadorRole? {
         if case .authenticated(let user) = authStore.session { return user.ambassadorOf }
         return nil
@@ -230,12 +236,12 @@ struct MakanApaApp: App {
         // Admin just made this user an ambassador (or moved them): celebrate once per role.
         .task(id: currentAmbassador) {
             guard let role = currentAmbassador,
-                  UserDefaults.standard.string(forKey: Self.celebratedAmbassadorKey) != role.id else { return }
+                  UserDefaults.standard.string(forKey: Self.celebratedAmbassadorKey) != celebrationMarker(role) else { return }
             ambassadorWelcome = role
         }
         .fullScreenCover(item: $ambassadorWelcome) { role in
             AmbassadorWelcomeView(role: role) {
-                UserDefaults.standard.set(role.id, forKey: Self.celebratedAmbassadorKey)
+                UserDefaults.standard.set(celebrationMarker(role), forKey: Self.celebratedAmbassadorKey)
                 ambassadorWelcome = nil
             }
         }

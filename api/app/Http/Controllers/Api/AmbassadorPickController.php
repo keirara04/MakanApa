@@ -10,6 +10,7 @@ use App\Support\CommunityContentFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * An ambassador's own picks for the community they represent (shown to its members as the
@@ -57,23 +58,31 @@ class AmbassadorPickController extends Controller
             return response()->json(['message' => $reason], 422);
         }
 
-        $existing = $this->currentPicks($user)->where('restaurant_id', $restaurant->id)->first();
+        // Locks this user's row so a double tap can't slip past the cap or race the unique index.
+        $pick = DB::transaction(function () use ($user, $restaurant, $note) {
+            User::whereKey($user->id)->lockForUpdate()->first();
 
-        if (! $existing && $this->currentPicks($user)->count() >= AmbassadorPick::MAX_PER_AMBASSADOR) {
+            $existing = $this->currentPicks($user)->where('restaurant_id', $restaurant->id)->exists();
+            if (! $existing && $this->currentPicks($user)->count() >= AmbassadorPick::MAX_PER_AMBASSADOR) {
+                return null;
+            }
+
+            // A pick made for a previous community is replaced, not duplicated (one row per place).
+            return AmbassadorPick::updateOrCreate(
+                ['user_id' => $user->id, 'restaurant_id' => $restaurant->id],
+                [
+                    'university_id' => $user->ambassador_university_id,
+                    'area_id' => $user->ambassador_area_id,
+                    'note' => $note,
+                ],
+            );
+        });
+
+        if (! $pick) {
             return response()->json([
                 'message' => 'You\'ve used all '.AmbassadorPick::MAX_PER_AMBASSADOR.' picks. Remove one to add another.',
             ], 422);
         }
-
-        // A pick made for a previous community is replaced, not duplicated (one row per place).
-        $pick = AmbassadorPick::updateOrCreate(
-            ['user_id' => $user->id, 'restaurant_id' => $restaurant->id],
-            [
-                'university_id' => $user->ambassador_university_id,
-                'area_id' => $user->ambassador_area_id,
-                'note' => $note,
-            ],
-        );
 
         return response()->json([
             'pick' => ['restaurantId' => $pick->restaurant_id, 'note' => $pick->note],
