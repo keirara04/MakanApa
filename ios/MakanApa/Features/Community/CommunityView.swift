@@ -12,6 +12,7 @@ struct CommunityView: View {
     @State private var showingMyPlaces = false
     @State private var showingCommunityAssignment = false
     @State private var showingGuide = false
+    @State private var showingAmbassadorApplication = false
     @State private var postStore = CommunityPostStore()
     @State private var postInteractions = CommunityPostInteractions()
     @State private var showingAllPosts = false
@@ -91,6 +92,16 @@ struct CommunityView: View {
                     errorState(for: apiError)
                 }
 
+                // Members of a real community who aren't an ambassador yet can ask to become one.
+                if isAffiliated && AmbassadorPickStore.currentRole == nil {
+                    CompactActionCard(
+                        systemImage: "star.circle.fill",
+                        title: String(format: Copy.ambassadorApplyRowTitleFormat, communityShortName),
+                        detail: Copy.ambassadorApplyRowDetail
+                    ) { showingAmbassadorApplication = true }
+                    .padding(.top, 8)
+                }
+
                 CompactActionCard(
                     systemImage: "questionmark.circle.fill",
                     title: Copy.communityGuideFooterTitle,
@@ -125,6 +136,9 @@ struct CommunityView: View {
             NavigationStack {
                 MySubmissionsView()
             }
+        }
+        .sheet(isPresented: $showingAmbassadorApplication) {
+            AmbassadorApplicationSheet(communityName: communityShortName)
         }
         .sheet(isPresented: $showingGuide) {
             FeatureGuideSheet(title: Copy.communityGuideTitle, pages: CommunityGuide.pages) { CommunityGuideArt(index: $0) }

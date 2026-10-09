@@ -304,6 +304,15 @@ enum APIClient {
         try await get("areas", query: [])
     }
 
+    static func myAmbassadorApplication() async throws -> AmbassadorApplicationResponse {
+        try await get("me/ambassador-application", query: [])
+    }
+
+    /// Surfaces the server's message on a 422 ("already being reviewed", "join a community first").
+    static func applyForAmbassador(reason: String, instagramHandle: String?) async throws -> AmbassadorApplicationResponse {
+        try await sendSurfacingMessage("POST", "me/ambassador-application", body: AmbassadorApplicationRequestBody(reason: reason, instagramHandle: instagramHandle))
+    }
+
     static func submitCommunityRequest(type: String, name: String) async throws -> CommunityRequestResponse {
         try await post("community/requests", body: CommunityRequestBody(type: type, name: name))
     }

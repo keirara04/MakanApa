@@ -385,6 +385,26 @@ struct MySubmission: Decodable, Identifiable, Equatable {
     let createdAt: String
 }
 
+/// "Become an ambassador" — the member's latest application, if any.
+struct AmbassadorApplication: Decodable, Equatable {
+    let id: Int
+    /// pending | approved | declined
+    let status: String
+    let communityType: String
+    let communityName: String?
+    let reviewNote: String?
+    let createdAt: String?
+}
+
+struct AmbassadorApplicationResponse: Decodable {
+    let application: AmbassadorApplication?
+}
+
+struct AmbassadorApplicationRequestBody: Encodable {
+    let reason: String
+    let instagramHandle: String?
+}
+
 struct MySubmissionsResponse: Decodable {
     let submissions: [MySubmission]
 }

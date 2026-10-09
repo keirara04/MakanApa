@@ -374,6 +374,31 @@ enum Copy {
     static let nearbyGuideModeCafe = "Cafe"
     static let nearbyGuideSearchExample = "nasi lemak"
 
+    // MARK: - Become an ambassador
+
+    static let ambassadorApplyRowTitleFormat = "Become an ambassador for %@"
+    static let ambassadorApplyRowDetail = "Pick the best spots for your community."
+    static let ambassadorApplyTitle = "Become an ambassador"
+    static let ambassadorApplyHeadlineFormat = "Represent %@ on MakanApa"
+    static let ambassadorApplyPerkPicksFormat = "Hand-pick the best places to eat around %@"
+    static let ambassadorApplyPerkSeenFormat = "Everyone in %@ sees your picks in Community"
+    static let ambassadorApplyPerkCard = "Get your own ambassador card to share"
+    static let ambassadorApplyReasonLabel = "Why you?"
+    static let ambassadorApplyReasonPlaceholder = "How well do you know the food around here?"
+    static let ambassadorApplyReasonFooter = "At least 20 characters."
+    static let ambassadorApplyInstagramLabel = "Instagram (optional)"
+    static let ambassadorApplyInstagramPlaceholder = "@handle"
+    static let ambassadorApplySend = "Send application"
+    static let ambassadorApplySentTitle = "Application sent"
+    static let ambassadorApplySentDetail = "The team will look at it soon, and you'll get a notification when they do."
+    static let ambassadorApplyApprovedTitleFormat = "You're the ambassador for %@"
+    static let ambassadorApplyApprovedDetail = "Your ambassador tools are now in Community."
+    static let ambassadorApplyDeclinedTitle = "Not this time"
+    static let ambassadorApplyDeclinedDetail = "Your last application wasn't approved, but you're welcome to apply again."
+    static let ambassadorApplyLoadFailed = "Couldn't check your application."
+    static let ambassadorApplySendFailed = "Couldn't send it. Try again in a bit."
+    static let ambassadorApplyCountFormat = "%d/500"
+
     // MARK: - My places
 
     static let myPlacesStatLive = "Live"
