@@ -21,7 +21,7 @@ final class ReasonCatalog
     ];
 
     /** The decision-fatigue line — also the reroll lead in RecommendationController. */
-    public const FATIGUE_LINE = 'Okay, enough choosing 😭 — this is the safest bet';
+    public const FATIGUE_LINE = 'Okay, enough choosing 😭 This is the safest bet';
 
     private const DECIDING = [
         'distance' => 'closest strong match',
@@ -40,7 +40,7 @@ final class ReasonCatalog
         'cafeRelevance' => 'the best café vibe',
         'vibeRelevance' => 'the vibe you asked for',
         'halalConfidence' => 'halal confidence',
-        'exploration' => 'a wildcard — you\'ve been playing safe',
+        'exploration' => 'a wildcard, since you\'ve been playing safe',
     ];
 
     /**
@@ -128,17 +128,17 @@ final class ReasonCatalog
             'mood_match' => ['Matches the mood you picked', 'Fits exactly what you felt like'],
             'selera_slot' => $catLower ? [ucfirst($f['slot']).' = '.$catLower.', as usual', "Your usual {$f['slot']} go-to: {$catLower}"] : [],
             'pulse' => $catLower ? ["You've been into {$catLower} lately", "Riding your {$catLower} wave"] : [],
-            'selera_match' => $catLower ? ["Your kind of place — you love {$catLower}", "Very your Selera: {$catLower}"] : ['Very your Selera'],
-            'lens_cheap_today' => ['Cheap today — '.(self::price($f['priceLevel'] ?? null) ?? 'easy on the wallet')],
-            'lens_treat_myself' => ['Treat yourself — you deserve it ✨'],
+            'selera_match' => $catLower ? ["Your kind of place: you love {$catLower}", "Very your Selera: {$catLower}"] : ['Very your Selera'],
+            'lens_cheap_today' => ['Cheap today: '.(self::price($f['priceLevel'] ?? null) ?? 'easy on the wallet')],
+            'lens_treat_myself' => ['Treat yourself, you deserve it ✨'],
             'lens_surprise_me' => ['Surprise! Something you wouldn\'t usually pick'],
-            'lens_quick_one' => ['Quick one — '.($distance ?? 'close by').' and ready to go'],
+            'lens_quick_one' => ['Quick one: '.($distance ?? 'close by').' and ready to go'],
             'lens_community_favs' => [($community ? "{$community} favourite" : 'Local favourite').' right now'],
             'close' => $f['rank'] === 1 && $pool > 1
-                ? ["{$distance} — closest one that matched", "Closest of {$pool} options · {$distance}"]
+                ? ["{$distance} away, the closest match", "Closest of {$pool} options · {$distance}"]
                 : ["Only {$distance} away"],
             'rating' => $f['rank'] === 1 && $pool > 1
-                ? [sprintf('Best rated of the nearby matches (%.1f★)', $f['rating']), sprintf('%.1f★ — top rated of %d', $f['rating'], $pool)]
+                ? [sprintf('Best rated of the nearby matches (%.1f★)', $f['rating']), sprintf('%.1f★, top rated of %d', $f['rating'], $pool)]
                 : [sprintf('Solid %.1f★ rating', $f['rating'])],
             'budget_fit' => $f['rank'] === 1 && $pool > 1
                 ? ["Cheapest of your top {$pool}", 'Lightest on the wallet here']
@@ -146,21 +146,21 @@ final class ReasonCatalog
             'community_picks' => $community
                 ? ["{$f['pickers']} {$community} people ate here this week", "{$community} keeps coming back here ({$f['pickers']} this week)"]
                 : ["{$f['pickers']} people nearby picked this lately"],
-            'hidden_gem' => ['Hidden gem — few reviews, high rating', 'Low-key spot the crowd hasn\'t found yet'],
+            'hidden_gem' => ['Hidden gem: few reviews, high rating', 'Low-key spot the crowd hasn\'t found yet'],
             'popular' => ['A proven crowd favourite'],
             'halal_verified' => ['Halal certified'],
-            'ctx_rain' => ['Raining — kept it close ☔', 'Raining, so nothing far'],
-            'ctx_supper' => ['Still open for supper 🌙', 'Supper sorted — open now'],
-            'ctx_friday' => ['Friday prayers — picked one that\'s open'],
-            'ctx_iftar' => ['Iftar soon — close by'],
+            'ctx_rain' => ['Raining, so I kept it close ☔', 'Raining, so nothing far'],
+            'ctx_supper' => ['Still open for supper 🌙', 'Supper sorted, open now'],
+            'ctx_friday' => ['Friday prayers, so I picked one that\'s open'],
+            'ctx_iftar' => ['Iftar soon, so close by'],
             'ctx_sahur' => ['Open for sahur'],
-            'ctx_month_end' => ['End of month — kept it cheap 💸'],
+            'ctx_month_end' => ['End of month, so I kept it cheap 💸'],
             'novelty' => ($s = RecommendationHeadline::categoryLabel($f['streak'] ?? null))
                 ? ['Something different from your '.mb_strtolower($s).' streak', 'Break from all that '.mb_strtolower($s)]
                 : [],
             'fatigue' => [self::FATIGUE_LINE],
-            'wildcard' => ['Bit of a wildcard — you\'ve been playing safe', 'Wildcard pick — trust me on this one'],
-            'pulse_reject' => $catLower ? ["Not feeling {$catLower}? Trying something different", "No {$catLower} then — how about this"] : ['Okay, trying something different'],
+            'wildcard' => ['Bit of a wildcard. You\'ve been playing safe', 'Wildcard pick. Trust me on this one'],
+            'pulse_reject' => $catLower ? ["Not feeling {$catLower}? Trying something different", "No {$catLower} then. How about this?"] : ['Okay, trying something different'],
             default => [],
         };
     }

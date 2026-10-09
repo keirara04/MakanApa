@@ -47,7 +47,7 @@ final readonly class CertificateData
         }
         if ($expires !== null && $expires->lt(today())) {
             throw ValidationException::withMessages([
-                'expires_at' => 'This certificate has already expired — it cannot support a certified status.',
+                'expires_at' => 'This certificate has already expired, so it cannot support a certified status.',
             ]);
         }
 

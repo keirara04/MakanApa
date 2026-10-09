@@ -15,7 +15,7 @@ class BroadcastReleaseAnnouncement extends Command
     public function handle(NotificationBroadcastService $service): int
     {
         $version = $this->argument('version');
-        $message = $this->option('message') ?: "MakanApa {$version} is out now — update to get the latest.";
+        $message = $this->option('message') ?: "MakanApa {$version} is out now. Update to get the latest.";
 
         $considered = $service->broadcast(new ReleaseAnnouncement($version, $message, $this->option('app-store-url')), [
             'category' => 'release_announcements',

@@ -211,7 +211,7 @@ class SharePlaceController extends Controller
                 'closed' => 'Closed now',
                 default => null,
             },
-        ])->filter()->implode(' · ').' — picked on MakanApa';
+        ])->filter()->implode(' · ').' · Picked on MakanApa';
     }
 
     /**

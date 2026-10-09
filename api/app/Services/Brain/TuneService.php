@@ -151,7 +151,7 @@ class TuneService
             default => $distance,
         };
 
-        return "{$head} — {$detail}";
+        return "{$head}: {$detail}";
     }
 
     private function searchWider(Decision $decision, TuneDirection $direction): array

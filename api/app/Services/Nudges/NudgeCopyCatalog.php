@@ -14,28 +14,28 @@ final class NudgeCopyCatalog
     /** @var array<string, array<int, array{0: string, 1: string}>> key => [title, body] variants */
     private const VARIANTS = [
         'normal_lunch' => [
-            ['Had lunch yet? 🍛', '{name} — {distance} away{closes}.'],
+            ['Had lunch yet? 🍛', '{name}, {distance} away{closes}.'],
             ['Tummy rumbling? 🍛', '{name} is {distance} away{closes}. Shall we?'],
             ['Lunch sorted 👌', 'How about {name}? {distance} away{closes}.'],
         ],
         'normal_dinner' => [
-            ['Dinner plans tonight? 🍽️', '{name} — {distance} away{closes}.'],
+            ['Dinner plans tonight? 🍽️', '{name}, {distance} away{closes}.'],
             ['Dinner time, let\'s go 🌙', '{name} is {distance} away{closes}.'],
         ],
         'rain_lunch' => [
-            ['Raining out 🌧️', '{name} is just {distance} away{closes} — you won\'t get too wet.'],
+            ['Raining out 🌧️', '{name} is just {distance} away{closes}. You won\'t get too wet.'],
             ['Rainy lunch ☔', 'Stay dry: {name}, {distance} away{closes}.'],
         ],
         'rain_dinner' => [
-            ['Raining out 🌧️', '{name} is just {distance} away{closes} — nice and close.'],
+            ['Raining out 🌧️', '{name} is just {distance} away{closes}. Nice and close.'],
             ['Rainy dinner ☔', 'Stay dry: {name}, {distance} away{closes}.'],
         ],
         'friday_lunch' => [
-            ['Lunch after Friday prayers? 🍛', '{name} — {distance} away{closes}.'],
+            ['Lunch after Friday prayers? 🍛', '{name}, {distance} away{closes}.'],
             ['Friday lunch 🍛', '{name} is {distance} away{closes}.'],
         ],
         'ramadan_iftar' => [
-            ['Where to break your fast? 🌙', '{name} — {distance} away{closes}.'],
+            ['Where to break your fast? 🌙', '{name}, {distance} away{closes}.'],
             ['Iftar sorted? 🌙', 'How about {name}, {distance} away{closes}?'],
         ],
         'generic_lunch' => [
@@ -44,7 +44,7 @@ final class NudgeCopyCatalog
         ],
         'generic_dinner' => [
             ['Dinner time! 🍽️', 'Tap for a pick near you.'],
-            ["What's for dinner?", 'Let MakanApa pick — tap for a spot nearby.'],
+            ["What's for dinner?", 'Let MakanApa pick. Tap for a spot nearby.'],
         ],
         'generic_iftar' => [
             ['Where to break your fast? 🌙', 'Tap for an iftar pick near you.'],

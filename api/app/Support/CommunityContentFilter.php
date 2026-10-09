@@ -19,7 +19,7 @@ final class CommunityContentFilter
         }
 
         if (self::containsBlockedWord($body)) {
-            return 'Please keep it friendly — that wording isn\'t allowed.';
+            return 'Please keep it friendly. That wording isn\'t allowed.';
         }
 
         return null;

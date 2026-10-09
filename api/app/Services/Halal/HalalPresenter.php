@@ -175,8 +175,8 @@ class HalalPresenter
             // JAIS bans the phrase for uncertified premises). State the certification fact only.
             $status === HalalStatus::MuslimFriendly => ['Not certified · community notes', 'No halal certificate. Community notes only, check at the restaurant.', 'friendly', null],
             $status === HalalStatus::NonHalal => ['Non-halal', 'Non-halal', 'non_halal', null],
-            $expired => ['Cert expired · Help re-verify', 'Halal certificate expired — help us re-verify', 'warning', 'help_reverify'],
-            default => ['Not verified · Help verify', 'Halal status not verified yet — help us verify', 'neutral', 'help_verify'],
+            $expired => ['Cert expired · Help re-verify', 'Halal certificate expired. Help us re-verify', 'warning', 'help_reverify'],
+            default => ['Not verified · Help verify', 'Halal status not verified yet. Help us verify', 'neutral', 'help_verify'],
         };
 
         return ['shortLabel' => $short, 'longLabel' => $long, 'tone' => $tone, 'action' => $action];
