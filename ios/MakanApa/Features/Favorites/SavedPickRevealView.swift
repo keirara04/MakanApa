@@ -302,10 +302,11 @@ struct SavedPickRevealView: View {
         guard let pick = soloViewModel.currentPick else { return [] }
         var lines: [WhyLine] = []
 
+        // Always first, even when the server didn't lead with it (rerolls, the v1 picker).
+        lines.append(WhyLine(symbol: "heart.fill", text: Copy.savedPickReasonSaved))
         if let reasons = pick.reasons, !reasons.isEmpty {
             lines += reasons.map { WhyLine(symbol: symbol(forFamily: $0.family, text: $0.text), text: $0.text) }
         } else {
-            lines.append(WhyLine(symbol: "heart.fill", text: Copy.savedPickReasonSaved))
             if !pick.headline.isEmpty {
                 lines.append(WhyLine(symbol: "text.quote", text: pick.headline))
             }
