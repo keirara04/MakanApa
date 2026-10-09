@@ -53,8 +53,6 @@ struct NearbyAreaPanel: View {
     let windowHeight: CGFloat
 
     @Binding var state: NearbyPanelState
-    /// Opens "How Nearby works" — offered at the end of the full list.
-    var onShowGuide: (() -> Void)? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragTranslation: CGFloat = 0
     @State private var sort: NearbySortOption = .defaultOrder
@@ -426,16 +424,6 @@ struct NearbyAreaPanel: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                     }
-                }
-
-                if let onShowGuide {
-                    CompactActionCard(
-                        systemImage: "questionmark.circle.fill",
-                        title: Copy.nearbyGuideFooterTitle,
-                        detail: Copy.nearbyGuideFooterDetail,
-                        action: onShowGuide
-                    )
-                    .padding(16)
                 }
             }
         }

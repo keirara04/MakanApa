@@ -104,9 +104,10 @@ struct NearbyView: View {
             if panelState == .collapsed && !isSearchActive {
                 HStack {
                     Spacer()
-                    VStack {
+                    VStack(spacing: 10) {
                         Spacer()
                         recenterButton
+                        guideButton
                     }
                 }
                 .padding(.trailing, 12)
@@ -150,8 +151,7 @@ struct NearbyView: View {
                         isLoading: isFindingSpots,
                         hasPlaces: !viewModel.places.isEmpty,
                         windowHeight: windowHeight,
-                        state: $panelState,
-                        onShowGuide: { showingGuide = true }
+                        state: $panelState
                     )
                 }
                 .padding(.bottom, 6)
@@ -781,6 +781,23 @@ struct NearbyView: View {
     }
 
     // MARK: - Recenter
+
+    /// Opens "How Nearby works" — same round map control as the recenter button above it.
+    private var guideButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showingGuide = true
+        } label: {
+            Image(systemName: "questionmark")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.kicap)
+                .frame(width: 44, height: 44)
+                .background(.white)
+                .clipShape(Circle())
+                .shadow(color: .black.opacity(0.15), radius: 5, y: 2)
+        }
+        .accessibilityLabel(Copy.nearbyGuideTitle)
+    }
 
     private var recenterButton: some View {
         Button {

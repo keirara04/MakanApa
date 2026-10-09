@@ -332,8 +332,6 @@ enum Copy {
     // MARK: - Nearby guide
 
     static let nearbyGuideTitle = "How Nearby works"
-    static let nearbyGuideFooterTitle = "New to Nearby?"
-    static let nearbyGuideFooterDetail = "See how to browse, filter and pick."
     static let nearbyGuideMapTitle = "Move around the map"
     static let nearbyGuideMapBody = "Each pin is a place with its rating. Move the map, then tap Search this area to load what's there."
     static let nearbyGuideFilterTitle = "Filter what you see"
