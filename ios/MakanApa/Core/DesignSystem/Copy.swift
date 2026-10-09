@@ -305,13 +305,61 @@ enum Copy {
     static let savedStateNotSaved = "Not saved"
     static let savedToggleHint = "Saves or removes this place"
 
+    // MARK: - Picture guides (shared)
+
+    static let guideNext = "Next"
+    static let guideDone = "Got it"
+    static let guidePageFormat = "Page %d of %d"
+
+    // MARK: - Decide guide
+
+    static let decideGuideTitle = "How Decide works"
+    static let decideGuideFooterTitle = "New to MakanApa?"
+    static let decideGuideFooterDetail = "See how picking works."
+    static let decideGuideQuickTitle = "Pick for me"
+    static let decideGuideQuickBody = "One tap and Nasi picks somewhere nearby, using the budget and distance you used last time."
+    static let decideGuideCravingTitle = "I know what I want"
+    static let decideGuideCravingBody = "Choose a mood or type a craving, set your budget and distance, and MakanApa picks for you."
+    static let decideGuideWhyTitle = "See why it won"
+    static let decideGuideWhyBody = "Every pick tells you why it was chosen. Tap Let's eat for directions, or ask for another one."
+    static let decideGuideTuneTitle = "Nudge the pick"
+    static let decideGuideTuneBody = "Not quite right? Tap Closer, Cheaper or Safer bet and it picks again from the same list."
+    static let decideGuideSavedTitle = "Pick from your saved places"
+    static let decideGuideSavedBody = "Save two or more places and MakanApa shuffles them like a deck of cards and deals you one."
+    static let decideGuideRecentTitle = "Go back to a favourite"
+    static let decideGuideRecentBody = "Places you pick show up in Recent. Tap one to open it in Maps, or press and hold to remove it."
+
+    // MARK: - Nearby guide
+
+    static let nearbyGuideTitle = "How Nearby works"
+    static let nearbyGuideFooterTitle = "New to Nearby?"
+    static let nearbyGuideFooterDetail = "See how to browse, filter and pick."
+    static let nearbyGuideMapTitle = "Move around the map"
+    static let nearbyGuideMapBody = "Each pin is a place with its rating. Move the map, then tap Search this area to load what's there."
+    static let nearbyGuideFilterTitle = "Filter what you see"
+    static let nearbyGuideFilterBody = "Hide non-halal places, show only what's open, or keep it under RM 20. Places that don't fit fade out."
+    static let nearbyGuideModeTitle = "Try a mode"
+    static let nearbyGuideModeBody = "Switch between For you, Popular, Low-key and more to see different kinds of places."
+    static let nearbyGuideSearchTitle = "Search a dish or a place"
+    static let nearbyGuideSearchBody = "Tap the search button and type a dish or a name. Results show on the map and in a list."
+    static let nearbyGuidePlaceTitle = "Open a place"
+    static let nearbyGuidePlaceBody = "Tap a pin for details. Tap the heart to save it, or Eat here when you've decided."
+    static let nearbyGuidePickTitle = "Let Nasi pick"
+    static let nearbyGuidePickBody = "Can't choose? Tap Pick for me and Nasi picks one of the places on the map. Pull up Around here for the full list."
+    static let nearbyGuideSearchThisArea = "Search this area"
+    static let nearbyGuideChipHalal = "Hide non-halal"
+    static let nearbyGuideChipOpen = "Open now"
+    static let nearbyGuideChipBudget = "≤ RM20"
+    static let nearbyGuideModeForYou = "For you"
+    static let nearbyGuideModeLowKey = "Low-key"
+    static let nearbyGuideModeCafe = "Cafe"
+    static let nearbyGuideSearchExample = "nasi lemak"
+
     // MARK: - Community guide
 
     static let communityGuideTitle = "How Community works"
     static let communityGuideFooterTitle = "New to Community?"
     static let communityGuideFooterDetail = "See how to add places, post and react."
-    static let communityGuideNext = "Next"
-    static let communityGuideDone = "Got it"
     static let communityGuideCommunityTitle = "Pick your community"
     static let communityGuideCommunityBody = "Tap the name at the top to switch between your university, your area, or everyone nearby."
     static let communityGuideAddTitle = "Add a place"
@@ -330,7 +378,8 @@ enum Copy {
     static let communityGuideStatusLive = "Live"
     static let communityGuideReport = "Report"
     static let communityGuideBlock = "Block"
-    static let communityGuidePageFormat = "Page %d of %d"
+    static let communityEmptyAddTitle = "Know a spot worth sharing?"
+    static let communityEmptyAddDetail = "Add it so your community can find it."
 
     // MARK: - Pick from saved places
 

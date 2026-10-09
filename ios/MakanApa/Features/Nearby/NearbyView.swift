@@ -26,6 +26,7 @@ struct NearbyView: View {
     @State private var showingPhotoGallery = false
     @State private var showingAddPlace = false
     @State private var showNotificationPriming = false
+    @State private var showingGuide = false
     @State private var recentSearches = RecentSearchStore.queries
     @State private var pendingDeepLink = PendingDeepLink.shared
     private var preferences = PlacePreferencesStore.shared
@@ -149,7 +150,8 @@ struct NearbyView: View {
                         isLoading: isFindingSpots,
                         hasPlaces: !viewModel.places.isEmpty,
                         windowHeight: windowHeight,
-                        state: $panelState
+                        state: $panelState,
+                        onShowGuide: { showingGuide = true }
                     )
                 }
                 .padding(.bottom, 6)
@@ -171,6 +173,9 @@ struct NearbyView: View {
             pendingDeepLink.placeRequest = nil
             if isSearchActive { closeSearch() }
             Task { _ = await viewModel.openPlace(request) }
+        }
+        .sheet(isPresented: $showingGuide) {
+            FeatureGuideSheet(title: Copy.nearbyGuideTitle, pages: NearbyGuide.pages) { NearbyGuideArt(index: $0) }
         }
         .sheet(item: $viewModel.selectedPlace) { place in
             placeSheet(for: place)
@@ -1253,4 +1258,163 @@ private struct EdgeFadeModifier: ViewModifier {
 
 private extension View {
     func edgeFade() -> some View { modifier(EdgeFadeModifier()) }
+}
+
+// MARK: - How Nearby works
+
+private enum NearbyGuide {
+    static let pages: [FeatureGuidePage] = [
+        .init(title: Copy.nearbyGuideMapTitle, body: Copy.nearbyGuideMapBody),
+        .init(title: Copy.nearbyGuideFilterTitle, body: Copy.nearbyGuideFilterBody),
+        .init(title: Copy.nearbyGuideModeTitle, body: Copy.nearbyGuideModeBody),
+        .init(title: Copy.nearbyGuideSearchTitle, body: Copy.nearbyGuideSearchBody),
+        .init(title: Copy.nearbyGuidePlaceTitle, body: Copy.nearbyGuidePlaceBody),
+        .init(title: Copy.nearbyGuidePickTitle, body: Copy.nearbyGuidePickBody),
+    ]
+}
+
+/// One drawing per `NearbyGuide.pages` entry, in the same order.
+private struct NearbyGuideArt: View {
+    let index: Int
+
+    var body: some View {
+        switch index {
+        case 0: mapArt
+        case 1: filterArt
+        case 2: modeArt
+        case 3: searchArt
+        case 4: placeArt
+        default: pickArt
+        }
+    }
+
+    /// A few streets and rating pins — the map in miniature.
+    private var mapBackdrop: some View {
+        ZStack {
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 70)); path.addLine(to: CGPoint(x: 400, y: 150))
+                path.move(to: CGPoint(x: 120, y: 0)); path.addLine(to: CGPoint(x: 200, y: 240))
+                path.move(to: CGPoint(x: 0, y: 190)); path.addLine(to: CGPoint(x: 400, y: 120))
+            }
+            .stroke(Color.hairline, lineWidth: 6)
+            ratingPin("4.6").offset(x: -90, y: -30)
+            ratingPin("4.2").offset(x: 70, y: 10)
+            ratingPin("4.8").offset(x: -20, y: 60)
+        }
+    }
+
+    private func ratingPin(_ rating: String) -> some View {
+        Label(rating, systemImage: "star.fill")
+            .font(.makanBody(12).weight(.semibold))
+            .foregroundStyle(Color.kicap)
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 8)
+            .frame(height: 26)
+            .background(.white, in: Capsule())
+            .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+    }
+
+    private var mapArt: some View {
+        ZStack(alignment: .top) {
+            mapBackdrop
+            Label(Copy.nearbyGuideSearchThisArea, systemImage: "arrow.clockwise")
+                .font(.makanBody(13).weight(.semibold))
+                .foregroundStyle(Color.kicap)
+                .padding(.horizontal, 14)
+                .frame(height: 34)
+                .background(.white, in: Capsule())
+                .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
+                .guideTapHint(cornerRadius: 22)
+                .padding(.top, 24)
+        }
+    }
+
+    private var filterArt: some View {
+        VStack(spacing: 22) {
+            HStack(spacing: 8) {
+                GuideChip(text: Copy.nearbyGuideChipHalal, isOn: true)
+                GuideChip(text: Copy.nearbyGuideChipOpen).guideTapHint(cornerRadius: 18)
+                GuideChip(text: Copy.nearbyGuideChipBudget)
+            }
+            HStack(spacing: 14) {
+                ratingPin("4.6")
+                ratingPin("3.9").opacity(0.35)
+                ratingPin("4.4")
+            }
+        }
+    }
+
+    private var modeArt: some View {
+        HStack(spacing: 8) {
+            GuideChip(text: Copy.nearbyGuideModeForYou, isOn: true)
+            GuideChip(text: Copy.nearbyGuideModeLowKey).guideTapHint(cornerRadius: 18)
+            GuideChip(text: Copy.nearbyGuideModeCafe)
+        }
+    }
+
+    private var searchArt: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.headline)
+                    .foregroundStyle(Color.kicap)
+                    .frame(width: 40, height: 40)
+                    .background(.white, in: Circle())
+                    .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
+                    .guideTapHint(cornerRadius: 22)
+                HStack(spacing: 8) {
+                    Text(Copy.nearbyGuideSearchExample).font(.makanBody(14)).foregroundStyle(Color.kicap)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 14)
+                .frame(width: 180, height: 40)
+                .background(Color.nasiCream, in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+            }
+            GuideMenu(width: 250) {
+                GuideMenuRow(systemImage: "fork.knife") { GuideBar(width: 120) }
+                GuideMenuRow(systemImage: "fork.knife") { GuideBar(width: 90) }
+            }
+        }
+    }
+
+    private var placeArt: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    GuideBar(width: 140, height: 12)
+                    GuideBar(width: 90)
+                }
+                Spacer()
+                Image(systemName: "heart")
+                    .font(.title3)
+                    .foregroundStyle(Color.sambalRed)
+                    .frame(width: 40, height: 40)
+                    .guideTapHint(cornerRadius: 22)
+            }
+            Text(Copy.eatHere)
+                .font(.makanBody(14).weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .background(Color.sambalRed, in: Capsule())
+        }
+        .padding(16)
+        .frame(width: 270)
+        .background(Color.nasiCream, in: .row)
+    }
+
+    private var pickArt: some View {
+        ZStack(alignment: .bottomTrailing) {
+            mapBackdrop
+            Text(Copy.quickPickTitle)
+                .font(.makanBody(14).weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .frame(height: 40)
+                .background(Color.sambalRed, in: Capsule())
+                .guideTapHint(cornerRadius: 24)
+                .padding(.trailing, 40)
+                .padding(.bottom, 40)
+        }
+    }
 }

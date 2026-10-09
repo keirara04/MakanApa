@@ -58,6 +58,7 @@ struct HomeView: View {
     @State private var quickPickTaps = 0
     @State private var recentTaps = 0
     @State private var savedPickTaps = 0
+    @State private var showingGuide = false
     /// Non-nil while the saved-places shuffle is presented.
     @State private var savedPick: SavedPickLaunch?
     /// Neighbourhood for the header eyebrow; nil until reverse-geocoded (or without location).
@@ -90,6 +91,9 @@ struct HomeView: View {
         .sensoryFeedback(.impact(weight: .medium), trigger: savedPickTaps)
         .sheet(isPresented: $showSettings) {
             SettingsView()
+        }
+        .sheet(isPresented: $showingGuide) {
+            FeatureGuideSheet(title: Copy.decideGuideTitle, pages: DecideGuide.pages) { DecideGuideArt(index: $0) }
         }
         .sheet(item: $vibeFollowUp) { prompt in
             VibeFollowUpSheet(
@@ -157,6 +161,13 @@ struct HomeView: View {
 
                 recentSection
                     .modifier(Entrance(index: 2, entered: entered))
+
+                CompactActionCard(
+                    systemImage: "questionmark.circle.fill",
+                    title: Copy.decideGuideFooterTitle,
+                    detail: Copy.decideGuideFooterDetail
+                ) { showingGuide = true }
+                .modifier(Entrance(index: 3, entered: entered))
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -538,6 +549,184 @@ struct HomeView: View {
             return "birthday.cake.fill"
         default:
             return "fork.knife"
+        }
+    }
+}
+
+// MARK: - How Decide works
+
+private enum DecideGuide {
+    static let pages: [FeatureGuidePage] = [
+        .init(title: Copy.decideGuideQuickTitle, body: Copy.decideGuideQuickBody),
+        .init(title: Copy.decideGuideCravingTitle, body: Copy.decideGuideCravingBody),
+        .init(title: Copy.decideGuideWhyTitle, body: Copy.decideGuideWhyBody),
+        .init(title: Copy.decideGuideTuneTitle, body: Copy.decideGuideTuneBody),
+        .init(title: Copy.decideGuideSavedTitle, body: Copy.decideGuideSavedBody),
+        .init(title: Copy.decideGuideRecentTitle, body: Copy.decideGuideRecentBody),
+    ]
+}
+
+/// One drawing per `DecideGuide.pages` entry, in the same order.
+private struct DecideGuideArt: View {
+    let index: Int
+
+    var body: some View {
+        switch index {
+        case 0: quickArt
+        case 1: cravingArt
+        case 2: whyArt
+        case 3: tuneArt
+        case 4: savedArt
+        default: recentArt
+        }
+    }
+
+    private var quickArt: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "dice.fill")
+                .font(.title3.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .background(.white.opacity(0.18), in: Circle())
+            VStack(alignment: .leading, spacing: 8) {
+                Text(Copy.quickPickTitle).font(.headline)
+                Capsule().fill(.white.opacity(0.4)).frame(width: 110, height: 8)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right").font(.subheadline.weight(.semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .frame(width: 270)
+        .background(Color.sambalRed, in: .card)
+        .guideTapHint(cornerRadius: 28)
+    }
+
+    private var cravingArt: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(Color.kicap)
+                    .frame(width: 40, height: 40)
+                    .background(Color.surface, in: Circle())
+                Text(Copy.chooseCravingTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicap)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.kicapSecondary)
+            }
+            .padding(12)
+            .frame(width: 270)
+            .background(Color.nasiCream, in: .row)
+            .guideTapHint(cornerRadius: 20)
+
+            HStack(spacing: 8) {
+                ForEach([44, 60, 36], id: \.self) { width in
+                    GuideBar(width: CGFloat(width))
+                        .padding(.horizontal, 12)
+                        .frame(height: 30)
+                        .background(Color.nasiCream, in: Capsule())
+                        .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
+                }
+            }
+        }
+    }
+
+    private var whyArt: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideBar(width: 160, height: 12)
+            ForEach(["heart.fill", "star.fill", "location.fill"], id: \.self) { symbol in
+                HStack(spacing: 8) {
+                    Image(systemName: symbol).font(.caption).foregroundStyle(Color.kunyit).frame(width: 16)
+                    GuideBar(width: 150)
+                }
+            }
+            Text(Copy.resultGo)
+                .font(.makanBody(14).weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .background(Color.sambalRed, in: Capsule())
+                .guideTapHint(cornerRadius: 22)
+                .padding(.top, 4)
+        }
+        .padding(16)
+        .frame(width: 260)
+        .background(Color.nasiCream, in: .row)
+    }
+
+    private var tuneArt: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                GuideBar(width: 150, height: 12)
+                GuideBar(width: 110)
+            }
+            .padding(16)
+            .frame(width: 260, alignment: .leading)
+            .background(Color.nasiCream, in: .row)
+
+            HStack(spacing: 8) {
+                ForEach(Array(TuneDirection.allCases.prefix(3))) { direction in
+                    if direction == .cheaper {
+                        GuideChip(text: direction.label).guideTapHint(cornerRadius: 18)
+                    } else {
+                        GuideChip(text: direction.label)
+                    }
+                }
+            }
+        }
+    }
+
+    private var savedArt: some View {
+        VStack(spacing: 18) {
+            ZStack {
+                ForEach([-10.0, 0, 10], id: \.self) { angle in
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.sambalRed)
+                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).inset(by: 4).strokeBorder(.white.opacity(0.5), lineWidth: 1))
+                        .frame(width: 46, height: 64)
+                        .rotationEffect(.degrees(angle), anchor: .bottom)
+                }
+            }
+            HStack(spacing: 12) {
+                Image(systemName: "rectangle.stack.fill").foregroundStyle(Color.sambalRed)
+                Text(Copy.savedPickTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.kicap)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.kicapSecondary)
+            }
+            .padding(12)
+            .frame(width: 250)
+            .background(Color.nasiCream, in: .row)
+            .guideTapHint(cornerRadius: 20)
+        }
+    }
+
+    private var recentArt: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GuideMenu(width: 240) {
+                HStack(spacing: 10) {
+                    Image(systemName: "clock.arrow.circlepath").foregroundStyle(Color.kicapSecondary).frame(width: 20)
+                    GuideBar(width: 120)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 38)
+                .guideTapHint(cornerRadius: 12)
+                ForEach([90, 140], id: \.self) { width in
+                    HStack(spacing: 10) {
+                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(Color.kicapSecondary).frame(width: 20)
+                        GuideBar(width: CGFloat(width))
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(height: 38)
+                }
+            }
+            GuideMenu(width: 200) {
+                GuideMenuRow(systemImage: "map") { Text(Copy.openInMaps) }
+                GuideMenuRow(systemImage: "trash", highlighted: true) { Text(Copy.removeFromRecent) }
+            }
+            .padding(.leading, 40)
         }
     }
 }

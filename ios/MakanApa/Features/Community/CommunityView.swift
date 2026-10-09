@@ -91,7 +91,11 @@ struct CommunityView: View {
                     errorState(for: apiError)
                 }
 
-                CommunityGuideFooter { showingGuide = true }
+                CompactActionCard(
+                    systemImage: "questionmark.circle.fill",
+                    title: Copy.communityGuideFooterTitle,
+                    detail: Copy.communityGuideFooterDetail
+                ) { showingGuide = true }
                     .padding(.top, 8)
             }
             .padding(.horizontal, 20)
@@ -123,7 +127,7 @@ struct CommunityView: View {
             }
         }
         .sheet(isPresented: $showingGuide) {
-            CommunityGuideSheet()
+            FeatureGuideSheet(title: Copy.communityGuideTitle, pages: CommunityGuide.pages) { CommunityGuideArt(index: $0) }
         }
         .sheet(isPresented: $showingCommunityAssignment) {
             CommunityAssignmentSheet(currentUniversity: currentUniversity, currentArea: currentArea) {
@@ -383,41 +387,13 @@ struct CommunityView: View {
         .transition(.opacity)
     }
 
+    /// Nothing trending yet: a thin row (same shape as the guide card) instead of a big card.
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "fork.knife.circle")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(Color.sambalRed)
-                    .frame(width: 54, height: 54)
-                    .background(Color.sambalRed.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Your next favourite starts here")
-                        .font(.system(.headline, design: .rounded))
-                        .foregroundStyle(Color.kicap)
-                    Text("Know a spot worth sharing? Help your community discover it.")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(Color.kicap.opacity(0.65))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Button { showingAddPlace = true } label: {
-                HStack {
-                    Text("Add a good spot")
-                    Spacer()
-                    Image(systemName: "plus.circle.fill")
-                }
-                .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(Color.sambalRed)
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(CommunityPressStyle())
-        }
-        .padding(20)
-        .background(Color.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 24))
-        .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(Color.kicap.opacity(0.07)))
+        CompactActionCard(
+            systemImage: "plus.circle.fill",
+            title: Copy.communityEmptyAddTitle,
+            detail: Copy.communityEmptyAddDetail
+        ) { showingAddPlace = true }
         .transition(.opacity)
     }
 
@@ -521,149 +497,32 @@ private extension View {
 
 // MARK: - How Community works
 
-/// The last thing in the feed: a quiet card that opens the picture guide.
-private struct CommunityGuideFooter: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                Image(systemName: "questionmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.sambalRed)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(Copy.communityGuideFooterTitle)
-                        .font(.headline)
-                        .foregroundStyle(Color.kicap)
-                    Text(Copy.communityGuideFooterDetail)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.kicapSecondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.kicapSecondary)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.surface, in: .card)
-            .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
-        }
-        .buttonStyle(CommunityPressStyle())
-    }
-}
-
-private struct CommunityGuidePage {
-    enum Art { case community, addPlace, myPlaces, post, react, place, safety }
-
-    let art: Art
-    let title: String
-    let body: String
-
-    static let all: [CommunityGuidePage] = [
-        .init(art: .community, title: Copy.communityGuideCommunityTitle, body: Copy.communityGuideCommunityBody),
-        .init(art: .addPlace, title: Copy.communityGuideAddTitle, body: Copy.communityGuideAddBody),
-        .init(art: .myPlaces, title: Copy.communityGuideTrackTitle, body: Copy.communityGuideTrackBody),
-        .init(art: .post, title: Copy.communityGuidePostTitle, body: Copy.communityGuidePostBody),
-        .init(art: .react, title: Copy.communityGuideReactTitle, body: Copy.communityGuideReactBody),
-        .init(art: .place, title: Copy.communityGuidePlaceTitle, body: Copy.communityGuidePlaceBody),
-        .init(art: .safety, title: Copy.communityGuideSafetyTitle, body: Copy.communityGuideSafetyBody),
+private enum CommunityGuide {
+    static let pages: [FeatureGuidePage] = [
+        .init(title: Copy.communityGuideCommunityTitle, body: Copy.communityGuideCommunityBody),
+        .init(title: Copy.communityGuideAddTitle, body: Copy.communityGuideAddBody),
+        .init(title: Copy.communityGuideTrackTitle, body: Copy.communityGuideTrackBody),
+        .init(title: Copy.communityGuidePostTitle, body: Copy.communityGuidePostBody),
+        .init(title: Copy.communityGuideReactTitle, body: Copy.communityGuideReactBody),
+        .init(title: Copy.communityGuidePlaceTitle, body: Copy.communityGuidePlaceBody),
+        .init(title: Copy.communityGuideSafetyTitle, body: Copy.communityGuideSafetyBody),
     ]
 }
 
-/// Swipeable picture guide: each page draws the real control in miniature, rings the one to tap,
-/// and says what it does in a line or two.
-private struct CommunityGuideSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var page = 0
-    private let pages = CommunityGuidePage.all
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                TabView(selection: $page) {
-                    ForEach(pages.indices, id: \.self) { index in
-                        pageView(pages[index])
-                            .tag(index)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel("\(String(format: Copy.communityGuidePageFormat, index + 1, pages.count)). \(pages[index].title). \(pages[index].body)")
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .always))
-                .indexViewStyle(.page(backgroundDisplayMode: .always))
-
-                Button {
-                    if page == pages.count - 1 {
-                        dismiss()
-                    } else {
-                        withAnimation(Motion.standard) { page += 1 }
-                    }
-                } label: {
-                    Text(page == pages.count - 1 ? Copy.communityGuideDone : Copy.communityGuideNext)
-                        .font(.makanBody(16).weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Color.sambalRed, in: Capsule())
-                }
-                .buttonStyle(PressCompressStyle())
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-            }
-            .background(Color.nasiCream.ignoresSafeArea())
-            .navigationTitle(Copy.communityGuideTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(Copy.close) { dismiss() }
-                }
-            }
-            .sensoryFeedback(.selection, trigger: page)
-        }
-    }
-
-    private func pageView(_ page: CommunityGuidePage) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                CommunityGuideArt(art: page.art)
-                Text(page.title)
-                    .font(.makanDisplay(22))
-                    .foregroundStyle(Color.kicap)
-                Text(page.body)
-                    .font(.makanBody(16))
-                    .foregroundStyle(Color.kicapSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 48)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-    }
-}
-
-/// Wireframe drawings of the real controls: grey bars stand in for text, and only the control
-/// being taught carries its actual label.
+/// One drawing per `CommunityGuide.pages` entry, in the same order.
 private struct CommunityGuideArt: View {
-    let art: CommunityGuidePage.Art
+    let index: Int
 
     var body: some View {
-        ZStack {
-            switch art {
-            case .community: communityArt
-            case .addPlace: addPlaceArt
-            case .myPlaces: myPlacesArt
-            case .post: postArt
-            case .react: reactArt
-            case .place: placeArt
-            case .safety: safetyArt
-            }
+        switch index {
+        case 0: communityArt
+        case 1: addPlaceArt
+        case 2: myPlacesArt
+        case 3: postArt
+        case 4: reactArt
+        case 5: placeArt
+        default: safetyArt
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 240)
-        .background(Color.surface, in: .card)
-        .overlay(RoundedRectangle.card.strokeBorder(Color.hairline, lineWidth: 1))
-        .accessibilityHidden(true)
     }
 
     private var communityArt: some View {
@@ -677,7 +536,7 @@ private struct CommunityGuideArt: View {
             .frame(height: 40)
             .background(Color.nasiCream, in: Capsule())
             .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
-            .modifier(GuideTapHint(cornerRadius: 22))
+            .guideTapHint(cornerRadius: 22)
 
             GuideMenu {
                 GuideMenuRow(systemImage: "graduationcap.fill", highlighted: true) { GuideBar(width: 80) }
@@ -695,7 +554,7 @@ private struct CommunityGuideArt: View {
                 .frame(width: 40, height: 40)
                 .background(Color.nasiCream, in: Circle())
                 .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
-                .modifier(GuideTapHint(cornerRadius: 22))
+                .guideTapHint(cornerRadius: 22)
             GuideMenu {
                 GuideMenuRow(systemImage: "plus", highlighted: true) { Text(Copy.communityAddPlaceMenuItem) }
                 GuideMenuRow(systemImage: "list.bullet") { Text(Copy.communityMyPlacesMenuItem) }
@@ -704,12 +563,11 @@ private struct CommunityGuideArt: View {
     }
 
     private var myPlacesArt: some View {
-        GuideMenu {
+        GuideMenu(width: 250) {
             GuideStatusRow(status: Copy.communityGuideStatusReview, tint: .kunyit)
             GuideStatusRow(status: Copy.communityGuideStatusLive, tint: .pandan)
             GuideStatusRow(status: Copy.communityGuideStatusLive, tint: .pandan)
         }
-        .frame(width: 250)
     }
 
     private var postArt: some View {
@@ -733,7 +591,7 @@ private struct CommunityGuideArt: View {
                 .foregroundStyle(.white)
                 .frame(width: 240, height: 44)
                 .background(Color.sambalRed, in: .row)
-                .modifier(GuideTapHint(cornerRadius: 20))
+                .guideTapHint(cornerRadius: 20)
         }
     }
 
@@ -752,7 +610,7 @@ private struct CommunityGuideArt: View {
                     .background(Color.surface, in: Capsule())
                     .overlay(Capsule().strokeBorder(Color.hairline, lineWidth: 1))
                     if type == .fire {
-                        chip.modifier(GuideTapHint(cornerRadius: 18))
+                        chip.guideTapHint(cornerRadius: 18)
                     } else {
                         chip
                     }
@@ -785,7 +643,7 @@ private struct CommunityGuideArt: View {
         .padding(16)
         .frame(width: 260, alignment: .leading)
         .background(Color.nasiCream, in: .row)
-        .modifier(GuideTapHint(cornerRadius: 22))
+        .guideTapHint(cornerRadius: 22)
     }
 
     private var safetyArt: some View {
@@ -799,50 +657,6 @@ private struct CommunityGuideArt: View {
             }
             .padding(.trailing, 24)
         }
-    }
-}
-
-/// A grey bar standing in for a line of text.
-private struct GuideBar: View {
-    var width: CGFloat
-    var height: CGFloat = 9
-
-    var body: some View {
-        Capsule().fill(Color.hairline).frame(width: width, height: height)
-    }
-}
-
-private struct GuideMenu<Content: View>: View {
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        VStack(spacing: 0) { content() }
-            .padding(6)
-            .frame(width: 210)
-            .background(Color.nasiCream, in: .row)
-            .overlay(RoundedRectangle.row.strokeBorder(Color.hairline, lineWidth: 1))
-            .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
-    }
-}
-
-private struct GuideMenuRow<Label: View>: View {
-    let systemImage: String
-    var highlighted = false
-    @ViewBuilder var label: () -> Label
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: systemImage)
-                .frame(width: 20)
-                .foregroundStyle(highlighted ? Color.sambalRed : Color.kicapSecondary)
-            label()
-                .font(.makanBody(14))
-                .foregroundStyle(Color.kicap)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 38)
-        .background(highlighted ? Color.sambalRed.opacity(0.1) : .clear, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -881,7 +695,7 @@ private struct GuidePostCard<Footer: View>: View {
                     .foregroundStyle(Color.kicapSecondary)
                     .frame(width: 30, height: 26)
                 if menuHighlighted {
-                    dots.modifier(GuideTapHint(cornerRadius: 14))
+                    dots.guideTapHint(cornerRadius: 14)
                 } else {
                     dots
                 }
@@ -893,34 +707,5 @@ private struct GuidePostCard<Footer: View>: View {
         .padding(14)
         .frame(width: 270, alignment: .leading)
         .background(Color.nasiCream, in: .row)
-    }
-}
-
-/// Rings the control to tap with a soft pulse and puts a tapping hand beside it.
-private struct GuideTapHint: ViewModifier {
-    var cornerRadius: CGFloat = 16
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulse = false
-
-    func body(content: Content) -> some View {
-        content
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.sambalRed, lineWidth: 2)
-                    .padding(-6)
-                    .scaleEffect(pulse ? 1.06 : 1)
-                    .opacity(pulse ? 0.4 : 1)
-            }
-            .overlay(alignment: .bottomTrailing) {
-                Image(systemName: "hand.tap.fill")
-                    .font(.title2)
-                    .foregroundStyle(Color.kicap)
-                    .shadow(color: .white, radius: 2)
-                    .offset(x: 16, y: 20)
-            }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pulse = true }
-            }
     }
 }
