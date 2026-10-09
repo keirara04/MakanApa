@@ -47,7 +47,9 @@ class RestaurantSubmissionController extends Controller
 
         $existing = Restaurant::query()
             ->where('is_active', true)
-            ->where('name', 'like', '%'.$data['query'].'%')
+            // ilike: Postgres `like` is case-sensitive, so "mamak" missed "Mamak Bistro" and people
+            // re-added places that were already listed.
+            ->where('name', 'ilike', '%'.addcslashes($data['query'], '%_\\').'%')
             ->limit(10)
             ->get(['id', 'name', 'address', 'food_category', 'price_level', 'latitude', 'longitude']);
 
@@ -73,6 +75,9 @@ class RestaurantSubmissionController extends Controller
                         'rating' => $place['rating'],
                         'latitude' => $place['latitude'],
                         'longitude' => $place['longitude'],
+                        // Tells apart branches with the same name ("KFC" x5) — already in the field mask.
+                        'address' => $place['address'] ?? null,
+                        'distanceKm' => RecommendationService::distanceKm($lat, $lon, (float) $place['latitude'], (float) $place['longitude']),
                     ])
                     ->values()
                     ->all();
