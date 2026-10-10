@@ -20,6 +20,8 @@ interface NearbyContextValue {
   loading: boolean
   error: unknown
   clearError: () => void
+  /** Loads the same area again after an error. */
+  retry: () => void
   load: (viewport: Viewport) => Promise<void>
   /** Adds a place found through search, so it can be shown and picked. */
   addPlace: (place: NearbyPlace) => void
@@ -51,11 +53,13 @@ export function NearbyProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<unknown>(null)
   const inFlight = useRef<AbortController | null>(null)
   const lastKey = useRef<string | null>(null)
+  const lastBox = useRef<Viewport | null>(null)
 
   const load = useCallback(
     async (box: Viewport) => {
       const key = JSON.stringify([box, filterKey(filters)])
       if (key === lastKey.current) return
+      lastBox.current = box
       inFlight.current?.abort()
       const controller = new AbortController()
       inFlight.current = controller
@@ -138,6 +142,9 @@ export function NearbyProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       clearError: () => setError(null),
+      retry: () => {
+        if (lastBox.current) void load(lastBox.current)
+      },
       load,
       addPlace: (place) => setRaw((current) => (current.some((item) => item.id === place.id) ? current : [...current, place])),
       exclude: (id) => {

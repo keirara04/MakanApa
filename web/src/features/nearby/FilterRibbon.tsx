@@ -119,9 +119,9 @@ function HalalNotice({ show }: { show: boolean }) {
   if (!show || dismissed) return null
   return (
     <div role="note" className="flex gap-3 rounded-row border-2 border-kunyit/60 bg-surface px-4 py-3">
-      <span aria-hidden="true" className="text-kunyit">
-        ⚠
-      </span>
+      <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-kunyit" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M10.3 3.9 2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" />
+      </svg>
       <div className="flex-1">
         <p className="font-display font-semibold">Halal info is community-sourced</p>
         <p className="text-sm text-kicap-soft">

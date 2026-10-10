@@ -70,6 +70,10 @@ await page.route('**/api/v1/restaurants/*/details', (route) =>
     },
   }),
 )
+await page.route('**/api/v1/restaurants/*/save', (route) => {
+  calls.push(['save', route.request().url().split('/').slice(-2)[0]])
+  return route.fulfill({ json: { saved: true } })
+})
 await page.route('**/api/v1/restaurants/*/choose', (route) => {
   calls.push(['choose', route.request().postDataJSON()])
   return route.fulfill({ status: 201, json: { decisionId: 9, clientToken: 'c'.repeat(40), created: true } })
@@ -100,13 +104,24 @@ await page.getByRole('button', { name: '4.5+ ★' }).click()
 await page.getByRole('button', { name: 'Cafe' }).click()
 await shot('2-filters')
 await page.getByRole('button', { name: 'Reset filters' }).click()
+await page.getByRole('button', { name: 'Hide non-halal' }).click()
+await page.getByText('Halal info is community-sourced').waitFor()
+await shot('2b-halal')
 
 await page.getByRole('button', { name: /Restoran Nasi Kandar Pelita/ }).first().click()
 await page.getByRole('dialog').getByText('Nasi kandar ayam').waitFor()
 await shot('3-place')
 await page.getByRole('button', { name: 'Eat here' }).click()
 await page.getByRole('button', { name: 'Added to Recent' }).waitFor()
+await page.getByRole('button', { name: 'Save Restoran Nasi Kandar Pelita' }).click()
+await page.getByRole('button', { name: 'Remove Restoran Nasi Kandar Pelita from saved' }).waitFor()
 await page.keyboard.press('Escape')
+
+// Don't suggest: the place leaves the list for good.
+await page.getByRole('button', { name: /Mee Goreng Mamak Ali/ }).last().click()
+await page.getByRole('button', { name: 'Don’t suggest this place again' }).click()
+const stillListed = await page.getByRole('heading', { name: /^All \d+ places$/ }).textContent()
+console.log(W, 'after dont-suggest:', stillListed)
 
 await page.getByRole('button', { name: 'Search places, food, or cuisine' }).click()
 await page.getByRole('searchbox').fill('zzz')

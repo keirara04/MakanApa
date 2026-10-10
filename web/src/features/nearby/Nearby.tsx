@@ -151,6 +151,9 @@ export function Nearby() {
             {nearby.error ? (
               <div role="alert" className="flex items-start gap-3 rounded-row bg-sambal px-4 py-3 text-white">
                 <p className="flex-1">{errorMessage(nearby.error)}</p>
+                <button type="button" onClick={nearby.retry} className="min-h-11 px-2 font-display font-semibold underline">
+                  Try again
+                </button>
                 <button type="button" aria-label="Dismiss" onClick={nearby.clearError} className="h-11 w-11">
                   ✕
                 </button>

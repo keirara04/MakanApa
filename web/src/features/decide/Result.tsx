@@ -83,7 +83,7 @@ function NoResult() {
           <Button onClick={() => void decide({ ...request, maxDistanceKm: wider }, { ...asked, distance: `Within ${wider} km` })}>Search within {wider} km</Button>
         )}
         <Button variant="quiet" onClick={() => navigate(request ? '/decide' : source === 'nearby' ? '/nearby' : '/')}>
-          {request ? 'Change preferences' : source === 'nearby' ? 'Back to the map' : 'Back home'}
+          {request ? 'Change preferences' : source === 'nearby' ? 'Back to Nearby' : 'Back home'}
         </Button>
       </div>
     </section>
