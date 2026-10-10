@@ -42,7 +42,8 @@ export function SavedPick() {
           }),
           new Promise((resolve) => setTimeout(resolve, SHUFFLE_MS)),
         ])
-        adopt(decision, { mood: 'Your saved places', budget: 'Any budget', distance: `${saved.length} saved places` })
+        // No "Why this?" echo for saved picks: the person didn't ask for a mood, budget or distance.
+        adopt(decision, null)
         navigate('/decide/result', { replace: true })
       } catch (caught) {
         setError(

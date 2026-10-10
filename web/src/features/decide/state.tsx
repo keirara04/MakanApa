@@ -31,7 +31,7 @@ interface DecideState {
 interface DecideContextValue extends DecideState {
   decide: (request: SoloRequest, asked: AskedFor) => Promise<void>
   /** Run a saved-places pick through the same result screen machinery. */
-  adopt: (decision: Decision, asked: AskedFor) => void
+  adopt: (decision: Decision, asked: AskedFor | null) => void
   retry: () => Promise<void>
   reroll: (options?: { exclude?: boolean }) => Promise<void>
   cancelReroll: () => void
@@ -74,7 +74,7 @@ export function DecideProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const adopt = useCallback((decision: Decision, asked: AskedFor) => {
+  const adopt = useCallback((decision: Decision, asked: AskedFor | null) => {
     generation.current++
     setState({ ...initial, decision, asked, pick: decision.recommendation, status: decision.recommendation ? 'ready' : 'none' })
   }, [])
