@@ -1,0 +1,107 @@
+@import '@fontsource/fredoka/latin-500.css';
+@import '@fontsource/fredoka/latin-600.css';
+@import '@fontsource/fredoka/latin-700.css';
+@import '@fontsource/caveat/latin-700.css';
+@import '@fontsource-variable/instrument-sans';
+@import 'tailwindcss';
+
+/* The iOS asset catalog's colours are the source of truth (ANDROID_PWA_PLAN.md, section 5). */
+@theme {
+  --color-cream: #fff4dd;
+  --color-surface: #fffbf3;
+  --color-kicap: #29201d;
+  --color-kicap-soft: #73675b; /* iOS #7A6F63 is 4.49:1 on cream; nudged to pass 4.5 */
+  --color-hairline: #ecdfc6;
+  --color-sambal: #e94b35;
+  --color-sambal-deep: #c13a26; /* sambal text on cream at small sizes: 4.5:1 */
+  --color-pandan: #4f7a57;
+  --color-kunyit: #f4b942;
+
+  --font-display: 'Fredoka', ui-rounded, system-ui, sans-serif;
+  --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-hand: 'Caveat', cursive;
+
+  --radius-card: 24px;
+  --radius-row: 16px;
+
+  --shadow-lift: 0 1px 0 rgb(41 32 29 / 0.05), 0 16px 32px -18px rgb(193 58 38 / 0.35);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--color-cream);
+    color: var(--color-kicap);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-sambal);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Hand-drawn card from the website: two wobbly strokes, slightly off each other. The SVG
+     filters (#sketch-a, #sketch-b) are mounted once in the app shell. */
+  .sketch {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .sketch::before,
+  .sketch::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    z-index: -1;
+    pointer-events: none;
+    border: 2px solid var(--color-kicap);
+    border-radius: var(--sketch-radius, 20px);
+    background: var(--sketch-fill, var(--color-surface));
+    filter: url(#sketch-a);
+  }
+
+  .sketch::after {
+    inset: -2px -6px -5px -2px;
+    border-width: 1.25px;
+    background: none;
+    opacity: 0.45;
+    filter: url(#sketch-b);
+  }
+
+  /* Masking tape holding a card to the page. */
+  .tape {
+    position: absolute;
+    z-index: 2;
+    width: 5.5rem;
+    height: 1.4rem;
+    background: color-mix(in srgb, var(--color-kunyit) 40%, rgb(255 255 255 / 0.4));
+    box-shadow: 0 1px 2px rgb(41 32 29 / 0.12);
+    clip-path: polygon(0 8%, 4% 0, 9% 10%, 14% 0, 86% 0, 91% 12%, 96% 0, 100% 10%, 100% 92%, 95% 100%, 90% 88%, 85% 100%, 14% 100%, 9% 90%, 4% 100%, 0 90%);
+    pointer-events: none;
+  }
+}
+
+/* Press feedback, the web version of iOS's PressCompressStyle. Motion answers taps only. */
+.press {
+  transition: scale 120ms ease-out;
+}
+
+.press:active {
+  scale: 0.96;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .press:active {
+    transition: none;
+    scale: 1;
+  }
+}

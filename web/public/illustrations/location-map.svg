@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Location Map</title>
+
+<path d="M79 193L195 157L317 193L433 157V381L317 417L195 381L79 417V193Z" fill="#FFFDF7" stroke="#29201D" stroke-width="18" stroke-linejoin="round"/>
+<path d="M195 157V381M317 193V417" stroke="#29201D" stroke-width="14"/>
+<path d="M240 126C240 76 280 43 327 43C374 43 414 76 414 126C414 194 327 270 327 270C327 270 240 194 240 126Z" fill="#E94B35" stroke="#29201D" stroke-width="18"/>
+<circle cx="327" cy="126" r="27" fill="#FFF4DD" stroke="#29201D" stroke-width="12"/>
+<path d="M116 255C149 225 169 226 195 241C226 260 247 259 275 239" stroke="#4F7A57" stroke-width="14" stroke-linecap="round"/>
+<path d="M317 322C350 294 380 293 413 313" stroke="#F4B942" stroke-width="14" stroke-linecap="round"/>
+
+</svg>
