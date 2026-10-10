@@ -79,6 +79,16 @@ class WebAppEntryTest extends TestCase
         $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::WEB_APP_CLICK, 'source' => 'hero']);
     }
 
+    public function test_a_dead_shared_link_offers_the_web_app_on_android(): void
+    {
+        config(['marketing.web_app_live' => true]);
+
+        $this->withHeader('User-Agent', self::ANDROID)->get('/p/999999-gone')
+            ->assertNotFound()
+            ->assertSee('/go/web-app?from=missing', false)
+            ->assertDontSee('alt="Download on the App Store"', false);
+    }
+
     public function test_a_shared_place_opens_in_the_web_app_on_android(): void
     {
         config(['marketing.web_app_live' => true]);
