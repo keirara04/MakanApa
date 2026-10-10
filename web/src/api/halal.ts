@@ -50,9 +50,15 @@ export const halalApi = {
  * certified claim, at most 2; the rest at most 3.
  */
 export function photoLimits(claim: HalalClaim, existing: MyHalalReport | null): { slots: number; cert: number; other: number } {
-  const slots = Math.max(0, (existing?.maxPhotos ?? 5) - (existing?.photoCount ?? 0))
+  const slots = Math.max(0, (existing?.maxPhotos ?? 5) - attachedPhotos(claim, existing))
   const cert = claim === 'certified' ? Math.min(2, slots) : 0
   return { slots, cert, other: Math.min(3, slots - cert) }
+}
+
+/** Photos already on the report that will still count: the server drops certificate photos when the claim stops being "certified". */
+export function attachedPhotos(claim: HalalClaim, existing: MyHalalReport | null): number {
+  if (!existing) return 0
+  return claim === 'certified' ? existing.photoCount : existing.photoCount - existing.certPhotoCount
 }
 
 /** `2027-03-01` or an ISO timestamp, as "1 Mar 2027". */

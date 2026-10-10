@@ -1,8 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError } from '../../api/client'
 import type { CertificationAuthority, HalalInfo, HalalReport, MyHalalReport } from '../../api/decide'
-import { AUTHORITY_LABELS, CLAIM_LABELS, halalApi, halalDate, photoLimits, type HalalClaim, type HistoryEntry } from '../../api/halal'
+import { attachedPhotos, AUTHORITY_LABELS, CLAIM_LABELS, halalApi, halalDate, photoLimits, type HalalClaim, type HistoryEntry } from '../../api/halal'
 import { nearbyApi } from '../../api/nearby'
 import { submissionsApi } from '../../api/submissions'
 import { errorMessage } from '../../lib/errors'
@@ -27,8 +27,10 @@ const CLAIM_HINTS: Record<HalalClaim, string> = {
  */
 export function HalalSection({ restaurantId, name, halal: given }: { restaurantId: number; name: string; halal: HalalInfo }) {
   const queryClient = useQueryClient()
-  const [fresh, setFresh] = useState<{ id: number; halal: HalalInfo } | null>(null)
-  const halal = fresh?.id === restaurantId ? fresh.halal : given
+  // The place's details in the cache win over what the host passed: after a vouch they hold
+  // "waiting for review", and a Result page's pick never refetches.
+  const { data: cached } = useQuery({ queryKey: ['place', restaurantId], queryFn: ({ signal }) => nearbyApi.details(restaurantId, signal), enabled: false })
+  const halal = cached?.halal ?? given
   const [sheet, setSheet] = useState<'vouch' | 'claim' | 'history' | null>(null)
   const vouchGate = useContributionGate('vouch for halal info')
   const claimGate = useContributionGate('claim this place')
@@ -38,9 +40,7 @@ export function HalalSection({ restaurantId, name, halal: given }: { restaurantI
   // After a vouch, show "waiting for review" from the server rather than guessing.
   async function refresh() {
     const details = await nearbyApi.details(restaurantId).catch(() => null)
-    if (!details) return
-    setFresh({ id: restaurantId, halal: details.halal })
-    queryClient.setQueryData(['place', restaurantId], details)
+    if (details) queryClient.setQueryData(['place', restaurantId], details)
   }
 
   return (
@@ -237,7 +237,10 @@ function failure(caught: unknown, rateLimited: string): string {
 
 // ---- Vouch
 
-function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaurantId: number; name: string; existing: MyHalalReport | null; onClose: () => void; onSent: () => void }) {
+function VouchSheet({ restaurantId, name, existing: given, onClose, onSent }: { restaurantId: number; name: string; existing: MyHalalReport | null; onClose: () => void; onSent: () => void }) {
+  // As it was when the sheet opened: refreshes while it's open mustn't change the photo counts
+  // (photos sent from this sheet are already counted as picked).
+  const [existing] = useState(given)
   const [claim, setClaim] = useState<HalalClaim>(existing?.claim && existing.claim !== 'unknown' ? existing.claim : 'certified')
   const [comment, setComment] = useState(existing?.comment ?? '')
   const [authority, setAuthority] = useState<CertificationAuthority>(existing?.certificationAuthority ?? 'jakim')
@@ -253,7 +256,7 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
   const [today] = useState(() => isoDate(new Date()))
 
   const limits = photoLimits(claim, existing)
-  const attached = existing?.photoCount ?? 0
+  const attached = attachedPhotos(claim, existing)
   const selected = (claim === 'certified' ? certFiles.length : 0) + otherFiles.length
   const tooMany = selected > limits.slots
   const needsCert = claim === 'certified' && certFiles.length === 0 && (existing?.certPhotoCount ?? 0) === 0
@@ -262,6 +265,7 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
 
   async function send() {
     setError(null)
+    let reported = false
     try {
       setSending('Saving…')
       const certified = claim === 'certified'
@@ -272,6 +276,9 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
         certificateNumber: certified && certificateNumber.trim() ? certificateNumber.trim() : null,
         certificateExpiresAt: certified && knowsExpiry ? expiresAt : null,
       })
+      reported = true
+      // The server dropped any certificate photos when the claim isn't certified: send them again if it becomes so.
+      if (!certified) certFiles.forEach((file) => sent.delete(file))
       const photos = [...(certified ? certFiles.map((file) => ({ file, type: 'halal_cert' })) : []), ...otherFiles.map((file) => ({ file, type: 'storefront' }))]
       await uploadAll(submission.id, photos, sent, setSending)
       setSending('Sending…')
@@ -280,6 +287,8 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
       onSent()
     } catch (caught) {
       setError(failure(caught, 'You’ve sent a lot of reports. Wait a bit, or for some to be reviewed.'))
+      // The report exists now (part sent): the section learns of it, so reopening counts its photos.
+      if (reported) onSent()
     } finally {
       setSending(null)
     }
@@ -341,7 +350,7 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
             />
           </label>
 
-          {limits.other > 0 && <PhotoPicker label="Storefront or menu photos" files={otherFiles} limit={limits.other} onChange={setOtherFiles} />}
+          {(limits.other > 0 || otherFiles.length > 0) && <PhotoPicker label="Storefront or menu photos" files={otherFiles} limit={limits.other} onChange={setOtherFiles} />}
           <div className="text-sm text-kicap-soft">
             {attached > 0 && <p>{attached === 1 ? '1 photo from before is already attached, so no need to add it' : `${attached} photos from before are already attached, so no need to add them`} again.</p>}
             {tooMany && <p className="text-sambal-deep">That’s more photos than fit. Only {limits.slots} more can be added to this vouch.</p>}
@@ -457,6 +466,7 @@ function HistorySheet({ restaurantId, name, onClose }: { restaurantId: number; n
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [nextPage, setNextPage] = useState<number | null>(1)
   const [page, setPage] = useState(1)
+  const [attempt, setAttempt] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -474,7 +484,7 @@ function HistorySheet({ restaurantId, name, onClose }: { restaurantId: number; n
     return () => {
       cancelled = true
     }
-  }, [restaurantId, page])
+  }, [restaurantId, page, attempt])
 
   return (
     <Sheet open onClose={onClose} title="Halal history">
@@ -500,9 +510,21 @@ function HistorySheet({ restaurantId, name, onClose }: { restaurantId: number; n
       </ol>
       {loading && <p role="status" className="text-kicap-soft">Loading…</p>}
       {error && (
-        <p role="alert" className="text-sambal-deep">
-          {error}
-        </p>
+        <div className="flex flex-col items-start gap-1">
+          <p role="alert" className="text-sambal-deep">
+            {error}
+          </p>
+          <Button
+            variant="quiet"
+            onClick={() => {
+              setError(null)
+              setLoading(true)
+              setAttempt((count) => count + 1)
+            }}
+          >
+            Try again
+          </Button>
+        </div>
       )}
       {!loading && nextPage !== null && !error && (
         <Button

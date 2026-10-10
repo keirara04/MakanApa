@@ -26,4 +26,8 @@ describe('changedFields', () => {
     expect(changedFields(base, { ...base, foodCategory: 'Cafe', spend: '20' })).toEqual(['food_category', 'price_level'])
     expect(changedFields(base, { ...base, menuItems: [{ name: 'Roti canai', price: 1.5 }] })).toEqual(['menu_items'])
   })
+
+  it('compares what is sent: spend by tier, text trimmed', () => {
+    expect(changedFields(base, { ...base, spend: '12', name: 'Pelita ' })).toEqual([])
+  })
 })

@@ -15,14 +15,24 @@ export function PinPicker({ start, onConfirm, onClose }: { start: Coordinates | 
   const [initial] = useState(() => start ?? KUALA_LUMPUR)
   const centre = useRef(initial)
 
+  // A native modal dialog: focus moves in and stays in, the page behind is inert.
+  const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    const element = dialog.current
+    if (element && !element.open) element.showModal()
+    return () => element?.close()
+  }, [])
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Choose the spot on the map" className="fixed inset-0 z-50 flex flex-col bg-cream">
+    <dialog
+      ref={dialog}
+      aria-label="Choose the spot on the map"
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      className="fixed inset-0 m-0 flex h-dvh max-h-none w-full max-w-none flex-col bg-cream p-0 text-kicap"
+    >
       <div className="flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
         <button type="button" onClick={onClose} className="min-h-11 px-2 font-display font-semibold text-sambal-deep">
           Cancel
@@ -50,7 +60,7 @@ export function PinPicker({ start, onConfirm, onClose }: { start: Coordinates | 
       <div className="px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <Button onClick={() => onConfirm(centre.current)}>Confirm this location</Button>
       </div>
-    </div>
+    </dialog>
   )
 }
 

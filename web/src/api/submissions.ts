@@ -133,7 +133,18 @@ const FIELD_KEYS: [keyof DetailsForm, string][] = [
   ['menuItems', 'menu_items'],
 ]
 
-/** The server's names for the fields that differ from what the place had (iOS computeChangedFields). */
+/** A field as it's sent: trimmed text, spend as its tier. */
+function sent(form: DetailsForm, key: keyof DetailsForm): unknown {
+  if (key === 'spend') return priceLevelFromSpend(form.spend)
+  const value = form[key]
+  return typeof value === 'string' ? value.trim() : value
+}
+
+/**
+ * The server's names for the fields that differ from what the place had (iOS
+ * computeChangedFields), compared as sent: "20" to "25" is the same tier, a trailing space
+ * is no change.
+ */
 export function changedFields(original: DetailsForm, current: DetailsForm): string[] {
-  return FIELD_KEYS.filter(([key]) => JSON.stringify(original[key]) !== JSON.stringify(current[key])).map(([, field]) => field)
+  return FIELD_KEYS.filter(([key]) => JSON.stringify(sent(original, key)) !== JSON.stringify(sent(current, key))).map(([, field]) => field)
 }

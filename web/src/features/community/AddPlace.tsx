@@ -112,7 +112,17 @@ function Wizard() {
     }
   }, [selection, handover.existing, params, setParams])
 
-  const go = (next: Step) => setParams({ step: next })
+  // Each step keeps the handover (router state), so a reload keeps the place and where Done goes.
+  // A new step replaces the whole section (and the button that was focused): move focus to its
+  // heading. Not on first arrival, where Find focuses its search box.
+  const shownStep = useRef(step)
+  useEffect(() => {
+    if (shownStep.current === step) return
+    shownStep.current = step
+    document.getElementById(`${step}-title`)?.focus()
+  }, [step])
+
+  const go = (next: Step) => setParams({ step: next }, { state: routerLocation.state })
   const leave = () => navigate(handover.from ?? '/community')
 
   const pick = useCallback((next: Selection, values: DetailsForm, at: Coordinates | null, source: LocationSource, replace = false) => {
@@ -124,10 +134,10 @@ function Wizard() {
     setFieldErrors({})
     setCoords(at)
     setLocationSource(source)
-    setParams({ step: 'details' }, { replace })
+    setParams({ step: 'details' }, { replace, state: handover })
     // resetDraft only touches refs and setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setParams])
+  }, [setParams, handover])
 
   const editExisting = useCallback(
     (place: ExistingPlace, replace = false) =>
@@ -156,6 +166,10 @@ function Wizard() {
   const draft = useRef<{ id: number; details: string; location: string } | null>(null)
   const syncing = useRef<Promise<number | null> | null>(null)
   const submitted = useRef(false)
+  // The wizard was left (a draft created after this is withdrawn at once).
+  const left = useRef(false)
+  // Re-syncs at Review after the page comes back from the page cache.
+  const resync = useRef(() => {})
 
   function resetDraft() {
     if (draft.current) void submissionsApi.cancel(draft.current.id).catch(() => {})
@@ -176,12 +190,20 @@ function Wizard() {
       if (draft.current && !submitted.current) {
         void submissionsApi.cancel(draft.current.id, keepalive).catch(() => {})
         draft.current = null
+        // Back from the page cache, the screen must not show photos on the withdrawn draft.
+        setDraftId(null)
+        setPhotos([])
       }
     }
     const onPageHide = () => abandon(true)
+    const onPageShow = (event: PageTransitionEvent) => event.persisted && resync.current()
     window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('pageshow', onPageShow)
+    left.current = false
     return () => {
+      left.current = true
       window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('pageshow', onPageShow)
       abandon(false)
     }
   }, [])
@@ -226,9 +248,22 @@ function Wizard() {
           locationSource,
         })
         current = { id: submission.id, details: detailsKey, location: locationKey }
+        if (left.current) {
+          void submissionsApi.cancel(submission.id).catch(() => {})
+          return null
+        }
       } else if (current.details !== detailsKey) {
-        await submissionsApi.update(current.id, details)
-        current = { ...current, details: detailsKey }
+        try {
+          await submissionsApi.update(current.id, details)
+          current = { ...current, details: detailsKey }
+        } catch (caught) {
+          // Withdrawn in My places, or pruned: no longer editable. Start a new draft instead.
+          if (!(caught instanceof ApiError && caught.status === 422 && !caught.fields)) throw caught
+          draft.current = null
+          setDraftId(null)
+          setPhotos([])
+          return doSync()
+        }
       }
       draft.current = current
       setDraftId(current.id)
@@ -255,12 +290,23 @@ function Wizard() {
     // Runs on arriving at Review; Submit syncs again for anything changed since.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
+  useEffect(() => {
+    resync.current = () => step === 'review' && void syncDraft()
+  })
+
+  // Photos on screen, including ones picked a moment ago and still uploading.
+  const photoCount = useRef(0)
+  useEffect(() => {
+    photoCount.current = photos.length
+  }, [photos.length])
 
   async function addPhotos(files: FileList | null) {
     const id = draft.current?.id
     if (!id || !files?.length) return
     setPhotoError(null)
-    for (const file of Array.from(files).slice(0, MAX_PHOTOS - photos.length)) {
+    for (const file of Array.from(files)) {
+      if (photoCount.current >= MAX_PHOTOS) break
+      photoCount.current++
       const key = crypto.randomUUID()
       const url = URL.createObjectURL(file)
       setPhotos((current) => [...current, { key, url, uploading: true }])
@@ -269,6 +315,7 @@ function Wizard() {
         setPhotos((current) => current.map((photo) => (photo.key === key ? { ...photo, uploading: false } : photo)))
       } catch (caught) {
         URL.revokeObjectURL(url)
+        photoCount.current--
         setPhotos((current) => current.filter((photo) => photo.key !== key))
         setPhotoError(
           caught instanceof ApiError
@@ -287,7 +334,9 @@ function Wizard() {
     try {
       const id = await syncDraft()
       if (!id) return
-      await submissionsApi.submit(id)
+      await submissionsApi.submit(id).catch((caught: unknown) => {
+        if (!(caught instanceof ApiError && caught.status === 422 && /already been submitted/i.test(caught.message))) throw caught
+      })
       submitted.current = true
       navigate('/community/add/done', { replace: true, state: { name: details.name, edit: isEdit, from: handover.from } })
     } catch (caught) {
@@ -476,12 +525,22 @@ const FIELD_LABELS: Record<string, string> = {
 
 const SOURCE_LABELS: Record<LocationSource, string> = { google: 'Location from Google', map_pin: 'Pinned on the map', current_location: 'Your current location' }
 
+/** `URL.canParse` without needing Safari 17. */
+function isUrl(value: string): boolean {
+  try {
+    new URL(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 /** Checked before Continue, so the server's 422 is a backstop, not the first word. */
 function validate(form: DetailsForm): Partial<Record<keyof DetailsForm, string>> {
   const errors: Partial<Record<keyof DetailsForm, string>> = {}
   if (!form.name.trim()) errors.name = 'Add a name so people can find it.'
   if (form.spend.trim() && !(Number(form.spend) > 0)) errors.spend = 'Enter an estimated spend per person, like 15.'
-  if (form.websiteUrl.trim() && !URL.canParse(form.websiteUrl.trim())) errors.websiteUrl = 'Enter the full address, starting with https://'
+  if (form.websiteUrl.trim() && !isUrl(form.websiteUrl.trim())) errors.websiteUrl = 'Enter the full address, starting with https://'
   return errors
 }
 
@@ -509,7 +568,8 @@ function fieldsToForm(fields: Record<string, string[]>): Partial<Record<keyof De
 function StepHeading({ id, title, subtitle }: { id: string; title: string; subtitle: string }) {
   return (
     <div>
-      <h1 id={id} className="font-display text-3xl font-bold tracking-tight">
+      {/* Focused on each step change (see Wizard), so keyboards and screen readers follow. */}
+      <h1 id={id} tabIndex={-1} className="font-display text-3xl font-bold tracking-tight outline-none">
         {title}
       </h1>
       <p className="mt-1 text-kicap-soft">{subtitle}</p>
