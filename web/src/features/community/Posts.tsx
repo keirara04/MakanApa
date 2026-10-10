@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '../../api/client'
 import { communityApi, type Post, type Thread } from '../../api/community'
@@ -15,19 +15,18 @@ import { usePosts } from './usePosts'
 
 /** Calls `onVisible` when the element scrolls into view (infinite lists). */
 function useOnVisible(onVisible: () => void) {
-  const ref = useRef<HTMLDivElement>(null)
   const callback = useRef(onVisible)
   useEffect(() => {
     callback.current = onVisible
   })
-  useEffect(() => {
-    const element = ref.current
+  // A callback ref, so it starts watching whenever the sentinel appears: on first render the
+  // page is often still loading, and there's no sentinel to watch yet.
+  return useCallback((element: HTMLDivElement | null) => {
     if (!element) return
     const observer = new IntersectionObserver((entries) => entries[0]?.isIntersecting && callback.current(), { rootMargin: '200px' })
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
-  return ref
 }
 
 function BackToCommunity() {
@@ -117,6 +116,7 @@ export function ThreadPage() {
     let cancelled = false
     setThread(null)
     setMissing(false)
+    setError(null)
     communityApi
       .thread(Number(id))
       .then((loaded) => !cancelled && setThread(loaded))
@@ -170,7 +170,7 @@ export function ThreadPage() {
       <PostRow
         post={parent}
         variant="parent"
-        onChange={(post) => setThread({ ...thread, post })}
+        onChange={(post) => setThread((current) => current && { ...current, post })}
         onRemove={closeThread}
         onBlock={closeThread}
         onOpenPlace={setPlaceId}
@@ -183,9 +183,9 @@ export function ThreadPage() {
             key={replyPost.id}
             post={replyPost}
             variant="reply"
-            onChange={(changed) => setThread({ ...thread, replies: thread.replies.map((r) => (r.id === changed.id ? changed : r)) })}
-            onRemove={(removed) => setThread({ ...thread, replies: thread.replies.filter((r) => r.id !== removed.id), post: { ...parent, replyCount: Math.max(0, parent.replyCount - 1) } })}
-            onBlock={(authorId) => setThread({ ...thread, replies: thread.replies.filter((r) => r.author.id !== authorId) })}
+            onChange={(changed) => setThread((current) => current && { ...current, replies: current.replies.map((r) => (r.id === changed.id ? changed : r)) })}
+            onRemove={(removed) => setThread((current) => current && { ...current, replies: current.replies.filter((r) => r.id !== removed.id), post: { ...current.post, replyCount: Math.max(0, current.post.replyCount - 1) } })}
+            onBlock={(authorId) => setThread((current) => current && { ...current, replies: current.replies.filter((r) => r.author.id !== authorId) })}
             onOpenPlace={setPlaceId}
             onToast={toast}
           />
@@ -196,7 +196,7 @@ export function ThreadPage() {
         <ReplyBar
           parent={parent}
           onPosted={(created) =>
-            setThread({ ...thread, replies: thread.nextCursor ? thread.replies : [...thread.replies, created], post: { ...parent, replyCount: parent.replyCount + 1 } })
+            setThread((current) => current && { ...current, replies: [...current.replies, created], post: { ...current.post, replyCount: current.post.replyCount + 1 } })
           }
         />
       )}

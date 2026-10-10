@@ -46,7 +46,7 @@ export function Composer({ open, parent, onClose, onPosted }: { open: boolean; p
 
   return (
     <>
-      <Sheet open={open && !tagging} onClose={() => !text.trim() && onClose()} title={parent ? 'Reply' : 'New post'}>
+      <Sheet open={open && !tagging} onClose={() => !tagging && !text.trim() && onClose()} title={parent ? 'Reply' : 'New post'}>
         {parent && (
           <div className="border-l-2 border-hairline pl-3">
             <p className="text-sm font-semibold">Replying to {parent.author.name}</p>

@@ -56,7 +56,13 @@ export async function enablePush(): Promise<PushState> {
     if (!publicKey) return 'unsupported'
     subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) })
   }
-  await register(subscription)
+  try {
+    await register(subscription)
+  } catch (error) {
+    // Otherwise this browser would say "on" next time while the account has no subscription.
+    await subscription.unsubscribe().catch(() => {})
+    throw error
+  }
   return 'on'
 }
 

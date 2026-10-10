@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { avatarSrc } from '../../api/account'
 import { authApi } from '../../api/auth'
 import { ApiError } from '../../api/client'
@@ -128,10 +128,15 @@ export function ApplySheet({ open, onClose, community }: { open: boolean; onClos
   const [error, setError] = useState<string | null>(null)
   const application = data?.application
 
+  // Approved but the session doesn't know yet: refresh it so the ambassador tools appear. Once
+  // per application: if the role was since taken away, the refresh changes nothing, and asking
+  // again on every session change looped.
+  const refreshedFor = useRef<number | null>(null)
   useEffect(() => {
-    // Approved but the session doesn't know yet: refresh it so the ambassador tools appear.
-    if (application?.status === 'approved' && !user?.ambassadorOf) void authApi.me().then(({ user: fresh }) => setUser(fresh)).catch(() => {})
-  }, [application?.status, user?.ambassadorOf, setUser])
+    if (application?.status !== 'approved' || user?.ambassadorOf || refreshedFor.current === application.id) return
+    refreshedFor.current = application.id
+    void authApi.me().then(({ user: fresh }) => setUser(fresh)).catch(() => {})
+  }, [application, user?.ambassadorOf, setUser])
 
   function send() {
     run(async () => {
@@ -307,10 +312,12 @@ function ShareCardSheet({ open, onClose, user }: { open: boolean; onClose: () =>
   const [preview, setPreview] = useState<{ format: Format; url: string; blob: Blob } | null>(null)
   const [error, setError] = useState(false)
 
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     if (!open) return
     let url: string | null = null
     let cancelled = false
+    setError(false)
     renderAmbassadorCard(user, format)
       .then((blob) => {
         if (cancelled) return
@@ -321,9 +328,12 @@ function ShareCardSheet({ open, onClose, user }: { open: boolean; onClose: () =>
       .catch(() => !cancelled && setError(true))
     return () => {
       cancelled = true
-      if (url) URL.revokeObjectURL(url)
+      if (url) {
+        URL.revokeObjectURL(url)
+        setPreview((current) => (current?.url === url ? null : current))
+      }
     }
-  }, [open, format, user])
+  }, [open, format, user, attempt])
 
   async function share() {
     if (!preview) return
@@ -351,7 +361,7 @@ function ShareCardSheet({ open, onClose, user }: { open: boolean; onClose: () =>
       {preview?.format === format ? (
         <img src={preview.url} alt={`Ambassador card: ${user.name ?? 'MakanApa ambassador'}, MakanApa ambassador for ${user.ambassadorOf?.name ?? ''}`} className="mx-auto max-h-[45dvh] rounded-[20px] shadow-lift" />
       ) : error ? (
-        <Button variant="secondary" onClick={() => setFormat(format === 'story' ? 'post' : 'story')}>
+        <Button variant="secondary" onClick={() => setAttempt((count) => count + 1)}>
           Try again
         </Button>
       ) : (

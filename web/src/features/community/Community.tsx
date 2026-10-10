@@ -152,7 +152,7 @@ export function Community() {
               <Section
                 title={`What ${community} is saying`}
                 action={
-                  posts.posts.length > 0 ? (
+                  posts.posts.length > 0 || posts.hasMore ? (
                     <Link to="/community/posts" className="font-semibold text-sambal-deep">
                       See all ›
                     </Link>
@@ -161,6 +161,11 @@ export function Community() {
               >
                 {!posts.loaded ? (
                   <div className="h-28 animate-pulse rounded-card bg-hairline/60" />
+                ) : posts.posts.length === 0 && posts.hasMore ? (
+                  // The few shown were removed or blocked; there are more.
+                  <Link to="/community/posts" className="rounded-row border-2 border-hairline px-4 py-3 font-semibold text-sambal-deep">
+                    See what else people are saying
+                  </Link>
                 ) : posts.posts.length === 0 ? (
                   <EmptyPosts canPost={posts.canPost} reason={posts.cannotPostReason} community={communityLabel} onPost={() => runPost(() => setComposer({ parent: null }))} />
                 ) : (

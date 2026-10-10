@@ -70,7 +70,7 @@ function toggle(place: SavedPlace, isSaved: boolean) {
     setStored('saved', list.filter((item) => item.id !== place.id))
     void decideApi.unsave(place.id).catch(() => {})
   } else {
-    setStored('saved', [{ ...place, savedAt: Date.now() }, ...list])
+    setStored('saved', [{ ...place, savedAt: Date.now() }, ...list.filter((item) => item.id !== place.id)])
     void decideApi.save(place.id).catch(() => {})
   }
 }
@@ -118,7 +118,8 @@ function SaveSearch({ query, saved }: { query: string; saved: SavedPlace[] }) {
       setBusy(null)
     }
     if (place.id === null) return
-    const isSaved = saved.some((item) => item.id === place.id)
+    // From storage, not this render: a second tap may have saved it while the first resolved.
+    const isSaved = (getStored('saved') ?? []).some((item) => item.id === place.id)
     toggle({ id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude, rating: place.rating, priceLevel: place.priceLevel, savedAt: Date.now() }, isSaved)
   }
 

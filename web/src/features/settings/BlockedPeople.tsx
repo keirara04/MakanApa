@@ -31,7 +31,7 @@ export function BlockedPeople() {
                 onClick={() =>
                   void accountApi
                     .unblock(person.id)
-                    .then(() => queryClient.setQueryData(['blocks'], { users: data.users.filter((item) => item.id !== person.id) }))
+                    .then(() => queryClient.setQueryData<{ users: typeof data.users }>(['blocks'], (current) => current && { users: current.users.filter((item) => item.id !== person.id) }))
                     .catch(() => {})
                 }
                 className="press min-h-11 rounded-full border-2 border-sambal/40 px-4 font-semibold text-sambal-deep"

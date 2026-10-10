@@ -99,13 +99,12 @@ export const communityApi = {
 
   report: (id: number, reason: ReportReason, note: string | null) => api<{ reported: true }>(`community/posts/${id}/report`, { method: 'POST', body: { reason, note } }),
 
-  /** MakanApa places only (Google results are never offered for tagging). Shares the places limit. */
-  searchPlaces: (query: string, coords: { latitude: number; longitude: number } | null, signal?: AbortSignal) => {
+  /**
+   * MakanApa places only (Google results are never offered for tagging). Sent without a location
+   * on purpose: with one, the server also runs a paid Google search the composer would discard.
+   */
+  searchPlaces: (query: string, _coords: { latitude: number; longitude: number } | null, signal?: AbortSignal) => {
     const params = new URLSearchParams({ query })
-    if (coords) {
-      params.set('latitude', String(coords.latitude))
-      params.set('longitude', String(coords.longitude))
-    }
     return api<{ existing: TaggablePlace[] }>(`community/places/search?${params}`, { signal })
   },
 

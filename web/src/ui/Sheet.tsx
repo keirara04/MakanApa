@@ -15,12 +15,26 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     if (!open && element.open) element.close()
   }, [open])
 
+  // The browser can close a dialog by itself (Android back closes it even when Escape is
+  // refused). If the owner still wants it open, show it again so the two never disagree.
+  const wanted = useRef(open)
+  useEffect(() => {
+    wanted.current = open
+  })
+  function closed() {
+    onClose()
+    requestAnimationFrame(() => {
+      const element = dialog.current
+      if (wanted.current && element && !element.open && element.isConnected) element.showModal()
+    })
+  }
+
   return (
     <dialog
       ref={dialog}
       aria-labelledby={titleId}
       // React passes `close` up its tree, so a sheet opened from inside this one would close it too.
-      onClose={(event) => event.target === event.currentTarget && onClose()}
+      onClose={(event) => event.target === event.currentTarget && closed()}
       // Escape asks instead of closing the dialog by itself; the parent decides.
       onCancel={(event) => {
         if (event.target !== event.currentTarget) return
