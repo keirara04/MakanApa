@@ -14,6 +14,11 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(DeepLinkDestination(url: url), .place(id: 624, source: .share))
     }
 
+    func testNewDomainLinkOpensThePlace() {
+        let url = URL(string: "https://trymakanapa.com/p/624-kfc-jalan-reko?ref=share")!
+        XCTAssertEqual(DeepLinkDestination(url: url), .place(id: 624, source: .share))
+    }
+
     func testAppSchemeFromTheSharePage() {
         let url = URL(string: "makanapa://place/624?source=share")!
         XCTAssertEqual(DeepLinkDestination(url: url), .place(id: 624, source: .share))
