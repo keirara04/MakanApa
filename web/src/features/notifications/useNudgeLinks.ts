@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { api } from '../../api/client'
@@ -28,14 +29,16 @@ export function useNudgeOpened(): void {
 export function usePlaceLink(open: (place: NearbyPlace) => void): void {
   const { search } = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   useEffect(() => {
     const params = new URLSearchParams(search)
     const id = Number(params.get('place'))
     if (!id) return
     const nudge = params.get('fromNudge')
     navigate({ pathname: '/nearby', search: '' }, { replace: true })
-    nearbyApi
-      .details(id)
+    // Through the cache the place sheet reads, so its details aren't fetched a second time.
+    queryClient
+      .fetchQuery({ queryKey: ['place', id], queryFn: () => nearbyApi.details(id) })
       .then((details) => {
         open({
           id: details.id, name: details.name, latitude: details.latitude, longitude: details.longitude, rating: details.rating,
@@ -44,5 +47,5 @@ export function usePlaceLink(open: (place: NearbyPlace) => void): void {
         if (nudge) recordNudge(nudge, 'place_opened')
       })
       .catch(() => {})
-  }, [search, navigate, open])
+  }, [search, navigate, open, queryClient])
 }

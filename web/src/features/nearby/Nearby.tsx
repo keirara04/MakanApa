@@ -77,6 +77,19 @@ export function Nearby() {
     }
   }
 
+  const sheet = (
+    <PlaceSheet
+      place={open?.place ?? null}
+      search={open?.search ?? null}
+      user={coords}
+      onClose={() => setOpen(null)}
+      onExclude={nearby.exclude}
+      // The search panel stays open underneath, so going back is just closing the sheet.
+      onBackToResults={open?.search ? () => setOpen(null) : null}
+    />
+  )
+
+  // A place link (push or shared) still opens its sheet over this.
   if (!coords && location.state.status !== 'locating' && !nearby.viewport) {
     return (
       <section className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
@@ -94,6 +107,7 @@ export function Nearby() {
             </Button>
           </>
         )}
+        {sheet}
       </section>
     )
   }
@@ -173,15 +187,7 @@ export function Nearby() {
         )}
       </div>
 
-      <PlaceSheet
-        place={open?.place ?? null}
-        search={open?.search ?? null}
-        user={coords}
-        onClose={() => setOpen(null)}
-        onExclude={nearby.exclude}
-        // The search panel stays open underneath, so going back is just closing the sheet.
-        onBackToResults={open?.search ? () => setOpen(null) : null}
-      />
+      {sheet}
     </div>
   )
 }

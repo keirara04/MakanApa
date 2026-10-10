@@ -13,7 +13,7 @@ describe('push tap routing (same types as iOS)', () => {
   })
 
   it('sends contribution outcomes to Community and everything else home', () => {
-    expect(pushTarget({ type: 'halal_report_decided' })).toBe('/community')
+    expect(pushTarget({ type: 'halal_report_decided' })).toBe('/community/mine')
     expect(pushTarget({ type: 'halal_certificate_lapsing' })).toBe('/community')
     expect(pushTarget({ type: 'release' })).toBe('/')
     expect(pushTarget(null)).toBe('/')

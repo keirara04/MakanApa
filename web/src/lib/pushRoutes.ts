@@ -23,10 +23,12 @@ export function pushTarget(data: PushData | null | undefined): string {
     case 'community_post_replied':
     case 'community_post_reacted':
       return data.postId ? `/community/posts/${data.postId}` : '/community'
+    // Where each of your submissions stands.
     case 'submission_decided':
     case 'halal_report_decided':
     case 'halal_report_superseded':
     case 'owner_claim_decided':
+      return '/community/mine'
     case 'ambassador_application_decided':
     case 'community_post_reported':
       return '/community'

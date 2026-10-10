@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { CLAIM_LABELS } from '../../api/halal'
 import { submissionsApi, type Submission, type SubmissionStatus, type SubmissionType } from '../../api/submissions'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
@@ -211,17 +212,9 @@ function SubmissionCard({ submission, onWithdraw }: { submission: Submission; on
   )
 }
 
-/** Same wording as iOS HalalStatus.pickerLabel. */
-const HALAL_LABELS: Record<string, string> = {
-  certified: 'Halal (has certificate)',
-  muslim_friendly: 'No certificate (community notes)',
-  non_halal: 'Not halal',
-  unknown: 'Unknown',
-}
-
 function halalLine(submission: Submission): string | null {
-  const claim = submission.halalClaim ? (HALAL_LABELS[submission.halalClaim] ?? submission.halalClaim) : null
+  const claim = submission.halalClaim ? (CLAIM_LABELS[submission.halalClaim as keyof typeof CLAIM_LABELS] ?? submission.halalClaim) : null
   const resolved = submission.halalResolvedStatus
-  if (resolved && resolved !== submission.halalClaim) return [claim, HALAL_LABELS[resolved] ?? resolved].filter(Boolean).join(' to ')
+  if (resolved && resolved !== submission.halalClaim) return [claim, CLAIM_LABELS[resolved as keyof typeof CLAIM_LABELS] ?? resolved].filter(Boolean).join(' to ')
   return claim
 }

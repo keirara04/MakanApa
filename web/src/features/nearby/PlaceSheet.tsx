@@ -13,7 +13,8 @@ import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 import { useContributionGate } from '../auth/ContributionGate'
-import { HalalBadge, HalalSection } from '../decide/PickParts'
+import { HalalBadge } from '../decide/PickParts'
+import { HalalSection } from '../halal/Halal'
 import type { SearchContext } from './SearchPanel'
 
 /** One id per place per visit, reused on retry so "Eat here" is never recorded twice. */
@@ -267,7 +268,7 @@ function DetailBody({ details }: { details: PlaceDetails }) {
 
   return (
     <>
-      <HalalSection halal={details.halal} />
+      <HalalSection restaurantId={details.id} name={details.name} halal={details.halal} />
 
       {photos.length > 0 ? (
         <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto [scrollbar-width:none]" aria-label="Photos">

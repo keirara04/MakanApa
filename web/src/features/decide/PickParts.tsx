@@ -354,24 +354,6 @@ export function Menu({ pick }: { pick: Recommendation }) {
   )
 }
 
-export function HalalSection({ halal }: { halal: HalalInfo }) {
-  return (
-    <section aria-labelledby="halal-title" className="rounded-row bg-surface px-5 py-4">
-      <h2 id="halal-title" className="font-display text-lg font-semibold">
-        Halal
-      </h2>
-      <p className="mt-1 font-semibold">{halal.display.longLabel}</p>
-      {halal.display.verificationLabel && <p className="text-sm text-kicap-soft">{halal.display.verificationLabel}</p>}
-      {halal.status === 'certified' && halal.verification?.expiresAt && (
-        <p className="text-sm text-kicap-soft">
-          Certificate valid until {new Date(halal.verification.expiresAt).toLocaleDateString('en-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </p>
-      )}
-      <p className="mt-2 text-sm text-kicap-soft">Community-sourced: halal info may be incomplete. Always double-check at the restaurant.</p>
-    </section>
-  )
-}
-
 export function Reviews({ pick }: { pick: Recommendation }) {
   if (pick.reviews.length === 0) return null
   return (

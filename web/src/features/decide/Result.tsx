@@ -10,9 +10,10 @@ import { NotificationPriming } from '../notifications/Notifications'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
 import { Sheet } from '../../ui/Sheet'
-import { HalalBadge, HalalSection, Menu, Photos, Reasons, Reviews, SaveButton, SendToFriends, Tune, WhatIf, WhyNot } from './PickParts'
+import { HalalBadge, Menu, Photos, Reasons, Reviews, SaveButton, SendToFriends, Tune, WhatIf, WhyNot } from './PickParts'
 import { useDecide } from './state'
 import { Rerolling, Thinking } from './Thinking'
+import { HalalSection } from '../halal/Halal'
 
 const FIT = { strong: 'Strong fit', good: 'Good fit', wildcard: 'Wildcard' } as const
 
@@ -187,7 +188,7 @@ function PickView() {
 
         <SendToFriends decision={decision} pick={pick} />
         <Menu pick={pick} />
-        <HalalSection halal={pick.halal} />
+        <HalalSection restaurantId={pick.id} name={pick.name} halal={pick.halal} />
         <Reviews pick={pick} />
         {(pick.reviews.length > 0 || pick.photos.some((photo) => photo.authorAttributions.length > 0)) && (
           <p className="text-xs text-kicap-soft">Photos and reviews from Google Maps</p>

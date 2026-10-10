@@ -12,9 +12,47 @@ export interface HalalInfo {
     action: 'help_verify' | 'help_reverify' | null
     verificationLabel: string | null
   }
-  verification: { expiresAt: string | null } | null
+  verification: {
+    method: string
+    evidenceSource: string
+    authority: CertificationAuthority | null
+    verifiedAt: string | null
+    expiresAt: string | null
+  } | null
+  /** Approved vouches, newest first (up to 3). Optional: picks saved before this shipped lack it. */
+  reports?: HalalReport[]
   historyCount: number
+  /** The signed-in person's own latest vouch here (open, or decided in the last 30 days). */
+  myReport?: MyHalalReport | null
   recentPickers: number
+}
+
+export type CertificationAuthority = 'jakim' | 'state_islamic_council' | 'muis' | 'bpjph' | 'other'
+
+export interface HalalReport {
+  id: number
+  claim: HalalInfo['status'] | null
+  resolvedStatus: HalalInfo['status'] | null
+  isCurrent: boolean
+  comment: string | null
+  userName: string
+  userTrusted: boolean
+  approvedAt: string | null
+  photos: { id: number; url: string; photoType: string }[]
+}
+
+export interface MyHalalReport {
+  id: number
+  status: 'draft' | 'pending' | 'changes_requested' | 'approved' | 'rejected'
+  claim: HalalInfo['status'] | null
+  reviewNote: string | null
+  comment: string | null
+  certificationAuthority: CertificationAuthority | null
+  certificateNumber: string | null
+  certificateExpiresAt: string | null
+  photoCount: number
+  certPhotoCount: number
+  maxPhotos: number
 }
 
 export interface Photo {

@@ -14,7 +14,7 @@ import {
 } from '../../api/submissions'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
-import { toJpeg } from '../../lib/images'
+import { resizeForUpload } from '../../lib/photos'
 import { getPosition, useLocation, type Coordinates } from '../../lib/location'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
@@ -265,7 +265,7 @@ function Wizard() {
       const url = URL.createObjectURL(file)
       setPhotos((current) => [...current, { key, url, uploading: true }])
       try {
-        await submissionsApi.uploadPhoto(id, await toJpeg(file))
+        await submissionsApi.uploadPhoto(id, await resizeForUpload(file))
         setPhotos((current) => current.map((photo) => (photo.key === key ? { ...photo, uploading: false } : photo)))
       } catch (caught) {
         URL.revokeObjectURL(url)
