@@ -37,6 +37,8 @@ class UserAccountDeletionService
         }
 
         $user->tokens()->delete();
+        // Polymorphic, so no foreign key cascades it: the web app's push subscriptions.
+        $user->pushSubscriptions()->delete();
         // forceDelete(), not delete() — the User model gained SoftDeletes for the admin panel's
         // reversible moderation delete, but self-service deletion is a genuine, permanent
         // removal (matches what the privacy policy promises). AccountDeletion above is the only

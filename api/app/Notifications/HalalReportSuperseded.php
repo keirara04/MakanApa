@@ -3,16 +3,18 @@
 namespace App\Notifications;
 
 use App\Models\RestaurantHalalVerification;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\NotificationCategory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 /** A newer verification replaced the one a contributor's report established, with a different status. */
 class HalalReportSuperseded extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         private readonly RestaurantHalalVerification $replacement,
@@ -21,7 +23,7 @@ class HalalReportSuperseded extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn'] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', WebPushChannel::class] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

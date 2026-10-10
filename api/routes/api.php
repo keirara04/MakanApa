@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\RestaurantController;
 use App\Http\Controllers\Api\RestaurantSubmissionController;
 use App\Http\Controllers\Api\SeleraController;
 use App\Http\Controllers\Api\UniversityController;
+use App\Http\Controllers\Api\WebPushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
@@ -72,6 +73,9 @@ Route::prefix('v1')->group(function () {
         Route::delete('me/device-tokens/claim', [DeviceTokenController::class, 'unclaim']);
         Route::get('me/notification-preferences', [NotificationPreferenceController::class, 'show']);
         Route::patch('me/notification-preferences', [NotificationPreferenceController::class, 'update']);
+        Route::get('web-push/key', [WebPushSubscriptionController::class, 'key']);
+        Route::post('me/web-push', [WebPushSubscriptionController::class, 'store'])->middleware('throttle:30,1,web-push');
+        Route::delete('me/web-push', [WebPushSubscriptionController::class, 'destroy'])->middleware('throttle:30,1,web-push');
         Route::get('me/notifications', [NotificationController::class, 'index']);
         Route::post('me/nudges/{nudge}/events', [MealNudgeController::class, 'event'])->middleware('throttle:30,1,nudge-events');
         Route::post('me/notifications/read-all', [NotificationController::class, 'readAll']);

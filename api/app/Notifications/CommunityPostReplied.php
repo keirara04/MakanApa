@@ -4,16 +4,18 @@ namespace App\Notifications;
 
 use App\Models\CommunityPost;
 use App\Models\User;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\NotificationCategory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class CommunityPostReplied extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         private readonly CommunityPost $parent,
@@ -23,7 +25,7 @@ class CommunityPostReplied extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REPLIES) ? ['database', 'apn'] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REPLIES) ? ['database', 'apn', WebPushChannel::class] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

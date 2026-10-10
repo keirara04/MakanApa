@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CommunityPost;
 use App\Models\User;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\CommunityReaction;
 use App\Support\NotificationCategory;
 use Illuminate\Bus\Queueable;
@@ -11,10 +12,11 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class CommunityPostReacted extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         private readonly CommunityPost $post,
@@ -24,7 +26,7 @@ class CommunityPostReacted extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REACTIONS) ? ['database', 'apn'] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REACTIONS) ? ['database', 'apn', WebPushChannel::class] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

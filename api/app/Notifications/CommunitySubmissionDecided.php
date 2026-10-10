@@ -3,15 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\RestaurantSubmission;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\NotificationCategory;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class CommunitySubmissionDecided extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         private readonly RestaurantSubmission $submission,
@@ -24,7 +26,7 @@ class CommunitySubmissionDecided extends Notification implements ShouldQueue
         // 'database' rides along with the same preference gate as 'apn' — opting out of this
         // category means it doesn't show up in the in-app notifications list either, not just
         // that the push is suppressed.
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn'] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', WebPushChannel::class] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

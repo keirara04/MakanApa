@@ -3,9 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\MealNudge;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\NotificationCategory;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 /**
  * "Had lunch yet?" — sent inline by MealNudgeDispatcher (not queued: the dispatcher already runs in
@@ -14,6 +16,8 @@ use NotificationChannels\Apn\ApnMessage;
  */
 class MealtimeNudge extends Notification
 {
+    use SendsWebPush;
+
     public function __construct(
         private readonly MealNudge $nudge,
         private readonly string $title,
@@ -22,7 +26,7 @@ class MealtimeNudge extends Notification
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::MEALTIME_NUDGES) ? ['apn'] : [];
+        return $notifiable->wantsNotification(NotificationCategory::MEALTIME_NUDGES) ? ['apn', WebPushChannel::class] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

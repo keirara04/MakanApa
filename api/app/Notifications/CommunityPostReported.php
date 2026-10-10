@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Filament\Resources\CommunityPosts\CommunityPostResource;
 use App\Models\CommunityPost;
+use App\Notifications\Concerns\SendsWebPush;
 use App\Support\CommunityReportReason;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -11,6 +12,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnMessage;
+use NotificationChannels\WebPush\WebPushChannel;
 
 /**
  * Tells superadmins a community post was reported, so the Terms' promise to act on reports
@@ -21,7 +23,7 @@ use NotificationChannels\Apn\ApnMessage;
  */
 class CommunityPostReported extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, SendsWebPush;
 
     public function __construct(
         private readonly CommunityPost $post,
@@ -31,7 +33,7 @@ class CommunityPostReported extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->email ? ['apn', 'mail'] : ['apn'];
+        return $notifiable->email ? ['apn', WebPushChannel::class, 'mail'] : ['apn', WebPushChannel::class];
     }
 
     public function toApn(object $notifiable): ApnMessage

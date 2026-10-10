@@ -30,7 +30,8 @@ class MealNudgeEligibility
         if ($state->isPaused()) {
             return 'paused';
         }
-        if ($user->routeNotificationForApn() === []) {
+        // An iPhone (APNs) or the web app (a Web Push subscription) can receive it.
+        if ($user->routeNotificationForApn() === [] && $user->pushSubscriptions()->doesntExist()) {
             return 'no_device';
         }
 

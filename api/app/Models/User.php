@@ -20,13 +20,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[Fillable(['name', 'email', 'avatar_url', 'avatar_key', 'password', 'role', 'status', 'apple_sub', 'google_sub', 'apple_refresh_token', 'notification_preferences', 'display_timezone', 'halal_preference', 'trusted_contributor', 'contribution_stats', 'is_guest', 'signup_source', 'ambassador_university_id', 'ambassador_area_id'])]
 #[Hidden(['password', 'remember_token', 'apple_refresh_token'])]
 class User extends Authenticatable implements FilamentUser, HasEmailAuthentication
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasPushSubscriptions, Notifiable, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
