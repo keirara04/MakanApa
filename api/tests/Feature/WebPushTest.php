@@ -20,10 +20,15 @@ class WebPushTest extends TestCase
 
     private const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
 
+    /** An uncompressed P-256 point (0x04 + 64 bytes) and a 16-byte auth secret, base64url. */
+    private const P256DH = 'BAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0A';
+
+    private const AUTH = 'AAECAwQFBgcICQoLDA0ODw';
+
     /** @return array<string, mixed> */
     private function subscription(string $endpoint = self::ENDPOINT): array
     {
-        return ['endpoint' => $endpoint, 'keys' => ['p256dh' => 'BPublicKeyValue', 'auth' => 'authSecret'], 'contentEncoding' => 'aes128gcm'];
+        return ['endpoint' => $endpoint, 'keys' => ['p256dh' => self::P256DH, 'auth' => self::AUTH], 'contentEncoding' => 'aes128gcm'];
     }
 
     public function test_a_browser_subscribes_and_unsubscribes(): void
@@ -57,6 +62,40 @@ class WebPushTest extends TestCase
             ->assertJsonValidationErrors('endpoint');
     }
 
+    public function test_only_browser_push_services_are_accepted(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->postJson('/api/v1/me/web-push', $this->subscription('https://attacker.example/push'))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('endpoint');
+
+        $this->actingAs(User::factory()->create())
+            ->postJson('/api/v1/me/web-push', $this->subscription('https://wns2-par02p.notify.windows.com/w/?token=abc'))
+            ->assertOk();
+    }
+
+    public function test_keys_that_cannot_encrypt_are_refused(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->postJson('/api/v1/me/web-push', ['endpoint' => self::ENDPOINT, 'keys' => ['p256dh' => 'BPublicKeyValue', 'auth' => 'authSecret']])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['keys.p256dh', 'keys.auth']);
+    }
+
+    public function test_an_account_keeps_at_most_ten_browsers(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (range(1, 12) as $n) {
+            $this->actingAs($user)->postJson('/api/v1/me/web-push', $this->subscription(self::ENDPOINT.$n))->assertOk();
+        }
+
+        $endpoints = $user->pushSubscriptions()->pluck('endpoint');
+        $this->assertCount(10, $endpoints);
+        $this->assertNotContains(self::ENDPOINT.'1', $endpoints);
+        $this->assertContains(self::ENDPOINT.'12', $endpoints);
+    }
+
     public function test_the_public_key_is_served(): void
     {
         config(['webpush.vapid.public_key' => 'BTestPublicKey']);
@@ -69,6 +108,10 @@ class WebPushTest extends TestCase
         $user = User::factory()->create(['notification_preferences' => [NotificationCategory::RELEASE_ANNOUNCEMENTS => true]]);
         $notification = new ReleaseAnnouncement('2.1', 'Group mode is here.');
 
+        // No web subscription: no web job (so web push settings can't touch iOS-only users).
+        $this->assertNotContains(WebPushChannel::class, $notification->via($user));
+
+        $user->updatePushSubscription(self::ENDPOINT, self::P256DH, self::AUTH, 'aes128gcm');
         $this->assertContains(WebPushChannel::class, $notification->via($user));
         $this->assertContains('apn', $notification->via($user));
 
@@ -97,7 +140,7 @@ class WebPushTest extends TestCase
 
         $this->assertSame('no_device', $eligibility->reasonToSkip($user, $state, $noon));
 
-        $user->updatePushSubscription(self::ENDPOINT, 'BPublicKeyValue', 'authSecret', 'aes128gcm');
+        $user->updatePushSubscription(self::ENDPOINT, self::P256DH, self::AUTH, 'aes128gcm');
 
         $this->assertNotSame('no_device', $eligibility->reasonToSkip($user->fresh(), $state, $noon));
     }
@@ -105,7 +148,7 @@ class WebPushTest extends TestCase
     public function test_deleting_an_account_removes_its_push_subscriptions(): void
     {
         $user = User::factory()->create();
-        $user->updatePushSubscription(self::ENDPOINT, 'BPublicKeyValue', 'authSecret', 'aes128gcm');
+        $user->updatePushSubscription(self::ENDPOINT, self::P256DH, self::AUTH, 'aes128gcm');
 
         app(UserAccountDeletionService::class)->delete($user);
 

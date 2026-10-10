@@ -9,7 +9,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class OwnerClaimDecided extends Notification implements ShouldQueue
 {
@@ -23,7 +22,7 @@ class OwnerClaimDecided extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

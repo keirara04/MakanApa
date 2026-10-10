@@ -42,6 +42,7 @@ class PasswordResetTest extends TestCase
     {
         $user = User::factory()->create(['email' => 'aina@example.test', 'password' => Hash::make('old-password-1')]);
         $user->createToken('phone');
+        $user->updatePushSubscription('https://fcm.googleapis.com/fcm/send/abc', 'p256dh', 'auth');
         $token = Password::createToken($user);
 
         $this->postJson('/api/v1/auth/password/reset', ['email' => 'aina@example.test', 'token' => $token, 'password' => 'new-password-1'])
@@ -50,7 +51,18 @@ class PasswordResetTest extends TestCase
 
         $this->assertTrue(Hash::check('new-password-1', $user->fresh()->password));
         $this->assertSame(0, $user->tokens()->count());
+        $this->assertSame(0, $user->pushSubscriptions()->count());
         $this->postJson('/api/v1/auth/login', ['email' => 'aina@example.test', 'password' => 'new-password-1', 'deviceLabel' => 'Chrome on Android'])->assertOk();
+    }
+
+    public function test_asking_for_links_does_not_lock_out_the_reset_form(): void
+    {
+        $user = User::factory()->create(['email' => 'aina@example.test']);
+        foreach (range(1, 5) as $ignored) {
+            $this->postJson('/api/v1/auth/password/forgot', ['email' => 'aina@example.test'])->assertOk();
+        }
+
+        $this->postJson('/api/v1/auth/password/reset', ['email' => 'aina@example.test', 'token' => Password::createToken($user), 'password' => 'new-password-1'])->assertOk();
     }
 
     public function test_reset_refuses_a_wrong_or_reused_token(): void

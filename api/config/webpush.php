@@ -35,7 +35,8 @@ return [
     /**
      * The HTTP client options used to deliver push notifications.
      */
-    'client_options' => [],
+    // The package default waits 30s per push service; sends run inline in the nudge scheduler.
+    'client_options' => ['timeout' => 5, 'connect_timeout' => 3],
 
     /**
      * The automatic padding in bytes used by Minishlink\WebPush.

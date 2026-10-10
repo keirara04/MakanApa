@@ -9,7 +9,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 /**
  * Certificate lifecycle notice for the restaurant's verified owner and the contributor whose
@@ -27,7 +26,7 @@ class HalalCertificateLapsing extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

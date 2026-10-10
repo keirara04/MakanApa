@@ -12,7 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
-use NotificationChannels\WebPush\WebPushChannel;
 use Tests\TestCase;
 
 class CommunityPostReportNotificationTest extends TestCase
@@ -68,7 +67,7 @@ class CommunityPostReportNotificationTest extends TestCase
         Notification::assertSentTo(
             $this->admin,
             CommunityPostReported::class,
-            fn (CommunityPostReported $notification, array $channels) => $channels === ['apn', WebPushChannel::class, 'mail']
+            fn (CommunityPostReported $notification, array $channels) => $channels === ['apn', 'mail']
                 && $notification->toApn($this->admin)->title === 'Community post reported'
                 && $notification->toApn($this->admin)->custom === ['type' => 'community_post_reported', 'postId' => $post->id],
         );
@@ -83,7 +82,7 @@ class CommunityPostReportNotificationTest extends TestCase
 
         $this->reportAs($this->member(), $post);
 
-        Notification::assertSentTo($this->admin, CommunityPostReported::class, fn ($notification, array $channels) => $channels === ['apn', WebPushChannel::class]);
+        Notification::assertSentTo($this->admin, CommunityPostReported::class, fn ($notification, array $channels) => $channels === ['apn']);
     }
 
     public function test_further_reports_below_the_threshold_do_not_alert_again(): void

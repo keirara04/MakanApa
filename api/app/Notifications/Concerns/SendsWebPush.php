@@ -2,15 +2,29 @@
 
 namespace App\Notifications\Concerns;
 
+use NotificationChannels\WebPush\WebPushChannel;
 use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * The web app's copy of a push: the same title, body and payload (`type` plus ids) as the
- * APNs message, so both apps route a tap the same way. Notifications that use this list
- * WebPushChannel next to 'apn' in via(); people without a web subscription get nothing extra.
+ * APNs message, so both apps route a tap the same way. Notifications that use this add
+ * webPushChannel() next to 'apn' in via().
  */
 trait SendsWebPush
 {
+    /**
+     * The web channel only for people with a web subscription: everyone else (every iOS-only
+     * user) never queues a web job, so a web push misconfiguration can't fail their sends.
+     *
+     * @return list<class-string>
+     */
+    protected function webPushChannel(object $notifiable): array
+    {
+        return method_exists($notifiable, 'pushSubscriptions') && $notifiable->pushSubscriptions()->exists()
+            ? [WebPushChannel::class]
+            : [];
+    }
+
     public function toWebPush(object $notifiable, mixed $notification = null): WebPushMessage
     {
         $apn = $this->toApn($notifiable);

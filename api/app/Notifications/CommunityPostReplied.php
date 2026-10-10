@@ -11,7 +11,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class CommunityPostReplied extends Notification implements ShouldQueue
 {
@@ -25,7 +24,7 @@ class CommunityPostReplied extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REPLIES) ? ['database', 'apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_REPLIES) ? ['database', 'apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

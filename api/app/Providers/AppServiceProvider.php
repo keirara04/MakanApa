@@ -23,7 +23,10 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Minishlink\WebPush\MessageSentReport;
 use NotificationChannels\Apn\ApnChannel;
+use NotificationChannels\WebPush\Events\NotificationFailed as WebPushFailed;
+use NotificationChannels\WebPush\WebPushChannel;
 use Pushok\AuthProviderInterface;
 use Pushok\Response;
 
@@ -102,12 +105,22 @@ class AppServiceProvider extends ServiceProvider
 
         // Reset emails: a few per address (the broker also waits 60s between links to one
         // account), and an IP-wide ceiling so the endpoint can't be used to spam inboxes.
+        // Asking for links and using one count separately: otherwise five requests for someone
+        // else's address would lock them out of the reset form for the link's whole lifetime.
         RateLimiter::for('password-reset', function ($request) {
             $email = Str::lower((string) $request->input('email'));
 
             return [
                 Limit::perHour(5)->by('email:'.$email),
                 Limit::perMinute(10)->by('ip:'.$request->ip()),
+            ];
+        });
+        RateLimiter::for('password-reset-submit', function ($request) {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perHour(10)->by('submit-email:'.$email),
+                Limit::perMinute(10)->by('submit-ip:'.$request->ip()),
             ];
         });
 
@@ -176,12 +189,21 @@ class AppServiceProvider extends ServiceProvider
         // name via() returned ('apn'), not the channel class — only ApnChannel's own per-token
         // NotificationFailed events use the class name.
         Event::listen(function (NotificationSent $event) {
-            if ($event->channel !== 'apn') {
+            $deliveryId = Context::get('notification_delivery_id');
+            if ($deliveryId === null) {
                 return;
             }
 
-            $deliveryId = Context::get('notification_delivery_id');
-            if ($deliveryId === null) {
+            // The web leg: sent when any browser accepted it (WebPushChannel returns its reports).
+            if ($event->channel === WebPushChannel::class) {
+                if (collect($event->response ?? [])->contains(fn (MessageSentReport $report) => $report->isSuccess())) {
+                    NotificationDelivery::where('id', $deliveryId)->update(['status' => 'sent', 'channel' => $event->channel, 'sent_at' => now()]);
+                }
+
+                return;
+            }
+
+            if ($event->channel !== 'apn') {
                 return;
             }
 
@@ -193,10 +215,24 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            NotificationDelivery::where('id', $deliveryId)->update([
-                'status' => $event->response === null ? 'skipped_no_token' : 'sent',
-                'channel' => $event->channel,
-                'sent_at' => now(),
+            NotificationDelivery::where('id', $deliveryId)
+                // No iOS device, but the web leg may already have delivered it.
+                ->when($event->response === null, fn ($query) => $query->where('status', '!=', 'sent'))
+                ->update([
+                    'status' => $event->response === null ? 'skipped_no_token' : 'sent',
+                    'channel' => $event->channel,
+                    'sent_at' => now(),
+                ]);
+        });
+
+        // A push service turned a web push down (expired subscriptions are already deleted by
+        // the package). Logged, so a server misconfiguration like bad VAPID keys shows up.
+        Event::listen(function (WebPushFailed $event) {
+            Log::warning('web_push.failed', [
+                'host' => parse_url($event->report->getEndpoint(), PHP_URL_HOST),
+                'status' => $event->report->getResponse()?->getStatusCode(),
+                'reason' => $event->report->getReason(),
+                'expired' => $event->report->isSubscriptionExpired(),
             ]);
         });
 

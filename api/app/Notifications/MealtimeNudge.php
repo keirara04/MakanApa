@@ -7,7 +7,6 @@ use App\Notifications\Concerns\SendsWebPush;
 use App\Support\NotificationCategory;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 /**
  * "Had lunch yet?" — sent inline by MealNudgeDispatcher (not queued: the dispatcher already runs in
@@ -26,7 +25,7 @@ class MealtimeNudge extends Notification
 
     public function via(object $notifiable): array
     {
-        return $notifiable->wantsNotification(NotificationCategory::MEALTIME_NUDGES) ? ['apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::MEALTIME_NUDGES) ? ['apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

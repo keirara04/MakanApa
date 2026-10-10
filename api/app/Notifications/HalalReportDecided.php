@@ -9,7 +9,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 /** Approved / rejected / more evidence requested, for a halal_report submission. */
 class HalalReportDecided extends Notification implements ShouldQueue
@@ -25,7 +24,7 @@ class HalalReportDecided extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         // Same preference gate as CommunitySubmissionDecided — halal evidence is a community contribution.
-        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::COMMUNITY_SUBMISSIONS) ? ['database', 'apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

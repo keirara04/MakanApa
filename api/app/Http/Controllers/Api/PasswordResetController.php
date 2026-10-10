@@ -24,11 +24,17 @@ class PasswordResetController extends Controller
      */
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->validated('email'))->first();
+        $email = $request->validated('email');
 
-        if ($user && ! $user->isGuest()) {
-            Password::sendResetLink(['email' => $user->email]);
-        }
+        // After the response: an existing account's token hash and mail send would otherwise
+        // make its answer slower than an unknown address's (and a mail error would 500 only
+        // for real accounts), telling anyone which emails have accounts.
+        dispatch(function () use ($email) {
+            $user = User::where('email', $email)->first();
+            if ($user && ! $user->isGuest()) {
+                Password::sendResetLink(['email' => $user->email]);
+            }
+        })->afterResponse();
 
         return response()->json(['sent' => true]);
     }
@@ -46,6 +52,8 @@ class PasswordResetController extends Controller
             function (User $user, string $password) {
                 $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
                 $user->tokens()->delete();
+                // Browsers that were signed in stop getting this account's pushes too.
+                $user->pushSubscriptions()->delete();
 
                 event(new PasswordReset($user));
             },

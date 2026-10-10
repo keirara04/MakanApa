@@ -8,7 +8,6 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 class ReleaseAnnouncement extends Notification implements ShouldQueue
 {
@@ -25,7 +24,7 @@ class ReleaseAnnouncement extends Notification implements ShouldQueue
         // 'database' rides along with the same preference gate as 'apn' — opting out of this
         // category means it doesn't show up in the in-app notifications list either, not just
         // that the push is suppressed.
-        return $notifiable->wantsNotification(NotificationCategory::RELEASE_ANNOUNCEMENTS) ? ['database', 'apn', WebPushChannel::class] : [];
+        return $notifiable->wantsNotification(NotificationCategory::RELEASE_ANNOUNCEMENTS) ? ['database', 'apn', ...$this->webPushChannel($notifiable)] : [];
     }
 
     public function toApn(object $notifiable): ApnMessage

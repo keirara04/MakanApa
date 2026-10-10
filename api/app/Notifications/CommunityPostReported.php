@@ -12,7 +12,6 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Str;
 use NotificationChannels\Apn\ApnMessage;
-use NotificationChannels\WebPush\WebPushChannel;
 
 /**
  * Tells superadmins a community post was reported, so the Terms' promise to act on reports
@@ -33,7 +32,7 @@ class CommunityPostReported extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return $notifiable->email ? ['apn', WebPushChannel::class, 'mail'] : ['apn', WebPushChannel::class];
+        return $notifiable->email ? ['apn', ...$this->webPushChannel($notifiable), 'mail'] : ['apn', ...$this->webPushChannel($notifiable)];
     }
 
     public function toApn(object $notifiable): ApnMessage

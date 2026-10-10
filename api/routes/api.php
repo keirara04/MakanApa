@@ -46,7 +46,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:social');
     Route::post('auth/link', [AuthController::class, 'link'])->middleware('throttle:link');
     Route::post('auth/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:password-reset');
-    Route::post('auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
+    Route::post('auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset-submit');
 
     // Bare signed URL, no Sanctum — AsyncImage/browsers/img-tag loaders fetch this directly
     // and can't attach an Authorization header. The signature itself is the auth: it's

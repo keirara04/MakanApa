@@ -8,6 +8,7 @@ use App\Models\RestaurantPhoto;
 use App\Models\User;
 use App\Services\Auth\AppleTokenExchangeService;
 use App\Services\Community\CommunityPostService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -39,6 +40,10 @@ class UserAccountDeletionService
         $user->tokens()->delete();
         // Polymorphic, so no foreign key cascades it: the web app's push subscriptions.
         $user->pushSubscriptions()->delete();
+        // An unused reset link would otherwise keep the email in password_reset_tokens.
+        if ($user->email) {
+            DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))->where('email', $user->email)->delete();
+        }
         // forceDelete(), not delete() — the User model gained SoftDeletes for the admin panel's
         // reversible moderation delete, but self-service deletion is a genuine, permanent
         // removal (matches what the privacy policy promises). AccountDeletion above is the only
