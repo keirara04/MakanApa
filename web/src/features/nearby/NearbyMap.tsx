@@ -60,9 +60,11 @@ function MapLayer({ user, places, matching, loadedViewport, winnerId, focusId, o
       const sw = bounds.getSouthWest()
       const box = { north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng() }
       const zoomedOut = zoom < MIN_ZOOM_FOR_PLACES
+      // Only when nothing is loaded yet: coming back to Nearby keeps the area it had (each
+      // load spends Places quota), and "Search this area" offers a reload once it's moved.
       if (!zoomedOut && !autoLoaded.current) {
         autoLoaded.current = true
-        onLoadArea(box)
+        if (!loadedViewport) onLoadArea(box)
       }
       let moved = false
       if (loadedViewport) {

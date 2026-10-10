@@ -104,9 +104,11 @@ export function NearbyProvider({ children }: { children: ReactNode }) {
   const lastFilters = useRef(filterKey(filters))
   useEffect(() => {
     const key = filterKey(filters)
-    if (key === lastFilters.current) return
+    // Before the first area has loaded there's nothing to reload yet: the key stays unseen, so
+    // this runs again (with the new chips) once that load sets the viewport.
+    if (key === lastFilters.current || !viewport) return
     lastFilters.current = key
-    if (viewport) void load(viewport)
+    void load(viewport)
   }, [filters, viewport, load])
 
   const setFilters = useCallback(

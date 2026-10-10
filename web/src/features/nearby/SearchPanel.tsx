@@ -56,20 +56,27 @@ export function SearchPanel({ centre, onClose, onSelect }: {
     return () => clearTimeout(timer)
   }, [text])
 
+  // Read when a search runs, not a reason to run one: Nearby passes a new object on every
+  // render (and location refreshes), and each re-run can be a paid Google search.
+  const centreNow = useRef(centre)
+  useEffect(() => {
+    centreNow.current = centre
+  })
+
   useEffect(() => {
     if (!run) return
     const controller = new AbortController()
     setLoading(true)
     setError(null)
     nearbyApi
-      .search({ ...run, ...centre, halal: filters.halal }, controller.signal)
+      .search({ ...run, ...centreNow.current, halal: filters.halal }, controller.signal)
       .then(setResponse)
       .catch((caught) => {
         if (!(caught instanceof DOMException && caught.name === 'AbortError')) setError(errorMessage(caught))
       })
       .finally(() => !controller.signal.aborted && setLoading(false))
     return () => controller.abort()
-  }, [run, centre, filters.halal])
+  }, [run, filters.halal])
 
   async function choose(result: SearchResult) {
     if (!run || !response) return

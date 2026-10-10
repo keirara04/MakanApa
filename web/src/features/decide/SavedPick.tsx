@@ -22,6 +22,15 @@ export function SavedPick() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const started = useRef(false)
+  // Left during the shuffle: the answer mustn't pull the person back to a result.
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   useEffect(() => {
     if (started.current || saved.length < 2) return
@@ -42,6 +51,7 @@ export function SavedPick() {
           }),
           new Promise((resolve) => setTimeout(resolve, SHUFFLE_MS)),
         ])
+        if (!mounted.current) return
         // No "Why this?" echo for saved picks: the person didn't ask for a mood, budget or distance.
         adopt(decision, null, 'saved')
         navigate('/decide/result', { replace: true })

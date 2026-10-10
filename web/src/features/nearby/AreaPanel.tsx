@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { centreOf, distanceKm, type NearbyPlace } from '../../api/nearby'
+import { useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { useNearby } from './state'
 
@@ -17,6 +18,10 @@ const SORTS: [Sort, string][] = [
  */
 export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyPlace) => void; onPick: () => void; picking: boolean }) {
   const { summary, filtered, places, loading, viewport } = useNearby()
+  // The summary comes from the server; places hidden with "Don't suggest" leave its lists too.
+  const excluded = useStored('excluded') ?? []
+  const topRated = summary?.topRated.filter((place) => !excluded.includes(place.id)) ?? []
+  const communityFinds = summary?.communityFinds.filter((place) => !excluded.includes(place.id)) ?? []
   const [sort, setSort] = useState<Sort>('default')
 
   const sorted = [...filtered]
@@ -80,10 +85,8 @@ export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyP
         )}
       </div>
 
-      {summary.topRated.length > 0 && (
-        <PlaceList title="Top rated" places={summary.topRated} onOpen={onOpen} numbered />
-      )}
-      {summary.communityFinds.length > 0 && <PlaceList title="Community finds" places={summary.communityFinds} onOpen={onOpen} />}
+      {topRated.length > 0 && <PlaceList title="Top rated" places={topRated} onOpen={onOpen} numbered />}
+      {communityFinds.length > 0 && <PlaceList title="Community finds" places={communityFinds} onOpen={onOpen} />}
 
       {pickButton}
 

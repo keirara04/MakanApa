@@ -94,7 +94,7 @@ function NoResult() {
 }
 
 function PickView() {
-  const { decision, pick, asked, skipped, tunesUsed, widen, fresh, request, tune, choose, reroll, accept, decide } = useDecide()
+  const { decision, pick, asked, skipped, tunesUsed, widen, fresh, request, tune, choose, reroll, accept, decide, notice } = useDecide()
   const trace = fresh ? (pick?.thinkingTrace ?? []) : []
   const [tracing, setTracing] = useState(trace.length > 0)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
@@ -163,10 +163,16 @@ function PickView() {
           </div>
         </header>
 
+        {notice && (
+          <p role="alert" className="rounded-row bg-sambal/10 px-4 py-3 text-sambal-deep">
+            Couldn’t get another one. {notice}
+          </p>
+        )}
         <Reasons pick={pick} asked={asked} onWhatIf={() => setWhatIfOpen(true)} />
         {skipped && <WhyNot key={pick.id} decision={decision} skipped={skipped} />}
 
-        {widen?.suggestedAdjustment && request ? (
+        {/* Only when the server can widen: at the widest radius it would re-run the same search. */}
+        {widen?.suggestedAdjustment && widen.canSearchWider && request ? (
           <section className="rounded-row bg-kunyit/25 px-4 py-4">
             <p>{widen.message ?? 'Nothing better nearby. Search a bit wider?'}</p>
             <Button
@@ -183,7 +189,10 @@ function PickView() {
             </Button>
           </section>
         ) : (
-          canTune && <Tune used={tunesUsed} onTune={tune} />
+          <>
+            {widen && !widen.canSearchWider && <p className="rounded-row bg-kunyit/25 px-4 py-3">{widen.message ?? 'Nothing better nearby.'}</p>}
+            {canTune && <Tune used={tunesUsed} onTune={tune} />}
+          </>
         )}
 
         <SendToFriends decision={decision} pick={pick} />

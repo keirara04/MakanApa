@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { decideApi } from '../../api/decide'
 import type { Coordinates } from '../../lib/location'
 import { setStored, useStored } from '../../lib/storage'
@@ -16,6 +16,8 @@ export function ContextStrip({ coords }: { coords: Coordinates | null }) {
     queryFn: () => decideApi.context(coords!.latitude, coords!.longitude, ignored),
     enabled: coords !== null,
     staleTime: 5 * 60_000,
+    // Keeps the strip (and the focused chip) on screen while a toggled chip refetches.
+    placeholderData: keepPreviousData,
   })
 
   const signals = data?.signals ?? []

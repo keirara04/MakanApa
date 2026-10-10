@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState, type ReactNode } from 'react'
-import { ApiError } from '../../api/client'
 import { decideApi } from '../../api/decide'
 import { distanceKm, nearbyApi, type NearbyPlace, type PlaceDetails } from '../../api/nearby'
 import { useSession } from '../../auth/session'
@@ -15,14 +14,17 @@ import { Sheet } from '../../ui/Sheet'
 import { useContributionGate } from '../auth/ContributionGate'
 import { HalalBadge } from '../decide/PickParts'
 import { HalalSection } from '../halal/Halal'
+import { recordNudge, type PlaceOrigin } from '../notifications/useNudgeLinks'
 import type { SearchContext } from './SearchPanel'
 
 /** One id per place per visit, reused on retry so "Eat here" is never recorded twice. */
 const choiceIds = new Map<number, string>()
 
-export function PlaceSheet({ place, search, user: me, onClose, onExclude, onBackToResults }: {
+export function PlaceSheet({ place, search, origin = null, user: me, onClose, onExclude, onBackToResults }: {
   place: NearbyPlace | null
   search: SearchContext | null
+  /** Opened from a push, shared link or the community (not the map or search). */
+  origin?: PlaceOrigin | null
   user: Coordinates | null
   onClose: () => void
   onExclude: (id: number) => void
@@ -77,7 +79,7 @@ export function PlaceSheet({ place, search, user: me, onClose, onExclude, onBack
         >
           Directions
         </a>
-        <EatHere place={place} search={search} me={me} />
+        <EatHere place={place} search={search} origin={origin} me={me} />
       </div>
 
       {(details?.shareUrl ?? summary?.shareUrl) && <Share place={place} url={(details?.shareUrl ?? summary?.shareUrl)!} detail={summary?.address ?? category} />}
@@ -128,7 +130,7 @@ function SaveHeart({ place }: { place: NearbyPlace }) {
 }
 
 /** "Eat here": records an accepted pick of this place and adds it to Recent. */
-function EatHere({ place, search, me }: { place: NearbyPlace; search: SearchContext | null; me: Coordinates | null }) {
+function EatHere({ place, search, origin, me }: { place: NearbyPlace; search: SearchContext | null; origin: PlaceOrigin | null; me: Coordinates | null }) {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'failed'>('idle')
 
   async function eatHere() {
@@ -143,7 +145,7 @@ function EatHere({ place, search, me }: { place: NearbyPlace; search: SearchCont
       await nearbyApi.choose(place.id, {
         clientChoiceId,
         ...(me ?? {}),
-        openedFrom: search ? 'search' : 'nearby',
+        openedFrom: search ? 'search' : (origin?.from ?? 'nearby'),
         ...(search ? { search: { query: search.query, radiusKm: search.radiusKm, source: search.source } } : {}),
       })
       const recent = (getStored('recent') ?? []).filter((item) => item.id !== place.id)
@@ -151,6 +153,8 @@ function EatHere({ place, search, me }: { place: NearbyPlace; search: SearchCont
         { id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude, foodCategory: search?.result.category ?? null, priceLevel: place.priceLevel, placeGoogleMapsUrl: null, at: Date.now(), source: 'nearby' as const },
         ...recent,
       ].slice(0, 5))
+      // Eating at the place a mealtime push suggested, as iOS counts it.
+      if (origin?.nudgeId) recordNudge(origin.nudgeId, 'makan_sini')
       setState('done')
     } catch {
       setState('failed')
@@ -239,7 +243,7 @@ function AmbassadorPick({ place }: { place: NearbyPlace }) {
             nearbyApi
               .addAmbassadorPick(place.id, note.trim() || null)
               .then(done)
-              .catch((caught) => setError(caught instanceof ApiError ? caught.message : 'Couldn’t save your pick. Try again.'))
+              .catch((caught) => setError(errorMessage(caught)))
           }
         >
           Save

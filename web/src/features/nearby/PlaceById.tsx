@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { nearbyApi } from '../../api/nearby'
+import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
 import { getStored, setStored } from '../../lib/storage'
+import { Button } from '../../ui/Button'
+import { Sheet } from '../../ui/Sheet'
 import { PlaceSheet } from './PlaceSheet'
 
 /**
@@ -10,7 +13,7 @@ import { PlaceSheet } from './PlaceSheet'
  */
 export function PlaceById({ id, onClose }: { id: number | null; onClose: () => void }) {
   const location = useLocation()
-  const { data } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ['place', id],
     queryFn: ({ signal }) => nearbyApi.details(id!, signal),
     enabled: id !== null,
@@ -22,10 +25,20 @@ export function PlaceById({ id, onClose }: { id: number | null; onClose: () => v
       ? { id: data.id, name: data.name, latitude: data.latitude, longitude: data.longitude, rating: data.rating, priceLevel: data.priceLevel, openStatus: data.openStatus, halal: data.halal }
       : null
 
+  if (id !== null && error && !data) {
+    return (
+      <Sheet open onClose={onClose} title="Couldn’t open this place">
+        <p>{errorMessage(error)}</p>
+        <Button onClick={onClose}>Close</Button>
+      </Sheet>
+    )
+  }
+
   return (
     <PlaceSheet
       place={place}
       search={null}
+      origin={{ from: 'community' }}
       user={location.state.status === 'ready' ? location.state.coords : null}
       onClose={onClose}
       onExclude={(placeId) => {

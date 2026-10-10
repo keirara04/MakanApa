@@ -12,7 +12,7 @@ import { FilterRibbon } from './FilterRibbon'
 import { MAPS_KEY, NearbyMap } from './NearbyMap'
 import { PlaceSheet } from './PlaceSheet'
 import { SearchPanel, type SearchContext } from './SearchPanel'
-import { usePlaceLink } from '../notifications/useNudgeLinks'
+import { usePlaceLink, type PlaceOrigin } from '../notifications/useNudgeLinks'
 import { useNearby } from './state'
 
 const MIN_PICK_MS = 600
@@ -29,7 +29,7 @@ export function Nearby() {
   const { adopt } = useDecide()
   const navigate = useNavigate()
   const [searching, setSearching] = useState(false)
-  const [open, setOpen] = useState<{ place: NearbyPlace; search: SearchContext | null } | null>(null)
+  const [open, setOpen] = useState<{ place: NearbyPlace; search: SearchContext | null; origin: PlaceOrigin | null } | null>(null)
   const [picking, setPicking] = useState(false)
   const [winnerId, setWinnerId] = useState<number | null>(null)
   const [pickError, setPickError] = useState<string | null>(null)
@@ -43,9 +43,9 @@ export function Nearby() {
   const matching = useMemo(() => new Set(nearby.filtered.map((place) => place.id)), [nearby.filtered])
   const centre = nearby.viewport ? centreOf(nearby.viewport) : coords
 
-  const openPlace = useCallback((place: NearbyPlace, search: SearchContext | null = null) => {
+  const openPlace = useCallback((place: NearbyPlace, search: SearchContext | null = null, origin: PlaceOrigin | null = null) => {
     setWinnerId(null)
-    setOpen({ place, search })
+    setOpen({ place, search, origin })
   }, [])
 
   usePlaceLink(openPlace)
@@ -81,6 +81,7 @@ export function Nearby() {
     <PlaceSheet
       place={open?.place ?? null}
       search={open?.search ?? null}
+      origin={open?.origin ?? null}
       user={coords}
       onClose={() => setOpen(null)}
       onExclude={nearby.exclude}

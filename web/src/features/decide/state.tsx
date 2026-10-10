@@ -1,5 +1,6 @@
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { decideApi, type Decision, type Recommendation, type SoloRequest, type TuneDirection, type TuneResponse } from '../../api/decide'
+import { errorMessage } from '../../lib/errors'
 import { directionsUrl } from '../../lib/maps'
 import { getStored, setStored } from '../../lib/storage'
 
@@ -28,6 +29,8 @@ interface DecideState {
   fresh: boolean
   /** Where the pick came from, for Recent. */
   source: 'solo' | 'saved' | 'nearby'
+  /** "Another one" failed: the pick stays, with this said above it. */
+  notice: string | null
 }
 
 interface DecideContextValue extends DecideState {
@@ -45,7 +48,7 @@ interface DecideContextValue extends DecideState {
 }
 
 const MIN_THINKING_MS = 700
-const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false, source: 'solo' }
+const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false, source: 'solo', notice: null }
 
 const DecideContext = createContext<DecideContextValue | null>(null)
 
@@ -61,8 +64,11 @@ export function DecideProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     current.current = state
   })
-  // Bumped on cancel so a late reroll answer is ignored.
+  // Bumped by each new pick or reroll, so a late answer for an older one is ignored.
   const generation = useRef(0)
+  // Cancel during "Another one" hides the spinner only; the answer still replaces the pick
+  // when it lands (see reroll).
+  const rerollCancelled = useRef(false)
 
   const decide = useCallback(async (request: SoloRequest, asked: AskedFor) => {
     const run = ++generation.current
@@ -94,10 +100,13 @@ export function DecideProvider({ children }: { children: ReactNode }) {
       setStored('saved', (getStored('saved') ?? []).filter((place) => place.id !== pick.id))
     }
     const run = ++generation.current
-    setState((state) => ({ ...state, status: 'rerolling', widen: null }))
+    rerollCancelled.current = false
+    setState((state) => ({ ...state, status: 'rerolling', widen: null, notice: null }))
     try {
       const { recommendation } = await atLeast(decideApi.reroll(decision), MIN_THINKING_MS)
       if (run !== generation.current) return
+      // Applied even after Cancel: the server has already moved past the old pick, so showing
+      // it would accept (and tune) a place the person never saw.
       setState((state) => ({
         ...state,
         pick: recommendation,
@@ -106,12 +115,14 @@ export function DecideProvider({ children }: { children: ReactNode }) {
         fresh: false,
       }))
     } catch (error) {
-      if (run === generation.current) setState((state) => ({ ...state, status: 'error', error }))
+      if (run !== generation.current || rerollCancelled.current) return
+      // The pick on screen is still valid: keep it, say what happened.
+      setState((state) => ({ ...state, status: 'ready', notice: errorMessage(error) }))
     }
   }, [])
 
   const cancelReroll = useCallback(() => {
-    generation.current++
+    rerollCancelled.current = true
     setState((state) => ({ ...state, status: state.pick ? 'ready' : 'idle' }))
   }, [])
 

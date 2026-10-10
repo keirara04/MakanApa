@@ -2,7 +2,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { api } from '../../api/client'
-import { nearbyApi, type NearbyPlace } from '../../api/nearby'
+import { nearbyApi, type NearbyPlace, type OpenedFrom } from '../../api/nearby'
+
+/** How a place sheet was opened, for "Eat here" (and the nudge it came from). */
+export interface PlaceOrigin {
+  from: OpenedFrom
+  nudgeId?: string
+}
 
 type NudgeEvent = 'opened' | 'place_opened' | 'makan_sini' | 'quick_pick_started'
 
@@ -26,7 +32,7 @@ export function useNudgeOpened(): void {
 }
 
 /** Nearby with ?place=ID (from a push or a shared link): open that place's sheet. */
-export function usePlaceLink(open: (place: NearbyPlace) => void): void {
+export function usePlaceLink(open: (place: NearbyPlace, search: null, origin: PlaceOrigin) => void): void {
   const { search } = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -38,12 +44,12 @@ export function usePlaceLink(open: (place: NearbyPlace) => void): void {
     navigate({ pathname: '/nearby', search: '' }, { replace: true })
     // Through the cache the place sheet reads, so its details aren't fetched a second time.
     queryClient
-      .fetchQuery({ queryKey: ['place', id], queryFn: () => nearbyApi.details(id) })
+      .fetchQuery({ queryKey: ['place', id], queryFn: () => nearbyApi.details(id), staleTime: 10 * 60_000 })
       .then((details) => {
         open({
           id: details.id, name: details.name, latitude: details.latitude, longitude: details.longitude, rating: details.rating,
           priceLevel: details.priceLevel, openStatus: details.openStatus, halal: details.halal,
-        })
+        }, null, nudge ? { from: 'nudge', nudgeId: nudge } : { from: 'share' })
         if (nudge) recordNudge(nudge, 'place_opened')
       })
       .catch(() => {})
