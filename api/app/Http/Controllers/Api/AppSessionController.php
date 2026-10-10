@@ -18,11 +18,15 @@ class AppSessionController extends Controller
 {
     public function start(Request $request): JsonResponse
     {
-        $data = $request->validate(['installationId' => ['nullable', 'string', 'max:255']]);
+        $data = $request->validate([
+            'installationId' => ['nullable', 'string', 'max:255'],
+            'platform' => ['nullable', 'string', 'in:ios,web'],
+        ]);
 
         $session = AppSession::create([
             'user_id' => $request->user()->id,
             'installation_id' => $data['installationId'] ?? null,
+            'platform' => $data['platform'] ?? 'ios',
             'started_at' => now(),
         ]);
 

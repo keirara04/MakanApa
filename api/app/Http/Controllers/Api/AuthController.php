@@ -109,6 +109,7 @@ class AuthController extends Controller
             'role' => 'user',
             'status' => 'active',
             'is_guest' => true,
+            'signup_source' => $request->validated('signupSource'),
         ]);
 
         $token = $user->createToken($request->validated('deviceLabel'), expiresAt: now()->addDays(90));

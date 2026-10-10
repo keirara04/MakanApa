@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'installation_id', 'started_at', 'ended_at'])]
+#[Fillable(['user_id', 'installation_id', 'platform', 'started_at', 'ended_at'])]
 class AppSession extends Model
 {
     public $timestamps = false;

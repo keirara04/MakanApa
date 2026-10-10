@@ -114,4 +114,20 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Guest Sign-ups
+    |--------------------------------------------------------------------------
+    |
+    | Per-IP caps on POST auth/guest. A campus network shares one IP, so these
+    | are sized for a busy university, not one device. Each guest token is still
+    | bounded by the per-user places limits.
+    |
+    */
+
+    'guest_signups' => [
+        'per_minute' => (int) env('GUEST_SIGNUPS_PER_MINUTE', 20),
+        'per_day' => (int) env('GUEST_SIGNUPS_PER_DAY', 300),
+    ],
+
 ];

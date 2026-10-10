@@ -66,6 +66,38 @@ class GuestAuthTest extends TestCase
         $this->assertSame(['iPad Air'], $guest->tokens()->pluck('name')->all());
     }
 
+    public function test_guest_endpoint_records_where_the_guest_came_from(): void
+    {
+        $id = $this->postJson('/api/v1/auth/guest', ['deviceLabel' => 'Chrome on Android', 'signupSource' => 'web'])
+            ->assertCreated()
+            ->json('user.id');
+
+        $this->assertSame('web', User::findOrFail($id)->signup_source);
+        $this->postJson('/api/v1/auth/guest', ['deviceLabel' => 'x', 'signupSource' => 'Not Valid!'])->assertUnprocessable();
+    }
+
+    public function test_guest_signups_are_capped_per_ip_by_config(): void
+    {
+        config(['auth.guest_signups.per_minute' => 2]);
+
+        $this->postJson('/api/v1/auth/guest', ['deviceLabel' => 'a'])->assertCreated();
+        $this->postJson('/api/v1/auth/guest', ['deviceLabel' => 'b'])->assertCreated();
+        $this->postJson('/api/v1/auth/guest', ['deviceLabel' => 'c'])->assertTooManyRequests();
+    }
+
+    public function test_api_allows_the_web_app_origin_only(): void
+    {
+        config(['cors.allowed_origins' => ['https://app.trymakanapa.com']]);
+
+        $this->withHeaders(['Origin' => 'https://app.trymakanapa.com'])->getJson('/api/v1/auth/me')
+            ->assertHeader('Access-Control-Allow-Origin', 'https://app.trymakanapa.com');
+        // Another site never gets its own origin (or *) back, so its browser blocks the response.
+        $this->assertNotContains(
+            $this->withHeaders(['Origin' => 'https://evil.example'])->getJson('/api/v1/auth/me')->headers->get('Access-Control-Allow-Origin'),
+            ['https://evil.example', '*'],
+        );
+    }
+
     public function test_guest_endpoint_requires_device_label(): void
     {
         $this->postJson('/api/v1/auth/guest', [])

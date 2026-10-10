@@ -102,10 +102,12 @@ class AppServiceProvider extends ServiceProvider
         // Anyone can mint a guest token now (no identity needed), so this per-IP cap is what
         // bounds how much Google Places usage a stream of fresh guests can reach. Distinct
         // keys per limit: limits sharing a key share one counter (and its decay window).
+        // Campus Wi-Fi puts a whole university behind one IP, and the web app mints a guest on
+        // first open, so the caps sit well above one person's use (config/auth.php).
         RateLimiter::for('guest', function ($request) {
             return [
-                Limit::perMinute(5)->by('minute:'.$request->ip()),
-                Limit::perDay(30)->by('day:'.$request->ip()),
+                Limit::perMinute((int) config('auth.guest_signups.per_minute'))->by('minute:'.$request->ip()),
+                Limit::perDay((int) config('auth.guest_signups.per_day'))->by('day:'.$request->ip()),
             ];
         });
 

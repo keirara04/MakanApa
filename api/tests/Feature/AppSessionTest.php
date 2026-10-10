@@ -24,6 +24,18 @@ class AppSessionTest extends TestCase
         ]);
     }
 
+    public function test_start_records_the_platform_and_defaults_to_ios(): void
+    {
+        $user = User::factory()->create();
+
+        $web = $this->actingAs($user)->postJson('/api/v1/app-sessions/start', ['platform' => 'web'])->json('sessionId');
+        $ios = $this->actingAs($user)->postJson('/api/v1/app-sessions/start')->json('sessionId');
+
+        $this->assertSame('web', AppSession::find($web)->platform);
+        $this->assertSame('ios', AppSession::find($ios)->platform);
+        $this->actingAs($user)->postJson('/api/v1/app-sessions/start', ['platform' => 'android'])->assertUnprocessable();
+    }
+
     public function test_end_sets_ended_at(): void
     {
         $user = User::factory()->create();

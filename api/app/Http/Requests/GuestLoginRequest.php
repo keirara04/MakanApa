@@ -15,6 +15,7 @@ class GuestLoginRequest extends FormRequest
     {
         return [
             'deviceLabel' => ['required', 'string', 'max:100'],
+            'signupSource' => ['nullable', 'string', 'max:40', 'regex:/^[a-z0-9_:.-]+$/'],
         ];
     }
 }
