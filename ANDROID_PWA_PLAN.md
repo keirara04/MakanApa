@@ -1,6 +1,6 @@
 # MakanApa web app (Android PWA) plan
 
-Status: **confirmed 2026-10-10. Phase 0 and 1 done on branch `webapp` (2026-10-10); Phase 2 next.**
+Status: **confirmed 2026-10-10. Phases 0, 1 and 2 done on branch `webapp` (2026-10-10); Phase 3 (Nearby) next.**
 
 Goal: a complete MakanApa for Android users, as an installable web app (PWA), built with React + Vite + Tailwind. Full parity with the iOS app, not a demo. Reachable from the landing page, with sign-in and push notifications. Later wrapped for Google Play.
 

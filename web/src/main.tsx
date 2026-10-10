@@ -5,6 +5,11 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SessionProvider, useSession } from './auth/session'
 import { SignIn } from './features/auth/SignIn'
+import { DecideHome } from './features/decide/Home'
+import { Preferences } from './features/decide/Preferences'
+import { Result } from './features/decide/Result'
+import { SavedPick } from './features/decide/SavedPick'
+import { DecideProvider } from './features/decide/state'
 import { Onboarding } from './features/onboarding/Onboarding'
 import { Settings } from './features/settings/Settings'
 import { AppShell } from './features/shell/AppShell'
@@ -58,17 +63,22 @@ function AppRoutes() {
   }
 
   return (
+    <DecideProvider>
     <Routes>
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/sign-in" element={<SignIn />} />
       <Route element={<AppShell />}>
         <Route path="settings" element={<Settings />} />
-        <Route index element={<ComingSoon mood="thinking" title="What should we eat?" detail="Picking arrives in the next build of the web app." />} />
+        <Route index element={<DecideHome />} />
+        <Route path="decide" element={<Preferences />} />
+        <Route path="decide/result" element={<Result />} />
+        <Route path="decide/saved" element={<SavedPick />} />
         <Route path="nearby" element={<ComingSoon mood="wave" title="Food around you" detail="The map of nearby places arrives in a later build." />} />
         <Route path="community" element={<ComingSoon mood="excited" title="Your community" detail="Trending picks and posts arrive in a later build." />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </DecideProvider>
   )
 }
 

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Budget Treat</title>
+<ellipse cx="175" cy="340" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="326" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="326" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="312" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="298" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="298" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="284" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="270" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="270" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="340" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="326" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="326" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="312" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="298" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="298" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="284" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="270" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="270" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="256" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="242" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="242" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="228" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="214" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="214" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="340" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="326" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="326" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="312" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="298" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="298" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="284" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="270" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="270" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="256" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="242" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="242" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="228" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="214" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="214" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="200" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="186" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="186" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="172" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="285" y="158" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="335" cy="158" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<path d="M256 63C296 63 328 95 328 135C328 175 296 207 256 207C216 207 184 175 184 135C184 95 216 63 256 63Z" fill="#E94B35" stroke="#29201D" stroke-width="16"/>
+<text x="256" y="154" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="700" fill="#FFF4DD">RM</text>
+<path d="M385 105L407 79L429 105L458 109L439 132L444 161L417 151L390 161L395 132L376 109L385 105Z" fill="#F4B942" stroke="#29201D" stroke-width="8"/>
+
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Light</title>
+
+<path d="M143 229C157 340 204 389 256 389C308 389 355 340 369 229" fill="#FFFDF7" stroke="#29201D" stroke-width="18"/>
+<ellipse cx="256" cy="230" rx="118" ry="50" fill="#4F7A57" stroke="#29201D" stroke-width="18"/>
+<circle cx="205" cy="221" r="32" fill="#7DB36A"/>
+<circle cx="260" cy="208" r="34" fill="#94C77E"/>
+<circle cx="313" cy="226" r="31" fill="#6FA45C"/>
+<circle cx="224" cy="246" r="24" fill="#E94B35"/>
+<circle cx="301" cy="250" r="23" fill="#E94B35"/>
+<circle cx="224" cy="246" r="11" fill="#FFF4DD"/>
+<circle cx="301" cy="250" r="10" fill="#FFF4DD"/>
+<path d="M178 178C166 148 174 119 197 95" stroke="#4F7A57" stroke-width="16" stroke-linecap="round"/>
+<path d="M325 178C337 148 329 119 306 95" stroke="#4F7A57" stroke-width="16" stroke-linecap="round"/>
+
+</svg>

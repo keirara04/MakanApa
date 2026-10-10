@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { Link, NavLink, Outlet } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
 import { installationId } from '../../lib/storage'
@@ -16,7 +16,10 @@ const SECTIONS: { to: string; label: string; icon: ReactNode }[] = [
  */
 export function AppShell() {
   const { user } = useSession()
+  const { pathname } = useLocation()
   useAppSessions()
+  // Decide covers its whole flow (/decide, /decide/result), not just the home screen.
+  const active = (to: string) => (to === '/' ? pathname === '/' || pathname.startsWith('/decide') : pathname.startsWith(to))
 
   return (
     <div className="min-h-dvh md:flex">
@@ -24,17 +27,15 @@ export function AppShell() {
         <Wordmark className="px-3" />
         <nav aria-label="Main" className="mt-10 flex flex-col gap-1">
           {SECTIONS.map((section) => (
-            <NavLink
+            <Link
               key={section.to}
               to={section.to}
-              end
-              className={({ isActive }) =>
-                `press flex min-h-12 items-center gap-3 rounded-row px-3 font-display text-lg font-semibold ${isActive ? 'bg-cream text-sambal-deep' : 'text-kicap-soft hover:text-kicap'}`
-              }
+              aria-current={active(section.to) ? 'page' : undefined}
+              className={`press flex min-h-12 items-center gap-3 rounded-row px-3 font-display text-lg font-semibold ${active(section.to) ? 'bg-cream text-sambal-deep' : 'text-kicap-soft hover:text-kicap'}`}
             >
               <Icon>{section.icon}</Icon>
               {section.label}
-            </NavLink>
+            </Link>
           ))}
         </nav>
         <NavLink
@@ -66,17 +67,15 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t-2 border-hairline bg-surface/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
       >
         {SECTIONS.map((section) => (
-          <NavLink
+          <Link
             key={section.to}
             to={section.to}
-            end
-            className={({ isActive }) =>
-              `press flex min-h-14 min-w-20 flex-col items-center justify-center gap-0.5 rounded-row font-display text-sm font-semibold ${isActive ? 'text-sambal-deep' : 'text-kicap-soft'}`
-            }
+            aria-current={active(section.to) ? 'page' : undefined}
+            className={`press flex min-h-14 min-w-20 flex-col items-center justify-center gap-0.5 rounded-row font-display text-sm font-semibold ${active(section.to) ? 'text-sambal-deep' : 'text-kicap-soft'}`}
           >
             <Icon>{section.icon}</Icon>
             {section.label}
-          </NavLink>
+          </Link>
         ))}
       </nav>
     </div>

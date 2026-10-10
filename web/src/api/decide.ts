@@ -1,0 +1,187 @@
+import { installationId } from '../lib/storage'
+import { api } from './client'
+
+/** `HalalPresenter` output. Render `display` verbatim: wording is decided on the server. */
+export interface HalalInfo {
+  status: 'certified' | 'muslim_friendly' | 'non_halal' | 'unknown'
+  reviewState: 'clear' | 'under_review'
+  display: {
+    shortLabel: string
+    longLabel: string
+    tone: 'certified' | 'friendly' | 'neutral' | 'warning' | 'non_halal'
+    action: 'help_verify' | 'help_reverify' | null
+    verificationLabel: string | null
+  }
+  verification: { expiresAt: string | null } | null
+  historyCount: number
+  recentPickers: number
+}
+
+export interface Photo {
+  url: string
+  authorAttributions: { name: string | null; profileUrl: string | null }[]
+}
+
+export interface Review {
+  text: string | null
+  rating: number | null
+  authorName: string
+  relativePublishTime: string | null
+  googleMapsUrl: string | null
+}
+
+export interface Reason {
+  family: 'match' | 'edge' | 'moment'
+  key: string
+  text: string
+}
+
+export interface ContextSignal {
+  key: string
+  label: string
+  icon: string
+  active: boolean
+  ignored: boolean
+  stale: boolean
+}
+
+/** A picked place. Everything after `halal` only comes from the Brain (v2), so it's all optional. */
+export interface Recommendation {
+  id: number
+  name: string
+  shareUrl: string
+  headline: string
+  foodCategory: string | null
+  latitude: number
+  longitude: number
+  distanceKm: number
+  rating: number | null
+  priceLevel: number | null
+  cuisines: string[]
+  openStatus: 'open' | 'closed' | 'unknown'
+  photos: Photo[]
+  reviews: Review[]
+  placeGoogleMapsUrl: string | null
+  closesAt: string | null
+  menuItems: { name: string; description: string | null; price: number | null; category: string | null }[]
+  halal: HalalInfo
+  reasons?: Reason[]
+  decidingFactor?: string | null
+  fit?: 'strong' | 'good' | 'wildcard'
+  thinkingTrace?: string[]
+  context?: ContextSignal[]
+  hasWhatIf?: boolean
+  canTune?: boolean
+  fatigue?: boolean
+}
+
+export interface Decision {
+  decisionId: number
+  clientToken: string
+  algorithmVersion: string
+  recommendation: Recommendation | null
+}
+
+export type Lens = 'cheap_today' | 'treat_myself' | 'quick_one' | 'surprise_me' | 'community_favs'
+export type TuneDirection = 'closer' | 'cheaper' | 'safer' | 'adventurous'
+export type WhyNotReason = 'too_far' | 'too_pricey' | 'not_feeling_it' | 'ate_recently'
+export type WhyNotDetail = 'too_heavy' | 'too_similar' | 'dont_like_cuisine' | 'just_not_today'
+export type VibeTag = 'chill' | 'study' | 'student_budget' | 'hidden_gem' | 'late_night'
+export type Interaction = 'directions_opened' | 'shared' | 'reasons_expanded'
+
+export interface SoloRequest {
+  latitude: number
+  longitude: number
+  /** 1–3; left out for "Anything". */
+  budgetMax?: number
+  maxDistanceKm: number
+  /** One craving tag, or empty for "Anything" and typed cravings. */
+  moods: string[]
+  /** Typed craving; never sent together with moods. */
+  craving?: string
+  lens?: Lens
+  halal: boolean
+  ignoreContext: string[]
+}
+
+export interface TuneResponse {
+  recommendation: Recommendation | null
+  canSearchWider: boolean
+  message?: string
+  suggestedAdjustment?: { distanceKm: number; budgetMax: number | null }
+}
+
+export interface WhatIfRow {
+  component: string
+  label: string
+  winner: { id: number; name: string | null }
+}
+
+const decisionCall = (decision: Pick<Decision, 'decisionId' | 'clientToken'>, path: string) => ({
+  path: `decisions/${decision.decisionId}/${path}`,
+  decisionToken: decision.clientToken,
+})
+
+export const decideApi = {
+  solo: (request: SoloRequest) =>
+    api<Decision>('recommendations/solo', { method: 'POST', body: { ...request, mode: 'normal', installationId: installationId() } }),
+
+  saved: (request: { latitude: number; longitude: number; savedPlaceIds: number[]; halal: boolean; ignoreContext: string[] }) =>
+    api<Decision>('recommendations/saved', { method: 'POST', body: { ...request, installationId: installationId() } }),
+
+  reroll: (decision: Decision) => {
+    const { path, decisionToken } = decisionCall(decision, 'reroll')
+    return api<{ recommendation: Recommendation | null }>(path, { method: 'POST', body: {}, decisionToken })
+  },
+
+  accept: (decision: Decision) => {
+    const { path, decisionToken } = decisionCall(decision, 'accept')
+    return api<{ accepted: boolean }>(path, { method: 'POST', body: {}, decisionToken })
+  },
+
+  tune: (decision: Decision, direction: TuneDirection) => {
+    const { path, decisionToken } = decisionCall(decision, 'tune')
+    return api<TuneResponse>(path, { method: 'POST', body: { direction }, decisionToken })
+  },
+
+  whatIf: (decision: Decision) => {
+    const { path, decisionToken } = decisionCall(decision, 'what-if')
+    return api<{ whatIf: WhatIfRow[] }>(path, { decisionToken })
+  },
+
+  choose: (decision: Decision, restaurantId: number) => {
+    const { path, decisionToken } = decisionCall(decision, 'choose')
+    return api<{ recommendation: Recommendation }>(path, { method: 'POST', body: { restaurantId }, decisionToken })
+  },
+
+  whyNot: (decision: Decision, reason: WhyNotReason, detail?: WhyNotDetail) => {
+    const { path, decisionToken } = decisionCall(decision, 'why-not')
+    return api<{ recorded: true }>(path, { method: 'POST', body: detail ? { reason, detail } : { reason }, decisionToken })
+  },
+
+  interaction: (decision: Decision, type: Interaction) => {
+    const { path, decisionToken } = decisionCall(decision, 'interactions')
+    return api<{ recorded: true }>(path, { method: 'POST', body: { type }, decisionToken })
+  },
+
+  vibeTag: (decision: Pick<Decision, 'decisionId' | 'clientToken'>, vibe: VibeTag) => {
+    const { path, decisionToken } = decisionCall(decision, 'vibe-tag')
+    return api<{ tagged: true }>(path, { method: 'POST', body: { vibe }, decisionToken })
+  },
+
+  context: (latitude: number, longitude: number, ignore: string[]) => {
+    const query = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })
+    ignore.forEach((key) => query.append('ignore[]', key))
+    return api<{ mealSlot: string; signals: ContextSignal[] }>(`context?${query}`)
+  },
+
+  seedTaste: (picks: string[]) => api('me/selera/seed', { method: 'POST', body: { picks } }),
+
+  shareEvent: (restaurantId: number) => api(`restaurants/${restaurantId}/share-events`, { method: 'POST', body: {} }),
+
+  save: (restaurantId: number) =>
+    api<{ saved: boolean }>(`restaurants/${restaurantId}/save`, { method: 'POST', body: { installationId: installationId() } }),
+
+  unsave: (restaurantId: number) =>
+    api<{ saved: boolean }>(`restaurants/${restaurantId}/unsave`, { method: 'POST', body: { installationId: installationId() } }),
+}
