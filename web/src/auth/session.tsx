@@ -3,6 +3,7 @@ import { accountApi } from '../api/account'
 import { authApi } from '../api/auth'
 import { ApiError, setUnauthorizedHandler } from '../api/client'
 import { isLinkOffer, type LinkOffer, type SessionResponse, type User } from '../api/types'
+import { disablePush, syncPush } from '../lib/push'
 import { getStored, setStored } from '../lib/storage'
 
 export type Session =
@@ -44,6 +45,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => setUnauthorizedHandler(signOutLocally), [signOutLocally])
 
+  // Signed in: make sure this browser's push subscription (if any) belongs to this account.
+  useEffect(() => {
+    if (session.status === 'signedIn') void syncPush()
+  }, [session.status])
+
   // Restore the session on start: the stored token is checked against GET auth/me.
   useEffect(() => {
     if (!getStored('token')) return
@@ -80,7 +86,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     },
     linkAccount: async (linkToken, password) => adopt(await authApi.link(linkToken, password)),
     logout: async () => {
-      // Best effort: the token is dropped locally whatever the server says.
+      // Pushes for this account stop on this browser; the token is dropped whatever the server says.
+      await disablePush({ unsubscribe: false })
       await authApi.logout().catch(() => {})
       signOutLocally()
     },

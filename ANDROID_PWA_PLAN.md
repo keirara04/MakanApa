@@ -1,6 +1,6 @@
 # MakanApa web app (Android PWA) plan
 
-Status: **confirmed 2026-10-10. Phases 0–4 done on branch `webapp` (Nearby map waits for the Maps key, see On hold); Phase 5 (push notifications) next.**
+Status: **confirmed 2026-10-10. Phases 0–5 done on branch `webapp` (Nearby map waits for the Maps key; real push delivery to be checked on an Android phone); Phase 6 (Community) next.**
 
 Goal: a complete MakanApa for Android users, as an installable web app (PWA), built with React + Vite + Tailwind. Full parity with the iOS app, not a demo. Reachable from the landing page, with sign-in and push notifications. Later wrapped for Google Play.
 
@@ -178,6 +178,7 @@ Building continues without these; they're needed before the web app goes live.
 1. Google Cloud: add `http://localhost:5174` and `https://app.trymakanapa.com` to the web OAuth client's authorized JavaScript origins, and put the client id in `web/.env.local` as `VITE_GOOGLE_CLIENT_ID`. Until then the sign-in screen shows email only.
 2. Deploy: set `CORS_ALLOWED_ORIGINS` on the API server and `VITE_API_BASE_URL` for the web build.
 3. Production API (phase 0 blocker for launch).
+5. Web Push: set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (`php artisan webpush:vapid --show`) and `VAPID_SUBJECT` on the API server, then check a real push on an Android phone (headless test browsers have no push service).
 4. Google Maps JavaScript API key (HTTP-referrer restricted to `localhost:5174` and `app.trymakanapa.com`) plus a Map ID, set as `VITE_GOOGLE_MAPS_KEY` / `VITE_GOOGLE_MAPS_MAP_ID`, with a billing alert. Until then Nearby works as a list (search, place sheet, save, pick) without the map. The map must be Google's: Places results can't be shown on another provider's map.
 
 ## Responsive web (owner request, 2026-10-10)

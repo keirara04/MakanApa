@@ -119,6 +119,7 @@ export function Settings() {
             ))}
           </div>
         </fieldset>
+        <NavRow to="/settings/notifications" title="Notifications" detail="Choose what pings you" />
         {error && <p role="alert" className="pb-3 text-sambal-deep">{error}</p>}
       </Group>
 

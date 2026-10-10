@@ -12,6 +12,7 @@ import { FilterRibbon } from './FilterRibbon'
 import { MAPS_KEY, NearbyMap } from './NearbyMap'
 import { PlaceSheet } from './PlaceSheet'
 import { SearchPanel, type SearchContext } from './SearchPanel'
+import { usePlaceLink } from '../notifications/useNudgeLinks'
 import { useNearby } from './state'
 
 const MIN_PICK_MS = 600
@@ -46,6 +47,8 @@ export function Nearby() {
     setWinnerId(null)
     setOpen({ place, search })
   }, [])
+
+  usePlaceLink(openPlace)
 
   const onLoadArea = useCallback((viewport: Viewport) => void load(viewport), [load])
 

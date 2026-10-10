@@ -12,6 +12,7 @@ import { Result } from './features/decide/Result'
 import { SavedPick } from './features/decide/SavedPick'
 import { DecideProvider } from './features/decide/state'
 import { Nearby } from './features/nearby/Nearby'
+import { NotificationSettings } from './features/notifications/Notifications'
 import { NearbyProvider } from './features/nearby/state'
 import { Onboarding } from './features/onboarding/Onboarding'
 import { BlockedPeople } from './features/settings/BlockedPeople'
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="settings/selera" element={<SeleraPage />} />
         <Route path="settings/saved" element={<SavedPlaces />} />
         <Route path="settings/blocked" element={<BlockedPeople />} />
+        <Route path="settings/notifications" element={<NotificationSettings />} />
         <Route index element={<DecideHome />} />
         <Route path="decide" element={<Preferences />} />
         <Route path="decide/result" element={<Result />} />

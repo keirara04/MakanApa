@@ -30,11 +30,12 @@ const config: UserConfig = {
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        // App shell only. API responses are never cached by the service worker: picks and
-        // places must be live, and the session token must not end up in a cache.
+      // Our own worker (src/sw.ts): the app-shell precache plus Web Push and notification taps.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,webp,svg,woff2}'],
-        navigateFallback: '/index.html',
       },
     }),
   ],

@@ -4,6 +4,7 @@ import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
 import { installationId } from '../../lib/storage'
+import { useNudgeOpened } from '../notifications/useNudgeLinks'
 
 const SECTIONS: { to: string; label: string; icon: ReactNode }[] = [
   { to: '/', label: 'Decide', icon: <path d="M12 3c.6 4.6 4 8 8.6 8.6C16 12.2 12.6 15.6 12 20.2 11.4 15.6 8 12.2 3.4 11.6 8 11 11.4 7.6 12 3z" /> },
@@ -19,6 +20,7 @@ export function AppShell() {
   const { user } = useSession()
   const { pathname } = useLocation()
   useAppSessions()
+  useNudgeOpened()
   // Decide covers its whole flow (/decide, /decide/result), not just the home screen.
   const active = (to: string) => (to === '/' ? pathname === '/' || pathname.startsWith('/decide') : pathname.startsWith(to))
 

@@ -4,7 +4,9 @@ import { decideApi } from '../../api/decide'
 import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
 import { detailsLine } from '../../lib/presentation'
+import { pushSupported } from '../../lib/push'
 import { getStored, setStored } from '../../lib/storage'
+import { NotificationPriming } from '../notifications/Notifications'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
 import { Sheet } from '../../ui/Sheet'
@@ -96,6 +98,7 @@ function PickView() {
   const [tracing, setTracing] = useState(trace.length > 0)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
   const [askTaste, setAskTaste] = useState(false)
+  const [askPush, setAskPush] = useState(false)
 
   useEffect(() => {
     if (!tracing) return
@@ -125,9 +128,11 @@ function PickView() {
 
   const canTune = pick.canTune && tunesUsed.length < 2
 
+  // One question per accepted pick, as on iOS: notifications first, then taste.
   function letsEat() {
     accept()
-    if (!getStored('tasteAsked')) setAskTaste(true)
+    if (!getStored('primingSeen') && pushSupported()) setAskPush(true)
+    else if (!getStored('tasteAsked')) setAskTaste(true)
   }
 
   return (
@@ -206,6 +211,7 @@ function PickView() {
 
       <WhatIf decision={decision} open={whatIfOpen} onClose={() => setWhatIfOpen(false)} onSwitch={choose} />
       <TastePrompt open={askTaste} onClose={() => setAskTaste(false)} />
+      <NotificationPriming open={askPush} onClose={() => setAskPush(false)} />
     </article>
   )
 }

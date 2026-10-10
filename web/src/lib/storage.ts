@@ -62,6 +62,8 @@ export interface Stored {
   nearbyFilters?: { openNow: boolean; budgetMax: number | null; minRating: number | null; mode: string; vibe: string | null }
   recentSearches?: string[]
   halalNoticeDismissed?: boolean
+  /** The "Stay in the loop" notifications prompt has been shown. */
+  primingSeen?: boolean
   /** Last Nearby result, painted at once on the next visit if it still covers where you are (12 h). */
   nearbyCache?: { viewport: { north: number; south: number; east: number; west: number }; filterKey: string; places: unknown[]; areaSummary: unknown; savedAt: number }
 }
