@@ -92,6 +92,43 @@ class MakanBrainTest extends TestCase
         $this->assertSame('v1', Decision::findOrFail($decision['decisionId'])->algorithm_version);
     }
 
+    /**
+     * Pins v1's full ranking (names + scores) for the fixture pool at a fixed time, so a refactor
+     * of the shared scoring code can't silently change v1 while Makan Brain is off. Taste history
+     * is seeded first: v1 must ignore it. If this fails after an intended v1 change, update the
+     * snapshot in the same commit.
+     */
+    public function test_v1_ranking_is_pinned_and_ignores_taste_history(): void
+    {
+        Config::set('brain.enabled', false);
+        $this->travelTo(now()->setTimezone('Asia/Kuala_Lumpur')->setDate(2026, 9, 16)->setTime(12, 30));
+        $owner = new TasteOwner($this->user->id, 'install-1');
+        TasteEvent::create([
+            'user_id' => $owner->userId, 'installation_id' => $owner->installationId, 'signal' => 'trait_feedback',
+            'dimension' => 'category', 'dimension_key' => 'fast_food', 'value' => 1.0, 'scope' => 'long',
+            'source' => 'explicit', 'authority' => 'explicit', 'created_at' => now(),
+        ]);
+        app(TasteProfileBuilder::class)->catchUp($owner);
+
+        $decision = $this->decide(['moods' => ['comfort_food'], 'budgetMax' => 2, 'maxDistanceKm' => 3.0]);
+
+        $ranking = DecisionRecommendation::where('decision_id', $decision['decisionId'])->orderBy('rank')
+            ->with('restaurant')->get()
+            ->map(fn (DecisionRecommendation $row) => $row->restaurant->name.' '.number_format((float) $row->score, 4))
+            ->all();
+
+        $this->assertSame('v1', $decision['algorithmVersion']);
+        $this->assertSame(self::V1_SNAPSHOT, $ranking);
+    }
+
+    private const V1_SNAPSHOT = [
+        'Nasi Ayam Bangi 92.7100',
+        'Ramen Ichiban 89.7100',
+        'Nasi Lemak Wak Ngah 88.9300',
+        'Char Kuey Teow Pak Man 88.5100',
+        'Banana Leaf Rice Corner 88.3400',
+    ];
+
     public function test_explicit_craving_outranks_context_and_skips_diversity(): void
     {
         Config::set('brain.context.overlay.month_end', ['cheapEatsFit' => 50]);

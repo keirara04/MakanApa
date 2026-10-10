@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AccountDeletion;
+use App\Models\Decision;
 use App\Models\Restaurant;
 use App\Models\RestaurantSave;
 use App\Models\User;
@@ -170,6 +171,24 @@ class GuestAuthTest extends TestCase
         $this->assertDatabaseHas('restaurant_saves', ['user_id' => $guest->id]);
         $this->assertNull(PersonalAccessToken::findToken($guestToken));
         $this->assertNotNull(PersonalAccessToken::findToken($response->json('token')));
+    }
+
+    public function test_login_to_an_existing_account_with_guest_token_moves_the_guests_history(): void
+    {
+        [$guest, $guestToken] = $this->guestWithToken();
+        $account = User::factory()->create(['email' => 'hakeem@example.com', 'password' => 'correct-horse-battery']);
+        RestaurantSave::create(['restaurant_id' => $this->makeRestaurant()->id, 'installation_id' => 'install-1', 'user_id' => $guest->id]);
+        $decision = Decision::create(['user_id' => $guest->id, 'mode' => 'solo', 'latitude' => 2.9284, 'longitude' => 101.7802, 'client_token' => 'tok']);
+
+        $this->withToken($guestToken)->postJson('/api/v1/auth/login', [
+            'email' => 'hakeem@example.com',
+            'password' => 'correct-horse-battery',
+            'deviceLabel' => 'iPhone',
+        ])->assertOk()->assertJsonPath('user.id', $account->id);
+
+        $this->assertSame($account->id, $decision->fresh()->user_id);
+        $this->assertDatabaseHas('restaurant_saves', ['user_id' => $account->id, 'installation_id' => 'install-1']);
+        $this->assertNull(PersonalAccessToken::findToken($guestToken));
     }
 
     public function test_register_ignores_an_invalid_bearer_token(): void

@@ -15,7 +15,11 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateMyAffiliationRequest;
 use App\Http\Requests\UpdateMyProfileRequest;
 use App\Models\Area;
+use App\Models\Decision;
 use App\Models\PendingProviderLink;
+use App\Models\RestaurantSave;
+use App\Models\TasteEvent;
+use App\Models\TasteProfile;
 use App\Models\University;
 use App\Models\User;
 use App\Models\UserAffiliation;
@@ -23,13 +27,17 @@ use App\Services\Auth\AppleIdentityTokenVerifier;
 use App\Services\Auth\AppleTokenExchangeService;
 use App\Services\Auth\GoogleIdentityTokenVerifier;
 use App\Services\Auth\InvalidIdentityTokenException;
+use App\Services\Brain\TasteOwner;
+use App\Services\Brain\TasteProfileBuilder;
 use App\Services\UserAccountDeletionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -53,6 +61,8 @@ class AuthController extends Controller
         if (! $user->isActive()) {
             return EnsureActiveUser::suspendedResponse();
         }
+
+        $this->absorbGuest($user);
 
         $token = $user->createToken($data['deviceLabel'], expiresAt: now()->addDays(90));
 
@@ -212,6 +222,8 @@ class AuthController extends Controller
             $pending->forceFill(['consumed_at' => now()])->save();
         });
 
+        $this->absorbGuest($user);
+
         $token = $user->createToken($data['deviceLabel'], expiresAt: now()->addDays(90));
 
         return response()->json([
@@ -258,6 +270,8 @@ class AuthController extends Controller
             if ($provider === 'apple' && $providerRefreshToken) {
                 $user->forceFill(['apple_refresh_token' => $providerRefreshToken])->save();
             }
+
+            $this->absorbGuest($user);
 
             return $this->issueSession($user, $deviceLabel);
         }
@@ -351,6 +365,35 @@ class AuthController extends Controller
         $guest->forceFill([...$identity, 'is_guest' => false, 'upgraded_from_guest_at' => now()])->save();
 
         return $guest;
+    }
+
+    /**
+     * Signing in to an existing account from a guest session moves the guest's picks, saves and
+     * taste history onto that account (same promise upgradeGuest() keeps for new accounts), then
+     * rebuilds the account's taste profile so the older guest events aren't skipped by catch-up.
+     * The emptied guest row is left for PruneStaleGuests.
+     */
+    private function absorbGuest(User $user): void
+    {
+        $guest = $this->guestFromBearerToken();
+        if (! $guest || $guest->is($user)) {
+            return;
+        }
+
+        // Signing in must never fail because of the merge — worst case the guest data stays put.
+        try {
+            DB::transaction(function () use ($guest, $user) {
+                foreach ([Decision::class, TasteEvent::class, RestaurantSave::class] as $model) {
+                    $model::where('user_id', $guest->id)->update(['user_id' => $user->id]);
+                }
+                TasteProfile::where('user_id', $guest->id)->delete();
+                $guest->tokens()->delete();
+
+                app(TasteProfileBuilder::class)->rebuild(new TasteOwner($user->id, null));
+            });
+        } catch (Throwable $e) {
+            Log::warning('Guest merge on sign-in skipped', ['guest' => $guest->id, 'user' => $user->id, 'error' => $e->getMessage()]);
+        }
     }
 
     private function issueSession(User $user, string $deviceLabel): JsonResponse

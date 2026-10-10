@@ -104,6 +104,7 @@ class MarketingSeoTest extends TestCase
         $this->assertSame('Warung Kak Ros', $data['name']);
         $this->assertSame('MY', $data['address']['addressCountry']);
         $this->assertArrayNotHasKey('aggregateRating', $data);
+        $this->assertStringContainsString('/og/p/'.$community->id.'/', $data['image']);
 
         $this->get($this->placePath($google))->assertOk()
             ->assertSee('name="robots" content="noindex"', false)

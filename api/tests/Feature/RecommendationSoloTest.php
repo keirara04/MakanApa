@@ -39,6 +39,20 @@ class RecommendationSoloTest extends TestCase
         ]);
     }
 
+    public function test_excluded_places_are_never_picked(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+        $first = $this->postJson('/api/v1/recommendations/solo', $this->validPayload())->assertOk()->json('recommendation.id');
+
+        $response = $this->postJson('/api/v1/recommendations/solo', $this->validPayload(['excludedPlaceIds' => [$first]]))->assertOk();
+
+        $this->assertNotSame($first, $response->json('recommendation.id'));
+        $this->assertDatabaseMissing('decision_recommendations', [
+            'decision_id' => $response->json('decisionId'),
+            'restaurant_id' => $first,
+        ]);
+    }
+
     public function test_moods_and_craving_together_returns_422(): void
     {
         $this->seed(RestaurantSeeder::class);

@@ -152,9 +152,7 @@ class PlacesService
             fn (array $tile) => ! $this->isAreaCovered($tile['lat'], $tile['lon'], $tile['radius'], $freshAreas)
         ));
 
-        if (! empty($uncoveredTiles)) {
-            $this->syncTilesFromGoogle($uncoveredTiles, $apiKey, $includedTypes);
-        }
+        $tileFailure = empty($uncoveredTiles) ? null : $this->syncTilesFromGoogle($uncoveredTiles, $apiKey, $includedTypes);
 
         $nearbyCount = null;
         $textSearchLanes = [];
@@ -197,6 +195,12 @@ class PlacesService
             $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes),
             $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
         );
+
+        // Failed tiles fall back to whatever is already stored there; only an area with nothing
+        // to show at all surfaces Google's error.
+        if ($tileFailure !== null && $restaurants === []) {
+            throw $tileFailure;
+        }
 
         $this->lastCandidateCounts = $nearbyCount === null ? [] : [
             'nearby' => $nearbyCount,
@@ -758,14 +762,29 @@ class PlacesService
      * request order for deterministic PlaceSyncArea rows regardless of which HTTP response lands
      * first.
      *
+     * A failed tile is logged and left uncovered (so the next request retries it) instead of
+     * throwing away the tiles that succeeded.
+     *
      * @param  array<int, array{lat: float, lon: float, radius: float}>  $tiles
      * @param  string[]  $includedTypes
+     * @return ?Throwable the first tile failure, if any
      */
-    private function syncTilesFromGoogle(array $tiles, string $apiKey, array $includedTypes): void
+    private function syncTilesFromGoogle(array $tiles, string $apiKey, array $includedTypes): ?Throwable
     {
         $providerPlacesByTile = (new GooglePlacesProvider($apiKey))->nearbyRestaurantsBatch($tiles, $includedTypes);
+        $firstFailure = null;
 
         foreach ($tiles as $i => $tile) {
+            if ($providerPlacesByTile[$i] instanceof Throwable) {
+                $firstFailure ??= $providerPlacesByTile[$i];
+                Log::warning('Places nearby: Google tile failed, serving stored places for it', [
+                    'error' => $providerPlacesByTile[$i]->getMessage(),
+                    'tile' => $tile,
+                ]);
+
+                continue;
+            }
+
             $normalized = $this->normalizer->normalize($providerPlacesByTile[$i]);
 
             foreach ($normalized as $data) {
@@ -781,6 +800,8 @@ class PlacesService
                 'types' => $includedTypes,
             ]);
         }
+
+        return $firstFailure;
     }
 
     /**

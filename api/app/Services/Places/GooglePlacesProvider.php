@@ -94,9 +94,12 @@ class GooglePlacesProvider implements PlacesProvider
      * slowest single call instead. That sequential wait was the main source of "Search this
      * area" feeling laggy the first time someone browses a new part of the map.
      *
+     * Like searchTextBatch(), one tile failing never fails the others — each slot is either its
+     * places or the Throwable that tile hit, so already-billed tiles still get stored.
+     *
      * @param  array<int, array{lat: float, lon: float, radius: float}>  $tiles
      * @param  string[]  $includedTypes
-     * @return array<int, Collection<int, ProviderPlace>> same order/index as $tiles
+     * @return array<int, Collection<int, ProviderPlace>|Throwable> same order/index as $tiles
      */
     public function nearbyRestaurantsBatch(array $tiles, array $includedTypes = ['restaurant']): array
     {
@@ -105,7 +108,11 @@ class GooglePlacesProvider implements PlacesProvider
         }
 
         if (count($tiles) === 1) {
-            return [$this->nearbyRestaurants($tiles[0]['lat'], $tiles[0]['lon'], $tiles[0]['radius'], $includedTypes)];
+            try {
+                return [$this->nearbyRestaurants($tiles[0]['lat'], $tiles[0]['lon'], $tiles[0]['radius'], $includedTypes)];
+            } catch (Throwable $e) {
+                return [$e];
+            }
         }
 
         $responses = Http::pool(fn (Pool $pool) => collect($tiles)->map(
@@ -132,13 +139,17 @@ class GooglePlacesProvider implements PlacesProvider
         return collect($tiles)
             ->map(function (array $tile, int $index) use ($responses) {
                 // A pooled request that never connected comes back as the exception itself, not
-                // a Response — rethrow it rather than calling throw() on it.
+                // a Response.
                 $response = $responses[(string) $index];
                 if ($response instanceof Throwable) {
-                    throw $response;
+                    return $response;
                 }
 
-                return collect($response->throw()->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+                try {
+                    return collect($response->throw()->json('places', []))->map(fn (array $place) => $this->mapPlace($place));
+                } catch (Throwable $e) {
+                    return $e;
+                }
             })
             ->values()
             ->all();

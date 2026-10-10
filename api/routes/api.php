@@ -154,7 +154,7 @@ Route::prefix('v1')->group(function () {
         });
 
         Route::post('decisions/{decision}/accept', [RecommendationController::class, 'accept']);
-        Route::post('decisions/{decision}/vibe-tag', [RecommendationController::class, 'vibeTag']);
+        Route::post('decisions/{decision}/vibe-tag', [RecommendationController::class, 'vibeTag'])->middleware('throttle:30,1,decision-brain');
         // Makan Brain — per-decision actions work only off the stored pool (no Places calls), so
         // they share the cheap-write throttle class; all decision-token authorized.
         Route::middleware('throttle:30,1,decision-brain')->group(function () {
