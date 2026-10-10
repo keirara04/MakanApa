@@ -5,7 +5,7 @@
     // (not the landing page's JS toggle) so each language has its own link and works without JS.
     $isMalay = request()->query('lang') === 'ms';
     $updated = \Illuminate\Support\Carbon::parse(config('legal.privacy_version'))->format('j F Y');
-    $h2 = 'font-display text-3xl font-bold uppercase leading-none text-ink';
+    $h2 = 'type-card text-ink';
     $link = 'font-medium text-sambal-600 underline';
     $privacyEmail = config('marketing.privacy_email');
 @endphp

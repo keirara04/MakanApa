@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; }
+        #en-mascot { position: absolute; left: 370px; top: 470px; width: 340px; height: 340px; }
+        #en-word { position: absolute; left: 0; right: 0; top: 850px; text-align: center; font-size: 156px; font-weight: 800; }
+        #en-tag { position: absolute; left: 0; right: 0; top: 1060px; text-align: center; font-size: 64px; }
+        #en-cta {
+          position: absolute; left: 280px; width: 520px; top: 1220px; height: 96px;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 48px; border: 2px solid rgb(245 245 247 / 0.35);
+          font-size: 36px; font-weight: 600; letter-spacing: -0.01em; color: #f5f5f7;
+        }
+      </style>
+
+      <div id="root" data-composition-id="end" data-width="1080" data-height="1920">
+        <div id="en-lock" style="position: absolute; inset: 0" data-layout-allow-overlap>
+          <img id="en-mascot" src="assets/mascot/default.svg" alt="" />
+          <p id="en-word" class="hl">Makan<span class="red">Apa?</span></p>
+          <p id="en-tag" class="two" style="font-size: 64px; top: 1060px">Less thinking. <span>More eating.</span></p>
+          <p id="en-cta">Free on the App Store</p>
+        </div>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 80.0. Studio goes dark 80.0-80.8; logo lands on 81.0; fade out from 89.0.
+        tl.fromTo("#en-mascot", { opacity: 0, scale: 0.4, y: 120 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: "back.out(1.8)" }, 0.95);
+        tl.fromTo("#en-word", { opacity: 0, y: 30, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 1.1);
+        tl.fromTo("#en-tag", { opacity: 0, y: 24, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 1.6);
+        tl.fromTo("#en-cta", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 2.3);
+        tl.to("#en-mascot", { y: -12, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: 5 }, 2.6);
+        tl.to("#en-lock", { opacity: 0, duration: 0.8, ease: "power1.in" }, 9.0);
+
+        window.__timelines["end"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

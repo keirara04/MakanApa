@@ -1,5 +1,5 @@
 {{-- Notis privasi dalam Bahasa Malaysia. Keep section numbers and ids in step with legal/privacy/en.blade.php. --}}
-<h1 class="font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Notis Privasi</h1>
+<h1 class="type-section">Notis Privasi</h1>
 <p class="mt-2 text-sm text-ink/70">Kemas kini terakhir: {{ $updated }}</p>
 <p class="mt-4 text-ink/70">
     Notis ini menerangkan data peribadi yang dikumpul oleh MakanApa, sebab ia dikumpul, pihak yang menerimanya, tempoh

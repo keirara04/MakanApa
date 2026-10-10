@@ -65,6 +65,7 @@ class MarketingSeoTest extends TestCase
         $response = $this->get('/sitemap.xml')->assertOk()->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
 
         $response->assertSee('<loc>'.MarketingUrl::to('/').'</loc>', false)
+            ->assertSee('<loc>'.MarketingUrl::to('/ambassadors').'</loc>', false)
             ->assertSee('<loc>'.url('/privacy').'?lang=ms</loc>', false)
             ->assertSee('<lastmod>'.config('legal.terms_version').'</lastmod>', false)
             ->assertSee('<loc>'.url($this->placePath($community)).'</loc>', false);

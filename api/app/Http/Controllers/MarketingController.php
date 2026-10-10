@@ -31,6 +31,21 @@ class MarketingController extends Controller
     }
 
     /**
+     * The page ambassadors share (community posts can't carry links). `?campus=` names their
+     * campus on the page and tags its download buttons with that campus's App Store campaign.
+     */
+    public function ambassadors(Request $request): View
+    {
+        $campuses = config('marketing.ambassador_campuses');
+        $campus = $request->query('campus');
+
+        return view('ambassadors', [
+            'campuses' => $campuses,
+            'campus' => is_string($campus) && isset($campuses[$campus]) ? $campus : null,
+        ]);
+    }
+
+    /**
      * The landing page's "try it": one real pick around the demo campus, for the page script. The
      * three answers mirror the app's questions; `exclude` is what "Cari lagi" has already shown.
      */
@@ -69,7 +84,27 @@ class MarketingController extends Controller
             ]);
         }
 
-        return redirect()->away(config('marketing.app_download_url'));
+        return redirect()->away($this->downloadUrl($request->query('campus')));
+    }
+
+    /**
+     * The plain listing, or for a campus with live ambassadors the same listing as an App Store
+     * campaign link (pt/ct), so installs from that campus show up in App Analytics.
+     */
+    private function downloadUrl(mixed $campus): string
+    {
+        $storeId = config('marketing.app_store_id');
+        $providerToken = config('marketing.app_store_provider_token');
+
+        if (! is_string($campus) || ! isset(config('marketing.ambassador_campuses')[$campus]) || ! $storeId || ! $providerToken) {
+            return config('marketing.app_download_url');
+        }
+
+        return 'https://apps.apple.com/app/apple-store/id'.$storeId.'?'.http_build_query([
+            'pt' => $providerToken,
+            'ct' => 'amb_'.$campus,
+            'mt' => 8,
+        ]);
     }
 
     private function isBot(Request $request): bool

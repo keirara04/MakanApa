@@ -162,7 +162,7 @@ struct OnboardingView: View {
 // MARK: - Pages
 
 /// Shows the product instead of describing it: a pick card shuffling through dishes and
-/// settling on one, with Nasi peeking over the corner.
+/// settling on one, with Bubu peeking over the corner.
 private struct OnboardingHeroPage: View {
     let onContinue: () -> Void
     let showsSignIn: Bool

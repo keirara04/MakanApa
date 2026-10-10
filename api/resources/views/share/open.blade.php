@@ -9,7 +9,7 @@
 @section('content')
     <div class="text-center">
         <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="mx-auto h-24 w-24" aria-hidden="true">
-        <h1 class="mt-4 font-display text-[clamp(2.8rem,8vw,4.5rem)] font-bold uppercase leading-[0.9] tracking-tight">Opening MakanApa…</h1>
+        <h1 class="mt-4 type-section">Opening MakanApa…</h1>
         <p class="mt-3 text-ink/70">Don't have the app yet? Get it free on the App Store, then open {{ $restaurant->name }} from there.</p>
         <x-marketing.app-store-badge :href="$downloadUrl" class="mt-4" />
         <p class="mt-4 text-sm text-ink/70">

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; }
+        .cl-rig { position: absolute; left: 230px; top: 306px; width: 620px; height: 1308px; }
+        .cl-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+        #cl-head { top: 200px; font-size: 96px; }
+      </style>
+
+      <div id="root" data-composition-id="collage" data-width="1080" data-height="1920">
+        <div id="cl-rig-l" class="cl-rig" data-layout-allow-overflow><div id="cl-3d-l" class="cl-3d"></div></div>
+        <div id="cl-rig-r" class="cl-rig" data-layout-allow-overflow><div id="cl-3d-r" class="cl-3d"></div></div>
+        <div id="cl-rig-c" class="cl-rig" data-layout-allow-overflow><div id="cl-3d-c" class="cl-3d"></div></div>
+        <p id="cl-head" class="two" data-layout-allow-overlap>Everything you need<br /><span>to decide.</span></p>
+      </div>
+
+      <script>
+        document.getElementById("cl-3d-l").innerHTML = MA.phone("cll", MA.result("cll", {
+          photo: "assets/photos/NasiLemak.jpg", name: "Nasi Lemak Daun Pisang",
+          details: "Malaysian · ≈ RM10/person · 9 min walk · Open until 11 PM", chips: ["Nasi Lemak", "~RM20", "10 min"],
+        }));
+        document.getElementById("cl-3d-c").innerHTML = MA.phone("clc", MA.feed("clc"));
+        document.getElementById("cl-3d-r").innerHTML = MA.phone("clr", MA.nearby("clr"));
+        document.querySelectorAll('[data-composition-id="collage"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+        gsap.set(["#clc-compose"], { yPercent: 100 });
+        gsap.set("#clr-sheet", { y: 900 });
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 74.0.
+        const POSE = {
+          l: { x: -330, y: 360, scale: 0.52, rotY: 28 },
+          c: { x: 0, y: 320, scale: 0.64, rotY: 0 },
+          r: { x: 330, y: 360, scale: 0.52, rotY: -28 },
+        };
+        ["l", "r", "c"].forEach((k, i) => {
+          const p = POSE[k];
+          tl.fromTo(`#cl-rig-${k}`, { x: p.x * 1.4, y: p.y + 1000, scale: p.scale }, { x: p.x, y: p.y, duration: 1.4, ease: "power3.out" }, 0.05 + i * 0.12);
+          tl.fromTo(`#cl-3d-${k}`, { rotationY: p.rotY * 2, rotationX: 14, transformPerspective: 2600 }, { rotationY: p.rotY, rotationX: 4, duration: 1.6, ease: "power3.out" }, 0.05 + i * 0.12);
+          tl.to(`#cl-3d-${k}`, { rotationY: p.rotY - 6, rotationX: 2, duration: 3.6, ease: "sine.inOut" }, 1.7);
+          tl.to(`#cl-rig-${k}`, { y: p.y + 300, scale: p.scale * 0.92, opacity: 0, duration: 0.6, ease: "power2.in" }, 5.4 + i * 0.04);
+        });
+        tl.fromTo("#clc-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 1.0);
+        tl.fromTo("#cl-head", { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 0.5);
+        tl.to("#cl-head", { opacity: 0, y: -24, filter: "blur(8px)", duration: 0.35, ease: "power2.in" }, 5.3);
+
+        window.__timelines["collage"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

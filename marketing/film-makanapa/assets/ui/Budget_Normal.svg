@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Budget Normal</title>
+<ellipse cx="175" cy="340" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="326" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="326" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="312" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="298" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="298" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="284" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="125" y="270" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="175" cy="270" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="340" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="326" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="326" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="312" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="298" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="298" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="284" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="270" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="270" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="256" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="242" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="242" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="228" rx="50" ry="18" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<rect x="205" y="214" width="100" height="20" fill="#F4B942" stroke="#29201D" stroke-width="10"/>
+<ellipse cx="255" cy="214" rx="50" ry="18" fill="#FFD36B" stroke="#29201D" stroke-width="10"/>
+<path d="M256 72C292 72 321 101 321 137C321 173 292 202 256 202C220 202 191 173 191 137C191 101 220 72 256 72Z" fill="#E94B35" stroke="#29201D" stroke-width="16"/>
+<text x="256" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#FFF4DD">RM</text>
+
+</svg>

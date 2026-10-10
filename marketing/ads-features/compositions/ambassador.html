@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #am-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #am-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        .am-head { top: 190px; }
+        .am-head .hl { font-size: 112px; }
+        #am-h3 { top: 200px; }
+        #am-h3 .hl { font-size: 132px; }
+
+        #am-crest-wrap {
+          position: absolute;
+          left: 250px;
+          top: 640px;
+          width: 580px;
+          height: 580px;
+          perspective: 1800px;
+        }
+        #am-crest {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          filter: drop-shadow(0 30px 50px rgb(0 0 0 / 0.5));
+        }
+
+        /* Ambassador card (story format, 360x640pt at x1.5). */
+        #am-card {
+          position: absolute;
+          left: 270px;
+          top: 330px;
+          width: 540px;
+          height: 960px;
+          padding: 18px;
+          border-radius: 40px;
+          background: #e94b35;
+          box-shadow: 0 40px 90px rgb(0 0 0 / 0.55);
+        }
+        .ac-paper {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          border-radius: 32px;
+          background: radial-gradient(ellipse 80% 50% at 50% 34%, #fffaf0 0%, #fff4dd 60%, #f6e8cb 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          color: #291d1d;
+        }
+        .ac-paper::after {
+          content: "";
+          position: absolute;
+          inset: 12px;
+          border-radius: 24px;
+          border: 1.5px solid rgb(201 160 82 / 0.6);
+        }
+        .ac-paper img {
+          width: 440px;
+          height: 440px;
+          object-fit: contain;
+        }
+        .ac-name {
+          font-size: 54px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+        }
+        .ac-pill {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 28px;
+          border-radius: 40px;
+          background: #fffbf3;
+          border: 2px solid rgb(201 160 82 / 0.85);
+          font-size: 26px;
+          font-weight: 700;
+        }
+        .ac-pill svg {
+          width: 28px;
+          height: 28px;
+          color: #291d1d;
+        }
+        #am-label {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 220px;
+          text-align: center;
+          font-size: 36px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        #am-note {
+          position: absolute;
+          left: 80px;
+          right: 80px;
+          top: 1350px;
+          text-align: center;
+          font-size: 46px;
+          line-height: 1.2;
+        }
+      </style>
+
+      <div id="root" data-composition-id="amb" data-width="1080" data-height="1920">
+        <div id="am-h1" class="head am-head" data-layout-allow-overlap><span class="hl">Know your <span class="red">campus?</span></span></div>
+        <div id="am-h2" class="head am-head" data-layout-allow-overlap><span class="hl">Apply in the app.</span></div>
+
+        <div id="am-rig" data-layout-allow-overflow>
+          <div id="am-3d" data-layout-allow-overflow></div>
+        </div>
+
+        <div id="am-h3" class="head" data-layout-allow-overlap><span class="hl">Your campus.</span><span class="hl red">Your crest.</span></div>
+        <div id="am-crest-wrap" data-layout-ignore><img id="am-crest" src="assets/art/crest.png" alt="" /></div>
+
+        <p id="am-label" class="sub" data-layout-allow-overlap>Ambassador card preview</p>
+        <div id="am-card" data-layout-ignore>
+          <div class="ac-paper">
+            <img src="assets/art/crest.png" alt="" />
+            <span class="ac-name">Aina</span>
+            <span class="ac-pill" id="am-pill"></span>
+          </div>
+        </div>
+        <p id="am-note" class="sub" data-layout-allow-overlap>Yours to share once you're approved.</p>
+      </div>
+
+      <script>
+        document.getElementById("am-3d").innerHTML = MA.phone("am", MA.ambassador("am"));
+        document.querySelectorAll('[data-composition-id="amb"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+        document.getElementById("am-pill").innerHTML =
+          '<svg class="ma-ico" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5zM6 11v5c2 2 10 2 12 0v-5M22 9v6"/></svg>UiTM Jasin';
+        // Typed reason: one span per character so seeking lands on the right frame.
+        const REASON = "I've eaten at every stall around campus since first year.";
+        document.getElementById("am-amb-typed").innerHTML = [...REASON].map((ch) => `<span class="am-ch" style="opacity:0">${ch}</span>`).join("");
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 14.0. Send tap 16.875, sent 17.0, crest 18.75, card 20.25.
+
+        // ---- Phone with the application sheet ----
+        tl.fromTo("#am-rig", { y: 1100, scale: 0.86 }, { y: 250, duration: 1.0, ease: "power3.out" }, 0);
+        tl.fromTo("#am-3d", { rotationY: 40, rotationX: 14, transformPerspective: 2600 }, { rotationY: 6, rotationX: 4, duration: 1.3, ease: "power2.out" }, 0);
+        tl.to("#am-3d", { rotationY: -4, rotationX: 2, duration: 2.4, ease: "sine.inOut" }, 1.3);
+        tl.fromTo("#am-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 0.3);
+        tl.fromTo("#am-amb-mascot", { scale: 0.6, rotation: -14 }, { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)" }, 0.6);
+        tl.fromTo("#am-amb-perks > div", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out", stagger: 0.14 }, 0.7);
+
+        // Typing.
+        tl.to("#am-amb-ph", { opacity: 0, duration: 0.1 }, 1.4);
+        tl.to("#am-amb-typed .am-ch", { opacity: 1, duration: 0.01, stagger: 1.1 / REASON.length, ease: "none" }, 1.45);
+
+        // Send, then "Application sent".
+        tl.set("#am-touch", { x: 295, y: 1160 }, 2.74);
+        tl.fromTo("#am-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, 2.74);
+        tl.to("#am-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, 2.9);
+        tl.to("#am-amb-send", { scale: 0.97, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1 }, 2.78);
+        tl.to("#am-sent", { opacity: 1, duration: 0.3, ease: "power2.out" }, 3.0);
+        tl.fromTo("#am-sent-ic", { scale: 0.4 }, { scale: 1, duration: 0.5, ease: "back.out(2.4)" }, 3.05);
+        tl.fromTo("#am-sent-ic svg", { x: -20, y: 20 }, { x: 0, y: 0, duration: 0.5, ease: "power3.out" }, 3.05);
+
+        tl.to("#am-rig", { y: 1800, duration: 0.6, ease: "power3.in" }, 3.95);
+        tl.to("#am-3d", { rotationX: -20, rotationZ: 6, duration: 0.6, ease: "power3.in" }, 3.95);
+
+        // ---- Your campus. Your crest. ----
+        tl.fromTo("#am-h3 > span", { opacity: 0, y: 40, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out", stagger: 0.3 }, 4.3);
+        tl.to("#am-h3", { opacity: 0, y: -40, filter: "blur(12px)", duration: 0.35, ease: "power2.in" }, 5.95);
+        tl.fromTo("#am-crest", { opacity: 0, scale: 0.3, rotationY: 360 }, { opacity: 1, scale: 1, rotationY: 0, duration: 1.15, ease: "power3.out" }, 4.6);
+        tl.to("#am-crest-wrap", { y: -16, duration: 0.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.75);
+        tl.to("#am-crest-wrap", { opacity: 0, scale: 0.72, y: -140, duration: 0.4, ease: "power2.in" }, 6.2);
+
+        // ---- Ambassador card preview ----
+        tl.fromTo("#am-card", { opacity: 0, y: 900, rotation: 8, scale: 0.9 }, { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.8, ease: "power3.out" }, 6.25);
+        tl.to("#am-card", { rotation: -1.5, y: -10, duration: 2, ease: "sine.inOut" }, 7.05);
+        tl.fromTo("#am-label", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 6.6);
+        tl.fromTo("#am-note", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 6.9);
+
+        // ---- Phase headlines ----
+        function head(sel, inAt, outAt) {
+          tl.fromTo(`${sel} > span`, { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, inAt);
+          tl.to(sel, { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+        head("#am-h1", 0.15, 1.6);
+        head("#am-h2", 1.95, 3.8);
+
+        // ---- Out ----
+        tl.to(["#am-label", "#am-card", "#am-note"], { opacity: 0, y: -80, filter: "blur(12px)", duration: 0.4, ease: "power2.in", stagger: 0.04 }, 8.4);
+
+        window.__timelines["amb"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

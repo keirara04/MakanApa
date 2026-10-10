@@ -4,14 +4,14 @@
 @section('description', 'The rules for using MakanApa: accounts, community content, halal information and more.')
 
 @php
-    $h2 = 'font-display text-3xl font-bold uppercase leading-none text-ink';
+    $h2 = 'type-card text-ink';
     $link = 'font-medium text-sambal-600 underline';
     $supportEmail = config('marketing.support_email');
 @endphp
 
 @section('content')
 
-    <h1 class="font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Terms of Use</h1>
+    <h1 class="type-section">Terms of Use</h1>
     <p class="mt-2 text-sm text-ink/70">Last updated: {{ \Illuminate\Support\Carbon::parse(config('legal.terms_version'))->format('j F Y') }}</p>
     <p class="mt-4 text-ink/70">
         These are the rules for using MakanApa. Please read them. They include our Community Guidelines and a

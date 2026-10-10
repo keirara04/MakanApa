@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; }
+        #op-q { position: absolute; left: 60px; right: 60px; top: 840px; text-align: center; font-size: 104px; opacity: 0; }
+        #op-rig { position: absolute; left: 230px; top: 306px; width: 620px; height: 1308px; }
+        #op-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+        #op-word { top: 150px; }
+      </style>
+
+      <div id="root" data-composition-id="open" data-width="1080" data-height="1920">
+        <p id="op-q" class="hl">Can't decide what to <span class="red">eat?</span></p>
+        <div id="op-rig" data-layout-allow-overflow><div id="op-3d" data-layout-allow-overflow></div></div>
+        <p id="op-word" class="two" data-layout-allow-overlap>MakanApa.<br /><span>Less thinking. More eating.</span></p>
+      </div>
+
+      <script>
+        document.getElementById("op-3d").innerHTML = MA.phone("op", MA.home("op"));
+        document.querySelectorAll('[data-composition-id="open"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        const tl = gsap.timeline({ paused: true });
+        // The question on black, then the phone rises as the studio lights come up (root 2.0-3.0).
+        tl.fromTo("#op-q", { opacity: 0, y: 24, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out" }, 0.25);
+        tl.to("#op-q", { opacity: 0, y: -40, filter: "blur(12px)", duration: 0.4, ease: "power2.in" }, 1.75);
+
+        tl.fromTo("#op-rig", { y: 1700, scale: 0.86 }, { y: 250, duration: 1.4, ease: "power3.out" }, 1.9);
+        tl.fromTo("#op-3d", { rotationX: 28, rotationY: -10, transformPerspective: 2600 }, { rotationX: 0, rotationY: 0, duration: 1.6, ease: "power3.out" }, 1.9);
+        tl.fromTo("#op-dark", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "power2.out" }, 2.7);
+        tl.fromTo("#op-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 2.8);
+        tl.fromTo("#op-word", { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out" }, 3.0);
+        tl.to("#op-word", { opacity: 0, y: -24, filter: "blur(8px)", duration: 0.3, ease: "power2.in" }, 4.75);
+
+        window.__timelines["open"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

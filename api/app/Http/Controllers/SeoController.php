@@ -50,6 +50,7 @@ class SeoController extends Controller
     {
         return [
             ['loc' => MarketingUrl::to('/'), 'lastmod' => null],
+            ['loc' => MarketingUrl::to('/ambassadors'), 'lastmod' => null],
             ['loc' => MarketingUrl::to('/support'), 'lastmod' => null],
             ['loc' => MarketingUrl::to('/privacy'), 'lastmod' => Config::get('legal.privacy_version')],
             ['loc' => MarketingUrl::to('/privacy').'?lang=ms', 'lastmod' => Config::get('legal.privacy_version')],

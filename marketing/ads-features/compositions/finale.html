@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #fn-mascot {
+          position: absolute;
+          left: 370px;
+          top: 470px;
+          width: 340px;
+          height: 340px;
+        }
+        #fn-word {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 850px;
+          text-align: center;
+          font-size: 156px;
+          font-weight: 800;
+        }
+        #fn-tag {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1060px;
+          text-align: center;
+        }
+        #fn-tag span {
+          display: block;
+          font-size: 64px;
+          line-height: 1.15;
+        }
+        #fn-cta {
+          position: absolute;
+          left: 280px;
+          width: 520px;
+          top: 1290px;
+          height: 96px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 48px;
+          border: 2px solid rgb(245 245 247 / 0.35);
+          font-size: 36px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+        }
+      </style>
+
+      <div id="root" data-composition-id="finale" data-width="1080" data-height="1920">
+        <div id="fn-lock" style="position: absolute; inset: 0" data-layout-allow-overlap>
+          <img id="fn-mascot" src="assets/mascot/default.svg" alt="" />
+          <p id="fn-word" class="hl">Makan<span class="red">Apa?</span></p>
+          <p id="fn-tag"><span class="hl">Stop scrolling.</span><span class="hl red">Start eating.</span></p>
+          <p id="fn-cta">Free on the App Store</p>
+        </div>
+      </div>
+
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 26.5. Logo lands on 27.0; fade to black from 29.4.
+        tl.fromTo("#fn-mascot", { opacity: 0, scale: 0.4, y: 120 }, { opacity: 1, scale: 1, y: 0, duration: 0.8, ease: "back.out(1.8)" }, 0.45);
+        tl.fromTo("#fn-word", { opacity: 0, y: 30, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9, ease: "expo.out" }, 0.6);
+        tl.fromTo("#fn-tag span", { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out", stagger: 0.3 }, 0.95);
+        tl.fromTo("#fn-cta", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.7, ease: "expo.out" }, 1.6);
+        tl.to("#fn-mascot", { y: -12, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.4);
+        tl.to("#fn-lock", { opacity: 0, duration: 0.6, ease: "power1.in" }, 2.9);
+
+        window.__timelines["finale"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

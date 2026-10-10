@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Distance Car</title>
+
+<path d="M123 300L156 219C166 194 189 180 217 180H319C347 180 371 194 382 219L414 300" fill="#E94B35" stroke="#29201D" stroke-width="18" stroke-linejoin="round"/>
+<rect x="93" y="282" width="346" height="104" rx="44" fill="#E94B35" stroke="#29201D" stroke-width="18"/>
+<path d="M182 226H335L362 281H155L182 226Z" fill="#BFE3F1" stroke="#29201D" stroke-width="14"/>
+<circle cx="167" cy="386" r="40" fill="#29201D"/>
+<circle cx="167" cy="386" r="19" fill="#B9B0A3"/>
+<circle cx="365" cy="386" r="40" fill="#29201D"/>
+<circle cx="365" cy="386" r="19" fill="#B9B0A3"/>
+<rect x="110" y="316" width="52" height="18" rx="9" fill="#F4B942"/>
+<rect x="370" y="316" width="52" height="18" rx="9" fill="#F4B942"/>
+
+</svg>

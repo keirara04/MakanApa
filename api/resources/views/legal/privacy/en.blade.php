@@ -1,5 +1,5 @@
 {{-- English privacy notice. Keep section numbers and ids in step with legal/privacy/ms.blade.php. --}}
-<h1 class="font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Privacy Policy</h1>
+<h1 class="type-section">Privacy Policy</h1>
 <p class="mt-2 text-sm text-ink/70">Last updated: {{ $updated }}</p>
 <p class="mt-4 text-ink/70">
     This notice explains what personal data MakanApa collects, why, who we share it with, how long we keep it and

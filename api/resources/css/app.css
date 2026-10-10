@@ -3,35 +3,12 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
-/* Hand-lettered sticker font. Self-hosted (SIL OFL) so the site makes no third-party font calls. */
-@font-face {
-    font-family: 'Caveat';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url('/fonts/caveat/caveat-latin-700.woff2') format('woff2');
-}
-
-/* Tall hand-drawn capitals for the landing page's headings, nav and margin notes (SIL OFL). */
-@font-face {
-    font-family: 'Amatic SC';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url('/fonts/amatic-sc/amatic-sc-latin-400.woff2') format('woff2');
-}
-
-@font-face {
-    font-family: 'Amatic SC';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url('/fonts/amatic-sc/amatic-sc-latin-700.woff2') format('woff2');
-}
+/* Font files (Fredoka, Caveat) are declared in the marketing layout's <style>, so their
+   /fonts/ URLs resolve against the site itself, including under the Vite dev server. */
 
 @theme {
     --font-hand: 'Caveat', 'Marker Felt', 'Comic Sans MS', cursive;
-    --font-display: 'Amatic SC', 'Caveat', 'Marker Felt', cursive;
+    --font-display: 'Fredoka', ui-rounded, 'SF Pro Rounded', ui-sans-serif, system-ui, sans-serif;
 
     /* Sketchbook paper: the page, a lighter sheet for cards, and a darker fold for rules. */
     --color-paper: #f4efe6;
@@ -63,8 +40,35 @@
 }
 
 /* Contrast note: white text needs sambal-600 or darker (sambal-500 is 3.9:1); muted body
-   text should stay at ink/70 or above on cream (ink/60 is 4.3:1). Large display text (Amatic at
-   text-2xl and up) may go down to ink/60, never lower: its thin strokes read lighter than 3:1. */
+   text should stay at ink/70 or above on cream (ink/60 is 4.3:1). Large display text (Fredoka at
+   text-2xl and up) may go down to ink/60, never lower. */
+
+/* The whole display type scale: three heading steps, used everywhere instead of one-off sizes. */
+@utility type-hero {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(3rem, 8.5vw, 6.75rem);
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+}
+
+@utility type-section {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+@utility type-card {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
 
 @layer base {
     :focus-visible {
@@ -136,7 +140,7 @@
         pointer-events: none;
     }
 
-    /* Bracketed nav item, Tiago Fragoso style: grows and tilts when hovered or current. */
+    /* Nav item: tips a little and turns sambal when hovered or current. */
     .bracket-link {
         display: inline-flex;
         min-height: 2.75rem;
@@ -147,7 +151,7 @@
 
     .bracket-link:hover,
     .bracket-link[data-active] {
-        transform: scale(1.18) rotate(-3deg);
+        transform: scale(1.06) rotate(-2deg);
         color: var(--color-sambal-600);
     }
 }
@@ -462,4 +466,245 @@ html:not(.js) .js-only {
     .try-panel[data-show='pick'] [data-state='pick'] {
         animation: none;
     }
+}
+
+/* "How it works": the sticky phone's stacked screens; only the current step's is visible. */
+.walk-screen {
+    transition: opacity 450ms ease;
+}
+
+.walk-screen:not(.is-current) {
+    opacity: 0;
+}
+
+/* Saved-places deck: fanned a little, and wider when you hover it. */
+.deck-card {
+    rotate: var(--tilt);
+    translate: var(--shift) 0;
+    transition:
+        rotate 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        translate 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.deck:hover .deck-card {
+    rotate: var(--fan);
+    translate: calc(var(--shift) * 2.2) 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .walk-screen,
+    .deck-card {
+        transition: none;
+    }
+}
+
+/* The home hero's two-line headline has half the page to fit in (also the ambassadors hero). */
+.hero-title {
+    font-size: clamp(3rem, 7.5vw, 5.25rem);
+}
+
+/* Hero spinner: the spoon turns to --turn; the dish it lands on gets circled in red marker. */
+.spin-spoon {
+    rotate: var(--turn, 0deg);
+    transition: rotate 2.6s cubic-bezier(0.15, 0.75, 0.2, 1);
+}
+
+.spin-dish {
+    transition:
+        color 200ms ease,
+        scale 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.spin-dish svg {
+    opacity: 0;
+}
+
+.spin-dish svg path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 480ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.spin-dish.is-picked {
+    color: var(--color-sambal-600);
+    scale: 1.12;
+}
+
+.spin-dish.is-picked svg {
+    opacity: 1;
+}
+
+.spin-dish.is-picked svg path {
+    stroke-dashoffset: 0;
+}
+
+.spin:not([data-state='landed']) [data-spin-find],
+.spin [data-bubble] {
+    display: none;
+}
+
+.spin[data-state='idle'] [data-bubble='idle'],
+.spin[data-state='spinning'] [data-bubble='spinning'],
+.spin[data-state='landed'] [data-bubble='landed'] {
+    display: inline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spin-spoon,
+    .spin-dish,
+    .spin-dish svg path {
+        transition: none;
+    }
+}
+
+/* Time calculator: controls on the dark band. The slider's thumb is a plate on a dashed track. */
+.calc-range {
+    appearance: none;
+    height: 2.75rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.calc-range::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: repeating-linear-gradient(90deg, rgb(244 239 230 / 0.5) 0 10px, transparent 10px 16px);
+}
+
+.calc-range::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background: repeating-linear-gradient(90deg, rgb(244 239 230 / 0.5) 0 10px, transparent 10px 16px);
+}
+
+.calc-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-top: calc(2px - 1.125rem);
+    border: 3px solid var(--color-paper);
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--color-paper) 0 38%, var(--color-sambal-500) 40% 100%);
+    box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.5);
+    transition: scale 160ms ease;
+}
+
+.calc-range::-moz-range-thumb {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 3px solid var(--color-paper);
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--color-paper) 0 38%, var(--color-sambal-500) 40% 100%);
+    box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.5);
+}
+
+.calc-range:active::-webkit-slider-thumb {
+    scale: 1.12;
+}
+
+.calc-range:focus-visible {
+    outline: 3px solid var(--color-sambal-300);
+    outline-offset: 4px;
+}
+
+.calc-pill {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    align-items: center;
+    border: 2px dashed rgb(244 239 230 / 0.4);
+    border-radius: 9999px;
+    padding-inline: 1.15rem;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease,
+        border-color 160ms ease,
+        rotate 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.calc-pill:hover {
+    border-color: var(--color-paper);
+}
+
+.calc-pill:has(input:checked) {
+    border-style: solid;
+    border-color: var(--color-paper);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    rotate: -2deg;
+}
+
+.calc-pill:has(input:focus-visible) {
+    outline: 3px solid var(--color-sambal-300);
+    outline-offset: 3px;
+}
+
+/* The bill: thermal-printer paper with a torn bottom edge and a printed barcode. */
+.receipt {
+    position: relative;
+    box-shadow: 0 30px 60px -25px rgb(0 0 0 / 0.7);
+    --tear: 14px;
+    mask:
+        conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tear) 100%;
+}
+
+.receipt-mono {
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+.receipt-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.receipt-line dt {
+    flex: none;
+}
+
+.receipt-line::after {
+    content: '';
+    order: 1;
+    flex: 1;
+    border-bottom: 1px dotted rgb(43 28 20 / 0.35);
+}
+
+.receipt-line dd {
+    order: 2;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.receipt-stamp {
+    mix-blend-mode: multiply;
+    opacity: 0.88;
+}
+
+.receipt-barcode {
+    background: repeating-linear-gradient(90deg, var(--color-ink) 0 2px, transparent 2px 4px, var(--color-ink) 4px 5px, transparent 5px 8px, var(--color-ink) 8px 11px, transparent 11px 12px);
+}
+
+@keyframes receipt-print {
+    40% {
+        translate: 0 -3px;
+    }
+}
+
+.receipt-total.is-printing {
+    animation: receipt-print 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .receipt-total.is-printing {
+        animation: none;
+    }
+}
+
+/* Final CTA: focus rings in paper, since sambal ones vanish on the sambal band. */
+.cta :focus-visible {
+    outline-color: var(--color-paper);
 }

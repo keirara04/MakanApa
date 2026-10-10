@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>MakanApa: what's new (30s)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Geist"; font-weight: 400; src: url("assets/fonts/geist-sans-latin-400-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 500; src: url("assets/fonts/geist-sans-latin-500-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 600; src: url("assets/fonts/geist-sans-latin-600-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 700; src: url("assets/fonts/geist-sans-latin-700-normal.woff2") format("woff2"); }
+      @font-face { font-family: "Geist"; font-weight: 800; src: url("assets/fonts/geist-sans-latin-800-normal.woff2") format("woff2"); }
+
+      :root {
+        --white: #f5f5f7;
+        --gray: #9a9a9f;
+        --chili: #ff5b3a;
+        /* App UI palette (matches the iOS app). */
+        --app-bg: #fff4dd;
+        --app-card: #fffbf3;
+        --app-ink: #291d1d;
+        --app-muted: #8a7a6e;
+        --app-red: #e94b35;
+        --app-line: #e6d9c3;
+        --app-stage: #1a1411;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000; }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        color: var(--white);
+        font-family: "Geist", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .clip, .scene { position: absolute; inset: 0; }
+
+      /* Film type: big, tight, quiet. One accent: red. */
+      .hl { font-weight: 700; letter-spacing: -0.045em; line-height: 1.02; color: var(--white); }
+      .sub { font-weight: 500; letter-spacing: -0.01em; color: var(--gray); }
+      .red { color: var(--chili); }
+      .head { position: absolute; left: 40px; right: 40px; text-align: center; }
+      .head .hl { display: block; }
+      .head .sub { display: block; margin-top: 22px; font-size: 40px; }
+
+      /* ---------- stage light (warm white, never yellow) ---------- */
+      #spot {
+        position: absolute;
+        left: -260px;
+        top: -300px;
+        width: 1600px;
+        height: 1600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(70 70 78 / 0.5) 0%, rgb(30 30 34 / 0.22) 35%, rgb(0 0 0 / 0) 65%);
+      }
+      #warm {
+        position: absolute;
+        left: 40px;
+        top: 760px;
+        width: 1000px;
+        height: 1000px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgb(255 91 58 / 0.2) 0%, rgb(255 91 58 / 0.07) 40%, rgb(0 0 0 / 0) 66%);
+        opacity: 0;
+      }
+
+      /* ---------- iPhone ---------- */
+      .iphone { position: absolute; left: 0; top: 0; width: 620px; height: 1308px; transform-style: preserve-3d; }
+      .ip-depth { position: absolute; inset: 0; border-radius: 104px; background: linear-gradient(90deg, #4a4a4e 0%, #1d1d20 30%, #26262a 70%, #55555a 100%); }
+      .ip-body {
+        position: absolute;
+        inset: 0;
+        padding: 6px;
+        border-radius: 104px;
+        background: linear-gradient(140deg, #a7a7ad 0%, #3d3d41 16%, #1e1e21 48%, #3d3d41 84%, #b0b0b6 100%);
+        box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.2), inset 0 0 0 4px rgb(0 0 0 / 0.55);
+      }
+      .ip-bezel { width: 100%; height: 100%; padding: 9px; border-radius: 98px; background: #050505; }
+      .ip-screen { position: relative; width: 590px; height: 1278px; border-radius: 89px; overflow: hidden; background: #000; }
+      .ip-island { position: absolute; left: 205px; top: 20px; width: 180px; height: 54px; border-radius: 27px; background: #000; z-index: 30; }
+      .ip-glare {
+        position: absolute;
+        left: -50%;
+        top: -10%;
+        width: 200%;
+        height: 120%;
+        background: linear-gradient(115deg, rgb(255 255 255 / 0) 42%, rgb(255 255 255 / 0.16) 48%, rgb(255 255 255 / 0.05) 51%, rgb(255 255 255 / 0) 58%);
+        z-index: 31;
+      }
+      .ip-dark { position: absolute; inset: 0; z-index: 29; background: var(--app-stage); opacity: 0; }
+      .ip-btn { position: absolute; width: 7px; border-radius: 3px; background: linear-gradient(90deg, #2a2a2d, #6a6a70); }
+
+      /* ---------- MakanApa app UI, rebuilt at 1.5x iOS points ---------- */
+      .ma-ui { position: absolute; inset: 0; background: var(--app-bg); }
+      .ma-scr { position: absolute; inset: 0; overflow: hidden; background: var(--app-bg); color: var(--app-ink); font-family: "Geist", sans-serif; letter-spacing: -0.01em; }
+      .ma-abs { position: absolute; }
+      .ma-status { position: absolute; left: 0; right: 0; top: 0; height: 86px; display: flex; align-items: center; justify-content: space-between; padding: 14px 50px 0 70px; font-size: 27px; font-weight: 600; }
+      .ma-status svg { height: 22px; }
+      .ma-ico { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .ma-brand { font-weight: 800; font-size: 34px; letter-spacing: -0.03em; }
+      .ma-brand b { color: var(--app-red); font-weight: 800; }
+      .ma-muted { color: var(--app-muted); }
+      .ma-center { left: 0; right: 0; text-align: center; }
+      .ma-card { left: 34px; right: 34px; border-radius: 30px; background: var(--app-card); border: 1.5px solid var(--app-line); }
+      .ma-big { display: flex; align-items: center; gap: 24px; left: 34px; right: 34px; padding: 0 32px; border-radius: 36px; }
+      .ma-big .ma-ic { display: grid; place-items: center; width: 66px; height: 66px; border-radius: 50%; flex: none; }
+      .ma-big .ma-ic svg { width: 36px; height: 36px; }
+      .ma-big b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+      .ma-big span { display: block; margin-top: 3px; font-size: 21px; }
+      .ma-big .ma-grow { flex: 1; }
+      .ma-big > svg { width: 28px; height: 28px; }
+      .ma-tabs { left: 95px; width: 400px; top: 1112px; height: 106px; border-radius: 53px; background: rgb(255 255 255 / 0.94); box-shadow: 0 12px 32px rgb(41 29 29 / 0.12); display: flex; padding: 8px; }
+      .ma-tabs div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 16px; font-weight: 600; border-radius: 45px; color: var(--app-ink); }
+      .ma-tabs svg { width: 34px; height: 34px; }
+      .ma-tabs .on { background: #fde3d7; color: var(--app-red); }
+      .ma-sheetbar { left: 0; right: 0; top: 96px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; }
+      .ma-sheetbar span { position: absolute; left: 40px; font-weight: 500; color: var(--app-red); }
+      .ma-cta { left: 34px; right: 34px; height: 80px; border-radius: 40px; background: var(--app-red); color: #fff; display: grid; place-items: center; font-size: 25px; font-weight: 600; }
+      .ma-field { left: 34px; right: 34px; padding: 18px 22px; border-radius: 18px; background: var(--app-card); border: 1.5px solid var(--app-line); font-size: 23px; line-height: 1.35; }
+      .ma-touch {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        margin: -50px 0 0 -50px;
+        border-radius: 50%;
+        background: rgb(41 29 29 / 0.16);
+        border: 3px solid rgb(255 255 255 / 0.9);
+        box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+        opacity: 0;
+        z-index: 28;
+      }
+
+      /* ---------- film-scale saved place cards (app CardSize 200x280pt, x1.65) ---------- */
+      .sp-card { position: absolute; width: 330px; height: 462px; transform-style: preserve-3d; }
+      .sp-face, .sp-back { position: absolute; inset: 0; border-radius: 34px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+      .sp-face { background: var(--app-card); color: var(--app-ink); border: 2px solid var(--app-line); box-shadow: 0 16px 34px rgb(0 0 0 / 0.4); }
+      .sp-back { transform: rotateY(180deg); background: var(--app-red); box-shadow: 0 16px 34px rgb(0 0 0 / 0.4); display: grid; place-items: center; }
+      .sp-back::after { content: ""; position: absolute; inset: 13px; border-radius: 24px; border: 2.5px solid rgb(255 255 255 / 0.4); }
+      .sp-back img { width: 205px; height: 205px; }
+      .sp-map { position: relative; height: 200px; overflow: hidden; background: #efe6d6; }
+      .sp-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .sp-info { padding: 20px 24px; }
+      .sp-info b { display: block; font-size: 33px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; }
+      .sp-info span { display: block; margin-top: 10px; font-size: 22px; color: var(--app-muted); }
+      .sp-info i { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; font-style: normal; font-size: 21px; font-weight: 600; }
+    </style>
+
+    <script>
+      // Builds the iPhone, the rebuilt app screens and the saved place cards as HTML strings.
+      // Deterministic: no randomness, no network, assets only.
+      (function () {
+        const I = (d, extra = "") => `<svg class="ma-ico" viewBox="0 0 24 24" ${extra}><path d="${d}"/></svg>`;
+        const ICON = {
+          right: "M9 5l7 7-7 7",
+          person: "M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7",
+          people: "M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M17 6.2a2.8 2.8 0 1 0 0 5.6M15.5 14.2c3.3 0 6 2 6 5.3",
+          sparkle: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z",
+          map: "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15",
+          gear: "M12 8.8a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 1 0 0-6.4M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1",
+          cards: "M8 4h10a2 2 0 0 1 2 2v12M5 7h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z",
+          bowl: "M3 11h18a9 9 0 0 1-18 0zM8 7c0-1.5 1-2 1-3.5M12 7c0-1.5 1-2 1-3.5M16 7c0-1.5 1-2 1-3.5",
+          star: "M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z",
+          users: "M9 4.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M17 6.2a2.8 2.8 0 1 0 0 5.6M15.5 14.2c3.3 0 6 2 6 5.3",
+          idcard: "M3 5h18v14H3zM8 10a2 2 0 1 0 0 .01M5.5 16c.5-1.6 1.4-2.4 2.5-2.4s2 .8 2.5 2.4M14 10h4M14 14h4",
+          plane: "M21 3L3 10.5l7 2.5 2.5 7zM10 13l5-5",
+          check: "M6 12.5l4 4 8-9",
+          question: "M9.2 9a3 3 0 1 1 4.3 2.7c-.9.5-1.5 1.2-1.5 2.3M12 17.5v.01",
+          heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
+          pin: "M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11zM12 7.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5",
+        };
+        const STAR = '<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:#f2b544"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>';
+
+        const status = (dark = false) => `
+          <div class="ma-status" style="${dark ? "color:#fff" : ""}"><span>12:30</span><span style="display:flex;gap:10px;align-items:center">
+            <svg viewBox="0 0 34 22"><rect x="0" y="14" width="6" height="8" rx="1.5" fill="currentColor"/><rect x="9" y="10" width="6" height="12" rx="1.5" fill="currentColor"/><rect x="18" y="5" width="6" height="17" rx="1.5" fill="currentColor"/><rect x="27" y="0" width="6" height="22" rx="1.5" fill="currentColor"/></svg>
+            <svg viewBox="0 0 30 22"><path d="M15 21l4-4.5a6 6 0 0 0-8 0zM7.5 12.5a11 11 0 0 1 15 0l-2.6 2.9a7 7 0 0 0-9.8 0zM3 8a17 17 0 0 1 24 0l-2.6 2.9a13 13 0 0 0-18.8 0z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 46 22"><rect x="1" y="1" width="38" height="20" rx="6" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/><rect x="4" y="4" width="30" height="14" rx="3.5" fill="currentColor"/><rect x="41" y="7" width="3" height="8" rx="1.5" fill="currentColor" fill-opacity=".45"/></svg>
+          </span></div>`;
+        const tabs = (on) => `<div class="ma-abs ma-tabs">
+          ${[["Decide", ICON.sparkle], ["Nearby", ICON.map], ["Community", ICON.people]].map(([l, ic]) => `<div class="${l === on ? "on" : ""}">${I(ic)}${l}</div>`).join("")}
+        </div>`;
+
+        // A little street map: cream blocks, white roads, a park and a river, varied by seed.
+        function mapArt(seed, { pin = true, w = 330, h = 200 } = {}) {
+          const s = (n) => ((seed * 9301 + n * 49297) % 233280) / 233280;
+          const roads = [];
+          for (let k = 0; k < 3; k++) {
+            const y = 30 + s(k) * (h - 60);
+            roads.push(`<path d="M-10 ${y.toFixed(0)} L${w + 10} ${(y + (s(k + 7) - 0.5) * 70).toFixed(0)}" stroke="#fff" stroke-width="${k === 0 ? 16 : 9}" fill="none"/>`);
+          }
+          for (let k = 0; k < 3; k++) {
+            const x = 40 + s(k + 3) * (w - 80);
+            roads.push(`<path d="M${x.toFixed(0)} -10 L${(x + (s(k + 11) - 0.5) * 80).toFixed(0)} ${h + 10}" stroke="#fff" stroke-width="${k === 1 ? 14 : 8}" fill="none"/>`);
+          }
+          const px = (0.2 + s(21) * 0.5) * w, py = (0.15 + s(22) * 0.4) * h;
+          const park = `<rect x="${px.toFixed(0)}" y="${py.toFixed(0)}" width="${(w * 0.24).toFixed(0)}" height="${(h * 0.28).toFixed(0)}" rx="14" fill="#cfe3bf"/>`;
+          const river = seed % 2 ? `<path d="M-10 ${(h * 0.85).toFixed(0)} C ${w * 0.3} ${h * 0.7}, ${w * 0.6} ${h}, ${w + 10} ${(h * 0.78).toFixed(0)}" stroke="#bcd8e8" stroke-width="22" fill="none"/>` : "";
+          const pinSvg = pin
+            ? `<g transform="translate(${w / 2 - 22} ${h / 2 - 50})"><path d="M22 54s-20-19-20-33a20 20 0 0 1 40 0c0 14-20 33-20 33z" fill="#e94b35" stroke="#fff" stroke-width="4"/><circle cx="22" cy="21" r="7.5" fill="#fff"/></g>`
+            : "";
+          return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice">${park}${river}${roads.join("")}${pinSvg}</svg>`;
+        }
+
+        const PLACES = [
+          { name: "Warung Kak Ros", meta: "Nasi campur · RM", rating: "4.6", seed: 3 },
+          { name: "Kopi Lima Corner", meta: "Cafe · RM", rating: "4.4", seed: 8 },
+          { name: "Nasi Kandar Seri Jasin", meta: "Nasi kandar · RM", rating: "4.7", seed: 5 },
+          { name: "Ayam Gepuk Pak Din", meta: "Ayam gepuk · RM", rating: "4.5", seed: 12 },
+          { name: "Mee Bandung Selera", meta: "Noodles · RM", rating: "4.3", seed: 7 },
+        ];
+
+        const MA = {
+          PLACES,
+          mapArt,
+          icon: (k, extra) => I(ICON[k], extra),
+
+          // A saved place card: face (map header + details) with the red Nasi back behind it.
+          card(id, place, { faceDown = false } = {}) {
+            return `<div class="sp-card" id="${id}" style="${faceDown ? "transform:rotateY(180deg)" : ""}">
+              <div class="sp-face">
+                <div class="sp-map">${mapArt(place.seed)}</div>
+                <div class="sp-info"><b>${place.name}</b><span>${place.meta}</span><i>${STAR}${place.rating}</i></div>
+              </div>
+              <div class="sp-back"><img src="assets/art/nasi-avatar.svg" alt="" /></div>
+            </div>`;
+          },
+
+          home(p) {
+            return `<div class="ma-scr" id="${p}-home">${status()}
+              <div class="ma-abs" style="top:110px;left:36px;right:36px;display:flex;justify-content:space-between;align-items:center">
+                <span class="ma-brand">Makan<b>Apa?</b></span><span style="color:var(--app-red);width:38px">${I(ICON.gear, 'style="width:38px;height:38px"')}</span>
+              </div>
+              <p class="ma-abs" style="top:196px;left:40px;font-size:50px;font-weight:800;letter-spacing:-0.04em">Lunch?</p>
+              <div class="ma-abs ma-big" style="top:282px;height:136px;background:var(--app-red);color:#fff">
+                <span class="ma-ic" style="background:rgb(255 255 255 / 0.18)">${I(ICON.sparkle)}</span>
+                <span class="ma-grow"><b>Pick for me</b><span style="opacity:.85">Somewhere nearby, right now</span></span>${I(ICON.right)}
+              </div>
+              <div class="ma-abs ma-big" style="top:436px;height:124px;background:#efe3cc">
+                <span class="ma-ic" style="background:#f8efdf;color:var(--app-red)">${I(ICON.bowl)}</span>
+                <span class="ma-grow"><b>I know what I want</b><span class="ma-muted">Craving, budget, distance</span></span>${I(ICON.right, 'style="color:#b5a792"')}
+              </div>
+              <div class="ma-abs ma-big ma-card" id="${p}-saved" style="top:578px;height:124px;padding:0 32px;">
+                <span class="ma-ic" style="background:#fde3d7;color:var(--app-red)">${I(ICON.cards)}</span>
+                <span class="ma-grow"><b>Pick from my saved</b><span class="ma-muted">Shuffle your 20 saved places</span></span>${I(ICON.right, 'style="color:#b5a792"')}
+              </div>
+              <p class="ma-abs ma-muted" style="top:736px;left:40px;font-size:20px">Recent</p>
+              <div class="ma-abs" style="top:772px;left:34px;right:34px;height:104px;border-radius:28px;background:#f4e9d4;display:flex;align-items:center;gap:20px;padding:0 28px">
+                <span style="width:54px;height:54px;flex:none;border-radius:50%;background:radial-gradient(circle at 38% 32%,#f0b45c,#b4581f)"></span>
+                <span style="flex:1"><b style="display:block;font-size:22px;font-weight:600">Kopi Lima Corner</b><span class="ma-muted" style="font-size:17px">Yesterday · Saved places</span></span>
+              </div>
+              <img class="ma-abs" src="assets/mascot/default.svg" style="top:900px;left:215px;width:160px;height:160px" alt="" />
+              ${tabs("Decide")}</div>`;
+          },
+
+          ambassador(p) {
+            const perk = (ic, t) => `<div style="display:flex;gap:18px;align-items:flex-start;font-size:22px;line-height:1.3"><span style="color:var(--app-red);width:30px;flex:none;margin-top:1px">${I(ICON[ic], 'style="width:30px;height:30px"')}</span><span>${t}</span></div>`;
+            return `<div class="ma-scr" id="${p}-amb">${status()}
+              <div class="ma-abs ma-sheetbar"><span>Close</span>Become an ambassador</div>
+              <img class="ma-abs" id="${p}-amb-mascot" src="assets/mascot/celebrate.svg" style="top:186px;left:223px;width:144px;height:144px" alt="" />
+              <p class="ma-abs ma-center" style="top:344px;padding:0 50px;font-size:35px;font-weight:800;letter-spacing:-0.035em;line-height:1.15">Represent UiTM Jasin on MakanApa</p>
+              <div class="ma-abs ma-card" id="${p}-amb-perks" style="top:452px;padding:26px 26px;display:flex;flex-direction:column;gap:20px">
+                ${perk("star", "Hand-pick the best places to eat around UiTM Jasin")}
+                ${perk("heart", "Share your campus favourites")}
+                ${perk("idcard", "Get your own ambassador card to share")}
+              </div>
+              <p class="ma-abs" style="top:772px;left:40px;font-size:20px;font-weight:600">Why you?</p>
+              <div class="ma-abs ma-field" id="${p}-amb-field" style="top:808px;height:150px;border-color:rgb(233 75 53 / 0.6);border-width:2.2px">
+                <span id="${p}-amb-ph" class="ma-muted">How well do you know the food around here?</span>
+                <span id="${p}-amb-typed" style="position:absolute;left:22px;right:22px;top:18px"></span>
+              </div>
+              <p class="ma-abs ma-muted" style="top:970px;left:40px;font-size:18px">At least 20 characters.</p>
+              <div class="ma-abs ma-cta" id="${p}-amb-send" style="top:1120px">Send application</div>
+              <div class="ma-scr" id="${p}-sent" style="opacity:0">${status()}
+                <div class="ma-abs ma-sheetbar"><span>Close</span>Become an ambassador</div>
+                <span class="ma-abs" id="${p}-sent-ic" style="top:400px;left:238px;width:114px;height:114px;border-radius:50%;background:rgb(233 75 53 / 0.16);display:grid;place-items:center;color:var(--app-ink)">${I(ICON.plane, 'style="width:48px;height:48px"')}</span>
+                <p class="ma-abs ma-center" style="top:550px;font-size:35px;font-weight:800;letter-spacing:-0.035em">Application sent</p>
+                <p class="ma-abs ma-center ma-muted" style="top:608px;padding:0 70px;font-size:23px;line-height:1.35">The team will look at it soon, and you'll get a notification when they do.</p>
+                <div class="ma-abs ma-cta" style="top:760px;left:60px;right:60px">Got it</div>
+              </div>
+            </div>`;
+          },
+
+          // "How Decide works": a two-page strip, swiped by sliding #p-gd-strip.
+          decideGuide(p) {
+            const page = (x, art, title, body) => `<div class="ma-abs" style="left:${x}px;top:0;width:590px;height:100%">
+              <div class="ma-abs" style="top:186px;left:34px;right:34px;height:360px;border-radius:30px;background:var(--app-card);border:1.5px solid var(--app-line);overflow:hidden">${art}</div>
+              <p class="ma-abs" style="top:580px;left:40px;right:40px;font-size:33px;font-weight:800;letter-spacing:-0.035em">${title}</p>
+              <p class="ma-abs ma-muted" style="top:634px;left:40px;right:40px;font-size:24px;line-height:1.4">${body}</p>
+            </div>`;
+            const deck = `
+              <div class="ma-abs" style="left:150px;top:62px;width:150px;height:210px;border-radius:20px;background:var(--app-red);transform:rotate(-12deg);box-shadow:0 8px 18px rgb(0 0 0 / 0.18)"></div>
+              <div class="ma-abs" style="left:260px;top:56px;width:150px;height:210px;border-radius:20px;background:var(--app-red);transform:rotate(10deg);box-shadow:0 8px 18px rgb(0 0 0 / 0.18)"></div>
+              <div class="ma-abs" id="${p}-gd-ring" style="left:183px;top:52px;width:156px;height:218px;border-radius:22px;background:var(--app-card);border:1.5px solid var(--app-line);overflow:hidden;box-shadow:0 10px 22px rgb(0 0 0 / 0.2)">
+                <div style="height:92px">${mapArt(5, { w: 156, h: 92 })}</div>
+                <div style="padding:12px"><i style="display:block;height:12px;width:110px;border-radius:6px;background:var(--app-line)"></i><i style="display:block;margin-top:10px;height:10px;width:80px;border-radius:5px;background:var(--app-line)"></i></div>
+              </div>
+              <span class="ma-abs" id="${p}-gd-pulse" style="left:171px;top:40px;width:180px;height:242px;border-radius:30px;border:3px solid var(--app-red)"></span>`;
+            const why = `
+              <div class="ma-abs" style="left:60px;right:60px;top:56px;padding:24px 26px;border-radius:24px;background:var(--app-bg);border:1.5px solid var(--app-line);display:flex;flex-direction:column;gap:16px;font-size:21px">
+                <b style="font-size:24px">Why this one</b>
+                ${["One of your saved places", "Open right now", "450 m from you"].map((t) => `<span style="display:flex;gap:12px;align-items:center"><span style="color:var(--app-red);width:26px">${I(ICON.check, 'style="width:26px;height:26px;stroke-width:2.6"')}</span>${t}</span>`).join("")}
+              </div>
+              <span class="ma-abs" style="left:150px;right:150px;top:288px;height:46px;border-radius:23px;background:var(--app-red);color:#fff;display:grid;place-items:center;font-size:18px;font-weight:600">Let's eat</span>`;
+            return `<div class="ma-scr" id="${p}-guide">${status()}
+              <div class="ma-abs ma-sheetbar"><span>Close</span>How Decide works</div>
+              <div class="ma-abs" id="${p}-gd-strip" style="left:0;top:0;width:1180px;height:1278px">
+                ${page(0, deck, "Pick from your saved places", "Save two or more places and MakanApa shuffles them like a deck of cards and deals you one.")}
+                ${page(590, why, "See why it won", "Every pick tells you why it was chosen. Tap Let's eat for directions, or ask for another one.")}
+              </div>
+              <div class="ma-abs ma-center" style="top:1060px;display:flex;justify-content:center;gap:12px">
+                ${[0, 1, 2, 3, 4, 5].map((i) => `<i id="${p}-gd-dot-${i}" style="width:12px;height:12px;border-radius:50%;background:${i === 0 ? "var(--app-ink)" : "#d8ccb8"}"></i>`).join("")}
+              </div>
+              <div class="ma-abs ma-cta" id="${p}-gd-next" style="top:1110px">Next</div>
+            </div>`;
+          },
+
+          // An iPhone with a stack of screens inside.
+          phone(p, screens) {
+            const depth = Array.from({ length: 10 }, (_, i) => `<div class="ip-depth" style="transform:translateZ(${-(i + 1) * 2.8}px)"></div>`).join("");
+            return `<div class="iphone" id="${p}-phone">${depth}
+              <div class="ip-body" style="transform:translateZ(0.5px)">
+                <span class="ip-btn" style="left:-6px;top:300px;height:62px"></span>
+                <span class="ip-btn" style="left:-6px;top:400px;height:118px"></span>
+                <span class="ip-btn" style="left:-6px;top:540px;height:118px"></span>
+                <span class="ip-btn" style="right:-6px;top:440px;height:180px"></span>
+                <div class="ip-bezel"><div class="ip-screen">
+                  <div class="ma-ui">${screens}</div>
+                  <div class="ip-dark" id="${p}-dark"></div>
+                  <div class="ip-island"></div>
+                  <div class="ip-glare" id="${p}-glare"></div>
+                  <div class="ma-touch" id="${p}-touch"></div>
+                </div></div>
+              </div></div>`;
+          },
+        };
+        window.MA = MA;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1080" data-height="1920">
+      <div id="stage" class="clip" data-start="0" data-duration="30" data-track-index="0" data-layout-ignore>
+        <div id="spot"></div>
+        <div id="warm"></div>
+      </div>
+
+      <div id="open" class="scene" data-composition-id="open" data-composition-src="compositions/open.html" data-start="0" data-duration="3.3" data-track-index="1" data-width="1080" data-height="1920"></div>
+      <div id="shuffle" class="scene" data-composition-id="shuffle" data-composition-src="compositions/shuffle.html" data-start="3" data-duration="11.3" data-track-index="2" data-width="1080" data-height="1920"></div>
+      <div id="amb" class="scene" data-composition-id="amb" data-composition-src="compositions/ambassador.html" data-start="14" data-duration="9.3" data-track-index="3" data-width="1080" data-height="1920"></div>
+      <div id="guide" class="scene" data-composition-id="guide" data-composition-src="compositions/guide.html" data-start="23" data-duration="3.7" data-track-index="4" data-width="1080" data-height="1920"></div>
+      <div id="finale" class="scene" data-composition-id="finale" data-composition-src="compositions/finale.html" data-start="26.5" data-duration="3.5" data-track-index="5" data-width="1080" data-height="1920"></div>
+
+      <!-- Original score, synthesized by audio/make_score.py on the same event map. -->
+      <audio id="score" src="assets/audio/score.wav" data-start="0" data-duration="30" data-track-index="6" data-volume="1"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // Studio light drifts; a warm glow blooms on the box drop and again for the crest.
+      tl.fromTo("#spot", { x: 0, y: 0, scale: 0.9 }, { x: 180, y: 260, scale: 1.1, duration: 30, ease: "sine.inOut" }, 0);
+      tl.fromTo("#warm", { opacity: 0, scale: 0.7 }, { opacity: 0.8, scale: 1, duration: 2, ease: "power2.inOut" }, 5.5);
+      tl.to("#warm", { opacity: 0.3, y: -300, duration: 3, ease: "sine.inOut" }, 13.5);
+      tl.to("#warm", { opacity: 1, y: -420, scale: 1.2, duration: 1.5, ease: "power2.out" }, 18.4);
+      tl.to("#warm", { opacity: 0.4, y: -120, scale: 1, duration: 2, ease: "sine.inOut" }, 22.5);
+      tl.to("#warm", { opacity: 1, y: -260, scale: 1.25, duration: 2, ease: "power2.inOut" }, 26.5);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

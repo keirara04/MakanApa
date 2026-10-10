@@ -29,6 +29,19 @@ return [
     // The App Store listing's numeric id, for Safari's Smart App Banner. Null turns the banner off.
     'app_store_id' => env('APP_STORE_ID', '6812670941'),
 
+    // App Store Connect provider token for campaign links (pt=). With the store id above it builds
+    // per-campus install links, so App Analytics can credit each campus's ambassadors.
+    'app_store_provider_token' => env('APP_STORE_PROVIDER_TOKEN', '129344335'),
+
+    // Campuses with live ambassadors, keyed by the slug in /ambassadors?campus=… and
+    // /go/app-store?campus=…. A slug's App Store campaign is "amb_<slug>"; anything not listed
+    // here falls back to the plain listing, so a link can't carry a made-up campaign.
+    'ambassador_campuses' => [
+        'uitmjasin' => 'UiTM Jasin',
+        'unimap' => 'UniMAP',
+        'pennstate' => 'Penn State',
+    ],
+
     // Shared place links (/p/{id}-{slug}) may be indexed and listed in the sitemap. Only places the
     // community added ever are: Google-sourced ones stay noindex (Places terms), see SharePlaceController.
     'share_indexable' => (bool) env('SHARE_PAGES_INDEXABLE', true),

@@ -1,8 +1,8 @@
-@props(['from', 'size' => 'lg'])
+@props(['from', 'size' => 'lg', 'campus' => null])
 
 {{-- Every download CTA goes through /go/app-store so clicks are counted per placement. Ink pill
      with an offset sambal "print" shadow that lifts on hover, like a sticker peeling up. --}}
-<a href="{{ route('marketing.download', ['from' => $from]) }}"
+<a href="{{ route('marketing.download', array_filter(['from' => $from, 'campus' => $campus])) }}"
    {{ $attributes->class([
        'group inline-flex items-center justify-center gap-2 rounded-full bg-ink font-semibold text-paper transition-[translate,box-shadow,background-color] duration-200 ease-out hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#3a2619] active:translate-x-0 active:translate-y-0',
        'min-h-13 whitespace-nowrap px-7 py-3.5 text-base shadow-[5px_5px_0_var(--color-sambal-600)] hover:shadow-[8px_8px_0_var(--color-sambal-600)] active:shadow-[3px_3px_0_var(--color-sambal-600)] sm:px-8' => $size === 'lg',

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Shown once when an admin makes someone an ambassador (and again only if they're moved to a
 /// different community). The rare, earned moment — so it's allowed the crest at full size and a
-/// playful entrance. The crest artwork says "UNI", so area ambassadors get Nasi with a gold star.
+/// playful entrance. The crest artwork says "UNI", so area ambassadors get Bubu with a gold star.
 struct AmbassadorWelcomeView: View {
     let role: AmbassadorRole
     let onDone: () -> Void
@@ -60,7 +60,7 @@ struct AmbassadorWelcomeView: View {
                 .scaledToFit()
                 .frame(maxWidth: 260)
         } else {
-            // The celebrate art has the wordmark and a cap slogan baked in — plain Nasi + a gold
+            // The celebrate art has the wordmark and a cap slogan baked in — plain Bubu + a gold
             // star instead.
             MascotView(mood: .idle, size: 160)
                 .overlay(alignment: .topTrailing) {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Nasi" the mascot. Real drawn pose per mood, still expressive via motion on top —
+/// "Bubu" the mascot. Real drawn pose per mood, still expressive via motion on top —
 /// idle bob, thinking bounce/wiggle, one-shot celebrate pop, one-shot sad shake.
 /// Respects Reduce Motion (falls back to a plain fade-in).
 enum MascotMood {

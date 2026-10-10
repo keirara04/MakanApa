@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #gd-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #gd-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        #gd-head { top: 160px; }
+        #gd-head .hl { font-size: 120px; }
+      </style>
+
+      <div id="root" data-composition-id="guide" data-width="1080" data-height="1920">
+        <div id="gd-head" class="head" data-layout-allow-overlap>
+          <span class="hl">New here?</span>
+          <span class="sub">Every tab shows you how.</span>
+        </div>
+        <div id="gd-rig" data-layout-allow-overflow>
+          <div id="gd-3d" data-layout-allow-overflow></div>
+        </div>
+      </div>
+
+      <script>
+        document.getElementById("gd-3d").innerHTML = MA.phone("gd", MA.decideGuide("gd"));
+        document.querySelectorAll('[data-composition-id="guide"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 23.0. Next tap 24.375, page turn 24.5.
+
+        tl.fromTo("#gd-rig", { y: 1100, scale: 0.86 }, { y: 250, duration: 0.9, ease: "power3.out" }, 0);
+        tl.fromTo("#gd-3d", { rotationY: -36, rotationX: 12, transformPerspective: 2600 }, { rotationY: -6, rotationX: 4, duration: 1.1, ease: "power2.out" }, 0);
+        tl.to("#gd-3d", { rotationY: 5, rotationX: 3, duration: 2.0, ease: "sine.inOut" }, 1.1);
+        tl.fromTo("#gd-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.3, ease: "power2.inOut" }, 0.4);
+        tl.fromTo("#gd-head > span", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out", stagger: 0.15 }, 0.1);
+
+        // The pulsing ring around the control being taught.
+        tl.fromTo("#gd-gd-pulse", { opacity: 1, scale: 1 }, { opacity: 0.35, scale: 1.06, duration: 0.45, ease: "sine.inOut", yoyo: true, repeat: 2 }, 0.5);
+
+        // Next, page two.
+        tl.set("#gd-touch", { x: 295, y: 1150 }, 1.24);
+        tl.fromTo("#gd-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, 1.24);
+        tl.to("#gd-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, 1.4);
+        tl.to("#gd-gd-strip", { x: -590, duration: 0.5, ease: "power3.inOut" }, 1.5);
+        tl.to("#gd-gd-dot-0", { backgroundColor: "#d8ccb8", duration: 0.2 }, 1.6);
+        tl.to("#gd-gd-dot-1", { backgroundColor: "#291d1d", duration: 0.2 }, 1.6);
+
+        tl.to("#gd-head", { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 3.05);
+        tl.to("#gd-rig", { y: 1800, duration: 0.55, ease: "power3.in" }, 3.05);
+
+        window.__timelines["guide"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

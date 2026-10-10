@@ -30,20 +30,22 @@
             ['Where do I get it?', 'MakanApa is on the App Store for iPhone: <a href="'.route('marketing.download', ['from' => 'faq']).'" class="font-medium text-sambal-700 underline">download it here</a>, or search <strong>MakanApa</strong> in the App Store. Found a bug? <a href="'.url('/support').'" class="font-medium text-sambal-700 underline">Let us know</a>.'],
             ['Is it free?', 'Yes, MakanApa is free to download and use.'],
             ['Which areas does MakanApa work in?', 'MakanApa finds places around wherever you are, so it works anywhere there are restaurants nearby. It\'s built in Malaysia, with Malaysian food in mind.'],
+            ['Do I need an account?', 'No. Picks, Nearby and saved places all work without one. Adding places, posting and halal reports need an account, so the community knows who\'s contributing. Sign up later and everything comes with you.'],
         ],
         [
             ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
             ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. We save it with each pick you ask for, linked to your account, and it\'s never shown publicly. <a href="'.route('privacy').'#location" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
             ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>not certified</strong> with community notes, or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
+            ['How do I become an ambassador?', 'Join your university or area community in the app, then apply from the Community tab. We read every application. <a href="'.route('marketing.ambassadors').'" class="font-medium text-sambal-700 underline">See what ambassadors do</a>.'],
         ],
     ];
 @endphp
 
 @section('nav_links')
-    <a href="#how-it-works" class="bracket-link">[How it works]</a>
-    <a href="#try" class="bracket-link js-only">[Try it]</a>
-    <a href="#app" class="bracket-link">[The app]</a>
-    <a href="#faq" class="bracket-link">[FAQ]</a>
+    <a href="#how-it-works" class="bracket-link">How it works</a>
+    <a href="#features" class="bracket-link">Features</a>
+    <a href="#ambassadors" class="bracket-link">Ambassadors</a>
+    <a href="#faq" class="bracket-link">FAQ</a>
 @endsection
 
 {{-- FIRST-VISIT INTRO -------------------------------------------------------------------------- --}}
@@ -75,11 +77,11 @@
             <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="176" height="176" class="is-picked absolute inset-0 h-full w-full">
         </div>
 
-        <p class="mt-6 font-display text-3xl font-bold uppercase tracking-wide text-ink/70 sm:text-4xl" aria-hidden="true">
+        <p class="mt-6 font-display text-2xl font-semibold text-ink/70 sm:text-3xl" aria-hidden="true">
             Hmm… what to eat?
         </p>
 
-        <div class="relative mt-4 font-display text-[clamp(3.6rem,12vw,6.5rem)] font-bold uppercase" aria-hidden="true">
+        <div class="relative mt-3 font-display text-[clamp(2.4rem,8vw,4.5rem)] font-bold tracking-tight" aria-hidden="true">
             <div class="slot-reel">
                 {{-- Listed twice so the loop can scroll half its height and wrap without a jump. --}}
                 <ul>
@@ -101,7 +103,7 @@
         </svg>
         <p class="mt-3 text-sm text-ink/70" aria-hidden="true">Warming up the wok…</p>
 
-        <button type="button" data-intro-skip class="bracket-link absolute bottom-5 right-6 transition-opacity font-display text-2xl font-bold uppercase text-ink/70">[Skip]</button>
+        <button type="button" data-intro-skip class="bracket-link absolute bottom-5 right-6 transition-opacity font-display text-lg font-semibold text-ink/70">Skip</button>
 
         <svg class="intro-tear" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
             <path fill="currentColor" d="M0 0H1200V12L1200 12L1191 20L1170 12L1147 14L1132 23L1115 27L1096 19L1068 8L1043 29L1017 17L989 28L966 9L950 30L921 16L905 10L877 26L848 27L823 18L799 25L783 9L756 23L738 18L719 21L689 11L673 17L645 18L616 24L593 10L572 30L553 15L530 19L502 26L474 18L447 23L427 27L412 26L396 25L379 19L359 11L340 25L317 26L300 12L273 17L255 9L234 9L208 26L193 15L176 9L149 10L128 10L101 21L85 9L65 24L50 19L33 10L18 20L0 18Z"/>
@@ -120,9 +122,9 @@
             var MIN_MS = 1600; // long enough for the reel to read as a spin, not a flicker
             var MAX_MS = 3000; // never hold a slow connection hostage
             var started = performance.now();
-            // Only the hero's backdrop clip is on screen when the intro lifts; the rest keep loading
-            // lazily as they scroll into view (layout script), instead of all ~2.5MB up front.
-            var clips = Array.prototype.slice.call(document.querySelectorAll('video[data-clip="night-market"]'));
+            // The hero has no clips; the rest load lazily as they scroll into view (layout script),
+            // so the intro only waits out its own spin.
+            var clips = [];
             var line = intro.querySelector('.intro-progress path');
             var page = [document.querySelector('body > header'), document.getElementById('main'), document.querySelector('body > footer')];
             var shown = 0;
@@ -185,89 +187,107 @@
 
 @section('content')
 
-    {{-- HERO: one giant hand-lettered question, then the app on a sketched "stage". ------------ --}}
-    <section class="relative overflow-x-clip px-5 pt-12 sm:px-6 lg:pt-16">
-        <div class="mx-auto max-w-6xl text-center">
-            <p class="hero-in font-display text-2xl font-bold uppercase tracking-wide text-ink/70 sm:text-3xl" style="--i: 0">
-                <x-marketing.doodle type="burst" class="mr-1 inline-block h-6 w-6 -translate-y-1 -rotate-12 text-sambal-600" />
-                Hey there, hungry human.
-            </p>
+    {{-- HERO: the line on the left; on the right, a spoon on a plate of dishes that picks one. -- --}}
+    <section class="relative overflow-x-clip">
+        <div class="mx-auto grid max-w-6xl items-center gap-16 px-5 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:pb-24 lg:pt-14">
+            <div class="text-center lg:text-left">
+                <h1 class="hero-in type-hero hero-title" style="--i: 0">
+                    <span class="whitespace-nowrap">Can't decide?</span><br>
+                    <span class="relative inline-block">
+                        We'll pick.
+                        <x-marketing.doodle type="underline" class="draw absolute -bottom-3 left-0 h-4 w-full text-sambal-600" style="--draw-delay: 900ms; --draw-dur: 1100ms" />
+                    </span>
+                </h1>
 
-            <h1 class="hero-in mx-auto mt-2 max-w-5xl font-display text-[clamp(4.4rem,14vw,11rem)] font-bold uppercase leading-[0.8] tracking-tight text-balance" style="--i: 1">
-                What should I eat today?
-            </h1>
-
-            <div class="hero-in relative mx-auto mt-5 inline-block" style="--i: 2">
-                <p class="font-display text-[clamp(2.2rem,5vw,3.6rem)] font-bold uppercase leading-none text-sambal-600">Decided in seconds.</p>
-                <x-marketing.doodle type="underline" class="draw absolute -bottom-4 -left-[3%] h-4 w-[106%] text-sambal-600" style="--draw-delay: 900ms; --draw-dur: 1100ms" />
-            </div>
-
-            <p class="hero-in mx-auto mt-10 max-w-xl text-lg leading-relaxed text-ink/75 sm:text-xl" style="--i: 3">
-                Tell us your mood, budget and how far you're willing to go. MakanApa picks one. Not feeling it? Just reroll.
-            </p>
-
-            <div class="hero-in mt-9 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-8" style="--i: 4">
-                <x-marketing.app-store-badge from="hero" />
-                <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">
-                    Free · iPhone · App Store
-                    {{-- Only once enough people have rated it; the same value backs the structured data. --}}
-                    @if ($appRating)
-                        <span class="whitespace-nowrap">· ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
-                    @endif
+                <p class="hero-in mx-auto mt-8 max-w-md text-lg leading-relaxed text-ink/75 sm:text-xl lg:mx-0" style="--i: 1">
+                    Tell MakanApa your mood, budget and how far you'll go. It picks one place nearby and tells you why. Not feeling it? Find another.
                 </p>
-            </div>
-        </div>
 
-        {{-- The stage: a hand-drawn frame the phones break out of, with margin notes around it. --}}
-        <div class="relative mx-auto mt-20 max-w-5xl sm:mt-24">
-            <div data-reveal class="sketch mx-2 h-[23rem] bg-paper-50/70 sm:mx-6 sm:h-[30rem] lg:h-[33rem]" style="--sketch-radius: 22px">
-                {{-- A Melaka night market running behind the phones, printed in ink on the page. --}}
-                <div class="absolute inset-0 overflow-hidden rounded-[20px]">
-                    <x-marketing.clip name="night-market" class="opacity-45 mix-blend-multiply grayscale sepia-[.4] contrast-125" />
-                    <div class="absolute inset-0 bg-[linear-gradient(to_bottom,rgb(251_248_242/0.85)_0%,rgb(251_248_242/0)_38%,rgb(251_248_242/0)_58%,rgb(251_248_242/0.95)_100%)]"></div>
+                <div class="hero-in mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6 lg:justify-start" style="--i: 2">
+                    <x-marketing.app-store-badge from="hero" class="lg:-ml-3.5" />
+                    <p class="font-display text-lg font-medium text-ink/70">
+                        Free on iPhone
+                        {{-- Only once enough people have rated it; the same value backs the structured data. --}}
+                        @if ($appRating)
+                            <span class="whitespace-nowrap">and rated ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
+                        @endif
+                    </p>
                 </div>
-            </div>
 
-            <div class="absolute inset-x-0 -bottom-16 flex items-end justify-center sm:-bottom-20">
-                <div class="relative z-0 -mr-10 mb-10 hidden w-48 -rotate-[8deg] sm:block lg:w-56">
-                    <x-marketing.phone screen="mood" class="rounded-[2.2rem] p-1.5"
-                                       alt="Mood step with options like Nasi Kandar, Ayam Gepuk and Nasi Padang" />
-                </div>
-                <div class="relative z-10 w-52 sm:w-60 lg:w-64">
-                    <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-3" aria-hidden="true"></span>
-                    <x-marketing.phone screen="result" eager priority class="rounded-[2.4rem] p-1.5"
-                                       alt="Result screen: MakanApa says Nasi Kandar Haji Basheer, settled, with price, distance and why" />
-                </div>
-                <div class="relative z-0 -ml-10 mb-10 hidden w-48 rotate-[7deg] sm:block lg:w-56">
-                    <x-marketing.phone screen="nearby" class="rounded-[2.2rem] p-1.5"
-                                       alt="Nearby map with top-rated places and community finds" />
-                </div>
-            </div>
-
-            {{-- Margin notes --}}
-            <div class="pointer-events-none absolute left-14 top-10 hidden w-40 text-left font-display text-[1.7rem] font-bold uppercase leading-[1.05] xl:block" aria-hidden="true">
-                <span class="-rotate-3 inline-block">Mood. Budget. Distance.</span>
-                <x-marketing.doodle type="arrow-curve" class="draw ml-6 mt-2 h-16 w-24 text-ink/80" style="--draw-delay: 1400ms" />
-            </div>
-
-            <div class="pointer-events-none absolute right-14 top-10 hidden w-40 text-right font-display text-[1.7rem] font-bold uppercase leading-[1.05] xl:block" aria-hidden="true">
-                <span class="inline-block rotate-2">One answer.<br><span class="text-sambal-600">Not a list.</span></span>
-                <x-marketing.doodle type="arrow-curve" class="draw ml-auto mr-6 mt-2 h-16 w-24 -scale-x-100 text-ink/80" style="--draw-delay: 1700ms" />
-            </div>
-
-            <div class="absolute -bottom-12 -left-3 z-20 w-28 sm:-bottom-6 sm:left-2 sm:w-44 lg:-left-4 lg:w-52">
-                <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" aria-hidden="true" width="208" height="208"
-                     class="animate-sketch-bob w-full drop-shadow-[0_12px_14px_rgba(43,28,20,0.18)]">
-                <p class="pointer-events-none absolute -top-11 left-1/2 hidden -translate-x-1/3 -rotate-6 whitespace-nowrap font-display text-4xl font-bold uppercase sm:block" aria-hidden="true">Let's eat! —</p>
-            </div>
-
-            {{-- Scan-to-install for desktop visitors, pinned to the frame like a note. --}}
-            <div class="absolute -right-10 bottom-24 z-20 hidden rotate-[4deg] xl:block">
-                <div class="relative bg-paper-50 p-3 shadow-[0_18px_30px_-18px_rgba(43,28,20,0.5)]">
-                    <span class="tape -top-3 left-1/2 w-20 -translate-x-1/2 rotate-2" aria-hidden="true"></span>
+                {{-- Scan-to-install for desktop visitors. --}}
+                <div class="hero-in mt-10 hidden items-center gap-4 lg:flex" style="--i: 3">
                     <img src="{{ asset('images/qr-app-store.svg') }}" alt="QR code to download MakanApa from the App Store"
-                         width="96" height="96" class="h-24 w-24">
-                    <p class="mt-1 text-center font-display text-xl font-bold uppercase leading-5">Scan with<br>your iPhone</p>
+                         width="72" height="72" class="h-18 w-18 rounded-lg bg-paper-50 p-1.5 shadow-clay">
+                    <p class="font-hand text-2xl leading-6 text-ink/70">On a computer?<br>Scan with your iPhone.</p>
+                </div>
+            </div>
+
+            {{-- "Spin the spoon": a plate of dishes and a spoon that lands on one. Spins once on its
+                 own after the page loads (not under Reduce Motion or the pause button); after that
+                 it only spins when asked. The dish it lands on can be sent to "Try it" below. --}}
+            @php
+                // [label, try-it mood ('' = Anything)]. Long names sit top and bottom, where there's room.
+                $spinDishes = [
+                    ['Nasi kandar', 'nasi_kandar'], ['Roti canai', ''], ['Satay', ''], ['Nasi lemak', 'nasi_lemak'],
+                    ['Char kuey teow', 'char_kuey_teow'], ['Ayam gepuk', 'ayam_gepuk'], ['Laksa', ''], ['Mee goreng', 'mee_goreng'],
+                ];
+            @endphp
+            <div class="spin hero-in relative mx-auto w-full max-w-[22rem] sm:max-w-[28rem] lg:max-w-[32rem]" data-spin data-state="idle" data-area="{{ $demoArea }}" style="--i: 3">
+                <div class="relative aspect-square">
+                    {{-- The plate: a soft shadow (plain box-shadow, cheaper than a filter over the
+                         filtered rim), a sketched rim and a dashed inner ring. --}}
+                    <div class="absolute inset-[2%] rounded-full shadow-[0_24px_30px_rgba(43,28,20,0.18)]" aria-hidden="true"></div>
+                    <svg class="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" aria-hidden="true">
+                        <circle cx="50" cy="50" r="48" fill="var(--color-paper-50)" stroke="var(--color-ink)" stroke-width="0.6" filter="url(#sketch-a)"/>
+                        <circle cx="50" cy="50" r="46.6" fill="none" stroke="var(--color-ink)" stroke-width="0.3" opacity="0.45" filter="url(#sketch-b)"/>
+                        <circle cx="50" cy="50" r="27" fill="none" stroke="var(--color-ink)" stroke-width="0.35" stroke-dasharray="1.4 1.6" opacity="0.35"/>
+                    </svg>
+
+                    <ul aria-hidden="true">
+                        @foreach ($spinDishes as $index => [$dish, $mood])
+                            @php
+                                $angle = deg2rad($index * 45);
+                                $left = round(50 + 37 * sin($angle), 2);
+                                $top = round(50 - 37 * cos($angle), 2);
+                            @endphp
+                            <li data-dish data-name="{{ $dish }}" data-mood="{{ $mood }}"
+                                class="spin-dish absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-display text-sm font-semibold text-ink/75 sm:text-lg"
+                                style="left: {{ $left }}%; top: {{ $top }}%">
+                                <span class="relative">
+                                    {{ $dish }}
+                                    <x-marketing.doodle type="circle" class="absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-sambal-600" />
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- Bubu, calling it. --}}
+                    <div class="pointer-events-none absolute -bottom-6 -left-3 w-20 sm:-bottom-4 sm:-left-12 sm:w-32" aria-hidden="true">
+                        <p class="spin-bubble absolute -top-9 left-10 hidden -rotate-6 whitespace-nowrap sm:block rounded-full bg-ink px-3 py-1 font-hand text-xl text-paper">
+                            <span data-bubble="idle">Let me pick.</span>
+                            <span data-bubble="spinning">Hmm…</span>
+                            <span data-bubble="landed">That one!</span>
+                        </p>
+                        <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="128" height="128" class="animate-sketch-bob w-full drop-shadow-[0_12px_14px_rgba(43,28,20,0.2)]">
+                    </div>
+
+                    {{-- The spoon, bowl up; it turns about the plate's centre. --}}
+                    <div class="spin-spoon absolute inset-[24%]" aria-hidden="true">
+                        <svg class="h-full w-full" viewBox="0 0 100 100">
+                            <ellipse cx="50" cy="24" rx="11" ry="15" fill="var(--color-kunyit)" stroke="var(--color-ink)" stroke-width="1.6"/>
+                            <ellipse cx="47" cy="20" rx="4" ry="6" fill="#fff" opacity="0.55"/>
+                            <path d="M50 39 C 48 52, 47.5 70, 47 86 a 3 3 0 0 0 6 0 C 52.5 70, 52 52, 50 39 Z" fill="var(--color-paper)" stroke="var(--color-ink)" stroke-width="1.6" stroke-linejoin="round"/>
+                            <circle cx="50" cy="50" r="2.4" fill="var(--color-sambal-600)"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center" aria-live="polite">
+                    <p data-spin-result class="font-display text-2xl font-semibold">Spin the spoon. It picks for you.</p>
+                    <div class="js-only mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+                        <a href="#try" data-spin-find class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)]"></a>
+                        <button type="button" data-spin-again class="bracket-link font-display text-lg font-semibold">Spin again</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -275,14 +295,14 @@
 
     {{-- LIVE NUMBERS: straight from the database, recounted hourly (see LandingInsights). -------- --}}
     @if ($shownStats)
-        <section class="mx-auto max-w-5xl px-5 pt-36 sm:px-6 sm:pt-40" aria-label="MakanApa in numbers">
+        <section class="mx-auto max-w-5xl px-5 pt-8 sm:px-6 sm:pt-12" aria-label="MakanApa in numbers">
             <dl @class(['grid gap-12 text-center', 'sm:grid-cols-2' => count($shownStats) === 2, 'sm:grid-cols-3' => count($shownStats) === 3])>
                 @foreach ($shownStats as $index => [$key, $label])
-                    <div data-stat="{{ $key }}" data-reveal class="flex flex-col-reverse items-center" style="--i: {{ $index }}">
-                        <dt class="mt-2 font-display text-2xl font-bold uppercase tracking-wide text-ink/70">{{ $label }}</dt>
-                        <dd class="relative font-display text-[clamp(4rem,9vw,6.5rem)] font-bold leading-none">
+                    <div data-stat="{{ $key }}" class="flex flex-col-reverse items-center">
+                        <dt class="mt-3 text-base font-medium text-ink/70">{{ $label }}</dt>
+                        <dd class="relative font-display text-[clamp(3.5rem,8vw,5.75rem)] font-bold leading-none tracking-tight tabular-nums">
                             <span data-count="{{ $stats[$key] }}">{{ number_format($stats[$key]) }}</span>
-                            <x-marketing.doodle type="underline" class="draw absolute -bottom-1 left-[10%] h-3 w-[80%] text-sambal-600" style="--draw-delay: {{ 400 + $index * 150 }}ms" />
+                            <x-marketing.doodle type="underline" class="draw absolute -bottom-2 left-[10%] h-3 w-[80%] text-sambal-600" style="--draw-delay: {{ 400 + $index * 150 }}ms" />
                         </dd>
                     </div>
                 @endforeach
@@ -291,36 +311,94 @@
         </section>
     @endif
 
-    {{-- PROBLEM: the one dark page in the sketchbook. -------------------------------------------- --}}
-    <section @class(['bg-ink text-paper', 'mt-24 sm:mt-28' => $shownStats, 'mt-36 sm:mt-40' => ! $shownStats])>
-        <div class="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[17rem_1fr] lg:gap-16 lg:py-28">
-            <figure data-reveal class="relative mx-auto w-56 lg:w-full">
-                <div class="sketch p-5" style="--sketch-color: var(--color-paper); --sketch-radius: 4px">
-                    <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="224" height="224" loading="lazy" class="mx-auto w-full">
-                </div>
-                <figcaption class="mt-5 flex items-start gap-2 font-display text-2xl font-bold uppercase leading-none text-paper/80">
-                    <x-marketing.doodle type="arrow-curve" class="draw h-10 w-14 shrink-0 -scale-y-100 text-paper/70" />
-                    <span>Me, every lunch.</span>
-                </figcaption>
-            </figure>
+    {{-- TIME CALCULATOR: the one dark page in the sketchbook. Controls on the left, and a printed
+         bill for the time on the right. The default bill is rendered here so it reads fine
+         without JS; the script below redoes the same sums as the controls change. ------------ --}}
+    @php
+        // Defaults: 15 minutes a decision, lunch and dinner. MakanApa: ~10 seconds a decision.
+        $calcMinutes = 15;
+        $calcMealOptions = [['breakfast', 'Breakfast', false], ['lunch', 'Lunch', true], ['dinner', 'Dinner', true], ['supper', 'Supper', false]];
+        $calcMeals = count(array_filter(array_column($calcMealOptions, 2)));
+        $calcDecisions = $calcMeals * 365;
+        $calcHours = $calcMinutes * $calcDecisions / 60;
+    @endphp
+    <section id="time" class="calc mt-24 overflow-x-clip bg-ink text-paper sm:mt-28">
+        <div class="mx-auto grid max-w-6xl items-center gap-16 px-6 py-20 lg:grid-cols-[1fr_26rem] lg:gap-20 lg:py-28">
+            <form class="calc-form">
+                <h2 class="type-section">How long do you spend deciding where to eat?</h2>
+                <p class="mt-5 max-w-md text-lg text-paper/75">Be honest. Group chats count. Here's the bill.</p>
 
-            <div data-reveal style="--i: 1">
-                <h2 class="font-display text-[clamp(3.2rem,7.5vw,6.2rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">
-                    <span class="relative inline-block whitespace-nowrap">20 minutes<x-marketing.doodle type="circle" class="draw absolute -left-2 -top-4 h-[calc(100%+2rem)] w-[calc(100%+1.25rem)] text-sambal-500 sm:-left-6 sm:-top-5 sm:h-[calc(100%+2.5rem)] sm:w-[calc(100%+3rem)]" style="--draw-delay: 600ms" /></span> scrolling Grab.
-                    <span class="mt-3 block text-sambal-300">Still no idea what to eat?</span>
-                </h2>
-                <p class="mt-8 max-w-lg text-lg text-paper/75">That's literally why we built MakanApa.</p>
+                <div class="mt-12 space-y-11">
+                    <div>
+                        <label for="calc-minutes" class="flex items-baseline justify-between gap-4 font-display text-xl font-semibold">
+                            Minutes per meal, deciding
+                            <output for="calc-minutes" data-out="minutes-label" class="whitespace-nowrap font-display text-3xl font-bold tabular-nums text-sambal-300">{{ $calcMinutes }} min</output>
+                        </label>
+                        <input id="calc-minutes" name="minutes" type="range" min="1" max="60" step="1" value="{{ $calcMinutes }}" class="calc-range mt-5 w-full">
+                        <div class="mt-2 flex justify-between font-hand text-xl text-paper/60" aria-hidden="true"><span>Decisive</span><span>Group chat</span></div>
+                    </div>
+
+                    <fieldset>
+                        <legend class="font-display text-xl font-semibold">Which meals do you agonise over?</legend>
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            @foreach ($calcMealOptions as [$value, $label, $checked])
+                                <label class="calc-pill">
+                                    <input type="checkbox" name="meals" value="{{ $value }}" class="sr-only" @checked($checked)>
+                                    <span>{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                </div>
+            </form>
+
+            {{-- The bill. --}}
+            <div class="relative mx-auto w-full max-w-[26rem]" aria-live="polite">
+                <div class="receipt rotate-[1.5deg] bg-paper-50 px-7 pb-12 pt-8 text-ink">
+                    <div class="text-center">
+                        <x-marketing.wordmark class="text-2xl" />
+                        <p class="receipt-mono mt-1 text-xs text-ink/60">Time spent deciding · {{ now()->format('Y') }}</p>
+                    </div>
+
+                    <dl class="receipt-mono mt-6 space-y-1.5 border-y border-dashed border-ink/40 py-4 text-sm">
+                        <div class="receipt-line"><dt>Deciding, per meal</dt><dd><span data-out="minutes">{{ $calcMinutes }}</span> min</dd></div>
+                        <div class="receipt-line"><dt>Meals a day</dt><dd>× <span data-out="meals">{{ $calcMeals }}</span></dd></div>
+                        <div class="receipt-line"><dt>Days a year</dt><dd>× 365</dd></div>
+                    </dl>
+
+                    <div class="mt-5">
+                        <p class="receipt-mono text-sm font-bold">Total time lost</p>
+                        <p class="receipt-total mt-1 font-display text-[4.5rem] font-bold leading-none tracking-tight tabular-nums">
+                            <span data-out="hours">{{ number_format($calcHours) }}</span><span class="ml-2 text-3xl font-semibold">hours</span>
+                        </p>
+                        <dl class="receipt-mono mt-3 space-y-1.5 text-sm text-ink/75">
+                            <div class="receipt-line"><dt>In full days</dt><dd><span data-out="days">{{ number_format($calcHours / 24, 1) }}</span></dd></div>
+                            <div class="receipt-line"><dt>In plates of nasi lemak*</dt><dd><span data-out="plates">{{ number_format($calcMinutes * $calcDecisions / 15) }}</span></dd></div>
+                        </dl>
+                    </div>
+
+                    <div class="receipt-mono mt-5 border-t border-dashed border-ink/40 pt-4 text-sm">
+                        <div class="receipt-line"><dt>With MakanApa, 10 sec a meal</dt><dd><span data-out="with">{{ number_format(10 * $calcDecisions / 3600, 1) }}</span> h</dd></div>
+                    </div>
+
+                    {{-- Rubber stamp over the bill. --}}
+                    <p class="receipt-stamp absolute bottom-16 right-3 -rotate-12 rounded-lg border-[3px] border-sambal-600 px-3 py-1 text-center font-display font-bold leading-tight text-sambal-600">
+                        <span class="block text-2xl tabular-nums"><span data-out="saved">{{ number_format($calcHours - 10 * $calcDecisions / 3600) }}</span> hours</span>
+                        <span class="block text-sm">back every year</span>
+                    </p>
+
+                    <div class="receipt-barcode mx-auto mt-8 h-10 w-48" aria-hidden="true"></div>
+                    <p class="receipt-mono mt-3 text-center text-xs text-ink/60">Thank you. Now go eat.</p>
+                    <p class="receipt-mono mt-1 text-center text-[0.7rem] text-ink/50">*At 15 minutes a plate.</p>
+                </div>
             </div>
         </div>
     </section>
 
     {{-- EVERYTHING LOOKS GOOD: real Malaysian food scenes, taped in like polaroids. ------------------ --}}
     <section class="mx-auto max-w-6xl px-5 pt-24 sm:px-6 sm:pt-28">
-        <div data-reveal class="text-center">
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600">The real problem</p>
-            <h2 class="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-bold uppercase leading-[0.88] tracking-tight">
-                Everything looks good.
-            </h2>
+        <div class="text-center">
+            <h2 class="type-section">Everything looks good.</h2>
             <p class="mx-auto mt-5 max-w-lg text-lg text-ink/75">
                 Night markets, mamak, satay by the roadside… choosing is the hard part. So let MakanApa choose.
             </p>
@@ -337,21 +415,21 @@
 
         <div class="mt-16 grid gap-12 md:grid-cols-3 md:gap-8">
             @foreach ($scenes as $index => [$clip, $title, $note, $tilt])
-                <figure data-reveal class="sketch {{ $tilt }} bg-paper-50 p-3 pb-6 transition-[rotate,translate] duration-300 hover:rotate-0" style="--i: {{ $index }}; --sketch-radius: 6px">
+                <figure class="sketch {{ $tilt }} bg-paper-50 p-3 pb-6 transition-[rotate,translate] duration-300 hover:rotate-0" style="--sketch-radius: 6px">
                     <span class="tape -top-3 left-1/2 w-24 -translate-x-1/2 {{ $index % 2 ? 'rotate-2' : '-rotate-3' }}" aria-hidden="true"></span>
                     <div class="aspect-[4/3] overflow-hidden rounded-[3px] bg-ink/10">
                         <x-marketing.clip :name="$clip" />
                     </div>
                     <figcaption class="mt-5 px-2">
-                        <p class="font-display text-4xl font-bold uppercase leading-none">{{ $title }}</p>
+                        <p class="type-card">{{ $title }}</p>
                         <p class="mt-2 text-sm text-ink/70">{{ $note }}</p>
                     </figcaption>
                 </figure>
             @endforeach
         </div>
 
-        <div data-reveal class="mt-14 flex flex-col items-center text-center" style="--i: 3">
-            <p class="font-display text-3xl font-bold uppercase leading-none sm:text-4xl">
+        <div class="mt-14 flex flex-col items-center text-center">
+            <p class="font-display text-2xl font-semibold leading-tight sm:text-3xl">
                 Too many choices?
                 <span class="text-sambal-600">We pick one.</span>
             </p>
@@ -359,81 +437,92 @@
         </div>
     </section>
 
-    {{-- HOW IT WORKS ----------------------------------------------------------------------------- --}}
-    <section id="how-it-works" class="scroll-mt-20 mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-6 sm:pb-28 sm:pt-12">
-        <div data-reveal class="text-center">
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600">How it works</p>
-            <h2 class="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-bold uppercase leading-[0.88] tracking-tight">Three questions.<br>One answer.</h2>
+    {{-- HOW IT WORKS: the steps scroll past a phone that stays put and changes screen with them
+         (script below). Under lg each step carries its own phone instead. --------------------- --}}
+    @php
+        $walk = [
+            // [screen, title, body, options, picked option, alt]
+            ['mood', "What's the vibe?", 'Rice? Spicy? Something light? Pick a craving, or leave it to us.', ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Lemak', 'Anything'], 'Nasi Kandar', 'Mood step with options like Nasi Kandar, Ayam Gepuk and Nasi Padang'],
+            ['budget', "What's the budget?", 'Save a bit, keep it normal, or treat yourself.', ['~RM10', '~RM20', '~RM35+', 'Anything'], '~RM20', 'Budget step with ~RM10, ~RM20 and ~RM35+'],
+            ['distance', 'How far can you go?', 'Close by, a short trip, or somewhere worth the trip.', ['1 km', '2 km', '5 km'], '2 km', 'Distance step with within 1 km, 2 km and 5 km'],
+            ['result', 'One answer. Not a list.', "MakanApa picks one place and tells you why: price, distance, what's open, what people say.", [], null, 'Result screen: MakanApa says Nasi Kandar Haji Basheer, settled, with price, distance and why'],
+        ];
+    @endphp
+    <section id="how-it-works" class="walk scroll-mt-20 mx-auto max-w-6xl px-5 pb-16 pt-12 sm:px-6 lg:pb-0">
+        <div class="max-w-2xl">
+            <h2 class="type-section">Three questions.<br>One answer.</h2>
+            <p class="mt-5 max-w-lg text-lg text-ink/75">No list to scroll through. Answer three quick questions and MakanApa settles it.</p>
         </div>
 
-        @php
-            $steps = [
-                // [illustration, title, body, options, picked option]
-                ['mood-spicy', "What's the vibe?", 'Rice? Spicy? Something light? Anything works.', ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Lemak', 'Mee Goreng'], 'Nasi Kandar'],
-                ['budget-normal', "What's the budget?", 'Save a bit, keep it normal, or treat yourself.', ['~RM10', '~RM20', '~RM35+', 'Anything'], '~RM20'],
-                ['distance-walk', 'How far can you go?', 'Close by, a short trip, or somewhere worth the trip.', ['Within 1 km', 'Within 2 km', 'Within 5 km'], 'Within 2 km'],
-            ];
-            $tilts = ['-rotate-1', 'rotate-1', '-rotate-[0.5deg]'];
-        @endphp
+        <div class="mt-14 grid gap-16 lg:mt-0 lg:grid-cols-[1fr_17rem] lg:gap-24">
+            <ol>
+                @foreach ($walk as $i => [$screen, $title, $body, $options, $picked, $alt])
+                    <li data-step="{{ $i }}" class="flex flex-col justify-center gap-10 sm:flex-row sm:items-center lg:min-h-[70vh] lg:flex-col lg:items-start lg:gap-0">
+                        <div class="max-w-md">
+                            <span class="relative flex h-12 w-12 items-center justify-center font-display text-2xl font-bold">
+                                {{ $i + 1 }}
+                                <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-ink/70" />
+                            </span>
+                            <h3 class="type-card mt-4">{{ $title }}</h3>
+                            <p class="mt-2 text-lg leading-relaxed text-ink/75">{{ $body }}</p>
+                            @if ($options)
+                                <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3 font-display text-xl font-semibold leading-none" aria-hidden="true">
+                                    @foreach ($options as $option)
+                                        <li @class(['relative', 'text-sambal-600' => $option === $picked, 'text-ink/60' => $option !== $picked])>
+                                            {{ $option }}
+                                            @if ($option === $picked)
+                                                <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-sambal-600" style="--draw-delay: 500ms" />
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="relative mt-6 inline-block font-display text-xl font-semibold text-sambal-600">
+                                    Not feeling it? Find another.
+                                    <x-marketing.doodle type="underline" class="draw absolute -bottom-2 left-0 h-3 w-full text-sambal-600" />
+                                </p>
+                            @endif
+                        </div>
+                        <div class="w-48 shrink-0 self-center sm:w-44 lg:hidden">
+                            <x-marketing.phone :screen="$screen" :alt="$alt" class="rounded-[2rem] p-1.5" />
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
 
-        <ol class="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-7">
-            @foreach ($steps as $i => [$art, $title, $body, $options, $picked])
-                <li data-reveal class="sketch {{ $tilts[$i] }} flex flex-col bg-paper-50 p-6 transition-[rotate] duration-300 hover:rotate-0" style="--i: {{ $i }}; --sketch-radius: 14px">
-                    <div class="flex items-start justify-between">
-                        <span class="relative flex h-12 w-12 items-center justify-center font-display text-4xl font-bold">
-                            {{ $i + 1 }}
-                            <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-ink/70" />
-                        </span>
-                        <img src="{{ asset("images/illustrations/{$art}.svg") }}" alt="" aria-hidden="true" width="64" height="64" loading="lazy" class="h-16 w-16">
-                    </div>
-                    <h3 class="mt-5 font-display text-4xl font-bold uppercase leading-none">{{ $title }}</h3>
-                    <p class="mt-2 text-sm leading-relaxed text-ink/70">{{ $body }}</p>
-                    <ul class="mt-6 flex flex-wrap gap-x-5 gap-y-3 font-display text-2xl font-bold uppercase leading-none" aria-hidden="true">
-                        @foreach ($options as $option)
-                            <li @class(['relative', 'text-sambal-600' => $option === $picked, 'text-ink/60' => $option !== $picked])>
-                                {{ $option }}
-                                @if ($option === $picked)
-                                    <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-sambal-600" style="--draw-delay: {{ 500 + $i * 150 }}ms" />
-                                @endif
-                            </li>
+            {{-- One phone for the whole walk-through; the screens are stacked and cross-fade. --}}
+            <div class="hidden lg:block" aria-hidden="true">
+                <div class="sticky top-[calc(50vh-18.5rem)] py-10">
+                    <div class="relative -rotate-2 rounded-[2.4rem] bg-ink p-1.5 shadow-phone">
+                        @foreach ($walk as $i => [$screen])
+                            <img src="{{ asset("images/screens/{$screen}-720.webp") }}" alt="" width="360" height="783" loading="lazy" decoding="async"
+                                 data-screen="{{ $i }}"
+                                 @class(['walk-screen block h-auto rounded-[2.1rem] bg-cream', 'is-current w-full' => $i === 0, 'absolute left-1.5 top-1.5 w-[calc(100%-0.75rem)]' => $i > 0])>
                         @endforeach
-                    </ul>
-                </li>
-            @endforeach
-
-            <li data-reveal class="sketch relative flex min-h-72 rotate-1 flex-col bg-ink p-6 text-paper transition-[rotate] duration-300 hover:rotate-0" style="--i: 3; --sketch-radius: 14px">
-                <span class="relative flex h-12 w-12 items-center justify-center font-display text-4xl font-bold">
-                    4
-                    <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-paper/70" />
-                </span>
-                <p class="mt-5 font-display text-7xl font-bold uppercase leading-[0.8]">Done.</p>
-                <p class="mt-3 max-w-[11rem] text-paper/80">We pick one. You stop deciding.</p>
-                <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" aria-hidden="true" width="150" height="150" loading="lazy"
-                     class="absolute -bottom-4 -right-4 h-36 w-36">
-                <x-marketing.doodle type="sparkle" class="absolute right-28 top-14 h-5 w-5 text-kunyit" />
-            </li>
-        </ol>
+                    </div>
+                    <p class="mt-6 text-center font-hand text-2xl text-ink/70">The real app, not a mock-up.</p>
+                </div>
+            </div>
+        </div>
     </section>
 
     {{-- TRY IT: the real picking engine on real places, anchored on a campus since the page never
          asks for the visitor's location. Needs JS, so it's hidden without it. ------------------- --}}
-    <section id="try" class="js-only scroll-mt-20 mx-auto max-w-6xl px-5 pb-20 sm:px-6">
-        <div data-reveal class="text-center">
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600">Now you try</p>
-            <h2 class="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">
-                What to eat near {{ $demoArea }}?
-            </h2>
+    <section id="try" class="js-only scroll-mt-20 mx-auto max-w-6xl px-5 pb-20 pt-12 sm:px-6 lg:pt-24">
+        <div class="text-center">
+            <p class="font-hand text-3xl text-sambal-700">Go on, try it</p>
+            <h2 class="type-section mt-1">What to eat near {{ $demoArea }}?</h2>
             <p class="mx-auto mt-5 max-w-xl text-lg text-ink/75">
                 Real places, picked the same way the app picks. In the app, it uses wherever you are.
             </p>
         </div>
 
-        <div data-reveal class="sketch mt-14 grid gap-12 bg-paper-50 p-6 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14" style="--i: 1; --sketch-radius: 18px">
+        <div data-reveal class="sketch mt-14 grid gap-12 bg-paper-50 p-6 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14" style="--sketch-radius: 18px">
             <form id="try-form" action="{{ route('marketing.try') }}" method="get" class="space-y-7">
                 @foreach ($tryQuestions as $number => [$field, $question, $options, $default])
                     <fieldset>
-                        <legend class="font-display text-3xl font-bold uppercase leading-none">{{ $number + 1 }}. {{ $question }}</legend>
-                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-display text-[1.7rem] font-bold uppercase leading-none">
+                        <legend class="font-display text-2xl font-semibold leading-none">{{ $number + 1 }}. {{ $question }}</legend>
+                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-display text-xl font-semibold leading-none">
                             @foreach ($options as [$value, $label])
                                 <label class="chip">
                                     <input type="radio" name="{{ $field }}" value="{{ $value }}" class="sr-only" @checked($value === $default)>
@@ -456,14 +545,14 @@
             <div class="try-panel relative flex min-h-80 items-center justify-center text-center" data-show="idle" aria-live="polite">
                 <div data-state="idle" class="flex-col items-center">
                     <img src="{{ asset('images/mascot-default.svg') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy" class="animate-sketch-bob h-32 w-32">
-                    <p class="mt-4 max-w-[15rem] font-display text-3xl font-bold uppercase leading-none text-ink/70">
+                    <p class="mt-4 max-w-[15rem] font-display text-xl font-semibold leading-snug text-ink/70">
                         Pick your answers, then hit the button.
                     </p>
                 </div>
 
                 <div data-state="spinning" class="flex-col items-center" aria-hidden="true">
-                    <p class="font-display text-3xl font-bold uppercase text-ink/60">Hmm… what to eat?</p>
-                    <div class="slot-reel mt-2 font-display text-[clamp(3rem,7vw,4.5rem)] font-bold uppercase">
+                    <p class="font-display text-xl font-semibold text-ink/60">Hmm… what to eat?</p>
+                    <div class="slot-reel mt-2 font-display text-[clamp(2.2rem,5vw,3.25rem)] font-bold tracking-tight">
                         <ul>
                             @foreach ([...$dishes, ...$dishes] as $dish)
                                 <li class="whitespace-nowrap leading-[1.3]">{{ $dish }}</li>
@@ -473,22 +562,22 @@
                 </div>
 
                 <div data-state="pick" class="w-full flex-col items-center">
-                    <p class="font-display text-2xl font-bold uppercase text-ink/60">MakanApa says…</p>
-                    <p data-field="name" class="mt-1 font-display text-[clamp(2.8rem,6vw,4.4rem)] font-bold uppercase leading-[0.9] text-balance text-sambal-600"></p>
-                    <p data-field="headline" class="mt-2 font-display text-2xl font-bold uppercase text-ink/75"></p>
+                    <p class="font-display text-lg font-semibold text-ink/60">MakanApa says…</p>
+                    <p data-field="name" class="mt-2 font-display text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-tight tracking-tight text-balance text-sambal-600"></p>
+                    <p data-field="headline" class="mt-3 font-display text-lg font-medium text-ink/75"></p>
                     <ul data-field="facts" class="mt-4 flex flex-wrap justify-center gap-2"></ul>
                     <div class="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
                         <a data-field="url" href="#" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)] text-sm">
                             See this place
                             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                         </a>
-                        <button type="button" data-reroll class="bracket-link font-display text-2xl font-bold uppercase">[Find another]</button>
+                        <button type="button" data-reroll class="bracket-link font-display text-lg font-semibold">Find another</button>
                     </div>
                 </div>
 
                 <div data-state="none" class="flex-col items-center">
                     <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
-                    <p class="mt-3 font-display text-4xl font-bold uppercase leading-none">Oops…</p>
+                    <p class="type-card mt-3">Nothing here yet</p>
                     <p data-variant="first" class="mt-2 max-w-xs text-ink/75">Nothing matches that around {{ $demoArea }} yet. Try 5 km, or Anything.</p>
                     <p data-variant="more" class="mt-2 max-w-xs text-ink/75">That's every match nearby for those answers. Try different ones!</p>
                 </div>
@@ -496,12 +585,12 @@
                 <div data-state="error" class="flex-col items-center">
                     <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
                     <div data-variant="busy" class="flex flex-col items-center">
-                        <p class="mt-3 font-display text-4xl font-bold uppercase leading-none">Slow down a bit</p>
+                        <p class="type-card mt-3">Slow down a bit</p>
                         <p class="mt-2 max-w-xs text-ink/75">Too many tries in a row. Give it a minute, then try again.</p>
                     </div>
                     <div data-variant="offline" class="flex flex-col items-center">
-                        <p class="mt-3 font-display text-4xl font-bold uppercase leading-none">Oops</p>
-                        <p class="mt-2 max-w-xs text-ink/75">Couldn't get a pick just now. Check your connection, then try again.</p>
+                        <p class="type-card mt-3">Couldn't get a pick</p>
+                        <p class="mt-2 max-w-xs text-ink/75">Check your connection, then try again.</p>
                     </div>
                 </div>
             </div>
@@ -511,13 +600,13 @@
     {{-- MOST PICKED NEAR THE DEMO CAMPUS (or top rated, labelled as such). -------------------------- --}}
     @if ($nearby['kind'])
         <section class="mx-auto max-w-3xl px-5 pb-24 sm:px-6 sm:pb-28" data-nearby="{{ $nearby['kind'] }}">
-            <div data-reveal class="sketch relative -rotate-[0.6deg] bg-paper-50 p-6 sm:p-9" style="--sketch-radius: 10px">
+            <div class="sketch relative -rotate-[0.6deg] bg-paper-50 p-6 sm:p-9" style="--sketch-radius: 10px">
                 <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-2" aria-hidden="true"></span>
                 @if ($nearby['kind'] === 'picked')
-                    <h2 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl">Most picked near {{ $demoArea }}</h3>
+                    <h2 class="type-card">Most picked near {{ $demoArea }}</h2>
                     <p class="mt-1 text-sm text-ink/70">By MakanApa users over the last 30 days.</p>
                 @else
-                    <h2 class="font-display text-4xl font-bold uppercase leading-none sm:text-5xl">Top rated near {{ $demoArea }}</h3>
+                    <h2 class="type-card">Top rated near {{ $demoArea }}</h2>
                     <p class="mt-1 text-sm text-ink/70">By Google rating, among places MakanApa knows.</p>
                 @endif
 
@@ -525,7 +614,7 @@
                     @foreach ($nearby['items'] as $rank => $place)
                         <li>
                             <a href="{{ $place['url'] }}" class="group flex items-center gap-4 py-3.5">
-                                <span class="relative flex h-11 w-11 shrink-0 items-center justify-center font-display text-3xl font-bold">
+                                <span class="relative flex h-11 w-11 shrink-0 items-center justify-center font-display text-xl font-bold">
                                     {{ $rank + 1 }}
                                     <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-ink/50" style="--draw-delay: {{ 200 + $rank * 120 }}ms" />
                                 </span>
@@ -533,7 +622,7 @@
                                     <span class="block truncate text-lg font-semibold transition-colors group-hover:text-sambal-600">{{ $place['name'] }}</span>
                                     <span class="block text-sm text-ink/70">{{ $place['headline'] }} · {{ number_format($place['distanceKm'], 1) }} km</span>
                                 </span>
-                                <span class="shrink-0 font-display text-2xl font-bold uppercase text-sambal-600">
+                                <span class="shrink-0 font-display text-lg font-semibold text-sambal-600">
                                     @if ($place['pickers'] !== null)
                                         {{ $place['pickers'] }} people
                                     @else
@@ -548,130 +637,175 @@
         </section>
     @endif
 
-    {{-- THE REAL APP: screenshots taped into the sketchbook. -------------------------------------- --}}
-    <section id="app" class="scroll-mt-20 border-y border-ink/10 bg-paper-50/60 py-24 sm:py-28">
-        <div data-reveal class="mx-auto max-w-4xl px-5 text-center sm:px-6">
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600">The real app</p>
-            <h2 class="mt-1 font-display text-[clamp(2.8rem,6.5vw,5rem)] font-bold uppercase leading-[0.9] tracking-tight text-balance">
-                From “what should we eat?” to settled in a few taps.
-            </h2>
-        </div>
+    {{-- FEATURES: what the app does beyond the pick. Sizes follow how much there is to show. ---- --}}
+    <section id="features" class="scroll-mt-20 border-t border-ink/10 bg-paper-50/60">
+        <div class="mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
+            <div class="max-w-2xl">
+                <h2 class="type-section">Small things.<br>Big difference.</h2>
+                <p class="mt-5 max-w-lg text-lg text-ink/75">Everything else in the app, for the days the three questions aren't enough.</p>
+            </div>
 
-        <ol class="mt-16 flex snap-x snap-mandatory gap-10 overflow-x-auto px-8 pb-10 pt-4 [scrollbar-width:thin] lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-5 lg:gap-8 lg:overflow-visible lg:px-6"
-            tabindex="0" aria-label="App screenshots, in order">
-            @foreach ([
-                ['mood', '1. Pick a mood', 'Quick and simple.', 'Mood step with options like Nasi Kandar, Ayam Gepuk and Nasi Padang', '-rotate-2'],
-                ['budget', '2. Set a budget', 'From save to treat yourself.', 'Budget step with ~RM10 Save a bit, ~RM20 Normal and ~RM35+ Treat myself', 'rotate-1'],
-                ['distance', '3. How far?', 'Stay nearby or go a little further.', 'Distance step with within 1 km Close by, 2 km Short trip and 5 km Worth the trip', '-rotate-1'],
-                ['result', '4. Get your pick', 'One answer, not a list.', 'Result screen: MakanApa says Nasi Kandar Haji Basheer, settled, with price, distance and why', 'rotate-2'],
-                ['nearby', '5. Or see what’s around', 'Explore the map.', 'Nearby map with top-rated places and community finds', '-rotate-1'],
-            ] as $index => [$screen, $caption, $sub, $alt, $tilt])
-                <li data-reveal class="w-[60vw] max-w-[14rem] shrink-0 snap-center text-center lg:w-auto lg:max-w-none" style="--i: {{ $index }}">
-                    <div class="relative {{ $tilt }} transition-[rotate,translate] duration-300 hover:-translate-y-2 hover:rotate-0">
-                        <span class="tape -top-3 left-1/2 w-20 -translate-x-1/2 {{ $index % 2 ? 'rotate-3' : '-rotate-2' }}" aria-hidden="true"></span>
-                        <x-marketing.phone :screen="$screen" :alt="$alt" class="rounded-[2rem] p-1.5" />
-                    </div>
-                    <p class="mt-6 font-display text-3xl font-bold uppercase leading-none">{{ $caption }}</p>
-                    <p class="mt-1 text-sm text-ink/70">{{ $sub }}</p>
-                </li>
-            @endforeach
-        </ol>
-    </section>
-
-    {{-- WHAT MAKES IT DIFFERENT: index cards pinned to the page. ---------------------------------- --}}
-    <section id="features" class="mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
-        <div data-reveal class="text-center">
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-sambal-600">What makes MakanApa different</p>
-            <h2 class="mt-1 font-display text-[clamp(3rem,7vw,5.5rem)] font-bold uppercase leading-[0.88] tracking-tight">Small things.<br>Big difference.</h2>
-        </div>
-
-        <div class="mt-16 grid gap-12 md:grid-cols-2 md:gap-x-10 md:gap-y-14">
-            {{-- Reroll --}}
-            <article data-reveal class="sketch relative -rotate-1 bg-paper-50 p-7 transition-[rotate] duration-300 hover:rotate-0" style="--sketch-radius: 10px">
-                <div class="flex items-start gap-4">
-                    <img src="{{ asset('images/illustrations/mood-quick.svg') }}" alt="" aria-hidden="true" width="56" height="56" loading="lazy" class="h-14 w-14 shrink-0">
+            <div class="mt-16 grid gap-10 lg:grid-cols-6 lg:gap-8">
+                {{-- Saved places shuffle --}}
+                <article class="sketch grid items-center gap-10 bg-paper p-7 sm:grid-cols-[1fr_15rem] sm:p-9 lg:col-span-4" style="--sketch-radius: 14px">
                     <div>
-                        <h3 class="font-display text-4xl font-bold uppercase leading-none">Reroll</h3>
-                        <p class="mt-2 text-ink/75">Not feeling it? Next one. Same preferences, different spot.</p>
+                        <h3 class="type-card">Shuffle your saved places</h3>
+                        <p class="mt-3 max-w-sm text-ink/75">Save two or more places and MakanApa shuffles them like a deck of cards, deals you one, and shows why that one won.</p>
+                        <p class="mt-5 font-hand text-2xl text-sambal-700">For when the shortlist is already in your head.</p>
                     </div>
-                </div>
-                <div class="mt-6 flex items-end gap-5" aria-hidden="true">
-                    <div class="-mb-16 w-24 shrink-0 -rotate-6 rounded-2xl bg-ink p-1 shadow-phone">
-                        <img src="{{ asset('images/screens/result-360.webp') }}" alt="" width="360" height="783" loading="lazy" class="rounded-xl">
+                    <div class="deck relative mx-auto h-60 w-44" aria-hidden="true">
+                        @foreach ([['Laksa', '-14deg', '-26deg', '-1.5rem'], ['Satay', '-6deg', '-12deg', '-0.5rem'], ['Roti canai', '5deg', '10deg', '0.75rem']] as [$dish, $tilt, $fan, $shift])
+                            <div class="deck-card absolute inset-0 flex items-end rounded-2xl border-2 border-ink/80 bg-cream p-4 shadow-clay" style="--tilt: {{ $tilt }}; --fan: {{ $fan }}; --shift: {{ $shift }}">
+                                <span class="font-display text-lg font-semibold text-ink/60">{{ $dish }}</span>
+                            </div>
+                        @endforeach
+                        <div class="deck-card absolute inset-0 flex flex-col rounded-2xl border-2 border-ink bg-paper-50 p-4 shadow-clay" style="--tilt: 0deg; --fan: 0deg; --shift: 0">
+                            <span class="text-xs font-semibold text-sambal-700">Dealt to you</span>
+                            <span class="mt-1 font-display text-2xl font-bold leading-tight">Nasi kandar</span>
+                            <span class="mt-auto font-display text-sm font-semibold text-ink/70">Why this one?</span>
+                            <span class="mt-1.5 flex flex-wrap gap-1.5 text-xs font-medium">
+                                <span class="rounded-full border border-ink/20 px-2 py-0.5">Saved</span>
+                                <span class="rounded-full border border-ink/20 px-2 py-0.5">Open now</span>
+                                <span class="rounded-full border border-ink/20 px-2 py-0.5">0.8 km</span>
+                            </span>
+                        </div>
                     </div>
-                    <div class="mb-3 flex-1">
-                        <p class="font-display text-3xl font-bold uppercase leading-none">Not feeling it?</p>
-                        <p class="relative mt-3 inline-block font-display text-3xl font-bold uppercase leading-none text-sambal-600">
-                            Find another
-                            <x-marketing.doodle type="underline" class="draw absolute -bottom-2 left-0 h-3 w-full text-sambal-600" />
-                        </p>
-                    </div>
-                </div>
-            </article>
+                </article>
 
-            {{-- Halal --}}
-            <article data-reveal class="sketch rotate-1 bg-paper-50 p-7 transition-[rotate] duration-300 hover:rotate-0" style="--i: 1; --sketch-radius: 10px">
-                <div class="flex items-start gap-4">
-                    <svg class="h-14 w-14 shrink-0 text-sambal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                {{-- Halal --}}
+                <article class="sketch flex flex-col bg-paper p-7 lg:col-span-2" style="--sketch-radius: 14px">
+                    <svg class="h-12 w-12 text-pandan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>
                     </svg>
-                    <div>
-                        <h3 class="font-display text-4xl font-bold uppercase leading-none">Halal info you can understand</h3>
-                        <p class="mt-2 text-ink/75">See which places are halal certified, which aren't, and which we haven't verified yet. No guessing.</p>
+                    <h3 class="type-card mt-4">Halal info you can trust</h3>
+                    <p class="mt-3 text-ink/75">Every place shows what we actually know. Only eat halal? MakanApa can hide places known to be non-halal.</p>
+                    <ul class="mt-6 space-y-3 font-display text-lg font-semibold leading-none">
+                        <li class="relative inline-block text-pandan-700">
+                            Halal certified
+                            <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-pandan" />
+                        </li>
+                        <li class="text-ink/75">Not certified</li>
+                        <li class="text-ink/60">Not verified yet</li>
+                    </ul>
+                    <p class="mt-auto pt-6 text-sm text-ink/70">Certificates and reports from the community are checked before they go live.</p>
+                </article>
+
+                {{-- Community --}}
+                <article class="sketch flex flex-col bg-paper p-7 sm:p-9 lg:col-span-3" style="--sketch-radius: 14px">
+                    <h3 class="type-card">What's your campus eating?</h3>
+                    <p class="mt-3 max-w-md text-ink/75">Join your university or area community for trending picks, posts from people nearby, and picks from your ambassadors.</p>
+                    <div class="mt-7 rounded-2xl border-2 border-dashed border-ink/25 p-5" aria-hidden="true">
+                        <p class="font-display text-xl font-bold">What's {{ config('marketing.demo.university') }} eating?</p>
+                        <p class="text-sm text-ink/70">Popular around {{ config('marketing.demo.university') }}</p>
+                        <ul class="mt-4 grid gap-2 text-sm font-semibold sm:grid-cols-3">
+                            <li class="rounded-xl bg-sambal-50 px-3 py-2 text-sambal-700">Trending picks</li>
+                            <li class="rounded-xl bg-paper-200/70 px-3 py-2">What people say</li>
+                            <li class="rounded-xl bg-kunyit/25 px-3 py-2">Ambassador picks</li>
+                        </ul>
                     </div>
+                </article>
+
+                {{-- Add or fix places --}}
+                <article class="sketch flex flex-col bg-paper p-7 sm:p-9 lg:col-span-3" style="--sketch-radius: 14px">
+                    <h3 class="type-card">Missing a spot? Add it.</h3>
+                    <p class="mt-3 max-w-md text-ink/75">Add a new place, fix wrong info, report a closure or send a halal report. My places shows where each one is in review.</p>
+                    @php
+                        $reviewSteps = ['Sent', 'Reviewing', 'Live'];
+                        $submissions = [['New place', 2], ['Halal report', 1], ['Closure report', 0]];
+                    @endphp
+                    <ul class="mt-7 divide-y divide-dashed divide-ink/20 border-y border-dashed border-ink/20" aria-label="Example: three submissions and where they are in review">
+                        @foreach ($submissions as [$type, $reached])
+                            <li class="flex items-center justify-between gap-4 py-3">
+                                <span class="font-semibold">{{ $type }}</span>
+                                <span class="flex items-center gap-1.5 text-xs font-semibold">
+                                    @foreach ($reviewSteps as $step => $name)
+                                        <span @class([
+                                            'rounded-full px-2 py-0.5',
+                                            'bg-pandan text-white' => $step === $reached && $name === 'Live',
+                                            'bg-ink text-paper' => $step === $reached && $name !== 'Live',
+                                            'text-ink/70' => $step < $reached,
+                                            'text-ink/35' => $step > $reached,
+                                        ])>{{ $name }}</span>
+                                    @endforeach
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </article>
+
+                {{-- The smaller things, as a plain list --}}
+                <div class="lg:col-span-4">
+                    <dl class="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+                        @foreach ([
+                            ['Nearby map', 'Everything around you on one map. Filter by open now, under RM20 or 4.5 stars and up.'],
+                            ['Taste profile', 'Choose up to four things you usually go for, and picks lean that way.'],
+                            ['Mealtime picks', 'Switch it on for a pick near you at lunch or dinner. One a day, at most.'],
+                            ['No account needed', 'Picks, Nearby and saves work without one. Sign up later and nothing is lost.'],
+                            ['Your maps app', 'Directions open in Apple Maps or Google Maps, whichever you prefer.'],
+                            ['Photos and reviews', 'See photos and Google reviews before you go.'],
+                        ] as [$term, $detail])
+                            <div class="border-t-2 border-ink/80 pt-3">
+                                <dt class="font-display text-xl font-semibold">{{ $term }}</dt>
+                                <dd class="mt-1 text-ink/75">{{ $detail }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
                 </div>
-                <ul class="mt-7 flex flex-wrap gap-x-6 gap-y-3 font-display text-2xl font-bold uppercase leading-none">
-                    <li class="relative text-pandan-700">
-                        Halal certified
-                        <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-pandan" />
-                    </li>
-                    <li class="text-ink/75">Not certified</li>
-                    <li class="text-ink/60">Not verified yet</li>
+
+                {{-- Group mode: not out yet --}}
+                <article class="sketch relative flex flex-col bg-paper p-7 lg:col-span-2" style="--sketch-radius: 14px">
+                    <h3 class="type-card">Group mode</h3>
+                    {{-- Rubber stamp, not a badge: this one isn't out yet. --}}
+                    <span class="mt-3 inline-block w-fit -rotate-6 rounded-md border-[3px] border-sambal-600 px-2.5 py-0.5 font-display text-lg font-bold text-sambal-600 opacity-85 mix-blend-multiply sm:absolute sm:right-5 sm:top-5 sm:mt-0 sm:-rotate-12">Coming soon</span>
+                    <p class="mt-3 text-ink/75">Everyone votes, one place wins. Still cooking.</p>
+                    <img src="{{ asset('images/mascot-geng.svg') }}" alt="" aria-hidden="true" width="790" height="530" loading="lazy"
+                         class="mx-auto -mb-3 mt-auto w-48 pt-4">
+                </article>
+            </div>
+        </div>
+    </section>
+
+    {{-- AMBASSADORS: the people behind each campus's picks. ------------------------------------- --}}
+    <section id="ambassadors" class="scroll-mt-20 border-y border-ink/10 bg-paper">
+        <div class="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 sm:px-6 sm:py-28 lg:grid-cols-[1.15fr_0.85fr]">
+            <div>
+                <h2 class="type-section">Every campus has someone who knows where to eat.</h2>
+                <p class="mt-6 max-w-lg text-lg text-ink/75">
+                    MakanApa ambassadors pick the places their community should try, add the spots that are missing and keep halal info honest. Their picks show up for everyone in their community.
+                </p>
+
+                <p class="mt-10 text-sm font-medium text-ink/70">Ambassadors are live at</p>
+                <ul class="mt-3 flex flex-wrap gap-3">
+                    @foreach (config('marketing.ambassador_campuses') as $slug => $campusName)
+                        <li class="rounded-md border-[3px] border-ink/80 px-3 py-1 font-display text-lg font-bold {{ $loop->odd ? '-rotate-2' : 'rotate-1' }}">{{ $campusName }}</li>
+                    @endforeach
                 </ul>
-            </article>
 
-            {{-- Community --}}
-            <article data-reveal class="sketch rotate-[0.5deg] bg-paper-50 p-7 transition-[rotate] duration-300 hover:rotate-0" style="--sketch-radius: 10px">
-                <div class="flex items-start gap-4">
-                    <img src="{{ asset('images/illustrations/location-map.svg') }}" alt="" aria-hidden="true" width="56" height="56" loading="lazy" class="h-14 w-14 shrink-0">
-                    <div>
-                        <h3 class="font-display text-4xl font-bold uppercase leading-none">Community picks</h3>
-                        <p class="mt-2 text-ink/75">See what people around you are actually picking.</p>
-                    </div>
-                </div>
-                <div class="mt-7 flex items-center gap-3" aria-hidden="true">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sambal-600 text-white">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg>
-                    </span>
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-ink/70">Trending near you</p>
-                        <p class="font-display text-3xl font-bold uppercase leading-none">Top rated nearby</p>
-                    </div>
-                </div>
-            </article>
+                <a href="{{ route('marketing.ambassadors') }}"
+                   class="mt-10 inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-paper shadow-[5px_5px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
+                    Become an ambassador
+                </a>
+            </div>
 
-            {{-- Group mode --}}
-            <article data-reveal class="sketch relative -rotate-1 bg-paper-50 p-7 transition-[rotate] duration-300 hover:rotate-0" style="--i: 1; --sketch-radius: 10px">
-                <div class="flex items-start gap-4">
-                    <img src="{{ asset('images/illustrations/geng-group.svg') }}" alt="" aria-hidden="true" width="56" height="56" loading="lazy" class="h-14 w-14 shrink-0">
-                    <div class="flex-1">
-                        <h3 class="font-display text-4xl font-bold uppercase leading-none">Group mode</h3>
-                        {{-- Rubber stamp, not a badge: this one isn't out yet. --}}
-                        <span class="mt-2 inline-block -rotate-6 rounded-md border-[3px] border-sambal-600 px-2.5 py-0.5 font-display text-2xl font-bold uppercase tracking-wider text-sambal-600 opacity-85 mix-blend-multiply sm:absolute sm:right-5 sm:top-5 sm:mt-0 sm:-rotate-12">Coming soon</span>
-                        <p class="mt-2 text-ink/75">Everyone votes, one place wins. Still cooking.</p>
-                    </div>
+            <figure class="relative mx-auto w-full max-w-sm">
+                <div class="sketch rotate-2 bg-paper-50 p-6 text-center" style="--sketch-radius: 18px">
+                    <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-3" aria-hidden="true"></span>
+                    <img src="{{ asset('images/ambassador-crest-320.webp') }}" srcset="{{ asset('images/ambassador-crest-320.webp') }} 320w, {{ asset('images/ambassador-crest-720.webp') }} 720w" sizes="16rem"
+                         alt="MakanApa ambassador crest: Bubu in a red cap holding a spoon" width="320" height="320" loading="lazy" class="mx-auto w-56">
+                    <p class="mt-2 text-sm font-medium text-ink/70">MakanApa ambassador for</p>
+                    <p class="font-display text-2xl font-bold">Your campus</p>
+                    <p class="mt-3 text-ink/75">“Can't decide what to eat? Ask me, or let MakanApa pick.”</p>
                 </div>
-                <img src="{{ asset('images/mascot-geng.svg') }}" alt="" aria-hidden="true" width="790" height="530" loading="lazy"
-                     class="mx-auto -mb-3 mt-4 w-56">
-            </article>
+                <figcaption class="mt-6 text-center font-hand text-2xl text-ink/70">Every ambassador gets a card to share.</figcaption>
+            </figure>
         </div>
     </section>
 
     {{-- MADE FOR MALAYSIA ------------------------------------------------------------------------ --}}
-    <section class="overflow-x-clip border-y border-ink/10 bg-paper-50/60">
+    <section class="overflow-x-clip">
         <div class="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 sm:px-6 lg:grid-cols-[0.85fr_1.15fr]">
-            <div data-reveal class="text-center lg:text-left">
-                <h2 class="font-display text-[clamp(3rem,6.5vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight text-balance">Made for the way we actually choose food.</h2>
+            <div class="text-center lg:text-left">
+                <h2 class="type-section">Made for the way we actually choose food.</h2>
                 <p class="mx-auto mt-6 max-w-md text-lg text-ink/75 lg:mx-0">
                     MakanApa understands the question because we've all had the same conversation.
                 </p>
@@ -680,12 +814,12 @@
             <div class="relative mx-auto flex w-full max-w-xl flex-wrap items-center justify-center gap-4 sm:block sm:h-80" role="list" aria-label="Things we all say about food">
                 @foreach ([
                     ['“Somewhere close.”', 'sm:left-0 sm:top-6 -rotate-6'],
-                    ['“Under RM20.”', 'sm:left-[28%] sm:top-0 rotate-3'],
-                    ['“As long as it’s good.”', 'sm:right-[6%] sm:top-12 -rotate-3'],
-                    ['“A little spicy is fine.”', 'sm:right-0 sm:top-40 rotate-6'],
+                    ['“Under RM20.”', 'sm:left-[34%] sm:top-0 rotate-3'],
+                    ['“As long as it’s good.”', 'sm:right-0 sm:top-[5.5rem] -rotate-3'],
+                    ['“A little spicy is fine.”', 'sm:right-[2%] sm:top-48 rotate-6'],
                     ['“Anything’s fine.”', 'sm:left-[2%] sm:bottom-6 rotate-2'],
                 ] as $index => [$quote, $pos])
-                    <p role="listitem" data-reveal class="sketch sm:absolute {{ $pos }} bg-paper-50 px-5 py-2 font-display text-3xl font-bold uppercase text-ink sm:text-4xl" style="--i: {{ $index }}; --sketch-radius: 26px">{{ $quote }}</p>
+                    <p role="listitem" class="sketch sm:absolute {{ $pos }} bg-paper-50 px-5 py-2 font-display text-xl font-semibold text-ink sm:text-2xl" style="--sketch-radius: 26px">{{ $quote }}</p>
                 @endforeach
                 <img src="{{ asset('images/mascot-default.svg') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy"
                      class="animate-sketch-bob mx-auto h-32 w-32 sm:absolute sm:bottom-2 sm:left-1/2 sm:h-36 sm:w-36 sm:-translate-x-1/2">
@@ -694,8 +828,8 @@
     </section>
 
     {{-- FAQ ------------------------------------------------------------------------------------- --}}
-    <section id="faq" class="scroll-mt-20 mx-auto grid max-w-6xl gap-10 px-5 py-24 sm:px-6 lg:grid-cols-[14rem_1fr_1fr] lg:gap-10">
-        <h2 data-reveal class="font-display text-6xl font-bold uppercase leading-[0.85] tracking-tight lg:pt-2">Okay but…<span class="sr-only"> Frequently asked questions</span></h2>
+    <section id="faq" class="scroll-mt-20 mx-auto grid max-w-6xl gap-10 border-t border-ink/10 px-5 py-24 sm:px-6 lg:grid-cols-[14rem_1fr_1fr] lg:gap-10">
+        <h2 class="type-section lg:pt-2">Okay but…<span class="sr-only"> Frequently asked questions</span></h2>
 
         @php
             $summary = 'flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-lg font-semibold marker:content-none [&::-webkit-details-marker]:hidden';
@@ -704,7 +838,7 @@
         @endphp
 
         @foreach ($faqs as $index => $column)
-            <div data-reveal class="divide-y divide-dashed divide-ink/25 border-y border-dashed border-ink/25" style="--i: {{ $index + 1 }}">
+            <div class="divide-y divide-dashed divide-ink/25 border-y border-dashed border-ink/25">
                 @foreach ($column as [$question, $html])
                     <details class="group">
                         <summary class="{{ $summary }}">{{ $question }} <x-marketing.doodle type="plus" class="{{ $plus }}" /></summary>
@@ -715,22 +849,37 @@
         @endforeach
     </section>
 
-    {{-- FINAL CTA ------------------------------------------------------------------------------- --}}
-    <section class="relative mx-auto max-w-5xl px-5 pb-16 pt-8 text-center sm:px-6">
-        <div data-reveal class="relative mx-auto w-32 sm:w-36">
-            <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" aria-hidden="true" width="144" height="144" loading="lazy" class="animate-sketch-bob w-full">
-            <x-marketing.doodle type="sparkle" class="absolute -left-5 top-3 h-5 w-5 text-kunyit" />
-            <x-marketing.doodle type="sparkle" class="absolute -right-4 bottom-6 h-4 w-4 text-sambal-500" />
-        </div>
-        <h2 data-reveal class="mt-4 font-display text-[clamp(3.6rem,10vw,8rem)] font-bold uppercase leading-[0.82] tracking-tight" style="--i: 1">
-            Come on, stop scrolling.<br><span class="text-sambal-600">Start eating.</span>
-        </h2>
-        <p data-reveal class="mx-auto mt-6 max-w-md text-lg text-ink/75" style="--i: 2">Deciding what to eat shouldn't be the hardest part of your day.</p>
+    {{-- FINAL CTA: the one sambal page, torn off the top like the intro curtain, with Bubu
+         standing on its bottom edge. ------------------------------------------------------ --}}
+    <section class="cta relative mt-32 bg-sambal-600 text-paper sm:mt-40">
+        <svg class="absolute bottom-full left-0 h-[34px] w-full -scale-y-100 text-sambal-600" viewBox="0 0 1200 34" preserveAspectRatio="none" aria-hidden="true">
+            <path fill="currentColor" d="M0 0H1200V12L1200 12L1191 20L1170 12L1147 14L1132 23L1115 27L1096 19L1068 8L1043 29L1017 17L989 28L966 9L950 30L921 16L905 10L877 26L848 27L823 18L799 25L783 9L756 23L738 18L719 21L689 11L673 17L645 18L616 24L593 10L572 30L553 15L530 19L502 26L474 18L447 23L427 27L412 26L396 25L379 19L359 11L340 25L317 26L300 12L273 17L255 9L234 9L208 26L193 15L176 9L149 10L128 10L101 21L85 9L65 24L50 19L33 10L18 20L0 18Z"/>
+        </svg>
 
-        <div data-reveal class="relative mt-12 inline-flex flex-col items-center gap-4" style="--i: 3">
-            <x-marketing.doodle type="arrow-loop" class="draw absolute -left-40 -top-16 hidden h-24 w-36 text-ink/80 sm:block" style="--draw-delay: 500ms; --draw-dur: 1300ms" />
-            <x-marketing.app-store-badge from="final" />
-            <p class="font-display text-2xl font-bold uppercase tracking-wide text-ink/70">Free · iPhone · App Store</p>
+        <div class="mx-auto grid max-w-6xl items-end gap-4 px-5 pt-16 sm:px-6 lg:grid-cols-[1.35fr_0.65fr] lg:gap-10 lg:pt-20">
+            <div class="pb-6 text-center lg:pb-24 lg:text-left">
+                <h2 class="type-hero">Stop scrolling.<br>Start eating.</h2>
+                <p class="mx-auto mt-6 max-w-md text-lg text-paper/90 lg:mx-0">Deciding what to eat shouldn't be the hardest part of your day. Let MakanApa take it from here.</p>
+
+                <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8 lg:justify-start">
+                    <x-marketing.app-store-badge from="final" class="lg:-ml-3.5" />
+                    <div class="hidden items-center gap-3 lg:flex">
+                        <img src="{{ asset('images/qr-app-store.svg') }}" alt="QR code to download MakanApa from the App Store"
+                             width="64" height="64" loading="lazy" class="h-16 w-16 rounded-lg bg-paper p-1.5">
+                        <p class="font-hand text-2xl leading-6 text-paper/90">Or scan it<br>with your iPhone.</p>
+                    </div>
+                </div>
+                <p class="mt-3 font-display text-lg font-medium text-paper/85">Free on iPhone</p>
+            </div>
+
+            {{-- Bubu, standing on the bottom edge. --}}
+            <div class="relative mx-auto w-48 sm:w-60 lg:w-full lg:max-w-xs" aria-hidden="true">
+                <p class="absolute -top-4 right-0 z-10 rotate-6 rounded-2xl bg-paper px-4 py-1.5 font-hand text-3xl text-ink shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] sm:-right-4">Let's eat!</p>
+                <x-marketing.doodle type="sparkle" class="absolute left-2 top-10 h-6 w-6 text-kunyit" />
+                <x-marketing.doodle type="sparkle" class="absolute right-6 top-1/2 h-4 w-4 text-paper" />
+                <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="320" height="320" loading="lazy"
+                     class="animate-sketch-bob -mb-8 w-full drop-shadow-[0_18px_22px_rgba(0,0,0,0.25)] lg:-mb-12">
+            </div>
         </div>
     </section>
 
@@ -806,6 +955,114 @@
             }, { threshold: 0.6 });
 
             counters.forEach(function (el) { el.textContent = '0'; counting.observe(el); });
+        })();
+
+        // Time calculator: the same sums as the server-rendered bill, redone as the controls change.
+        (function () {
+            var form = document.querySelector('.calc-form');
+            if (!form) return;
+            var whole = new Intl.NumberFormat('en-MY');
+            var tenths = new Intl.NumberFormat('en-MY', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            var total = document.querySelector('.receipt-total');
+
+            function out(name, text) { document.querySelector('.calc [data-out="' + name + '"]').textContent = text; }
+
+            function update() {
+                var minutes = Number(form.elements.minutes.value);
+                var meals = form.querySelectorAll('input[name="meals"]:checked').length;
+                var decisions = meals * 365;
+                var hours = minutes * decisions / 60;
+                out('minutes-label', minutes + ' min');
+                out('minutes', minutes);
+                out('meals', meals);
+                out('hours', whole.format(Math.round(hours)));
+                out('days', tenths.format(hours / 24));
+                out('plates', whole.format(Math.round(minutes * decisions / 15)));
+                out('with', tenths.format(10 * decisions / 3600));
+                out('saved', whole.format(Math.round(hours - 10 * decisions / 3600)));
+                // Little jolt on the total, like the printer just stamped it.
+                total.classList.remove('is-printing');
+                void total.offsetWidth;
+                total.classList.add('is-printing');
+            }
+
+            form.addEventListener('input', update);
+        })();
+
+        // Hero spinner: lands the spoon on a random dish; "Find …" sends that dish to "Try it".
+        (function () {
+            var spin = document.querySelector('[data-spin]');
+            if (!spin) return;
+            var root = document.documentElement;
+            var spoon = spin.querySelector('.spin-spoon');
+            var dishes = Array.prototype.slice.call(spin.querySelectorAll('[data-dish]'));
+            var result = spin.querySelector('[data-spin-result]');
+            var find = spin.querySelector('[data-spin-find]');
+            var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var turn = 0;
+            var busy = false;
+
+            function still() { return calm || root.dataset.motion === 'off'; }
+
+            function land(index) {
+                var dish = dishes[index];
+                dishes.forEach(function (item) { item.classList.toggle('is-picked', item === dish); });
+                result.textContent = dish.dataset.name + ' it is.';
+                find.textContent = 'Find ' + dish.dataset.name.toLowerCase() + ' near ' + spin.dataset.area;
+                find.dataset.mood = dish.dataset.mood;
+                spin.dataset.state = 'landed';
+                busy = false;
+            }
+
+            function go() {
+                if (busy) return;
+                busy = true;
+                spin.dataset.state = 'spinning';
+                dishes.forEach(function (item) { item.classList.remove('is-picked'); });
+                var index = Math.floor(Math.random() * dishes.length);
+                var current = ((turn % 360) + 360) % 360;
+                // Always forward: a few full turns, then on to the dish (45° apart, 0° = top).
+                turn += (still() ? 0 : 360 * 4) + ((index * 45 - current + 360) % 360);
+                spoon.style.setProperty('--turn', turn + 'deg');
+                setTimeout(function () { land(index); }, still() ? 0 : 2700);
+            }
+
+            spin.querySelector('[data-spin-again]').addEventListener('click', go);
+
+            find.addEventListener('click', function (event) {
+                var form = document.getElementById('try-form');
+                if (!form) return;
+                event.preventDefault();
+                var mood = form.querySelector('input[name="mood"][value="' + (find.dataset.mood || '') + '"]');
+                if (mood) mood.checked = true;
+                document.getElementById('try').scrollIntoView({ behavior: calm ? 'auto' : 'smooth' });
+                form.requestSubmit();
+            });
+
+            // One spin on its own, once the page is uncovered; a still page just shows the first pick.
+            function first() { if (still()) { land(0); } else { setTimeout(go, 700); } }
+            if (root.classList.contains('intro-active')) {
+                document.addEventListener('makanapa:intro-done', first, { once: true });
+            } else {
+                first();
+            }
+        })();
+
+        // How it works: whichever step is mid-screen puts its screenshot on the one sticky phone.
+        (function () {
+            var steps = document.querySelectorAll('.walk [data-step]');
+            var screens = document.querySelectorAll('.walk [data-screen]');
+            if (!steps.length || !screens.length || !('IntersectionObserver' in window)) return;
+
+            var current = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    screens.forEach(function (img) {
+                        img.classList.toggle('is-current', img.dataset.screen === entry.target.dataset.step);
+                    });
+                });
+            }, { rootMargin: '-45% 0px -45% 0px' });
+            steps.forEach(function (step) { current.observe(step); });
         })();
 
         // "Try it": asks /try for one real pick, spins the reel while it waits (at least long enough

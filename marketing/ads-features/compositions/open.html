@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #op-list {
+          position: absolute;
+          left: 190px;
+          width: 700px;
+          top: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          opacity: 0;
+        }
+        .op-row {
+          display: flex;
+          align-items: center;
+          gap: 22px;
+          height: 104px;
+          padding: 0 30px;
+          border-radius: 28px;
+          background: rgb(255 255 255 / 0.06);
+          border: 1.5px solid rgb(255 255 255 / 0.08);
+          font-size: 32px;
+          font-weight: 600;
+          color: rgb(245 245 247 / 0.75);
+        }
+        .op-row svg {
+          width: 34px;
+          height: 34px;
+          color: var(--chili);
+          fill: currentColor;
+          stroke: none;
+        }
+        #op-veil {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse 60% 34% at 50% 50%, rgb(0 0 0 / 0.86) 0%, rgb(0 0 0 / 0.5) 60%, rgb(0 0 0 / 0) 100%);
+        }
+        .op-line {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 860px;
+          text-align: center;
+          font-size: 112px;
+          opacity: 0;
+        }
+      </style>
+
+      <div id="root" data-composition-id="open" data-width="1080" data-height="1920">
+        <div id="op-list" data-layout-ignore></div>
+        <div id="op-veil" data-layout-ignore></div>
+        <p id="op-1" class="op-line hl">Saved 20 places.</p>
+        <p id="op-2" class="op-line hl">Still can't <span class="red">pick?</span></p>
+      </div>
+
+      <script>
+        const NAMES = [
+          "Warung Kak Ros", "Kopi Lima Corner", "Nasi Kandar Seri Jasin", "Ayam Gepuk Pak Din", "Mee Bandung Selera",
+          "Roti Canai Bukit", "Sup Tulang Malam", "Kedai Teh Ais", "Nasi Lemak Daun", "Char Kuey Teow Lorong",
+          "Laksa Tok Wan", "Burger Bakar Jasin", "Bihun Sup Pagi", "Satay Simpang", "Ikan Bakar Tepi",
+          "Kafe Sudut", "Mee Rebus Kak Yah", "Nasi Ayam Merah", "Cendol Pokok", "Tomyam Hujung",
+        ];
+        const heart = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+        // Two copies so the scroll never runs out.
+        document.getElementById("op-list").innerHTML = [...NAMES, ...NAMES].map((n) => `<div class="op-row">${heart}<span>${n}</span></div>`).join("");
+
+        const tl = gsap.timeline({ paused: true });
+        // The list scrolls faster and faster and blurs: the "can't decide" feeling.
+        tl.fromTo("#op-list", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, 0);
+        tl.fromTo("#op-list", { y: 0, filter: "blur(0px)" }, { y: -2600, filter: "blur(10px)", duration: 3.0, ease: "power2.in", immediateRender: false }, 0);
+        tl.to("#op-list", { opacity: 0, duration: 0.3, ease: "power2.in" }, 2.75);
+
+        // Notes at 0.3 and 1.5.
+        tl.fromTo("#op-1", { opacity: 0, y: 24, filter: "blur(12px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }, 0.3);
+        tl.to("#op-1", { opacity: 0, y: -16, filter: "blur(8px)", duration: 0.3, ease: "power2.in" }, 1.2);
+        tl.fromTo("#op-2", { opacity: 0, scale: 0.94, filter: "blur(16px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 1.5);
+        tl.to("#op-2", { opacity: 0, y: -60, filter: "blur(14px)", duration: 0.35, ease: "power2.in" }, 2.85);
+
+        window.__timelines["open"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

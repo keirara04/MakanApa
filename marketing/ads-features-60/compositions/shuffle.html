@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #sh-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #sh-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        #sh-h0 { top: 130px; }
+        #sh-h0 .hl { font-size: 104px; }
+
+        /* The app's dark stage, at film scale, with a soft cream spotlight. */
+        #sh-stage {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse 70% 46% at 50% 44%, #3a2c24 0%, #1a1411 62%, #120e0c 100%);
+          opacity: 0;
+        }
+        #sh-glow {
+          position: absolute;
+          left: 140px;
+          top: 420px;
+          width: 800px;
+          height: 800px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgb(255 247 232 / 0.55) 0%, rgb(255 247 232 / 0.16) 38%, rgb(255 247 232 / 0) 66%);
+          opacity: 0;
+        }
+        .sh-head { top: 170px; }
+        .sh-head .hl { font-size: 120px; }
+
+        /* ---------- blind box ---------- */
+        #sh-box {
+          position: absolute;
+          left: 300px;
+          top: 760px;
+          width: 480px;
+          height: 420px;
+          transform-origin: 50% 100%;
+        }
+        #sh-shadow {
+          position: absolute;
+          left: 290px;
+          top: 1150px;
+          width: 500px;
+          height: 70px;
+          border-radius: 50%;
+          background: radial-gradient(ellipse, rgb(0 0 0 / 0.6) 0%, rgb(0 0 0 / 0) 70%);
+        }
+        .bx-inside {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 480px;
+          height: 100px;
+          clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+          background: linear-gradient(180deg, #4a130b 0%, #7e2418 100%);
+        }
+        .bx-front {
+          position: absolute;
+          left: 0;
+          top: 90px;
+          width: 480px;
+          height: 330px;
+          border-radius: 10px 10px 26px 26px;
+          background: linear-gradient(90deg, #b8301f 0%, #e94b35 22%, #f05a43 55%, #c93a27 100%);
+          box-shadow: inset 0 -18px 30px rgb(0 0 0 / 0.22), inset 0 8px 0 rgb(255 255 255 / 0.12);
+          overflow: hidden;
+        }
+        .bx-band {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 128px;
+          height: 74px;
+          background: linear-gradient(90deg, #e8d9bd, #fff4dd 40%, #f3e6cc 80%, #dcc9a8);
+        }
+        .bx-label {
+          position: absolute;
+          left: 170px;
+          top: 95px;
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background: #fff4dd;
+          border: 6px solid #c93a27;
+          display: grid;
+          place-items: center;
+          box-shadow: 0 6px 14px rgb(0 0 0 / 0.2);
+        }
+        .bx-label img { width: 104px; height: 104px; }
+        #sh-lid {
+          position: absolute;
+          left: -16px;
+          top: -26px;
+          width: 512px;
+          height: 132px;
+          transform-origin: 50% 100%;
+        }
+        .lid-top {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 512px;
+          height: 92px;
+          clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+          background: linear-gradient(180deg, #f6735d 0%, #ee5a43 100%);
+        }
+        .lid-top::after {
+          content: "";
+          position: absolute;
+          left: 216px;
+          top: 0;
+          width: 80px;
+          height: 92px;
+          background: linear-gradient(90deg, #e8d9bd, #fff4dd, #e8d9bd);
+        }
+        .lid-lip {
+          position: absolute;
+          left: 0;
+          top: 92px;
+          width: 512px;
+          height: 40px;
+          border-radius: 0 0 10px 10px;
+          background: linear-gradient(90deg, #a92b1b, #d8432e 40%, #a92b1b);
+        }
+
+        /* ---------- deck ---------- */
+        #sh-deck {
+          position: absolute;
+          inset: 0;
+          perspective: 2200px;
+        }
+        #sh-deck .sp-card {
+          left: 375px;
+          top: 589px;
+        }
+        #sh-caption {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1150px;
+          text-align: center;
+          font-size: 38px;
+          opacity: 0;
+        }
+
+        /* ---------- why this one ---------- */
+        #sh-why {
+          position: absolute;
+          left: 110px;
+          right: 110px;
+          top: 1090px;
+          padding: 40px 44px;
+          border-radius: 44px;
+          background: #fff4dd;
+          color: #291d1d;
+          box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+        }
+        #sh-why b {
+          display: block;
+          font-size: 44px;
+          font-weight: 800;
+          letter-spacing: -0.035em;
+          margin-bottom: 26px;
+        }
+        .why-line {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          font-size: 36px;
+          font-weight: 500;
+          letter-spacing: -0.015em;
+          height: 64px;
+        }
+        .why-line svg {
+          width: 40px;
+          height: 40px;
+          stroke-width: 2.8;
+          color: #e94b35;
+        }
+        #sh-go {
+          position: absolute;
+          left: 200px;
+          right: 200px;
+          top: 1556px;
+          height: 124px;
+          border-radius: 62px;
+          background: #e94b35;
+          display: grid;
+          place-items: center;
+          font-size: 44px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          color: #fff;
+          box-shadow: 0 16px 40px rgb(233 75 53 / 0.45);
+        }
+        #sh-again {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 1712px;
+          text-align: center;
+          font-size: 34px;
+          font-weight: 600;
+          color: rgb(245 245 247 / 0.7);
+        }
+        #sh-touch {
+          position: absolute;
+          left: 540px;
+          top: 1618px;
+          width: 150px;
+          height: 150px;
+          margin: -75px 0 0 -75px;
+          border-radius: 50%;
+          background: rgb(255 255 255 / 0.18);
+          border: 4px solid rgb(255 255 255 / 0.9);
+          opacity: 0;
+        }
+      </style>
+
+      <div id="root" data-composition-id="shuffle" data-width="1080" data-height="1920">
+        <div id="sh-h0" class="head" data-layout-allow-overlap><span class="sub" style="margin: 0 0 18px">In our latest 1.1 update</span><span class="hl">Let your saved</span><span class="hl">places <span class="red">decide.</span></span></div>
+
+        <div id="sh-rig" data-layout-allow-overflow>
+          <div id="sh-3d" data-layout-allow-overflow></div>
+        </div>
+
+        <div id="sh-stage" data-layout-ignore></div>
+        <div id="sh-glow" data-layout-ignore></div>
+
+        <div id="sh-shadow" data-layout-ignore></div>
+        <div id="sh-box" data-layout-ignore>
+          <div class="bx-inside"></div>
+          <div id="sh-lid"><div class="lid-top"></div><div class="lid-lip"></div></div>
+        </div>
+        <div id="sh-deck" data-layout-ignore></div>
+        <div id="sh-boxfront" style="position: absolute; left: 300px; top: 760px; width: 480px; height: 420px; transform-origin: 50% 100%" data-layout-ignore>
+          <div class="bx-front"><div class="bx-band"></div><div class="bx-label"><img src="assets/art/nasi-avatar.svg" alt="" /></div></div>
+        </div>
+
+        <p id="sh-caption" class="sub">Shuffling your saved places…</p>
+
+        <div id="sh-h1" class="head sh-head" data-layout-allow-overlap><span class="hl">Your saved places.</span></div>
+        <div id="sh-h2" class="head sh-head" data-layout-allow-overlap><span class="hl">Shuffled.</span></div>
+        <div id="sh-h3" class="head sh-head" style="top: 150px" data-layout-allow-overlap><span class="hl red">Dealt.</span></div>
+
+        <div id="sh-why" data-layout-allow-overlap>
+          <b>Why this one</b>
+          <div class="why-line" id="sh-w0"></div>
+          <div class="why-line" id="sh-w1"></div>
+          <div class="why-line" id="sh-w2"></div>
+        </div>
+        <div id="sh-go" data-layout-allow-overlap>Let's eat</div>
+        <p id="sh-again" data-layout-allow-overlap>Shuffle again</p>
+        <span id="sh-touch" data-layout-ignore></span>
+      </div>
+
+      <script>
+        document.getElementById("sh-3d").innerHTML = MA.phone("sh", MA.home("sh"));
+        document.querySelectorAll('[data-composition-id="shuffle"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        // Five saved places; card 2 wins.
+        const WIN = 2;
+        document.getElementById("sh-deck").innerHTML = MA.PLACES.map((p, i) => MA.card(`sh-c${i}`, p)).join("");
+        ["One of your saved places", "Open right now", "450 m from you"].forEach((t, i) => {
+          document.getElementById(`sh-w${i}`).innerHTML = MA.icon("check") + `<span>${t}</span>`;
+        });
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 3.0. Events (global): tap 4.5, box lands 6.0, lid 6.75, fan 7.5,
+        // backs 8.25, riffle 9.0-9.75, winner 10.5, why 11.25 (+ticks), Let's eat 12.75.
+
+        // ---- Phone: rise, tap the saved card, dive into the dark screen ----
+        tl.fromTo("#sh-rig", { y: 900, scale: 0.74 }, { y: 200, duration: 1.3, ease: "power3.out" }, 0);
+        tl.fromTo("#sh-3d", { rotationY: -50, rotationX: 14, transformPerspective: 2600 }, { rotationY: -8, rotationX: 4, duration: 1.0, ease: "power2.out" }, 0);
+        tl.fromTo("#sh-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 0.2);
+        tl.fromTo("#sh-h0 > span", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "expo.out", stagger: 0.12 }, 0.2);
+        tl.to("#sh-h0", { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 1.7);
+
+        tl.to("#sh-3d", { rotationY: 0, rotationX: 0, duration: 0.5, ease: "power2.inOut" }, 1.0);
+        tl.set("#sh-touch", { x: 295, y: 640 }, 1.36);
+        tl.fromTo("#sh-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, 1.36);
+        tl.to("#sh-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, 1.52);
+        tl.to("#sh-saved", { scale: 0.97, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1 }, 1.4);
+        tl.to("#sh-dark", { opacity: 1, duration: 0.35, ease: "power2.out" }, 1.7);
+        tl.to("#sh-rig", { scale: 3.4, y: 160, duration: 0.65, ease: "power3.in" }, 1.95);
+        tl.to("#sh-rig", { opacity: 0, duration: 0.2, ease: "none" }, 2.4);
+        tl.to("#sh-stage", { opacity: 1, duration: 0.3, ease: "none" }, 2.3);
+
+        // ---- Blind box: drop, squash, rock, hop, lid pops ----
+        const BOX = ["#sh-box", "#sh-boxfront"];
+        tl.fromTo(BOX, { y: -1300 }, { y: 0, duration: 0.42, ease: "power2.in" }, 2.58);
+        tl.fromTo("#sh-shadow", { opacity: 0, scaleX: 0.4 }, { opacity: 1, scaleX: 1, duration: 0.42, ease: "power2.in" }, 2.58);
+        tl.to(BOX, { scaleY: 0.86, scaleX: 1.08, duration: 0.08, ease: "power2.out" }, 3.0);
+        tl.to(BOX, { scaleY: 1, scaleX: 1, duration: 0.5, ease: "elastic.out(1, 0.4)" }, 3.08);
+        tl.to(BOX, { rotation: -4, duration: 0.12, ease: "sine.inOut" }, 3.3);
+        tl.to(BOX, { rotation: 4, duration: 0.14, ease: "sine.inOut" }, 3.42);
+        tl.to(BOX, { rotation: 0, duration: 0.12, ease: "sine.inOut" }, 3.56);
+        tl.to(BOX, { y: -26, duration: 0.09, ease: "power2.out", yoyo: true, repeat: 1 }, 3.56);
+        tl.to("#sh-lid", { y: -330, x: 120, rotation: 24, duration: 0.6, ease: "power3.out" }, 3.75);
+        tl.to("#sh-lid", { y: 900, rotation: 60, opacity: 0, duration: 0.6, ease: "power2.in" }, 4.35);
+        tl.fromTo("#sh-glow", { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" }, 3.75);
+        tl.to("#sh-glow", { opacity: 0.45, duration: 1, ease: "sine.inOut" }, 4.4);
+
+        // ---- Fan: the cards rise out of the box, face up with their maps ----
+        const FAN = [
+          { x: -320, y: 30, r: -16 },
+          { x: -160, y: -40, r: -8 },
+          { x: 0, y: -66, r: 0 },
+          { x: 160, y: -40, r: 8 },
+          { x: 320, y: 30, r: 16 },
+        ];
+        MA.PLACES.forEach((_, i) => {
+          gsap.set(`#sh-c${i}`, { x: 0, y: 240, scale: 0.5, rotation: 0, rotationY: 0, zIndex: i, opacity: 0 });
+          tl.set(`#sh-c${i}`, { opacity: 1 }, 3.8);
+          tl.to(`#sh-c${i}`, { x: FAN[i].x, y: FAN[i].y, rotation: FAN[i].r, scale: 0.92, duration: 0.7, ease: "back.out(1.4)" }, 4.0 + Math.abs(i - 2) * 0.06);
+        });
+        tl.to([...BOX, "#sh-shadow"], { y: 520, opacity: 0, duration: 0.5, ease: "power2.in" }, 4.3);
+
+        // ---- Face down, gather, split, riffle, square up ----
+        MA.PLACES.forEach((_, i) => {
+          tl.to(`#sh-c${i}`, { rotationY: 180, duration: 0.4, ease: "power2.inOut" }, 5.25 + i * 0.04);
+          tl.to(`#sh-c${i}`, { x: 0, y: 0, rotation: (i - 2) * 1.2, scale: 0.9, duration: 0.35, ease: "power3.inOut" }, 5.6);
+          const left = i % 2 === 0;
+          tl.to(`#sh-c${i}`, { x: left ? -200 : 200, y: 20, rotation: left ? -9 : 9, duration: 0.3, ease: "power2.out" }, 6.0);
+        });
+        // Riffle: cards fall back to the middle one at a time, alternating sides; last in lands on top.
+        const ORDER = [0, 1, 4, 3, 2];
+        ORDER.forEach((c, k) => {
+          tl.set(`#sh-c${c}`, { zIndex: 10 + k }, 6.3 + k * 0.1);
+          tl.to(`#sh-c${c}`, { x: 0, y: -k * 3, rotation: 0, duration: 0.16, ease: "power2.in" }, 6.3 + k * 0.1);
+        });
+        tl.to("#sh-deck", { y: -8, duration: 0.08, ease: "power2.out", yoyo: true, repeat: 1 }, 6.75);
+        tl.fromTo("#sh-caption", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 5.6);
+        tl.to("#sh-caption", { opacity: 0, duration: 0.25, ease: "power2.in" }, 7.25);
+
+        // ---- The pick: top card lifts, flips and grows; the rest drop away ----
+        tl.to(`#sh-c${WIN}`, { y: -120, scale: 1.0, duration: 0.3, ease: "power2.out" }, 7.2);
+        tl.to(`#sh-c${WIN}`, { rotationY: 360, y: -170, scale: 1.3, duration: 0.6, ease: "power3.out" }, 7.5);
+        [0, 1, 3, 4].forEach((c, k) => {
+          tl.to(`#sh-c${c}`, { y: 1500, rotation: (k - 1.5) * 10, duration: 0.5, ease: "power2.in" }, 7.5 + k * 0.03);
+        });
+        tl.to("#sh-glow", { opacity: 1, scale: 1.15, y: -180, duration: 0.6, ease: "power2.out" }, 7.5);
+
+        // ---- Why this one, then Let's eat ----
+        tl.fromTo("#sh-why", { opacity: 0, y: 120 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 8.25);
+        [0, 1, 2].forEach((i) => {
+          tl.fromTo(`#sh-w${i}`, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.35, ease: "power2.out" }, 8.5 + i * 0.25);
+          tl.fromTo(`#sh-w${i} svg`, { scale: 0.2 }, { scale: 1, duration: 0.4, ease: "back.out(2.6)" }, 8.5 + i * 0.25);
+        });
+        tl.fromTo(["#sh-go", "#sh-again"], { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out", stagger: 0.08 }, 8.9);
+        tl.fromTo("#sh-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, 9.61);
+        tl.to("#sh-touch", { opacity: 0, scale: 1.2, duration: 0.35, ease: "power2.out" }, 9.77);
+        tl.to("#sh-go", { scale: 0.96, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1 }, 9.65);
+
+        // ---- Headlines on the stage ----
+        function head(sel, inAt, outAt) {
+          tl.fromTo(`${sel} > span`, { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, inAt);
+          tl.to(sel, { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+        head("#sh-h1", 4.2, 5.55);
+        head("#sh-h2", 6.0, 7.15);
+        head("#sh-h3", 7.6, 10.4);
+
+        // ---- Out ----
+        tl.to([`#sh-c${WIN}`, "#sh-why", "#sh-go", "#sh-again"], { opacity: 0, y: -80, filter: "blur(12px)", duration: 0.4, ease: "power2.in", stagger: 0.04 }, 10.45);
+        tl.to(["#sh-stage", "#sh-glow"], { opacity: 0, duration: 0.45, ease: "power1.in" }, 10.8);
+
+        window.__timelines["shuffle"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

@@ -1002,7 +1002,7 @@ private struct CardBoxInside: View {
     }
 }
 
-/// Front and side faces, with the Nasi mascot printed on the front.
+/// Front and side faces, with the Bubu mascot printed on the front.
 private struct CardBoxFront: View {
     let motion: CardBoxMotion
     let title: String

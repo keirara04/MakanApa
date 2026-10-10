@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; }
+        #cv-rig { position: absolute; left: 230px; top: 306px; width: 620px; height: 1308px; }
+        #cv-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+        .cv-head { top: 150px; }
+      </style>
+
+      <div id="root" data-composition-id="craving" data-width="1080" data-height="1920">
+        <p id="cv-h1" class="two cv-head" data-layout-allow-overlap>Know what you want?<br /><span>Mood, budget, distance.</span></p>
+        <p id="cv-h2" class="two cv-head" data-layout-allow-overlap>Every pick shows why.</p>
+        <div id="cv-rig" data-layout-allow-overflow><div id="cv-3d" data-layout-allow-overflow></div></div>
+      </div>
+
+      <script>
+        const RESULT = {
+          photo: "assets/photos/NasiLemak.jpg",
+          name: "Nasi Lemak Daun Pisang",
+          details: "Malaysian · ≈ RM10/person · 9 min walk · Open until 11 PM",
+          chips: ["Nasi Lemak", "~RM20", "10 min"],
+        };
+        const screens = MA.home("cv") + MA.mood("cv") + MA.budget("cv") + MA.distance("cv") + MA.loading("cv", "Nasi Lemak") + MA.result("cv", RESULT);
+        document.getElementById("cv-3d").innerHTML = MA.phone("cv", screens);
+        document.querySelectorAll('[data-composition-id="craving"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+        gsap.set(["#cv-mood", "#cv-budget", "#cv-distance"], { xPercent: 100 });
+        gsap.set(["#cv-loading", "#cv-result"], { opacity: 0 });
+        gsap.set("#cv-rig", { y: 250, scale: 0.86 });
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 13.0.
+        function tap(x, y, at) {
+          tl.set("#cv-touch", { x, y }, at - 0.14);
+          tl.fromTo("#cv-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, at - 0.14);
+          tl.to("#cv-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, at + 0.02);
+        }
+        function push(next, prev, at) {
+          tl.to(next, { xPercent: 0, duration: 0.5, ease: "power3.inOut" }, at);
+          tl.to(prev, { xPercent: -28, duration: 0.5, ease: "power3.inOut" }, at);
+        }
+        function head(sel, inAt, outAt) {
+          tl.fromTo(sel, { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, inAt);
+          tl.to(sel, { opacity: 0, y: -24, filter: "blur(8px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+
+        head("#cv-h1", 0.05, 4.6);
+        tl.to("#cv-3d", { rotationY: 6, rotationX: 3, transformPerspective: 2600, duration: 4.5, ease: "sine.inOut" }, 0);
+
+        // Mood: scroll to Nasi Lemak, pick it, Continue.
+        tap(295, 485, 0.45);
+        push("#cv-mood", "#cv-home", 0.6);
+        tl.to("#cv-mood-list", { y: -330, duration: 0.6, ease: "power2.inOut" }, 1.05);
+        tap(295, 750, 1.8);
+        tl.to("#cv-mood-sel-4", { opacity: 1, duration: 0.2 }, 1.82);
+        tl.fromTo("#cv-mood-on-4", { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.6)" }, 1.82);
+        tl.to("#cv-mood-go-on", { opacity: 1, duration: 0.2 }, 1.95);
+        tap(295, 1132, 2.3);
+        push("#cv-budget", "#cv-mood", 2.42);
+
+        // Budget: ~RM20 is the default; Continue.
+        tap(295, 596, 3.0);
+        tl.fromTo("#cv-budget-sel-1", { scale: 1 }, { scale: 0.985, duration: 0.1, yoyo: true, repeat: 1, immediateRender: false }, 3.02);
+        tap(295, 1132, 3.4);
+        push("#cv-distance", "#cv-budget", 3.52);
+
+        // Distance: Within 2 km; Find my food.
+        tap(295, 596, 4.05);
+        tap(295, 1132, 4.5);
+        tl.to("#cv-loading", { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.62);
+        tl.fromTo("#cv-load-mascot", { y: 0 }, { y: -26, duration: 0.3, ease: "sine.out", yoyo: true, repeat: 1, immediateRender: false }, 4.7);
+        tl.fromTo("#cv-spin", { rotation: 0 }, { rotation: 540, duration: 0.9, ease: "none", immediateRender: false }, 4.62);
+
+        // The result, with its reasons.
+        tl.to("#cv-result", { opacity: 1, duration: 0.35, ease: "power2.out" }, 5.45);
+        tl.fromTo("#cv-res-body > *", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power3.out", stagger: 0.06 }, 5.55);
+        [0, 1, 2].forEach((i) => tl.fromTo(`#cv-chip-${i}`, { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2.4)" }, 6.0 + i * 0.09));
+        head("#cv-h2", 5.6, 7.55);
+        tl.to("#cv-rig", { scale: 1.08, y: 140, duration: 1.4, ease: "power2.inOut" }, 5.9);
+
+        tl.to("#cv-rig", { y: 1800, duration: 0.55, ease: "power3.in" }, 7.7);
+
+        window.__timelines["craving"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

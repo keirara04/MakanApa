@@ -24,7 +24,7 @@ enum AvatarCharacter: String, CaseIterable, Identifiable {
         case .milo: "Milo"
         case .laksa: "Laksa"
         case .tehTarik: "Teh Tarik"
-        case .mascot: "MakanApa"
+        case .mascot: "Bubu"
         }
     }
 

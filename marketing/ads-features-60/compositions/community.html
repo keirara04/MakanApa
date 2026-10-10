@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #cm-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #cm-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        .cm-head { top: 150px; }
+        .cm-head .hl { font-size: 104px; }
+      </style>
+
+      <div id="root" data-composition-id="community" data-width="1080" data-height="1920">
+        <div id="cm-h1" class="head cm-head" data-layout-allow-overlap><span class="hl">See what campus</span><span class="hl">is <span class="red">eating.</span></span></div>
+        <div id="cm-h2" class="head cm-head" data-layout-allow-overlap><span class="hl">Say what's <span class="red">good.</span></span></div>
+        <div id="cm-h3" class="head cm-head" data-layout-allow-overlap><span class="hl">Missing a spot?</span><span class="hl red">Add it.</span></div>
+        <div id="cm-h4" class="head cm-head" data-layout-allow-overlap><span class="hl">Track it till</span><span class="hl">it's <span class="red">live.</span></span></div>
+
+        <div id="cm-rig" data-layout-allow-overflow>
+          <div id="cm-3d" data-layout-allow-overflow></div>
+        </div>
+      </div>
+
+      <script>
+        document.getElementById("cm-3d").innerHTML = MA.phone("cm", MA.feed("cm") + MA.addSearch("cm") + MA.addReview("cm") + MA.myPlaces("cm"));
+        document.querySelectorAll('[data-composition-id="community"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        // Typed text: one span per character so seeking lands on the right frame.
+        function typed(id, text) {
+          document.getElementById(id).innerHTML = [...text].map((ch) => `<span class="cm-ch" style="opacity:0">${ch}</span>`).join("");
+          return text.length;
+        }
+        const POST = typed("cm-c-typed", "Best teh tarik near campus? Kopi Lima, no contest.");
+        const QUERY = typed("cm-q-typed", "Ikan bakar");
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 14.0.
+
+        function tap(x, y, at) {
+          tl.set("#cm-touch", { x, y }, at - 0.14);
+          tl.fromTo("#cm-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, at - 0.14);
+          tl.to("#cm-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, at + 0.02);
+        }
+        function head(sel, inAt, outAt) {
+          tl.fromTo(`${sel} > span`, { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out", stagger: 0.12 }, inAt);
+          tl.to(sel, { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+
+        // Screens that arrive later wait off to the side.
+        gsap.set(["#cm-add", "#cm-review", "#cm-mine"], { xPercent: 100 });
+        gsap.set("#cm-compose", { yPercent: 100 });
+
+        // ---- Phone in, the feed scrolls from trending to posts ----
+        tl.fromTo("#cm-rig", { y: 1100, scale: 0.86 }, { y: 250, duration: 1.0, ease: "power3.out" }, 0);
+        tl.fromTo("#cm-3d", { rotationY: 40, rotationX: 14, transformPerspective: 2600 }, { rotationY: 6, rotationX: 4, duration: 1.2, ease: "power2.out" }, 0);
+        tl.to("#cm-3d", { rotationY: -4, rotationX: 2, duration: 5, ease: "sine.inOut" }, 1.2);
+        tl.to("#cm-3d", { rotationY: 4, rotationX: 3, duration: 5, ease: "sine.inOut" }, 6.2);
+        tl.to("#cm-3d", { rotationY: 0, rotationX: 2, duration: 3.2, ease: "sine.inOut" }, 11.2);
+        tl.fromTo("#cm-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.4, ease: "power2.inOut" }, 0.3);
+        tl.to("#cm-feed-scroll", { y: -560, duration: 1.6, ease: "power2.inOut" }, 0.9);
+        head("#cm-h1", 0.15, 2.7);
+
+        // React with fire on Hafiz's post.
+        tap(190, 480, 2.6);
+        tl.to("#cm-p1-fire", { backgroundColor: "rgba(233, 75, 53, 0.14)", boxShadow: "inset 0 0 0 1.5px rgba(233, 75, 53, 0.5)", duration: 0.15 }, 2.62);
+        tl.fromTo("#cm-p1-fire", { scale: 1 }, { scale: 1.18, duration: 0.12, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 2.62);
+
+        // ---- Share a thought ----
+        head("#cm-h2", 3.05, 6.2);
+        tap(295, 942, 3.3);
+        tl.to("#cm-compose", { yPercent: 0, duration: 0.45, ease: "power3.out" }, 3.4);
+        tl.to("#cm-c-ph", { opacity: 0, duration: 0.1 }, 3.85);
+        tl.to("#cm-c-typed .cm-ch", { opacity: 1, duration: 0.01, stagger: 1.0 / POST, ease: "none" }, 3.9);
+        tap(125, 505, 5.0);
+        tl.fromTo("#cm-tagchip", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.4)" }, 5.08);
+        tl.to("#cm-postbtn", { backgroundColor: "#e94b35", color: "#ffffff", duration: 0.2 }, 5.1);
+        tap(506, 160, 5.5);
+        tl.to("#cm-compose", { yPercent: 100, duration: 0.4, ease: "power3.in" }, 5.6);
+        tl.to(["#cm-older", "#cm-share", "#cm-guidecard"], { y: 322, duration: 0.45, ease: "power3.inOut" }, 5.9);
+        tl.fromTo("#cm-mypost-wrap", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" }, 6.05);
+
+        // ---- Add a place ----
+        head("#cm-h3", 6.4, 11.4);
+        tap(524, 144, 6.75);
+        tl.fromTo("#cm-menu", { opacity: 0, scale: 0.85, transformOrigin: "100% 0%" }, { opacity: 1, scale: 1, duration: 0.25, ease: "power3.out" }, 6.82);
+        tl.to("#cm-menu-add", { backgroundColor: "rgba(233, 75, 53, 0.1)", duration: 0.1 }, 7.2);
+        tap(406, 228, 7.25);
+        tl.to("#cm-add", { xPercent: 0, duration: 0.5, ease: "power3.inOut" }, 7.35);
+        tl.to("#cm-q-ph", { opacity: 0, duration: 0.1 }, 7.85);
+        tl.to("#cm-q-typed .cm-ch", { opacity: 1, duration: 0.01, stagger: 0.6 / QUERY, ease: "none" }, 7.9);
+        tl.fromTo("#cm-results", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 8.55);
+        tap(295, 464, 9.1);
+        tl.to("#cm-review", { xPercent: 0, duration: 0.5, ease: "power3.inOut" }, 9.2);
+        tl.to("#cm-add", { xPercent: -28, duration: 0.5, ease: "power3.inOut" }, 9.2);
+        tl.fromTo("#cm-rv-rows > div", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.3, ease: "power2.out", stagger: 0.1 }, 9.5);
+        tap(295, 1160, 10.45);
+        tl.to("#cm-done", { opacity: 1, duration: 0.3, ease: "power2.out" }, 10.6);
+        tl.fromTo("#cm-done-mascot", { scale: 0.4, rotation: -16 }, { scale: 1, rotation: 0, duration: 0.6, ease: "back.out(2.2)" }, 10.65);
+
+        // ---- My places: it moves from Sent to Reviewing ----
+        head("#cm-h4", 11.6, 14.4);
+        tl.to("#cm-mine", { xPercent: 0, duration: 0.5, ease: "power3.inOut" }, 11.5);
+        tl.to("#cm-review", { xPercent: -28, duration: 0.5, ease: "power3.inOut" }, 11.5);
+        tl.fromTo("#cm-mine-new", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, 11.9);
+        tl.to("#cm-trk-fill", { width: 230, duration: 0.7, ease: "power2.inOut" }, 12.6);
+        tl.to("#cm-trk-s1 i", { backgroundColor: "#e94b35", scale: 1.3, duration: 0.25, ease: "back.out(3)" }, 13.25);
+        tl.to("#cm-trk-s1", { color: "#291d1d", duration: 0.2 }, 13.25);
+
+        tl.to("#cm-rig", { y: 1800, duration: 0.6, ease: "power3.in" }, 14.5);
+
+        window.__timelines["community"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

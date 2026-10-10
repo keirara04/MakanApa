@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+        }
+        #gs-rig {
+          position: absolute;
+          left: 230px;
+          top: 306px;
+          width: 620px;
+          height: 1308px;
+        }
+        #gs-3d {
+          position: absolute;
+          inset: 0;
+          transform-style: preserve-3d;
+        }
+        .gs-head { top: 170px; }
+        .gs-head .hl { font-size: 112px; }
+        #gs-h2 .hl { font-size: 92px; }
+        .gs-tab {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 400px;
+          text-align: center;
+          font-size: 44px;
+          opacity: 0;
+        }
+      </style>
+
+      <div id="root" data-composition-id="guides" data-width="1080" data-height="1920">
+        <div id="gs-h1" class="head gs-head" data-layout-allow-overlap><span class="hl red">Stuck?</span></div>
+        <div id="gs-h2" class="head gs-head" data-layout-allow-overlap><span class="hl">Every tab shows</span><span class="hl">you how.</span></div>
+        <p id="gs-t0" class="gs-tab sub" data-layout-allow-overlap>Decide</p>
+        <p id="gs-t1" class="gs-tab sub" data-layout-allow-overlap>Community</p>
+        <p id="gs-t2" class="gs-tab sub" data-layout-allow-overlap>Nearby</p>
+
+        <div id="gs-rig" data-layout-allow-overflow>
+          <div id="gs-3d" data-layout-allow-overflow></div>
+        </div>
+      </div>
+
+      <script>
+        const ART = MA.ART;
+        const screens =
+          MA.home("gs") +
+          MA.guide("gs-dg", "How Decide works", [
+            { art: ART.deck("gs-dg-ring"), title: "Pick from your saved places", body: "Save two or more places and MakanApa shuffles them like a deck of cards and deals you one." },
+            { art: ART.why(), title: "See why it won", body: "Every pick tells you why it was chosen. Tap Let's eat for directions, or ask for another one." },
+          ], 6) +
+          MA.feed("gs") +
+          MA.guide("gs-cg", "How Community works", [
+            { art: ART.menu("gs-cg-ring"), title: "Add a place", body: "Tap + and choose Add a place. Search first: if it's already listed you can suggest an edit, and if it's on Google we fill in the details for you." },
+            { art: ART.track(), title: "Track what you added", body: "Tap + and choose My places to see what's in review and what's live. We'll notify you once it's checked." },
+          ], 7) +
+          MA.nearby("gs") +
+          MA.guide("gs-ng", "How Nearby works", [
+            { art: ART.chips("gs-ng-chip"), title: "Filter what you see", body: "Hide non-halal places, show only what's open, or keep it under RM 20. Places that don't fit fade out." },
+            { art: ART.pick(), title: "Let Nasi pick", body: "Can't choose? Tap Pick for me and Nasi picks one of the places on the map. Pull up Around here for the full list." },
+          ], 6);
+        document.getElementById("gs-3d").innerHTML = MA.phone("gs", screens);
+        document.querySelectorAll('[data-composition-id="guides"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+
+        // Decide's "New to MakanApa?" card sits where the mascot is on Home.
+        document.querySelector("#gs-home img.ma-abs").style.display = "none";
+        document.getElementById("gs-home").insertAdjacentHTML(
+          "beforeend",
+          `<div class="ma-abs ma-card" style="top:900px;height:96px;display:flex;align-items:center;gap:18px;padding:0 24px">
+            <span style="color:var(--app-red);width:34px">${MA.icon("question", 'style="width:34px;height:34px"')}</span>
+            <span style="flex:1"><b style="display:block;font-size:21px;font-weight:600">New to MakanApa?</b><span class="ma-muted" style="font-size:17px">See how picking works.</span></span>
+          </div>`,
+        );
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 38.0. Decide 0.9-3.9, Community 3.9-7.7, Nearby 7.7-11.6.
+
+        function tap(x, y, at) {
+          tl.set("#gs-touch", { x, y }, at - 0.14);
+          tl.fromTo("#gs-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, at - 0.14);
+          tl.to("#gs-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, at + 0.02);
+        }
+        function nextPage(id, at) {
+          tap(295, 1150, at);
+          tl.to(`#${id}-strip`, { x: -590, duration: 0.5, ease: "power3.inOut" }, at + 0.12);
+          tl.to(`#${id}-dot-0`, { backgroundColor: "#d8ccb8", duration: 0.2 }, at + 0.25);
+          tl.to(`#${id}-dot-1`, { backgroundColor: "#291d1d", duration: 0.2 }, at + 0.25);
+        }
+        function tabLabel(i, inAt, outAt) {
+          tl.fromTo(`#gs-t${i}`, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, inAt);
+          tl.to(`#gs-t${i}`, { opacity: 0, y: -16, duration: 0.25, ease: "power2.in" }, outAt);
+        }
+
+        // Sheets wait below; later tabs wait hidden.
+        gsap.set(["#gs-dg", "#gs-cg", "#gs-ng"], { yPercent: 100 });
+        gsap.set(["#gs-feed", "#gs-near"], { opacity: 0 });
+        gsap.set("#gs-feed-scroll", { y: -660 });
+        gsap.set("#gs-compose", { yPercent: 100 });
+
+        // ---- Phone in ----
+        tl.fromTo("#gs-rig", { y: 1100, scale: 0.86 }, { y: 250, duration: 0.9, ease: "power3.out" }, 0);
+        tl.fromTo("#gs-3d", { rotationY: -36, rotationX: 12, transformPerspective: 2600 }, { rotationY: -5, rotationX: 4, duration: 1.1, ease: "power2.out" }, 0);
+        tl.to("#gs-3d", { rotationY: 4, rotationX: 3, duration: 5.4, ease: "sine.inOut" }, 1.1);
+        tl.to("#gs-3d", { rotationY: -3, rotationX: 2, duration: 5.4, ease: "sine.inOut" }, 6.5);
+        tl.fromTo("#gs-glare", { xPercent: -45 }, { xPercent: 40, duration: 1.3, ease: "power2.inOut" }, 0.4);
+
+        tl.fromTo("#gs-h1 > span", { opacity: 0, scale: 0.9, filter: "blur(12px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.6, ease: "expo.out" }, 0.1);
+        tl.to("#gs-h1", { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 1.25);
+        tl.fromTo("#gs-h2 > span", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out", stagger: 0.12 }, 1.5);
+        tl.to("#gs-h2", { opacity: 0, y: -30, filter: "blur(10px)", duration: 0.3, ease: "power2.in" }, 11.7);
+
+        // ---- Decide ----
+        tabLabel(0, 1.9, 3.75);
+        tap(295, 948, 0.95);
+        tl.to("#gs-dg", { yPercent: 0, duration: 0.45, ease: "power3.out" }, 1.05);
+        tl.fromTo("#gs-dg-ring", { opacity: 1, scale: 1 }, { opacity: 0.35, scale: 1.06, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.6);
+        nextPage("gs-dg", 2.55);
+
+        // ---- Community ----
+        tabLabel(1, 4.05, 7.55);
+        tl.to("#gs-dg", { yPercent: 100, duration: 0.4, ease: "power3.in" }, 3.8);
+        tl.to("#gs-feed", { opacity: 1, duration: 0.3, ease: "power2.out" }, 4.1);
+        tap(295, 958, 4.75);
+        tl.to("#gs-cg", { yPercent: 0, duration: 0.45, ease: "power3.out" }, 4.85);
+        tl.fromTo("#gs-cg-ring", { outlineColor: "rgba(233, 75, 53, 1)" }, { outlineColor: "rgba(233, 75, 53, 0.25)", duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 5.4);
+        nextPage("gs-cg", 6.35);
+
+        // ---- Nearby ----
+        tabLabel(2, 7.85, 11.6);
+        tl.to("#gs-cg", { yPercent: 100, duration: 0.4, ease: "power3.in" }, 7.6);
+        tl.to("#gs-near", { opacity: 1, duration: 0.3, ease: "power2.out" }, 7.9);
+        tl.fromTo("#gs-q", { scale: 1 }, { scale: 1.15, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 1, immediateRender: false }, 8.0);
+        tap(520, 922, 8.6);
+        tl.to("#gs-ng", { yPercent: 0, duration: 0.45, ease: "power3.out" }, 8.7);
+        [0, 1, 2].forEach((i) => {
+          tl.to(`#gs-ng-chip-${i}`, { backgroundColor: "#e94b35", color: "#ffffff", borderColor: "#e94b35", duration: 0.15 }, 9.3 + i * 0.25);
+          tl.fromTo(`#gs-ng-chip-${i}`, { scale: 1 }, { scale: 1.1, duration: 0.1, ease: "power2.out", yoyo: true, repeat: 1, immediateRender: false }, 9.3 + i * 0.25);
+        });
+        nextPage("gs-ng", 10.4);
+
+        tl.to("#gs-rig", { y: 1800, duration: 0.6, ease: "power3.in" }, 12.2);
+
+        window.__timelines["guides"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

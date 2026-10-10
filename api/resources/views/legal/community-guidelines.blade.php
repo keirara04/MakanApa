@@ -4,13 +4,13 @@
 @section('description', 'How to post, vouch and share on MakanApa, and what happens when someone breaks the rules.')
 
 @php
-    $h2 = 'font-display text-3xl font-bold uppercase leading-none text-ink';
+    $h2 = 'type-card text-ink';
     $link = 'font-medium text-sambal-600 underline';
 @endphp
 
 @section('content')
 
-    <h1 class="font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Community Guidelines</h1>
+    <h1 class="type-section">Community Guidelines</h1>
     <p class="mt-2 text-sm text-ink/70">Last updated: {{ \Illuminate\Support\Carbon::parse(config('legal.guidelines_version'))->format('j F Y') }}</p>
     <p class="mt-4 text-ink/70">
         MakanApa works because people share honest tips about food and places. These guidelines keep it useful and

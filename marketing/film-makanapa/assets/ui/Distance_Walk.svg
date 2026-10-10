@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Distance Walk</title>
+
+<circle cx="244" cy="109" r="38" fill="#FFF4DD" stroke="#29201D" stroke-width="16"/>
+<path d="M238 151L222 250L291 292" stroke="#29201D" stroke-width="20" stroke-linecap="round"/>
+<path d="M224 199L174 238" stroke="#29201D" stroke-width="18" stroke-linecap="round"/>
+<path d="M222 250L168 370" stroke="#29201D" stroke-width="22" stroke-linecap="round"/>
+<path d="M291 292L344 389" stroke="#29201D" stroke-width="22" stroke-linecap="round"/>
+<path d="M216 173L281 201" stroke="#E94B35" stroke-width="34" stroke-linecap="round"/>
+<rect x="298" y="188" width="72" height="84" rx="18" fill="#4F7A57" stroke="#29201D" stroke-width="14"/>
+<path d="M316 188C316 160 350 160 350 188" stroke="#29201D" stroke-width="12" stroke-linecap="round"/>
+<path d="M117 330H79M129 373H98" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+
+</svg>

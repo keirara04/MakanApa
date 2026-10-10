@@ -7,7 +7,7 @@
 
     <div class="text-center">
         <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" class="mx-auto h-24 w-24" aria-hidden="true">
-        <h1 class="mt-4 font-display text-[clamp(3.2rem,9vw,5rem)] font-bold uppercase leading-[0.88] tracking-tight">Need help? We got you.</h1>
+        <h1 class="mt-4 type-section">Need help? We got you.</h1>
         <p class="mt-3 text-ink/70">
             Something not working, found the wrong restaurant info, or just have an idea that could make
             MakanApa better? Send it our way. We're still improving MakanApa and feedback genuinely helps.
@@ -28,7 +28,7 @@
     </div>
 
     <section class="mt-12">
-        <h2 class="font-display text-3xl font-bold uppercase tracking-wide text-sambal-600">Quick help</h2>
+        <h2 class="font-display text-2xl font-semibold text-sambal-600">Quick help</h2>
         <div class="sketch mt-4 divide-y divide-dashed divide-ink/20 bg-paper-50" style="--sketch-radius: 12px">
 
             <details class="group p-5">
@@ -86,7 +86,7 @@
     </section>
 
     <section class="mt-10">
-        <h2 class="font-display text-3xl font-bold uppercase tracking-wide text-sambal-600">Restaurants</h2>
+        <h2 class="font-display text-2xl font-semibold text-sambal-600">Restaurants</h2>
         <div class="sketch mt-4 divide-y divide-dashed divide-ink/20 bg-paper-50" style="--sketch-radius: 12px">
 
             <details class="group p-5">
@@ -116,7 +116,7 @@
     </section>
 
     <section class="mt-10">
-        <h2 class="font-display text-3xl font-bold uppercase tracking-wide text-sambal-600">Account &amp; privacy</h2>
+        <h2 class="font-display text-2xl font-semibold text-sambal-600">Account &amp; privacy</h2>
         <div class="sketch mt-4 divide-y divide-dashed divide-ink/20 bg-paper-50" style="--sketch-radius: 12px">
 
             <details class="group p-5">
@@ -178,7 +178,7 @@
     </section>
 
     <section class="mt-10">
-        <h2 class="font-display text-3xl font-bold uppercase tracking-wide text-sambal-600">Report a bug</h2>
+        <h2 class="font-display text-2xl font-semibold text-sambal-600">Report a bug</h2>
         <div class="mt-4 sketch bg-paper-50 p-6 text-sm text-ink/70" style="--sketch-radius: 12px">
             <p>Please send us:</p>
             <ul class="mt-2 list-disc pl-5 space-y-1">
@@ -193,7 +193,7 @@
     </section>
 
     <section class="mt-12 sketch bg-paper-50 p-6" style="--sketch-radius: 12px">
-        <h2 class="font-display text-3xl font-bold uppercase tracking-wide text-sambal-600">Feedback &amp; feature requests</h2>
+        <h2 class="font-display text-2xl font-semibold text-sambal-600">Feedback &amp; feature requests</h2>
         <p class="mt-2 text-sm text-ink/70">
             Got an idea? Whether it's a tiny improvement, a restaurant we're missing, or something completely
             new, we'd love to hear it. Good food, less overthinking. 🍚
@@ -201,7 +201,7 @@
     </section>
 
     <section class="mt-10 text-center">
-        <h2 class="font-display text-5xl font-bold uppercase leading-none">Still stuck?</h2>
+        <h2 class="type-section">Still stuck?</h2>
         <p class="mt-2 text-ink/70">We're happy to help.</p>
         @if (config('marketing.support_email'))
             <a href="mailto:{{ config('marketing.support_email') }}"

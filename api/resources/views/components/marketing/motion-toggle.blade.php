@@ -39,7 +39,7 @@
                     var off = root.dataset.motion !== 'off';
                     if (off) { root.dataset.motion = 'off'; } else { delete root.dataset.motion; }
                     try { localStorage.setItem('makanapa-motion', off ? 'off' : 'on'); } catch (e) {}
-                    // The layout's clip player listens for this to pause or resume what's on screen.
+                    // The layout's clip player listens for this to pause any clip that's playing.
                     document.dispatchEvent(new CustomEvent('makanapa:motion'));
                     render();
                 });

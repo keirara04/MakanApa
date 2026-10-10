@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; }
+        #hl-rig { position: absolute; left: 230px; top: 306px; width: 620px; height: 1308px; }
+        #hl-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+        .hl-head { top: 150px; }
+        #hl-fine { position: absolute; left: 90px; right: 90px; bottom: 36px; text-align: center; font-size: 30px; line-height: 1.35; }
+      </style>
+
+      <div id="root" data-composition-id="halal" data-width="1080" data-height="1920">
+        <p id="hl-h1" class="two hl-head" data-layout-allow-overlap>Halal, your way.<br /><span>You choose what you see.</span></p>
+        <p id="hl-h2" class="two hl-head" data-layout-allow-overlap>Certificates, checked.<br /><span>Community notes, reviewed.</span></p>
+        <div id="hl-rig" data-layout-allow-overflow><div id="hl-3d" data-layout-allow-overflow></div></div>
+        <p id="hl-fine" class="sub" data-layout-allow-overlap>Halal info comes from the community. Always double-check at the restaurant.</p>
+      </div>
+
+      <script>
+        document.getElementById("hl-3d").innerHTML = MA.phone("hl", MA.nearby("hl"));
+        document.querySelectorAll('[data-composition-id="halal"] .iphone').forEach((el) => el.setAttribute("data-layout-ignore", ""));
+        gsap.set("#hl-sheet", { y: 900 });
+        gsap.set("#hl-rig", { y: 250, scale: 0.86 });
+
+        const tl = gsap.timeline({ paused: true });
+        // Local 0 = global 42.0.
+        function tap(x, y, at) {
+          tl.set("#hl-touch", { x, y }, at - 0.14);
+          tl.fromTo("#hl-touch", { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 0.88, duration: 0.14, ease: "power2.out", immediateRender: false }, at - 0.14);
+          tl.to("#hl-touch", { opacity: 0, scale: 1.15, duration: 0.3, ease: "power2.out" }, at + 0.02);
+        }
+        function head(sel, inAt, outAt) {
+          tl.fromTo(sel, { opacity: 0, y: 30, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "expo.out" }, inAt);
+          tl.to(sel, { opacity: 0, y: -24, filter: "blur(8px)", duration: 0.3, ease: "power2.in" }, outAt);
+        }
+
+        head("#hl-h1", 0.05, 3.3);
+        // Hide non-halal: the filter turns on, the notice explains its limits, non-halal places leave.
+        tap(105, 126, 0.65);
+        tl.to("#hl-halal", { backgroundColor: "#e94b35", color: "#ffffff", duration: 0.15 }, 0.68);
+        tl.fromTo("#hl-notice", { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, 0.85);
+        tl.to(["#hl-pin-1", "#hl-pin-5"], { opacity: 0, scale: 0.6, duration: 0.35, ease: "power2.in" }, 0.9);
+
+        // Open a certified place and scroll to its halal section.
+        tap(470, 495, 2.1);
+        tl.to("#hl-sheet", { y: 0, duration: 0.5, ease: "power3.out" }, 2.2);
+        tl.to("#hl-sheet", { y: -330, duration: 0.7, ease: "power3.inOut" }, 2.9);
+
+        // Two separate things: the certificate block, then the community block.
+        head("#hl-h2", 3.5, 7.7);
+        tl.fromTo("#hl-fine", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 6.9);
+        tl.to("#hl-rig", { scale: 1.45, y: 90, duration: 1.1, ease: "power3.inOut" }, 3.7);
+        tl.fromTo("#hl-cert", { boxShadow: "0 0 0 0 rgba(79,122,87,0)" }, { boxShadow: "0 0 0 4px rgba(79,122,87,0.45)", duration: 0.3, yoyo: true, repeat: 1, immediateRender: false }, 4.6);
+        tl.to("#hl-rig", { y: -230, duration: 1.0, ease: "power3.inOut" }, 5.5);
+        tl.to("#hl-rig", { scale: 0.86, y: 250, duration: 0.8, ease: "power3.inOut" }, 6.8);
+        tl.to("#hl-fine", { opacity: 0, duration: 0.3 }, 7.95);
+        tl.to("#hl-rig", { y: 1800, duration: 0.45, ease: "power3.in" }, 7.8);
+
+        window.__timelines["halal"] = tl;
+      </script>
+    </template>
+  </body>
+</html>

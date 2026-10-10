@@ -1,0 +1,9 @@
+Use case: precise-object-edit / logo-brand.
+Edit target: the provided MakanApa Uni Ambassador crest PNG. Create its matching MakanApa PLUS membership edition. The user specifically wants the SAME polished illustrated aesthetic as this ambassador badge: cute winking rice-ball Nasi mascot with spoon, rounded puffy rice grains, rich dimensional enamel highlights, thick dark espresso outlines, gold laurel branches and stars, shield silhouette, top arched MakanApa wordmark, substantial lower ribbon.
+Preserve the recognizable mascot, composition, hand-drawn shading and premium illustrated character of the reference. Do not simplify into flat geometric vector shapes or a circular medallion.
+Change the entire red accent theme to royal purple: main panels and cap #7945C8, deeper folds #48216F, lighter highlights #B68AE8. Keep warm gold borders #F4B942, cream #FFF4DD, dark espresso outlines and natural pink cheeks. Purple should be the dominant theme, balanced by gold and cream.
+Text exactly: top "MakanApa"; lower ribbon ONLY "PLUS" in large bold cream collegiate lettering with dark outlines and subtle gold edge, occupying the ribbon confidently. Remove "UNI" and "AMBASSADOR" completely. No other text. Keep ribbon compact and well balanced for the single word PLUS.
+Produce one exceptionally polished finished badge, centered on a square transparent canvas, full silhouette including ribbon tails visible, generous clear margins. True transparent background outside the badge. No mockup, no shadows outside the badge, no checkerboard, no watermark.
+
+Generated with the built-in image generation tool using marketing/ambassador/makanapa-uni-ambassador-badge.png as the edit reference.
+Final asset: makanapa-plus-purple-v2.png. This is a transparent raster illustration, not vector artwork.

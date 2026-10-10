@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+<title>MakanApa Distance Near</title>
+
+<circle cx="246" cy="117" r="38" fill="#FFF4DD" stroke="#29201D" stroke-width="16"/>
+<path d="M237 159L219 259L289 294" stroke="#29201D" stroke-width="20" stroke-linecap="round"/>
+<path d="M222 204L168 243" stroke="#29201D" stroke-width="18" stroke-linecap="round"/>
+<path d="M219 259L168 371" stroke="#29201D" stroke-width="22" stroke-linecap="round"/>
+<path d="M288 294L336 391" stroke="#29201D" stroke-width="22" stroke-linecap="round"/>
+<path d="M214 178L275 207" stroke="#E94B35" stroke-width="34" stroke-linecap="round"/>
+<path d="M302 134L337 149" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+<path d="M144 322L101 342" stroke="#F4B942" stroke-width="12" stroke-linecap="round"/>
+
+</svg>

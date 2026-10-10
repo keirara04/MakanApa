@@ -1,8 +1,8 @@
 @props(['name'])
 
 {{-- Decorative muted loop from public/videos (credits in public/videos/CREDITS.md). preload="none"
-     so nothing downloads up front; the layout script plays it only while it's on screen, and
-     leaves it on its poster frame under Reduce Motion or Data Saver. Whatever it shows is also
+     so nothing downloads up front; the layout script plays it only while its figure is hovered,
+     and leaves it on its poster frame on touch screens, under Reduce Motion or Data Saver. Whatever it shows is also
      said in the caption next to it, so screen readers skip it. --}}
 <video {{ $attributes->merge(['class' => 'block h-full w-full object-cover']) }}
        data-clip="{{ $name }}" muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback

@@ -37,15 +37,23 @@
         <script>document.documentElement.classList.add('js');</script>
 
         @fonts
-        {{-- The hand-lettered headings are the first thing on screen; fetch their font with the
-             page instead of after the CSS, so they don't flash in the fallback face. --}}
-        <link rel="preload" href="{{ asset('fonts/amatic-sc/amatic-sc-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
+        {{-- The headings are the first thing on screen; fetch their font with the page instead of
+             after the CSS, so they don't flash in the fallback face. --}}
+        <link rel="preload" href="{{ asset('fonts/fredoka/fredoka-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
 
         @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
             @vite(['resources/css/app.css'])
         @endif
 
         <style>
+            /* Self-hosted, all SIL OFL, so the site makes no third-party font calls. Declared here, not
+               in app.css, so the URLs resolve against this site under the Vite dev server too.
+               Fredoka: headings, UI and the wordmark. Caveat: handwritten notes. */
+            @font-face { font-family: 'Fredoka'; font-weight: 500; font-display: swap; src: url('{{ asset('fonts/fredoka/fredoka-latin-500.woff2') }}') format('woff2'); }
+            @font-face { font-family: 'Fredoka'; font-weight: 600; font-display: swap; src: url('{{ asset('fonts/fredoka/fredoka-latin-600.woff2') }}') format('woff2'); }
+            @font-face { font-family: 'Fredoka'; font-weight: 700; font-display: swap; src: url('{{ asset('fonts/fredoka/fredoka-latin-700.woff2') }}') format('woff2'); }
+            @font-face { font-family: 'Caveat'; font-weight: 700; font-display: swap; src: url('{{ asset('fonts/caveat/caveat-latin-700.woff2') }}') format('woff2'); }
+
             /* Minimal fallback so the page is legible even before a production build exists. */
             body { font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
         </style>
@@ -73,22 +81,21 @@
             Skip to content
         </a>
 
-        <header class="sticky top-0 z-40 border-b border-ink/10 bg-paper/85 backdrop-blur-md">
+        <header class="sticky top-0 z-40 border-b border-ink/10 bg-paper/95">
             <div class="mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6">
                 <a href="{{ url('/') }}" class="flex min-h-11 items-center gap-2">
                     <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="h-9 w-9" width="36" height="36" aria-hidden="true">
-                    <x-marketing.wordmark class="text-[1.9rem] leading-none" />
+                    <x-marketing.wordmark class="text-[1.4rem] leading-none sm:text-[1.6rem]" />
                 </a>
 
-                <nav aria-label="Main" class="hidden justify-center gap-7 font-display text-[1.65rem] font-bold uppercase tracking-wide md:flex lg:gap-10">
+                <nav aria-label="Main" class="hidden justify-center gap-7 font-display text-[1.05rem] font-semibold lg:flex xl:gap-9">
                     @hasSection('nav_links')
                         @yield('nav_links')
                     @else
-                        <a href="{{ url('/') }}" class="bracket-link">[Home]</a>
-                        <a href="{{ url('/support') }}" class="bracket-link" @if (request()->is('support')) data-active aria-current="page" @endif>[Support]</a>
-                        <a href="{{ route('privacy') }}" class="bracket-link" @if (request()->routeIs('privacy')) data-active aria-current="page" @endif>[Privacy]</a>
-                        {{-- Guidelines stays footer-only: a fifth header link doesn't fit at tablet width. --}}
-                        <a href="{{ route('terms') }}" class="bracket-link" @if (request()->routeIs('terms')) data-active aria-current="page" @endif>[Terms]</a>
+                        <a href="{{ url('/') }}" class="bracket-link">Home</a>
+                        <a href="{{ route('marketing.ambassadors') }}" class="bracket-link" @if (request()->routeIs('marketing.ambassadors')) data-active aria-current="page" @endif>Ambassadors</a>
+                        <a href="{{ url('/support') }}" class="bracket-link" @if (request()->is('support')) data-active aria-current="page" @endif>Support</a>
+                        {{-- Privacy, terms and guidelines stay footer-only: more header links don't fit at tablet width. --}}
                     @endif
                 </nav>
 
@@ -108,13 +115,14 @@
                 <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
                     <a href="{{ url('/') }}" class="flex items-center gap-2 text-ink">
                         <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="h-8 w-8" width="32" height="32" aria-hidden="true">
-                        <x-marketing.wordmark class="text-[1.7rem] leading-none" />
+                        <x-marketing.wordmark class="text-[1.4rem] leading-none" />
                     </a>
-                    <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2 font-display text-xl font-bold uppercase tracking-wide text-ink">
-                        <a href="{{ url('/support') }}" class="bracket-link min-h-0">[Support]</a>
-                        <a href="{{ route('privacy') }}" class="bracket-link min-h-0">[Privacy Policy]</a>
-                        <a href="{{ route('terms') }}" class="bracket-link min-h-0">[Terms of Use]</a>
-                        <a href="{{ route('community-guidelines') }}" class="bracket-link min-h-0">[Community Guidelines]</a>
+                    <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2 font-display text-base font-semibold text-ink">
+                        <a href="{{ route('marketing.ambassadors') }}" class="bracket-link min-h-0">Ambassadors</a>
+                        <a href="{{ url('/support') }}" class="bracket-link min-h-0">Support</a>
+                        <a href="{{ route('privacy') }}" class="bracket-link min-h-0">Privacy Policy</a>
+                        <a href="{{ route('terms') }}" class="bracket-link min-h-0">Terms of Use</a>
+                        <a href="{{ route('community-guidelines') }}" class="bracket-link min-h-0">Community Guidelines</a>
                     </nav>
                 </div>
                 <p>Made in Malaysia <span aria-hidden="true">🇲🇾</span> · &copy; {{ date('Y') }} Hakeemi Ridza. All rights reserved.</p>
@@ -123,39 +131,30 @@
         </footer>
 
         <script>
-            // Scroll reveal + draw-in (.draw / [data-reveal] → .is-in), the bracket nav marking
+            // Scroll reveal + draw-in (.draw / [data-reveal] → .is-in), the nav marking
             // whichever section is on screen, and the marketing clip loops (video[data-clip]) that only
-            // play while visible. Everything is visible without this script (clips stay on their poster).
+            // play while hovered. Everything is visible without this script (clips stay on their poster).
             (function () {
                 var clips = document.querySelectorAll('video[data-clip]');
                 var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
                 var saveData = navigator.connection && navigator.connection.saveData;
-                if (clips.length && !calm && !saveData && 'IntersectionObserver' in window) {
+                // Clips play only while hovered: several 30fps videos running at once halved the
+                // frame rate around them. Touch screens keep the poster frame.
+                var canHover = matchMedia('(hover: hover) and (pointer: fine)').matches;
+                if (clips.length && canHover && !calm && !saveData) {
                     // The motion-toggle component sets data-motion="off" on <html> to stop all clips.
                     var root = document.documentElement;
-                    var onScreen = new Set();
-                    function play(video) {
-                        if (root.dataset.motion === 'off') return;
-                        var playing = video.play();
-                        if (playing && playing.catch) playing.catch(function () {});
-                    }
-                    var player = new IntersectionObserver(function (entries) {
-                        entries.forEach(function (entry) {
-                            var video = entry.target;
-                            if (entry.isIntersecting) {
-                                onScreen.add(video);
-                                play(video);
-                            } else {
-                                onScreen.delete(video);
-                                video.pause();
-                            }
+                    clips.forEach(function (video) {
+                        var target = video.closest('figure') || video;
+                        target.addEventListener('pointerenter', function () {
+                            if (root.dataset.motion === 'off') return;
+                            var playing = video.play();
+                            if (playing && playing.catch) playing.catch(function () {});
                         });
-                    }, { threshold: 0.25 });
-                    clips.forEach(function (video) { player.observe(video); });
+                        target.addEventListener('pointerleave', function () { video.pause(); });
+                    });
                     document.addEventListener('makanapa:motion', function () {
-                        onScreen.forEach(function (video) {
-                            if (root.dataset.motion === 'off') { video.pause(); } else { play(video); }
-                        });
+                        if (root.dataset.motion === 'off') clips.forEach(function (video) { video.pause(); });
                     });
                 }
 

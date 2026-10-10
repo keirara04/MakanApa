@@ -72,6 +72,38 @@ class MarketingPagesTest extends TestCase
         $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => null]);
     }
 
+    public function test_download_for_an_ambassador_campus_uses_its_app_store_campaign(): void
+    {
+        config(['marketing.app_store_id' => '123', 'marketing.app_store_provider_token' => '456']);
+
+        $this->withHeader('User-Agent', self::BROWSER)
+            ->get('/go/app-store?from=ambassadors&campus=unimap')
+            ->assertRedirect('https://apps.apple.com/app/apple-store/id123?pt=456&ct=amb_unimap&mt=8');
+
+        $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'ambassadors']);
+    }
+
+    public function test_download_ignores_a_campus_without_ambassadors(): void
+    {
+        config(['marketing.app_download_url' => 'https://apps.apple.com/app/id123']);
+
+        $this->withHeader('User-Agent', self::BROWSER)
+            ->get('/go/app-store?campus=amb_evil')
+            ->assertRedirect('https://apps.apple.com/app/id123');
+    }
+
+    public function test_ambassadors_page_tags_downloads_with_the_campus_it_was_shared_for(): void
+    {
+        $this->get('/ambassadors?campus=unimap')->assertOk()
+            ->assertSee('UniMAP has a MakanApa ambassador.')
+            ->assertSee('href="'.e(route('marketing.download', ['from' => 'ambassadors', 'campus' => 'unimap'])).'"', false)
+            ->assertSee('<link rel="canonical" href="'.url('/ambassadors').'">', false);
+
+        $this->get('/ambassadors?campus=nowhere')->assertOk()
+            ->assertDontSee('has a MakanApa ambassador.')
+            ->assertSee('href="'.route('marketing.download', ['from' => 'ambassadors']).'"', false);
+    }
+
     public function test_landing_view_is_counted_for_browsers_but_not_link_previews(): void
     {
         // Deltas, not absolutes: tests without RefreshDatabase (e.g. ExampleTest's GET /) can

@@ -21,6 +21,7 @@ Route::withoutMiddleware([
     // Beta-era path, still printed in old QR codes and shared links.
     Route::get('/go/testflight', [MarketingController::class, 'download']);
     Route::get('/try', [MarketingController::class, 'tryPick'])->middleware('throttle:30,1,landing-try')->name('marketing.try');
+    Route::get('/ambassadors', [MarketingController::class, 'ambassadors'])->name('marketing.ambassadors');
     Route::view('/support', 'support');
 
     // Legal pages. The app links these URLs directly (privacy is hardcoded in the iOS build), so
