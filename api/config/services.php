@@ -73,6 +73,9 @@ return [
         // which is what Google_Client::verifyIdToken() checks against here. Using the iOS client
         // ID here would make every token verification fail with an audience mismatch.
         'server_client_id' => env('GOOGLE_SERVER_CLIENT_ID'),
+        // The web app's own Web OAuth client (Google Identity Services on app.trymakanapa.com).
+        // Same Google project, so a person's `sub` is the same as from the iOS app.
+        'web_client_id' => env('GOOGLE_WEB_CLIENT_ID'),
     ],
 
 ];

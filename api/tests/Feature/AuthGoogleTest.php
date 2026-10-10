@@ -70,6 +70,13 @@ class AuthGoogleTest extends TestCase
         $response->assertStatus(401);
     }
 
+    public function test_the_web_apps_client_is_accepted_too(): void
+    {
+        config(['services.google.web_client_id' => 'web-client-id.apps.googleusercontent.com']);
+
+        $this->postJson('/api/v1/auth/google', $this->payload(['aud' => 'web-client-id.apps.googleusercontent.com']))->assertOk();
+    }
+
     public function test_expired_token_rejected(): void
     {
         $response = $this->postJson('/api/v1/auth/google', $this->payload(['exp' => time() - 60]));

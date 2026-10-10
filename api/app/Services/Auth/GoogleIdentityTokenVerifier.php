@@ -28,9 +28,10 @@ class GoogleIdentityTokenVerifier
         }
 
         // Checked against the Web/server OAuth client ID, not an iOS client ID — see
-        // config/services.php's `google.server_client_id` doc comment for why.
-        $expectedAudience = config('services.google.server_client_id');
-        if (($claims->aud ?? null) !== $expectedAudience) {
+        // config/services.php's `google.server_client_id` doc comment for why — or the web
+        // app's own client (`google.web_client_id`).
+        $expectedAudience = array_values(array_filter([config('services.google.server_client_id'), config('services.google.web_client_id')]));
+        if (! in_array($claims->aud ?? null, $expectedAudience, true)) {
             // Deliberately logs both sides, not just a boolean — this is the only way to tell
             // "GOOGLE_SERVER_CLIENT_ID is unset/wrong on this deploy" apart from "someone sent
             // a token for a different app" after the fact, without a debugger attached.
