@@ -12,6 +12,8 @@ import { Result } from './features/decide/Result'
 import { SavedPick } from './features/decide/SavedPick'
 import { DecideProvider } from './features/decide/state'
 import { Community } from './features/community/Community'
+import { AddPlace, AddPlaceDone } from './features/community/AddPlace'
+import { MyPlaces } from './features/community/MyPlaces'
 import { AllPosts, ThreadPage } from './features/community/Posts'
 import { Nearby } from './features/nearby/Nearby'
 import { NotificationSettings } from './features/notifications/Notifications'
@@ -97,6 +99,9 @@ function AppRoutes() {
         <Route path="community" element={<Community />} />
         <Route path="community/posts" element={<AllPosts />} />
         <Route path="community/posts/:id" element={<ThreadPage />} />
+        <Route path="community/add" element={<AddPlace />} />
+        <Route path="community/add/done" element={<AddPlaceDone />} />
+        <Route path="community/mine" element={<MyPlaces />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

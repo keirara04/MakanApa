@@ -75,6 +75,7 @@ export function Settings() {
       <Group title="Your MakanApa">
         <NavRow to="/settings/selera" title="Your Selera" detail="What I’ve learned about your taste" />
         <NavRow to="/settings/saved" title="Saved places" detail="Places you kept" />
+        <NavRow to="/community/mine" title="My places" detail="Places you’ve added or edited" />
       </Group>
 
       <Group title="Preferences">

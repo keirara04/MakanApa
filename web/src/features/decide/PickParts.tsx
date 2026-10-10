@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router'
+import type { AddPlaceState } from '../community/AddPlace'
 import { decideApi, type Decision, type HalalInfo, type Recommendation, type TuneDirection, type WhatIfRow, type WhyNotDetail, type WhyNotReason } from '../../api/decide'
 import { errorMessage } from '../../lib/errors'
 import { getStored, setStored, useStored } from '../../lib/storage'
@@ -315,7 +317,22 @@ export function SendToFriends({ decision, pick }: { decision: Decision; pick: Re
 }
 
 export function Menu({ pick }: { pick: Recommendation }) {
-  if (pick.menuItems.length === 0) return null
+  const { pathname } = useLocation()
+  if (pick.menuItems.length === 0) {
+    const handover: AddPlaceState = {
+      existing: { id: pick.id, name: pick.name, address: null, foodCategory: pick.foodCategory, priceLevel: pick.priceLevel, latitude: pick.latitude, longitude: pick.longitude, distanceKm: null },
+      menu: true,
+      from: pathname,
+    }
+    return (
+      <Link to="/community/add" state={handover} className="press flex min-h-14 items-center justify-between rounded-row border-2 border-hairline bg-surface px-4 font-semibold">
+        Know the menu? Add it
+        <svg viewBox="0 0 24 24" className="h-5 w-5 text-kicap-soft" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+      </Link>
+    )
+  }
   return (
     <section aria-labelledby="menu-title">
       <h2 id="menu-title" className="font-display text-xl font-bold">

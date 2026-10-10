@@ -176,6 +176,12 @@ function SaveSearch({ query, saved }: { query: string; saved: SavedPlace[] }) {
             )
           })}
         </ul>
+        {data && (
+          <Link to={`/community/add?q=${encodeURIComponent(debounced)}`} state={{ from: '/settings/saved' }} className="press mt-2 flex min-h-11 flex-col rounded-row border-2 border-dashed border-hairline px-4 py-3">
+            <span className="font-semibold text-sambal-deep">Can’t find it? Add it as a new place</span>
+            <span className="text-sm text-kicap-soft">We’ll check MakanApa and Google first. New places show up after a quick review.</span>
+          </Link>
+        )}
         {error && <p role="alert" className="text-sambal-deep">{error}</p>}
       </section>
     </div>

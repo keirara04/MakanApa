@@ -1,7 +1,7 @@
 import { useId, type InputHTMLAttributes } from 'react'
 
 /** Labelled text input with its error underneath, linked for screen readers. */
-export function Field({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
+export function Field({ label, error, hint, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string }) {
   const id = useId()
   return (
     <div className="flex flex-col gap-1.5">
@@ -12,13 +12,19 @@ export function Field({ label, error, ...props }: InputHTMLAttributes<HTMLInputE
         id={id}
         {...props}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         className="min-h-13 rounded-row border-2 border-hairline bg-surface px-4 text-base text-kicap placeholder:text-kicap-soft focus:border-kicap focus:outline-none aria-invalid:border-sambal-deep"
       />
-      {error && (
+      {error ? (
         <p id={`${id}-error`} className="text-sm text-sambal-deep">
           {error}
         </p>
+      ) : (
+        hint && (
+          <p id={`${id}-hint`} className="text-sm text-kicap-soft">
+            {hint}
+          </p>
+        )
       )}
     </div>
   )

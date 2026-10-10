@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { nearbyApi, type NearbyPlace, type SearchResponse, type SearchResult } from '../../api/nearby'
 import { errorMessage } from '../../lib/errors'
 import { getStored, setStored, useStored } from '../../lib/storage'
@@ -32,6 +33,7 @@ export function SearchPanel({ centre, onClose, onSelect }: {
   const excluded = useStored('excluded') ?? []
   const recent = useStored('recentSearches') ?? []
   const [text, setText] = useState('')
+  const navigate = useNavigate()
   const [run, setRun] = useState<{ query: string; radiusKm: number; includeGoogle: boolean } | null>(null)
   const [response, setResponse] = useState<SearchResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -182,6 +184,9 @@ export function SearchPanel({ centre, onClose, onSelect }: {
                 Search within {radius(response.meta.widerRadiusKm)}
               </Button>
             )}
+            <Button variant="secondary" className="max-w-xs" onClick={() => navigate(`/community/add?q=${encodeURIComponent(run.query)}`, { state: { from: '/nearby' } })}>
+              Add this place
+            </Button>
             {response.meta.googleAvailable && (
               <Button variant="secondary" className="max-w-xs" onClick={() => setRun({ ...run, includeGoogle: true })}>
                 Search Google for “{run.query}”
