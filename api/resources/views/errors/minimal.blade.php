@@ -9,7 +9,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex">
         <title>@yield('title') | MakanApa</title>
-        <link rel="icon" href="/images/mascot-default.svg" type="image/svg+xml">
+        <link rel="icon" href="/images/mascot/wave-96.png" type="image/png" sizes="96x96">
         <style>
             @font-face { font-family: 'Fredoka'; font-weight: 700; font-display: swap; src: url('/fonts/fredoka/fredoka-latin-700.woff2') format('woff2'); }
             * { box-sizing: border-box; }
@@ -27,7 +27,7 @@
     </head>
     <body>
         <main>
-            <img src="/images/mascot-sad.svg" alt="" aria-hidden="true" width="128" height="128">
+            <img src="/images/mascot/sad-320.webp" alt="" aria-hidden="true" width="128" height="128">
             <p class="code" aria-hidden="true">@yield('code')</p>
             <h1>@yield('message')</h1>
             @hasSection('detail')

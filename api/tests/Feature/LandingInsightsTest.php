@@ -46,44 +46,6 @@ class LandingInsightsTest extends TestCase
         ]);
     }
 
-    public function test_try_returns_a_real_nearby_pick_without_recording_a_decision(): void
-    {
-        $near = $this->restaurant();
-        $this->restaurant(['name' => 'Far Away Cafe', 'latitude' => self::LAT + 0.05]);
-
-        $this->getJson('/try?km=1')
-            ->assertOk()
-            ->assertJsonPath('near', 'UKM Bangi')
-            ->assertJsonPath('pick.id', $near->id)
-            ->assertJsonPath('pick.name', 'Nasi Kandar Pelita')
-            ->assertJsonPath('pick.price', '≈ RM10/person')
-            ->assertJsonPath('pick.url', "https://makanapa.test/p/{$near->id}-nasi-kandar-pelita?ref=landing");
-
-        $this->assertSame(0, Decision::count());
-    }
-
-    public function test_try_skips_places_already_shown(): void
-    {
-        $first = $this->restaurant();
-        $second = $this->restaurant(['name' => 'Mee Goreng Mamak']);
-
-        $this->getJson('/try?km=2&exclude[]='.$first->id)
-            ->assertOk()
-            ->assertJsonPath('pick.id', $second->id);
-    }
-
-    public function test_try_answers_with_no_pick_when_nothing_is_nearby(): void
-    {
-        $this->getJson('/try?km=1')->assertOk()->assertJsonPath('pick', null);
-    }
-
-    public function test_try_rejects_answers_the_page_never_offers(): void
-    {
-        $this->getJson('/try?km=3')->assertUnprocessable()->assertJsonValidationErrors('km');
-        $this->getJson('/try?km=1&mood=sushi')->assertUnprocessable()->assertJsonValidationErrors('mood');
-        $this->getJson('/try?km=1&budget=9')->assertUnprocessable()->assertJsonValidationErrors('budget');
-    }
-
     public function test_numbers_below_their_floor_are_left_off_the_page(): void
     {
         Config::set('marketing.stats.min', ['places' => 2, 'picks' => 1, 'community' => 1]);
@@ -136,5 +98,29 @@ class LandingInsightsTest extends TestCase
         $this->restaurant();
 
         $this->get('/')->assertOk()->assertDontSee('data-nearby=', false);
+    }
+
+    public function test_coverage_lists_campuses_with_enough_places_and_hides_the_rest(): void
+    {
+        Config::set('marketing.stats.min.coverage_places', 2);
+        University::create(['name' => 'Universiti Kebangsaan Malaysia', 'short_name' => 'UKM', 'active' => true, 'latitude' => self::LAT, 'longitude' => self::LNG]);
+        University::create(['name' => 'Universiti Far Away', 'short_name' => 'UFA', 'active' => true, 'latitude' => self::LAT + 1, 'longitude' => self::LNG]);
+        $this->restaurant();
+        $this->restaurant(['name' => 'Mee Goreng Mamak']);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Where MakanApa')
+            ->assertSee('Universiti Kebangsaan Malaysia')
+            ->assertDontSee('Universiti Far Away');
+    }
+
+    public function test_coverage_section_is_hidden_when_no_campus_clears_the_floor(): void
+    {
+        Config::set('marketing.stats.min.coverage_places', 5);
+        University::create(['name' => 'Universiti Kebangsaan Malaysia', 'short_name' => 'UKM', 'active' => true, 'latitude' => self::LAT, 'longitude' => self::LNG]);
+        $this->restaurant();
+
+        $this->get('/')->assertOk()->assertDontSee('Where MakanApa');
     }
 }

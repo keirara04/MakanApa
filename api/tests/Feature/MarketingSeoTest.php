@@ -140,4 +140,54 @@ class MarketingSeoTest extends TestCase
 
         $this->assertSame(['rating' => 4.5, 'count' => 20], Cache::get(LandingInsights::APP_RATING_CACHE_KEY));
     }
+
+    public function test_refresh_command_keeps_only_good_readable_reviews(): void
+    {
+        $entry = fn (string $id, int $rating, string $body) => [
+            'id' => ['label' => $id], 'im:rating' => ['label' => (string) $rating],
+            'title' => ['label' => 'Title '.$id], 'content' => ['label' => $body], 'author' => ['name' => ['label' => 'Reviewer '.$id]],
+        ];
+        Http::fake([
+            'itunes.apple.com/my/rss/*' => Http::response(['feed' => ['entry' => [
+                $entry('1', 5, 'Finally stopped arguing with my housemates about dinner.'),
+                $entry('2', 2, 'Did not find anything near my place at all, sadly.'),
+                $entry('3', 4, 'Too short'),
+            ]]]),
+            'itunes.apple.com/*' => Http::response(['resultCount' => 1, 'results' => [['averageUserRating' => 4.8, 'userRatingCount' => 12]]]),
+        ]);
+
+        $this->artisan('marketing:refresh-app-rating')->assertSuccessful();
+
+        $this->assertSame(['1'], array_column(Cache::get(LandingInsights::APP_REVIEWS_CACHE_KEY), 'id'));
+    }
+
+    public function test_refresh_command_reads_a_feed_with_a_single_review(): void
+    {
+        Http::fake([
+            'itunes.apple.com/my/rss/*' => Http::response(['feed' => ['entry' => [
+                'id' => ['label' => '9'], 'im:rating' => ['label' => '5'], 'title' => ['label' => 'Love it'],
+                'content' => ['label' => 'Picks a place in seconds and it is usually right.'], 'author' => ['name' => ['label' => 'Amir']],
+            ]]]),
+            'itunes.apple.com/*' => Http::response(['resultCount' => 1, 'results' => [['averageUserRating' => 5, 'userRatingCount' => 1]]]),
+        ]);
+
+        $this->artisan('marketing:refresh-app-rating')->assertSuccessful();
+
+        $this->assertSame('Amir', Cache::get(LandingInsights::APP_REVIEWS_CACHE_KEY)[0]['author']);
+    }
+
+    public function test_reviews_show_only_once_there_are_enough(): void
+    {
+        config(['marketing.stats.min.app_reviews' => 3]);
+        $review = fn (string $id) => ['id' => $id, 'rating' => 5, 'title' => 'Great '.$id, 'body' => 'Settles lunch every single day for us.', 'author' => 'Reviewer '.$id];
+
+        Cache::put(LandingInsights::APP_REVIEWS_CACHE_KEY, [$review('1'), $review('2')]);
+        $this->get('/')->assertDontSee('What people say.');
+
+        Cache::put(LandingInsights::APP_REVIEWS_CACHE_KEY, [$review('1'), $review('2'), $review('3'), $review('4')]);
+        $this->get('/')
+            ->assertSee('What people say.')
+            ->assertSee('Reviewer 3, App Store')
+            ->assertDontSee('Reviewer 4, App Store');
+    }
 }

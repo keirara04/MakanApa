@@ -2,11 +2,9 @@
 
 namespace App\Services\Marketing;
 
-use App\Http\Controllers\SharePlaceController;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\University;
-use App\Services\Halal\HalalPresenter;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
 use App\Support\RecommendationHeadline;
@@ -17,14 +15,17 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Real data for the public landing page: the "try it" demo pick, the live numbers strip and the
- * "most picked near …" list. Everything reads MakanApa's own database only — never Google — and
+ * Real data for the public landing page: the live numbers strip and the "most picked near …"
+ * list. Everything reads MakanApa's own database only — never Google — and
  * is anchored on config('marketing.demo'), since the page doesn't ask for the visitor's location.
  */
 class LandingInsights
 {
     /** Radius for the top-rated fallback list around the demo anchor. */
     private const NEARBY_LIST_RADIUS_KM = 3.0;
+
+    /** Most campuses the coverage list shows. */
+    private const MAX_COVERAGE_AREAS = 8;
 
     /** Below this many places, the "near …" list is hidden rather than looking empty. */
     private const MIN_LIST_ITEMS = 3;
@@ -35,56 +36,10 @@ class LandingInsights
     /** Written by marketing:refresh-app-rating; the page never calls Apple itself. */
     public const APP_RATING_CACHE_KEY = 'marketing:app-store-rating';
 
-    public function __construct(
-        private readonly PlacesService $places,
-        private readonly RecommendationService $recommendations,
-        private readonly HalalPresenter $halal,
-    ) {}
+    /** Written by marketing:refresh-app-rating too. */
+    public const APP_REVIEWS_CACHE_KEY = 'marketing:app-store-reviews';
 
-    /**
-     * One real pick around the demo anchor, ranked by the same RecommendationService the app uses.
-     * Nothing is recorded: demo picks aren't decisions and never feed stats or trending.
-     *
-     * @param  array<int, int>  $excludeIds  places already shown this session ("Cari lagi")
-     * @return array{id: int, name: string, headline: string, distanceKm: float, price: ?string, rating: ?float, halal: string, url: string}|null
-     */
-    public function demoPick(?string $mood, ?int $budgetMax, float $maxDistanceKm, array $excludeIds = []): ?array
-    {
-        $anchor = $this->anchor();
-
-        $restaurants = array_values(array_filter(
-            $this->places->localRestaurantsNear($anchor['latitude'], $anchor['longitude'], $maxDistanceKm),
-            fn (array $restaurant) => ! in_array($restaurant['id'], $excludeIds, true),
-        ));
-
-        $result = $this->recommendations->recommend($restaurants, [
-            'moodTags' => $mood !== null ? [$mood] : [],
-            'cuisines' => [],
-            'cravingIntent' => null,
-            'budgetMax' => $budgetMax,
-            'maxDistanceKm' => $maxDistanceKm,
-            'latitude' => $anchor['latitude'],
-            'longitude' => $anchor['longitude'],
-            'halalOnly' => false,
-        ]);
-
-        if ($result['pick'] === null) {
-            return null;
-        }
-
-        $restaurant = $result['pick']['restaurant'];
-
-        return [
-            'id' => $restaurant['id'],
-            'name' => $restaurant['name'],
-            'headline' => RecommendationHeadline::for($restaurant),
-            'distanceKm' => round($result['pick']['distanceKm'], 1),
-            'price' => SharePlaceController::priceLabel($restaurant['price_level']),
-            'rating' => $restaurant['rating'],
-            'halal' => $this->halal->summaryFromArray($restaurant)['display']['shortLabel'],
-            'url' => ShareLinks::place($restaurant['id'], $restaurant['name'], 'landing'),
-        ];
-    }
+    public function __construct(private readonly PlacesService $places) {}
 
     /**
      * Live totals for the numbers strip. Each is null when below its configured floor.
@@ -145,6 +100,53 @@ class LandingInsights
     }
 
     /** @return array{label: string, latitude: float, longitude: float, university: string} */
+    /**
+     * Campuses MakanApa knows well enough to show off: active universities with at least the
+     * configured number of places within the nearby-list radius, most places first. Empty when
+     * none clear the floor, and the page then hides the section.
+     *
+     * @return array<int, array{name: string, shortName: string, places: int}>
+     */
+    public function coverage(): array
+    {
+        return Cache::remember('marketing:landing:coverage:v1', (int) Config::get('marketing.stats.cache_seconds'), function () {
+            $floor = (int) Config::get('marketing.stats.min.coverage_places');
+
+            return University::query()
+                ->where('active', true)
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->get()
+                ->map(fn (University $university) => [
+                    'name' => $university->name,
+                    'shortName' => $university->short_name ?: $university->name,
+                    'places' => count($this->places->localRestaurantsNear(
+                        (float) $university->latitude, (float) $university->longitude, self::NEARBY_LIST_RADIUS_KM
+                    )),
+                ])
+                ->filter(fn (array $area) => $area['places'] >= $floor)
+                ->sortByDesc('places')
+                ->take(self::MAX_COVERAGE_AREAS)
+                ->values()
+                ->all();
+        });
+    }
+
+    /**
+     * Up to three cached 4 and 5 star App Store reviews, quoted as written. Empty until there are
+     * at least the configured number to choose from, so one lonely review never carries a section.
+     *
+     * @return array<int, array{id: string, rating: int, title: string, body: string, author: string}>
+     */
+    public function appReviews(): array
+    {
+        $reviews = Cache::get(self::APP_REVIEWS_CACHE_KEY);
+
+        return is_array($reviews) && count($reviews) >= (int) Config::get('marketing.stats.min.app_reviews')
+            ? array_slice($reviews, 0, 3)
+            : [];
+    }
+
     public function anchor(): array
     {
         return Config::get('marketing.demo');

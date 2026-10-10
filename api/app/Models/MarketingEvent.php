@@ -21,7 +21,7 @@ class MarketingEvent extends Model
     public const SHARE_GET_APP = 'share_get_app';
 
     /** Where a download button can live on the site. Anything else is stored as null. */
-    public const SOURCES = ['nav', 'hero', 'qr', 'final', 'faq', 'missing', 'ambassadors'];
+    public const SOURCES = ['nav', 'hero', 'qr', 'final', 'faq', 'missing', 'ambassadors', 'spin', 'reviews'];
 
     public const UPDATED_AT = null;
 

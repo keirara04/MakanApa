@@ -20,7 +20,6 @@ Route::withoutMiddleware([
     Route::get('/go/app-store', [MarketingController::class, 'download'])->name('marketing.download');
     // Beta-era path, still printed in old QR codes and shared links.
     Route::get('/go/testflight', [MarketingController::class, 'download']);
-    Route::get('/try', [MarketingController::class, 'tryPick'])->middleware('throttle:30,1,landing-try')->name('marketing.try');
     Route::get('/ambassadors', [MarketingController::class, 'ambassadors'])->name('marketing.ambassadors');
     Route::view('/support', 'support');
 
@@ -37,6 +36,9 @@ Route::withoutMiddleware([
     Route::get('/p/{place}/go/{target}', [SharePlaceController::class, 'go'])
         ->where('place', '[0-9]+(-[A-Za-z0-9-]*)?')
         ->whereIn('target', ['app', 'download']);
+    // Link-preview image for a shared place. Outside /p/* so the universal link never claims it.
+    Route::get('/og/p/{place}/{version}.png', [SharePlaceController::class, 'card'])
+        ->where(['place' => '[0-9]+', 'version' => '[a-f0-9]{12}']);
     Route::get('/.well-known/apple-app-site-association', [SharePlaceController::class, 'appSiteAssociation']);
 
     // Generated rather than static files so the Sitemap line and URLs follow MARKETING_DOMAIN.

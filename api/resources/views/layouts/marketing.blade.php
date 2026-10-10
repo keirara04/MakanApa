@@ -15,7 +15,7 @@
         <link rel="canonical" href="@yield('canonical', \App\Support\MarketingUrl::to(request()->path()))">
 
         <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="48x48">
-        <link rel="icon" href="{{ asset('images/mascot-default.svg') }}" type="image/svg+xml">
+        <link rel="icon" href="{{ asset('images/mascot/wave-96.png') }}" type="image/png" sizes="96x96">
         <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
 
         {{-- WhatsApp / X / iMessage link previews --}}
@@ -81,14 +81,19 @@
             Skip to content
         </a>
 
-        <header class="sticky top-0 z-40 border-b border-ink/10 bg-paper/95">
-            <div class="mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6">
+        {{-- A paper strip taped over the top of the page: wobbly double pen stroke, tape at both
+             ends, links that get a turmeric highlighter swipe. Floats so the page shows around it. --}}
+        <header class="sticky top-0 z-40 px-3 pt-3 sm:px-5">
+            <div class="nav-strip sketch mx-auto grid h-16 max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 pl-3 pr-4 sm:pl-4 sm:pr-5" style="--sketch-radius: 18px; --sketch-fill: var(--color-paper-50)">
+                <span class="tape -left-5 -top-1 hidden w-20 -rotate-[32deg] sm:block" aria-hidden="true"></span>
+                <span class="tape -bottom-2 -right-8 hidden w-20 -rotate-[28deg] sm:block" aria-hidden="true"></span>
+
                 <a href="{{ url('/') }}" class="flex min-h-11 items-center gap-2">
-                    <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="h-9 w-9" width="36" height="36" aria-hidden="true">
+                    <img src="{{ asset('images/mascot/wave-160.webp') }}" alt="" class="h-9 w-9" width="36" height="36" aria-hidden="true">
                     <x-marketing.wordmark class="text-[1.4rem] leading-none sm:text-[1.6rem]" />
                 </a>
 
-                <nav aria-label="Main" class="hidden justify-center gap-7 font-display text-[1.05rem] font-semibold lg:flex xl:gap-9">
+                <nav aria-label="Main" class="hidden justify-center gap-5 font-display text-[1.05rem] font-semibold lg:flex xl:gap-7">
                     @hasSection('nav_links')
                         @yield('nav_links')
                     @else
@@ -101,7 +106,7 @@
 
                 <div class="col-start-3 flex items-center gap-2 sm:gap-3">
                     @stack('nav_extra')
-                    <x-marketing.download-button from="nav" size="sm">Get the app</x-marketing.download-button>
+                    <x-marketing.download-button from="nav" size="sm" class="rotate-[1.5deg] hover:rotate-0">Get the app</x-marketing.download-button>
                 </div>
             </div>
         </header>
@@ -114,7 +119,7 @@
             <div class="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-10 text-sm text-ink/70 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <div class="flex flex-wrap items-center gap-x-8 gap-y-3">
                     <a href="{{ url('/') }}" class="flex items-center gap-2 text-ink">
-                        <img src="{{ asset('images/mascot-default.svg') }}" alt="" class="h-8 w-8" width="32" height="32" aria-hidden="true">
+                        <img src="{{ asset('images/mascot/wave-160.webp') }}" alt="" class="h-8 w-8" width="32" height="32" aria-hidden="true">
                         <x-marketing.wordmark class="text-[1.4rem] leading-none" />
                     </a>
                     <nav aria-label="Footer" class="flex flex-wrap gap-x-6 gap-y-2 font-display text-base font-semibold text-ink">
@@ -123,6 +128,7 @@
                         <a href="{{ route('privacy') }}" class="bracket-link min-h-0">Privacy Policy</a>
                         <a href="{{ route('terms') }}" class="bracket-link min-h-0">Terms of Use</a>
                         <a href="{{ route('community-guidelines') }}" class="bracket-link min-h-0">Community Guidelines</a>
+                        <a href="{{ config('marketing.threads_url') }}" class="bracket-link min-h-0" rel="me noopener" target="_blank">Threads</a>
                     </nav>
                 </div>
                 <p>Made in Malaysia <span aria-hidden="true">🇲🇾</span> · &copy; {{ date('Y') }} Hakeemi Ridza. All rights reserved.</p>

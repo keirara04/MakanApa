@@ -25,12 +25,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         libicu-dev \
         libjpeg62-turbo-dev \
+        libfreetype-dev \
         libpng-dev \
         libwebp-dev \
         unzip \
-    # GD — RestaurantPhotoUploadService decodes/re-encodes every uploaded photo. php:8.4-apache
+    # GD — RestaurantPhotoUploadService decodes/re-encodes every uploaded photo, and freetype draws
+    # the share-link preview cards (ShareCardImage). php:8.4-apache
     # doesn't ship it, and without it every photo upload 500s (tests pass locally, where PHP has GD).
-    && docker-php-ext-configure gd --with-jpeg --with-webp \
+    && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
     && docker-php-ext-install pdo pdo_pgsql opcache intl gd \
     # phpredis — CACHE_STORE/QUEUE_CONNECTION=redis (see .env.staging.example).
     && pecl install redis \

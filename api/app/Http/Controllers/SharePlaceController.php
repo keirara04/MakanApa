@@ -11,6 +11,7 @@ use App\Support\BotUserAgent;
 use App\Support\MarketingUrl;
 use App\Support\OpeningHours;
 use App\Support\RecommendationHeadline;
+use App\Support\ShareCardImage;
 use App\Support\ShareLinks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,8 @@ class SharePlaceController extends Controller
     private const PICKER_WINDOW_DAYS = 30;
 
     private const MIN_PICKERS_SHOWN = 2;
+
+    private const FALLBACK_CARD = 'images/share/default.png';
 
     public function __construct(private readonly HalalPresenter $halalPresenter) {}
 
@@ -77,7 +80,7 @@ class SharePlaceController extends Controller
             'openAppUrl' => url("/p/{$key}/go/app").($ref ? "?ref={$ref}" : ''),
             'getAppUrl' => url("/p/{$key}/go/download").($ref ? "?ref={$ref}" : ''),
             'directionsUrl' => $this->directionsUrl($restaurant),
-            'ogImage' => $this->ogImage($restaurant->food_category),
+            'ogImage' => $this->cardUrl($restaurant, $halal['display']),
             'indexable' => $indexable,
             'structuredData' => $indexable ? $this->structuredData($restaurant, $canonicalUrl, $menuRange ?? $price) : null,
         ]);
@@ -114,6 +117,27 @@ class SharePlaceController extends Controller
         $this->record($request, MarketingEvent::SHARE_GET_APP, $restaurant, $ref);
 
         return redirect()->away((string) config('marketing.app_download_url'));
+    }
+
+    /**
+     * The link-preview card for a shared place. The version in the URL is a hash of the card's
+     * content, so chat apps fetch a fresh image whenever the name, price or halal status changes.
+     * Anything that can't be drawn falls back to the generic image rather than failing a preview.
+     */
+    public function card(int $place): Response|RedirectResponse
+    {
+        $restaurant = Restaurant::find($place)?->canonicalRestaurant();
+        if ($restaurant === null || ! $restaurant->is_active || ! ShareCardImage::supported() || ! ShareCardImage::canRender($restaurant->name)) {
+            return redirect()->away(asset(self::FALLBACK_CARD));
+        }
+
+        $restaurant->loadMissing('cuisines', 'tags', 'activeHalalCertificate');
+        $halal = $this->halalPresenter->summaryFromArray($restaurant->toRecommendationArray());
+
+        return response(ShareCardImage::render($this->cardContent($restaurant, $halal['display'])), 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
     }
 
     /** Universal links: /p/* opens the app; /g/* is reserved for Geng rooms. */
@@ -251,11 +275,50 @@ class SharePlaceController extends Controller
         return "https://www.google.com/maps/search/?{$query}";
     }
 
-    private function ogImage(?string $foodCategory): string
+    /** @param  array{shortLabel: string, tone: string}  $halal */
+    private function cardUrl(Restaurant $restaurant, array $halal): string
     {
-        $categoryImage = $foodCategory ? "images/share/{$foodCategory}.png" : null;
+        if (! ShareCardImage::canRender($restaurant->name)) {
+            return asset(self::FALLBACK_CARD);
+        }
+        $version = substr(md5((string) json_encode($this->cardContent($restaurant, $halal))), 0, 12);
 
-        return asset($categoryImage && file_exists(public_path($categoryImage)) ? $categoryImage : 'images/share/default.png');
+        return MarketingUrl::to("/og/p/{$restaurant->id}/{$version}.png");
+    }
+
+    /**
+     * What the preview card shows. Halal only appears with HalalPresenter's own wording, and only
+     * when there is something to say: "Help verify" on a thumbnail would read as a bug.
+     *
+     * @param  array{shortLabel: string, tone: string}  $halal
+     * @return array{kicker: string, title: string, subtitle: ?string, detail: ?string, pills: list<array{label: string, background: array{int, int, int}, text: array{int, int, int}}>, footer: ?string}
+     */
+    private function cardContent(Restaurant $restaurant, array $halal): array
+    {
+        $pills = [];
+        $halalColors = match ($halal['tone']) {
+            'certified' => [[79, 122, 87], [253, 246, 236]],
+            'friendly' => [[228, 236, 223], [59, 95, 66]],
+            'non_halal' => [[232, 226, 219], [43, 28, 20]],
+            default => null,
+        };
+        if ($halalColors !== null) {
+            $pills[] = ['label' => $halal['shortLabel'], 'background' => $halalColors[0], 'text' => $halalColors[1]];
+        }
+        $price = self::priceLabel($restaurant->price_level);
+        if ($price !== null) {
+            // The card font has no "≈" glyph.
+            $pills[] = ['label' => str_replace('≈', '~', $price), 'background' => [250, 225, 176], 'text' => [43, 28, 20]];
+        }
+
+        return [
+            'kicker' => 'Someone sent you a food spot',
+            'title' => $restaurant->name,
+            'subtitle' => RecommendationHeadline::categoryLabel($restaurant->food_category),
+            'detail' => $restaurant->address,
+            'pills' => $pills,
+            'footer' => parse_url(MarketingUrl::base(), PHP_URL_HOST) ?: null,
+        ];
     }
 
     /** Mirrors the app's PricePresentation so the page and the app say the same thing. */

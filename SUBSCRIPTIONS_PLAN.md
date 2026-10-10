@@ -373,6 +373,8 @@ Reward a **successful referral**, not a tap on Share.
 
 The rice-ball mascot (red "LET'S EAT" cap, spoon) gets a proper name: **Bubu**, a nod to *bubur* (rice porridge). It replaces "Nasi", which is a generic word that clashes with dish names already in the app ("Nasi lemak", "Nasi kandar") and can't be owned as a brand.
 
+**Not public until Plus launches (decided 2026-10-10).** App and website copy don't name the mascot until then ("Let MakanApa pick", "Thinking..."). Plus launch reveals the name with Ask Bubu: swap those strings back to Bubu in the same release.
+
 **Why it works:** two syllables, a repeated sound that's easy to remember, easy to say in Malay, Chinese, Tamil and English, and warm in tone. Works in "Ask Bubu" and "Bubu picked this for you".
 
 **Risks found in checks (2026-10-10):**

@@ -6,7 +6,7 @@
 @section('content')
 
     <div class="text-center">
-        <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" class="mx-auto h-24 w-24" aria-hidden="true">
+        <img src="{{ asset('images/mascot/excited-320.webp') }}" alt="" class="mx-auto h-24 w-24" aria-hidden="true">
         <h1 class="mt-4 type-section">Need help? We got you.</h1>
         <p class="mt-3 text-ink/70">
             Something not working, found the wrong restaurant info, or just have an idea that could make

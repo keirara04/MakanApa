@@ -39,7 +39,7 @@ class SharePlaceTest extends TestCase
         $response->assertSee('KFC Jalan Reko')
             ->assertSee('Jalan Reko, Kajang')
             ->assertSee('property="og:title"', false)
-            ->assertSee('images/share/', false)
+            ->assertSee('/og/p/'.$restaurant->id.'/', false)
             ->assertSee('/go/app?ref=share', false)
             ->assertSee('/go/download?ref=share', false)
             ->assertSee('alt="Download on the App Store"', false)
@@ -144,6 +144,34 @@ class SharePlaceTest extends TestCase
             ->assertJsonPath('latitude', 2.9284);
         $this->getJson('/api/v1/places/search?query=kfc&latitude=2.9284&longitude=101.7802')->assertOk()
             ->assertJsonPath('results.0.shareUrl', ShareLinks::place($restaurant->id, $restaurant->name));
+    }
+
+    public function test_preview_card_is_drawn_per_place_and_its_url_changes_with_the_place(): void
+    {
+        $restaurant = $this->makeRestaurant(['name' => 'Restoran Seri Melayu Masakan Kampung Tradisional Warisan Pak Long Jasin']);
+        $cardUrl = $this->previewImageUrl($restaurant);
+
+        $response = $this->get(parse_url($cardUrl, PHP_URL_PATH))->assertOk()->assertHeader('Content-Type', 'image/png');
+        [$width, $height] = getimagesizefromstring($response->getContent());
+        $this->assertSame([1200, 630], [$width, $height]);
+
+        $restaurant->update(['name' => 'Kedai Baru']);
+        $this->assertNotSame($cardUrl, $this->previewImageUrl($restaurant));
+    }
+
+    public function test_names_the_card_font_cannot_draw_keep_the_generic_preview(): void
+    {
+        $restaurant = $this->makeRestaurant(['name' => '老友记 Kopitiam']);
+
+        $this->assertStringEndsWith('images/share/default.png', $this->previewImageUrl($restaurant));
+    }
+
+    private function previewImageUrl(Restaurant $restaurant): string
+    {
+        $html = $this->visit('/p/'.ShareLinks::placeKey($restaurant->id, $restaurant->name))->assertOk()->getContent();
+        preg_match('/property="og:image" content="([^"]+)"/', $html, $match);
+
+        return html_entity_decode($match[1]);
     }
 
     public function test_apple_app_site_association_lists_the_app_and_paths(): void

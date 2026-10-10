@@ -24,6 +24,9 @@ return [
     // so Apple sends each visitor to their own country's store.
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/makanapa-what-to-eat/id6812670941'),
 
+    // MakanApa on Threads: footer link and the structured data's sameAs.
+    'threads_url' => env('THREADS_URL', 'https://www.threads.com/@keiraaraar'),
+
     'app_download_label' => env('APP_DOWNLOAD_LABEL', 'Download on the App Store'),
 
     // The App Store listing's numeric id, for Safari's Smart App Banner. Null turns the banner off.
@@ -68,6 +71,9 @@ return [
             'picks' => (int) env('MARKETING_STATS_MIN_PICKS', 50),
             'community' => (int) env('MARKETING_STATS_MIN_COMMUNITY', 5),
             'app_ratings' => (int) env('MARKETING_STATS_MIN_APP_RATINGS', 10),
+            // Places within 3 km a campus needs before the coverage list names it.
+            'app_reviews' => (int) env('MARKETING_STATS_MIN_APP_REVIEWS', 3),
+            'coverage_places' => (int) env('MARKETING_STATS_MIN_COVERAGE_PLACES', 30),
         ],
     ],
 

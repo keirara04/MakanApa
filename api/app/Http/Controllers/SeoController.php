@@ -24,10 +24,9 @@ class SeoController extends Controller
     {
         $lines = [
             'User-agent: *',
-            // Tracked redirects and the try-it endpoint: nothing to index, only noise in the logs.
+            // Tracked redirects: nothing to index, only noise in the logs.
             'Disallow: /go/',
             'Disallow: /p/*/go/',
-            'Disallow: /try',
             '',
             'Sitemap: '.MarketingUrl::to('/sitemap.xml'),
         ];

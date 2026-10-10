@@ -1,3 +1,4 @@
+import LinkPresentation
 import SwiftUI
 
 struct AmbassadorShareSheet: View {
@@ -6,7 +7,8 @@ struct AmbassadorShareSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var format: AmbassadorCardFormat = .story
-    @State private var rendered: Image?
+    @State private var rendered: UIImage?
+    @State private var sharing = false
     @State private var shown = false
 
     private var name: String {
@@ -83,11 +85,10 @@ struct AmbassadorShareSheet: View {
     private var shareCardButton: some View {
         Group {
             if let rendered {
-                ShareLink(
-                    item: rendered,
-                    message: Text(Copy.ambassadorShareMessage(community: role.name)),
-                    preview: SharePreview(Copy.ambassadorShareCardLabel, image: rendered)
-                ) {
+                // UIKit's share sheet with a real UIImage, not ShareLink: ShareLink hands apps a
+                // lazily exported SwiftUI Image plus the caption, which Instagram's share
+                // extension fails to load ("an error occurred") until the card is saved first.
+                Button { sharing = true } label: {
                     Label(Copy.ambassadorShareButton, systemImage: "square.and.arrow.up")
                         .font(.headline)
                         .fixedSize(horizontal: true, vertical: false)
@@ -97,6 +98,14 @@ struct AmbassadorShareSheet: View {
                         .background(Color.sambalRed, in: Capsule())
                 }
                 .buttonStyle(PressCompressStyle())
+                .sheet(isPresented: $sharing) {
+                    ActivityShareSheet(items: [
+                        ShareCardImageItem(image: rendered, title: Copy.ambassadorShareCardLabel),
+                        ShareCaptionItem(text: Copy.ambassadorShareMessage(community: role.name)),
+                    ]) { sharing = false }
+                    .presentationDetents([.medium, .large])
+                    .ignoresSafeArea()
+                }
             } else {
                 Button(Copy.ambassadorShareRetry, systemImage: "arrow.clockwise", action: renderCard)
                     .font(.headline)
@@ -111,6 +120,61 @@ struct AmbassadorShareSheet: View {
         let renderer = ImageRenderer(content: AmbassadorShareCard(role: role, name: name, format: format))
         renderer.scale = 3
         renderer.isOpaque = true
-        rendered = renderer.uiImage.map { Image(uiImage: $0) }
+        rendered = renderer.uiImage
+    }
+}
+
+/// UIKit's share sheet, for sharing a finished image the way every share extension expects.
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    let onFinish: () -> Void
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, _, _, _ in onFinish() }
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
+/// The card itself, with a titled preview at the top of the share sheet.
+private final class ShareCardImageItem: NSObject, UIActivityItemSource {
+    let image: UIImage
+    let title: String
+
+    init(image: UIImage, title: String) {
+        self.image = image
+        self.title = title
+    }
+
+    func activityViewControllerPlaceholderItem(_ controller: UIActivityViewController) -> Any { image }
+
+    func activityViewController(_ controller: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? { image }
+
+    func activityViewControllerLinkMetadata(_ controller: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = title
+        metadata.imageProvider = NSItemProvider(object: image)
+        return metadata
+    }
+}
+
+/// The caption, left out where it would break or be dropped: Instagram's extension rejects an
+/// image that arrives with text, and Photos has nowhere to put it.
+private final class ShareCaptionItem: NSObject, UIActivityItemSource {
+    let text: String
+
+    init(text: String) {
+        self.text = text
+    }
+
+    func activityViewControllerPlaceholderItem(_ controller: UIActivityViewController) -> Any { text }
+
+    func activityViewController(_ controller: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
+        if activityType == .saveToCameraRoll || activityType?.rawValue.localizedCaseInsensitiveContains("instagram") == true {
+            return nil
+        }
+        return text
     }
 }

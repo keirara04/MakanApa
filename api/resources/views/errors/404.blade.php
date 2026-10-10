@@ -8,7 +8,7 @@
 
 @section('content')
     <div class="py-10 text-center">
-        <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="140" height="140" class="mx-auto h-32 w-32">
+        <img src="{{ asset('images/mascot/sad-320.webp') }}" alt="" aria-hidden="true" width="140" height="140" class="mx-auto h-32 w-32">
 
         <p class="relative mx-auto mt-6 inline-block font-display text-[clamp(6rem,22vw,10rem)] font-bold leading-[0.9]">
             404

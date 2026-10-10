@@ -338,7 +338,7 @@ enum Copy {
     static let decideGuideFooterTitle = "New to MakanApa?"
     static let decideGuideFooterDetail = "See how picking works."
     static let decideGuideQuickTitle = "Pick for me"
-    static let decideGuideQuickBody = "One tap and Bubu picks somewhere nearby, using the budget and distance you used last time."
+    static let decideGuideQuickBody = "One tap and MakanApa picks somewhere nearby, using the budget and distance you used last time."
     static let decideGuideCravingTitle = "I know what I want"
     static let decideGuideCravingBody = "Choose a mood or type a craving, set your budget and distance, and MakanApa picks for you."
     static let decideGuideWhyTitle = "See why it won"
@@ -363,8 +363,8 @@ enum Copy {
     static let nearbyGuideSearchBody = "Tap the search button and type a dish or a name. Results show on the map and in a list."
     static let nearbyGuidePlaceTitle = "Open a place"
     static let nearbyGuidePlaceBody = "Tap a pin for details. Tap the heart to save it, or Eat here when you've decided."
-    static let nearbyGuidePickTitle = "Let Bubu pick"
-    static let nearbyGuidePickBody = "Can't choose? Tap Pick for me and Bubu picks one of the places on the map. Pull up Around here for the full list."
+    static let nearbyGuidePickTitle = "Let MakanApa pick"
+    static let nearbyGuidePickBody = "Can't choose? Tap Pick for me and MakanApa picks one of the places on the map. Pull up Around here for the full list."
     static let nearbyGuideSearchThisArea = "Search this area"
     static let nearbyGuideChipHalal = "Hide non-halal"
     static let nearbyGuideChipOpen = "Open now"
@@ -488,6 +488,6 @@ enum Copy {
 
     static let whyThisPick = "Why this one?"
     static let whyNotPrompt = "Help me learn: why not this one?"
-    static let pickingInProgress = "Bubu's thinking..."
+    static let pickingInProgress = "Thinking..."
     static let eatHere = "Eat here"
 }

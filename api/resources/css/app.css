@@ -140,19 +140,25 @@
         pointer-events: none;
     }
 
-    /* Nav item: tips a little and turns sambal when hovered or current. */
+    /* Nav item: a turmeric highlighter swipe pulls across behind it when hovered or current,
+       and it tips a little, like it was marked by hand. */
     .bracket-link {
         display: inline-flex;
         min-height: 2.75rem;
         align-items: center;
+        padding-inline: 0.45rem;
         transform-origin: 50% 60%;
-        transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), color 160ms ease;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M3 9 C 20 5, 45 7, 70 5 S 95 6, 97 8 L 96 17 C 80 20, 55 17, 30 19 S 6 19, 2 17 Z' fill='%23f4b942' fill-opacity='.85'/%3E%3C/svg%3E")
+            no-repeat 0 55% / 0% 1.25em;
+        transition:
+            transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1),
+            background-size 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
     }
 
     .bracket-link:hover,
     .bracket-link[data-active] {
-        transform: scale(1.06) rotate(-2deg);
-        color: var(--color-sambal-600);
+        transform: rotate(-2deg);
+        background-size: 100% 1.25em;
     }
 }
 
@@ -216,28 +222,8 @@
     opacity: 0;
 }
 
-@keyframes sketch-bob {
-    0%,
-    100% {
-        transform: translateY(0) rotate(-2deg);
-    }
-    50% {
-        transform: translateY(-9px) rotate(2deg);
-    }
-}
-
-.animate-sketch-bob {
-    animation: sketch-bob 4.5s ease-in-out infinite;
-}
-
-/* The page's own pause button (motion-toggle component); clips are paused by script. */
-html[data-motion='off'] .animate-sketch-bob {
-    animation: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .js .hero-in,
-    .animate-sketch-bob {
+    .js .hero-in {
         animation: none;
     }
 
@@ -254,7 +240,7 @@ html[data-motion='off'] .animate-sketch-bob {
     }
 
     .bracket-link {
-        transition: color 160ms ease;
+        transition: none;
     }
 }
 
@@ -306,7 +292,7 @@ html.intro-active .hero-in {
     translate: 0 calc(-100% - 40px);
 }
 
-/* Slot-machine reel of dishes (intro + "try it"): two copies of the list, scrolled half its
+/* Slot-machine reel of dishes (intro): two copies of the list, scrolled half its
    height on a loop. */
 .slot-reel {
     height: 1.3em;
@@ -329,6 +315,12 @@ html.intro-active .hero-in {
 @keyframes slot-spin {
     to {
         transform: translateY(-50%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slot-reel ul {
+        animation: none;
     }
 }
 
@@ -363,16 +355,13 @@ html.intro-active .hero-in {
     scale: 1;
 }
 
-/* Mascot: idles while "thinking", swaps to the celebrate pose when the pick lands. */
+/* Mascot: holds still while "thinking", cross-fades to the excited pose when the pick lands. */
 .intro-mascot img {
-    transition:
-        opacity 260ms ease,
-        scale 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: opacity 260ms ease;
 }
 
 .intro-mascot .is-picked {
     opacity: 0;
-    scale: 0.8;
 }
 
 .intro.is-landing .intro-mascot .is-thinking {
@@ -381,7 +370,6 @@ html.intro-active .hero-in {
 
 .intro.is-landing .intro-mascot .is-picked {
     opacity: 1;
-    scale: 1.08;
 }
 
 .intro-progress path {
@@ -436,47 +424,6 @@ html:not(.js) .js-only {
     stroke-dashoffset: 0;
 }
 
-/* Result panel states for "try it": idle → spinning → shown / none / error. */
-.try-panel [data-state] {
-    display: none;
-}
-
-.try-panel[data-show='idle'] [data-state='idle'],
-.try-panel[data-show='spinning'] [data-state='spinning'],
-.try-panel[data-show='pick'] [data-state='pick'],
-.try-panel[data-show='none'] [data-state='none'],
-.try-panel[data-show='error'] [data-state='error'] {
-    display: flex;
-}
-
-@keyframes try-land {
-    from {
-        opacity: 0;
-        translate: 0 30px;
-        scale: 0.94;
-    }
-}
-
-.try-panel[data-show='pick'] [data-state='pick'] {
-    animation: try-land 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .slot-reel ul,
-    .try-panel[data-show='pick'] [data-state='pick'] {
-        animation: none;
-    }
-}
-
-/* "How it works": the sticky phone's stacked screens; only the current step's is visible. */
-.walk-screen {
-    transition: opacity 450ms ease;
-}
-
-.walk-screen:not(.is-current) {
-    opacity: 0;
-}
-
 /* Saved-places deck: fanned a little, and wider when you hover it. */
 .deck-card {
     rotate: var(--tilt);
@@ -492,7 +439,6 @@ html:not(.js) .js-only {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .walk-screen,
     .deck-card {
         transition: none;
     }

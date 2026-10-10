@@ -43,8 +43,8 @@
         </div>
 
         <figure class="hero-in relative mx-auto w-full max-w-xs" style="--i: 2">
-            <img src="{{ asset('images/ambassador-crest-720.webp') }}" alt="MakanApa ambassador crest: Bubu in a red cap holding a spoon"
-                 width="720" height="720" fetchpriority="high" class="animate-sketch-bob w-full drop-shadow-[0_16px_18px_rgba(43,28,20,0.2)]">
+            <img src="{{ asset('images/ambassador-crest-720.webp') }}" alt="MakanApa ambassador crest: the MakanApa rice-ball mascot in a red cap holding a spoon"
+                 width="720" height="720" fetchpriority="high" class="w-full drop-shadow-[0_16px_18px_rgba(43,28,20,0.2)]">
         </figure>
     </section>
 

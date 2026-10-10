@@ -5,17 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\MarketingEvent;
 use App\Services\Marketing\LandingInsights;
 use App\Support\BotUserAgent;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MarketingController extends Controller
 {
-    /** The moods the landing page's "try it" demo offers — the same tags the app sends. */
-    public const DEMO_MOODS = ['nasi_kandar', 'nasi_lemak', 'ayam_gepuk', 'mee_goreng', 'char_kuey_teow'];
-
     public function home(Request $request, LandingInsights $insights): View
     {
         if (! $this->isBot($request)) {
@@ -27,6 +22,8 @@ class MarketingController extends Controller
             'stats' => $insights->stats(),
             'appRating' => $insights->appRating(),
             'nearby' => $insights->nearbyList(),
+            'coverage' => $insights->coverage(),
+            'reviews' => $insights->appReviews(),
         ]);
     }
 
@@ -43,30 +40,6 @@ class MarketingController extends Controller
             'campuses' => $campuses,
             'campus' => is_string($campus) && isset($campuses[$campus]) ? $campus : null,
         ]);
-    }
-
-    /**
-     * The landing page's "try it": one real pick around the demo campus, for the page script. The
-     * three answers mirror the app's questions; `exclude` is what "Cari lagi" has already shown.
-     */
-    public function tryPick(Request $request, LandingInsights $insights): JsonResponse
-    {
-        $data = $request->validate([
-            'mood' => ['nullable', Rule::in(self::DEMO_MOODS)],
-            'budget' => ['nullable', 'integer', 'between:1,3'],
-            'km' => ['required', Rule::in(['1', '2', '5'])],
-            'exclude' => ['nullable', 'array', 'max:20'],
-            'exclude.*' => ['integer'],
-        ]);
-
-        $pick = $insights->demoPick(
-            $data['mood'] ?? null,
-            isset($data['budget']) ? (int) $data['budget'] : null,
-            (float) $data['km'],
-            array_map('intval', $data['exclude'] ?? []),
-        );
-
-        return response()->json(['near' => $insights->anchor()['label'], 'pick' => $pick]);
     }
 
     /**

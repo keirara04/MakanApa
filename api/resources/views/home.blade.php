@@ -5,16 +5,8 @@
 @section('main_class', '')
 
 @php
-    // Spun by both the first-visit intro and the "try it" reel.
+    // Spun by the first-visit intro.
     $dishes = ['Nasi lemak', 'Roti canai', 'Satay', 'Char kuey teow', 'Laksa', 'Nasi kandar', 'Mee goreng', 'Teh tarik'];
-
-    // "Try it": [field, question, options [value, label], default]. Mood
-    // values are MarketingController::DEMO_MOODS — the same tags the app sends.
-    $tryQuestions = [
-        ['mood', "What's the vibe?", [['nasi_kandar', 'Nasi Kandar'], ['nasi_lemak', 'Nasi Lemak'], ['ayam_gepuk', 'Ayam Gepuk'], ['mee_goreng', 'Mee Goreng'], ['char_kuey_teow', 'Char Kuey Teow'], ['', 'Anything']], ''],
-        ['budget', "What's the budget?", [['1', '~RM10'], ['2', '~RM20'], ['3', '~RM35+'], ['', 'Anything']], '2'],
-        ['km', 'How far?', [['1', '1 km'], ['2', '2 km'], ['5', '5 km']], '2'],
-    ];
 
     // Live numbers strip: [stat key, label]; a null stat is below its floor.
     $statLabels = [
@@ -73,8 +65,8 @@
         <span class="sr-only">Loading MakanApa…</span>
 
         <div class="intro-mascot relative h-36 w-36 sm:h-44 sm:w-44" aria-hidden="true">
-            <img src="{{ asset('images/mascot-default.svg') }}" alt="" width="176" height="176" class="is-thinking animate-sketch-bob absolute inset-0 h-full w-full">
-            <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="176" height="176" class="is-picked absolute inset-0 h-full w-full">
+            <img src="{{ asset('images/mascot/thinking-320.webp') }}" alt="" width="176" height="176" class="is-thinking absolute inset-0 h-full w-full">
+            <img src="{{ asset('images/mascot/excited-320.webp') }}" alt="" width="176" height="176" class="is-picked absolute inset-0 h-full w-full">
         </div>
 
         <p class="mt-6 font-display text-2xl font-semibold text-ink/70 sm:text-3xl" aria-hidden="true">
@@ -224,15 +216,12 @@
 
             {{-- "Spin the spoon": a plate of dishes and a spoon that lands on one. Spins once on its
                  own after the page loads (not under Reduce Motion or the pause button); after that
-                 it only spins when asked. The dish it lands on can be sent to "Try it" below. --}}
+                 it only spins when asked. --}}
             @php
-                // [label, try-it mood ('' = Anything)]. Long names sit top and bottom, where there's room.
-                $spinDishes = [
-                    ['Nasi kandar', 'nasi_kandar'], ['Roti canai', ''], ['Satay', ''], ['Nasi lemak', 'nasi_lemak'],
-                    ['Char kuey teow', 'char_kuey_teow'], ['Ayam gepuk', 'ayam_gepuk'], ['Laksa', ''], ['Mee goreng', 'mee_goreng'],
-                ];
+                // Long names sit top and bottom, where there's room.
+                $spinDishes = ['Nasi kandar', 'Roti canai', 'Satay', 'Nasi lemak', 'Char kuey teow', 'Ayam gepuk', 'Laksa', 'Mee goreng'];
             @endphp
-            <div class="spin hero-in relative mx-auto w-full max-w-[22rem] sm:max-w-[28rem] lg:max-w-[32rem]" data-spin data-state="idle" data-area="{{ $demoArea }}" style="--i: 3">
+            <div class="spin hero-in relative mx-auto w-full max-w-[22rem] sm:max-w-[28rem] lg:max-w-[32rem]" data-spin data-state="idle" style="--i: 3">
                 <div class="relative aspect-square">
                     {{-- The plate: a soft shadow (plain box-shadow, cheaper than a filter over the
                          filtered rim), a sketched rim and a dashed inner ring. --}}
@@ -244,13 +233,13 @@
                     </svg>
 
                     <ul aria-hidden="true">
-                        @foreach ($spinDishes as $index => [$dish, $mood])
+                        @foreach ($spinDishes as $index => $dish)
                             @php
                                 $angle = deg2rad($index * 45);
                                 $left = round(50 + 37 * sin($angle), 2);
                                 $top = round(50 - 37 * cos($angle), 2);
                             @endphp
-                            <li data-dish data-name="{{ $dish }}" data-mood="{{ $mood }}"
+                            <li data-dish data-name="{{ $dish }}"
                                 class="spin-dish absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap font-display text-sm font-semibold text-ink/75 sm:text-lg"
                                 style="left: {{ $left }}%; top: {{ $top }}%">
                                 <span class="relative">
@@ -268,7 +257,7 @@
                             <span data-bubble="spinning">Hmm…</span>
                             <span data-bubble="landed">That one!</span>
                         </p>
-                        <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="128" height="128" class="animate-sketch-bob w-full drop-shadow-[0_12px_14px_rgba(43,28,20,0.2)]">
+                        <img src="{{ asset('images/mascot/excited-320.webp') }}" alt="" width="128" height="128" class="w-full drop-shadow-[0_12px_14px_rgba(43,28,20,0.2)]">
                     </div>
 
                     {{-- The spoon, bowl up; it turns about the plate's centre. --}}
@@ -285,7 +274,7 @@
                 <div class="mt-8 text-center" aria-live="polite">
                     <p data-spin-result class="font-display text-2xl font-semibold">Spin the spoon. It picks for you.</p>
                     <div class="js-only mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
-                        <a href="#try" data-spin-find class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)]"></a>
+                        <a href="{{ route('marketing.download', ['from' => 'spin']) }}" data-spin-find class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)]"></a>
                         <button type="button" data-spin-again class="bracket-link font-display text-lg font-semibold">Spin again</button>
                     </div>
                 </div>
@@ -437,163 +426,118 @@
         </div>
     </section>
 
-    {{-- HOW IT WORKS: the steps scroll past a phone that stays put and changes screen with them
-         (script below). Under lg each step carries its own phone instead. --------------------- --}}
+    {{-- HOW IT WORKS: the three questions as cards taped to the page, each with its real app
+         screen tucked into the bottom. The answer gets its own section right after. ------------ --}}
     @php
         $walk = [
-            // [screen, title, body, options, picked option, alt]
-            ['mood', "What's the vibe?", 'Rice? Spicy? Something light? Pick a craving, or leave it to us.', ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Lemak', 'Anything'], 'Nasi Kandar', 'Mood step with options like Nasi Kandar, Ayam Gepuk and Nasi Padang'],
-            ['budget', "What's the budget?", 'Save a bit, keep it normal, or treat yourself.', ['~RM10', '~RM20', '~RM35+', 'Anything'], '~RM20', 'Budget step with ~RM10, ~RM20 and ~RM35+'],
-            ['distance', 'How far can you go?', 'Close by, a short trip, or somewhere worth the trip.', ['1 km', '2 km', '5 km'], '2 km', 'Distance step with within 1 km, 2 km and 5 km'],
-            ['result', 'One answer. Not a list.', "MakanApa picks one place and tells you why: price, distance, what's open, what people say.", [], null, 'Result screen: MakanApa says Nasi Kandar Haji Basheer, settled, with price, distance and why'],
+            // [screen, illustration, title, body, options, picked option, margin note, tilt, alt]
+            ['mood', 'mood-spicy', "What's the mood?", 'Type a craving, pick one, or leave it to us.', ['Nasi Kandar', 'Ayam Gepuk', 'Nasi Padang', 'Anything'], 'Nasi Padang', 'Not sure? Anything works.', '-rotate-1', 'Mood step: type a craving, choose Anything, or pick Nasi Kandar, Ayam Gepuk or Nasi Padang, with Nasi Padang selected'],
+            ['budget', 'budget-normal', "What's the budget?", 'Save a bit, keep it normal, or treat yourself.', ['~RM10', '~RM20', '~RM35+', 'Anything'], '~RM20', 'Per person, roughly.', 'rotate-1 md:translate-y-6', 'Budget step with ~RM10, ~RM20, ~RM35+ and Anything, with ~RM20 selected'],
+            ['distance', 'distance-walk', 'How far can you go?', 'Close by, a short trip, or somewhere worth the trip.', ['1 km', '2 km', '5 km'], '2 km', 'From wherever you are.', '-rotate-[0.6deg]', 'Distance step with within 1 km, 2 km and 5 km, with 2 km selected'],
         ];
     @endphp
-    <section id="how-it-works" class="walk scroll-mt-20 mx-auto max-w-6xl px-5 pb-16 pt-12 sm:px-6 lg:pb-0">
-        <div class="max-w-2xl">
-            <h2 class="type-section">Three questions.<br>One answer.</h2>
-            <p class="mt-5 max-w-lg text-lg text-ink/75">No list to scroll through. Answer three quick questions and MakanApa settles it.</p>
+    <section id="how-it-works" class="scroll-mt-24 mx-auto max-w-6xl px-5 pt-12 sm:px-6">
+        <div class="text-center">
+            <p class="font-hand text-3xl text-sambal-700">How it works</p>
+            <h2 class="type-section mt-1">Three questions.<br>One answer.</h2>
+            <p class="mx-auto mt-5 max-w-lg text-lg text-ink/75">No list to scroll through. Answer three quick questions and MakanApa settles it.</p>
         </div>
 
-        <div class="mt-14 grid gap-16 lg:mt-0 lg:grid-cols-[1fr_17rem] lg:gap-24">
-            <ol>
-                @foreach ($walk as $i => [$screen, $title, $body, $options, $picked, $alt])
-                    <li data-step="{{ $i }}" class="flex flex-col justify-center gap-10 sm:flex-row sm:items-center lg:min-h-[70vh] lg:flex-col lg:items-start lg:gap-0">
-                        <div class="max-w-md">
-                            <span class="relative flex h-12 w-12 items-center justify-center font-display text-2xl font-bold">
-                                {{ $i + 1 }}
-                                <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-ink/70" />
-                            </span>
-                            <h3 class="type-card mt-4">{{ $title }}</h3>
-                            <p class="mt-2 text-lg leading-relaxed text-ink/75">{{ $body }}</p>
-                            @if ($options)
-                                <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3 font-display text-xl font-semibold leading-none" aria-hidden="true">
-                                    @foreach ($options as $option)
-                                        <li @class(['relative', 'text-sambal-600' => $option === $picked, 'text-ink/60' => $option !== $picked])>
-                                            {{ $option }}
-                                            @if ($option === $picked)
-                                                <x-marketing.doodle type="circle" class="draw absolute -inset-x-3 -inset-y-2 h-[calc(100%+1rem)] w-[calc(100%+1.5rem)] text-sambal-600" style="--draw-delay: 500ms" />
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @else
-                                <p class="relative mt-6 inline-block font-display text-xl font-semibold text-sambal-600">
-                                    Not feeling it? Find another.
-                                    <x-marketing.doodle type="underline" class="draw absolute -bottom-2 left-0 h-3 w-full text-sambal-600" />
-                                </p>
-                            @endif
-                        </div>
-                        <div class="w-48 shrink-0 self-center sm:w-44 lg:hidden">
-                            <x-marketing.phone :screen="$screen" :alt="$alt" class="rounded-[2rem] p-1.5" />
-                        </div>
-                    </li>
-                @endforeach
-            </ol>
+        <ol class="mx-auto mt-16 grid max-w-sm gap-14 md:max-w-none md:grid-cols-3 md:gap-10 lg:gap-14">
+            @foreach ($walk as $i => [$screen, $illustration, $title, $body, $options, $picked, $note, $tilt, $alt])
+                <li class="relative {{ $tilt }} transition-[rotate,translate] duration-300 hover:rotate-0">
+                    <div class="sketch flex h-full flex-col bg-paper-50 px-6 pt-6" style="--sketch-radius: 16px">
+                        <span class="tape -top-3 left-1/2 w-24 -translate-x-1/2 {{ $i % 2 ? 'rotate-3' : '-rotate-2' }}" aria-hidden="true"></span>
 
-            {{-- One phone for the whole walk-through; the screens are stacked and cross-fade. --}}
-            <div class="hidden lg:block" aria-hidden="true">
-                <div class="sticky top-[calc(50vh-18.5rem)] py-10">
-                    <div class="relative -rotate-2 rounded-[2.4rem] bg-ink p-1.5 shadow-phone">
-                        @foreach ($walk as $i => [$screen])
-                            <img src="{{ asset("images/screens/{$screen}-720.webp") }}" alt="" width="360" height="783" loading="lazy" decoding="async"
-                                 data-screen="{{ $i }}"
-                                 @class(['walk-screen block h-auto rounded-[2.1rem] bg-cream', 'is-current w-full' => $i === 0, 'absolute left-1.5 top-1.5 w-[calc(100%-0.75rem)]' => $i > 0])>
-                        @endforeach
+                        <div class="flex items-start justify-between gap-4">
+                            <span class="relative flex h-12 w-12 shrink-0 items-center justify-center font-display text-2xl font-bold">
+                                {{ $i + 1 }}
+                                <x-marketing.doodle type="circle" class="draw absolute inset-0 h-full w-full text-sambal-600" style="--draw-delay: {{ 150 + $i * 150 }}ms" />
+                            </span>
+                            <img src="{{ asset("images/illustrations/{$illustration}.svg") }}" alt="" aria-hidden="true" width="80" height="80" loading="lazy" class="-mr-3 -mt-4 h-20 w-20">
+                        </div>
+
+                        <h3 class="type-card mt-2">{{ $title }}</h3>
+                        <p class="mt-2 text-ink/75">{{ $body }}</p>
+
+                        <ul class="mt-5 flex flex-wrap gap-2 font-display font-semibold" aria-hidden="true">
+                            @foreach ($options as $option)
+                                <li @class([
+                                    'rounded-full border-2 px-3 py-1 leading-none',
+                                    '-rotate-3 border-sambal-600 bg-white text-sambal-700 shadow-clay' => $option === $picked,
+                                    'border-ink/15 text-ink/60' => $option !== $picked,
+                                ])>{{ $option }}</li>
+                            @endforeach
+                        </ul>
+                        <p class="mt-4 font-hand text-2xl text-ink/70">{{ $note }}</p>
+
+                        {{-- The real screen, tucked into the bottom of the card. --}}
+                        <div class="mx-auto mt-auto h-52 w-40 overflow-hidden pt-6">
+                            <x-marketing.phone :screen="$screen" :alt="$alt" class="rounded-[1.8rem] p-1.5" />
+                        </div>
                     </div>
-                    <p class="mt-6 text-center font-hand text-2xl text-ink/70">The real app, not a mock-up.</p>
-                </div>
+
+                    @unless ($loop->last)
+                        <x-marketing.doodle type="arrow-curve" class="draw absolute -right-12 top-24 z-10 hidden h-10 w-14 text-ink/60 md:block lg:-right-14 lg:w-16" style="--draw-delay: {{ 400 + $i * 200 }}ms" />
+                    @endunless
+                </li>
+            @endforeach
+        </ol>
+
+        {{-- Bubu hands over to the answer. --}}
+        <div class="mt-20 flex flex-col items-center md:mt-28" aria-hidden="true">
+            <div class="relative">
+                <p class="absolute -top-10 left-1/2 -translate-x-1/2 -rotate-3 whitespace-nowrap rounded-full bg-ink px-4 py-1 font-hand text-2xl text-paper">Then I pick one.</p>
+                <img src="{{ asset('images/mascot/thinking-320.webp') }}" alt="" width="112" height="112" loading="lazy" class="h-28 w-28 drop-shadow-[0_12px_14px_rgba(43,28,20,0.2)]">
             </div>
+            <x-marketing.doodle type="arrow-down" class="draw mt-2 h-16 w-8 text-ink/70" style="--draw-delay: 300ms" />
         </div>
     </section>
 
-    {{-- TRY IT: the real picking engine on real places, anchored on a campus since the page never
-         asks for the visitor's location. Needs JS, so it's hidden without it. ------------------- --}}
-    <section id="try" class="js-only scroll-mt-20 mx-auto max-w-6xl px-5 pb-20 pt-12 sm:px-6 lg:pt-24">
+    {{-- THE ANSWER: the real result screen, with notes in the margin pointing at what it shows.
+         On lg the notes sit beside the phone at the height of what they point at; below that they
+         stack under it. Only points at things every pick shows. ------------------------------- --}}
+    @php
+        $answerNotes = [
+            // [side, title, detail, top on lg]
+            ['left', 'See it first', 'Photos and the rating, before you walk in.', '10rem'],
+            ['left', 'What it costs, how far', 'Price per person and the walk, right under the name.', '16.75rem'],
+            ['right', 'Halal, honestly', 'Certified, not certified, or not verified yet. Never a guess.', '19rem'],
+            ['right', 'Why this one?', 'The reasons it picked this place for you.', '25.25rem'],
+            ['right', "Go, or find another", "Let's eat opens directions. Not feeling it? One tap for another.", '32.75rem'],
+        ];
+    @endphp
+    <section id="the-answer" class="scroll-mt-24 mx-auto max-w-6xl px-5 pb-24 pt-10 sm:px-6">
         <div class="text-center">
-            <p class="font-hand text-3xl text-sambal-700">Go on, try it</p>
-            <h2 class="type-section mt-1">What to eat near {{ $demoArea }}?</h2>
-            <p class="mx-auto mt-5 max-w-xl text-lg text-ink/75">
-                Real places, picked the same way the app picks. In the app, it uses wherever you are.
-            </p>
+            <h2 class="type-section">One place.<br>And why.</h2>
+            <p class="mx-auto mt-5 max-w-lg text-lg text-ink/75">Not a list of twenty. MakanApa picks one place and shows its working, so you can just go.</p>
         </div>
 
-        <div data-reveal class="sketch mt-14 grid gap-12 bg-paper-50 p-6 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14" style="--sketch-radius: 18px">
-            <form id="try-form" action="{{ route('marketing.try') }}" method="get" class="space-y-7">
-                @foreach ($tryQuestions as $number => [$field, $question, $options, $default])
-                    <fieldset>
-                        <legend class="font-display text-2xl font-semibold leading-none">{{ $number + 1 }}. {{ $question }}</legend>
-                        <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-display text-xl font-semibold leading-none">
-                            @foreach ($options as [$value, $label])
-                                <label class="chip">
-                                    <input type="radio" name="{{ $field }}" value="{{ $value }}" class="sr-only" @checked($value === $default)>
-                                    <span class="relative whitespace-nowrap">
-                                        {{ $label }}
-                                        <x-marketing.doodle type="circle" class="absolute -left-2.5 -top-1.5 h-[calc(100%+0.75rem)] w-[calc(100%+1.25rem)] text-sambal-600" />
-                                    </span>
-                                </label>
-                            @endforeach
-                        </div>
-                    </fieldset>
-                @endforeach
+        <div class="mt-14 grid gap-12 lg:grid-cols-[1fr_19rem_1fr] lg:gap-8">
+            <figure class="mx-auto w-64 sm:w-72 lg:order-2 lg:w-full">
+                <x-marketing.phone screen="result" alt="Result screen: MakanApa picked Takoyaki DNN Bonda, about RM10 per person and a 2 minute walk, with photos, a 4.9 rating, its halal status and why it was picked" class="rotate-2" />
+                <figcaption class="mt-6 text-center font-hand text-2xl text-ink/70">The real app, not a mock-up.</figcaption>
+            </figure>
 
-                <button type="submit" class="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-paper shadow-[5px_5px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[8px_8px_0_var(--color-sambal-600)]">
-                    What should I eat?
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                </button>
-            </form>
-
-            <div class="try-panel relative flex min-h-80 items-center justify-center text-center" data-show="idle" aria-live="polite">
-                <div data-state="idle" class="flex-col items-center">
-                    <img src="{{ asset('images/mascot-default.svg') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy" class="animate-sketch-bob h-32 w-32">
-                    <p class="mt-4 max-w-[15rem] font-display text-xl font-semibold leading-snug text-ink/70">
-                        Pick your answers, then hit the button.
-                    </p>
-                </div>
-
-                <div data-state="spinning" class="flex-col items-center" aria-hidden="true">
-                    <p class="font-display text-xl font-semibold text-ink/60">Hmm… what to eat?</p>
-                    <div class="slot-reel mt-2 font-display text-[clamp(2.2rem,5vw,3.25rem)] font-bold tracking-tight">
-                        <ul>
-                            @foreach ([...$dishes, ...$dishes] as $dish)
-                                <li class="whitespace-nowrap leading-[1.3]">{{ $dish }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-
-                <div data-state="pick" class="w-full flex-col items-center">
-                    <p class="font-display text-lg font-semibold text-ink/60">MakanApa says…</p>
-                    <p data-field="name" class="mt-2 font-display text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-tight tracking-tight text-balance text-sambal-600"></p>
-                    <p data-field="headline" class="mt-3 font-display text-lg font-medium text-ink/75"></p>
-                    <ul data-field="facts" class="mt-4 flex flex-wrap justify-center gap-2"></ul>
-                    <div class="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
-                        <a data-field="url" href="#" class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-paper shadow-[3px_3px_0_var(--color-sambal-600)] transition-[translate,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_var(--color-sambal-600)] text-sm">
-                            See this place
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                        </a>
-                        <button type="button" data-reroll class="bracket-link font-display text-lg font-semibold">Find another</button>
-                    </div>
-                </div>
-
-                <div data-state="none" class="flex-col items-center">
-                    <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
-                    <p class="type-card mt-3">Nothing here yet</p>
-                    <p data-variant="first" class="mt-2 max-w-xs text-ink/75">Nothing matches that around {{ $demoArea }} yet. Try 5 km, or Anything.</p>
-                    <p data-variant="more" class="mt-2 max-w-xs text-ink/75">That's every match nearby for those answers. Try different ones!</p>
-                </div>
-
-                <div data-state="error" class="flex-col items-center">
-                    <img src="{{ asset('images/mascot-sad.svg') }}" alt="" aria-hidden="true" width="120" height="120" loading="lazy" class="h-28 w-28">
-                    <div data-variant="busy" class="flex flex-col items-center">
-                        <p class="type-card mt-3">Slow down a bit</p>
-                        <p class="mt-2 max-w-xs text-ink/75">Too many tries in a row. Give it a minute, then try again.</p>
-                    </div>
-                    <div data-variant="offline" class="flex flex-col items-center">
-                        <p class="type-card mt-3">Couldn't get a pick</p>
-                        <p class="mt-2 max-w-xs text-ink/75">Check your connection, then try again.</p>
-                    </div>
-                </div>
-            </div>
+            @foreach (['left', 'right'] as $side)
+                <ul @class([
+                    'grid gap-8 sm:grid-cols-2 lg:relative lg:block lg:h-[42rem]',
+                    'lg:order-1 lg:text-right' => $side === 'left',
+                    'lg:order-3' => $side === 'right',
+                ])>
+                    @foreach (array_filter($answerNotes, fn (array $note) => $note[0] === $side) as [, $title, $detail, $top])
+                        <li class="relative border-t-2 border-ink/80 pt-3 lg:absolute lg:inset-x-0 lg:top-(--y) lg:border-0 lg:pt-0" style="--y: {{ $top }}">
+                            <p class="font-display text-xl font-semibold">{{ $title }}</p>
+                            <p class="mt-1 text-ink/75 lg:max-w-[16rem] {{ $side === 'left' ? 'lg:ml-auto' : '' }}">{{ $detail }}</p>
+                            <x-marketing.doodle type="arrow-curve" @class([
+                                'draw absolute top-3 z-10 hidden h-12 w-20 text-sambal-600 lg:block',
+                                '-right-[5.5rem]' => $side === 'left',
+                                '-left-[5.5rem] -scale-x-100' => $side === 'right',
+                            ]) />
+                        </li>
+                    @endforeach
+                </ul>
+            @endforeach
         </div>
     </section>
 
@@ -637,8 +581,40 @@
         </section>
     @endif
 
+    {{-- COVERAGE: the campuses with enough places mapped to pick well, from the database. Hidden
+         until at least one clears the floor (see LandingInsights::coverage). ------------------- --}}
+    @if ($coverage)
+        <section class="mx-auto max-w-6xl px-5 pb-24 sm:px-6 sm:pb-28" aria-labelledby="coverage-title">
+            <div class="flex flex-col items-center text-center">
+                <img src="{{ asset('images/illustrations/location-map.svg') }}" alt="" aria-hidden="true" width="96" height="96" loading="lazy" class="h-24 w-24">
+                <h2 id="coverage-title" class="type-section mt-2">Where MakanApa<br>knows the food.</h2>
+                <p class="mx-auto mt-5 max-w-lg text-lg text-ink/75">Campuses with plenty of places already on the map, counted within 3 km.</p>
+            </div>
+
+            <ul class="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($coverage as $index => $area)
+                    <li class="sketch {{ ['-rotate-1', 'rotate-1', 'rotate-[0.5deg]', '-rotate-[1.5deg]'][$index % 4] }} bg-paper-50 p-6 transition-[rotate] duration-300 hover:rotate-0" style="--sketch-radius: 12px">
+                        <span class="tape -top-3 left-1/2 w-20 -translate-x-1/2 {{ $index % 2 ? 'rotate-3' : '-rotate-2' }}" aria-hidden="true"></span>
+                        <p class="font-display text-2xl font-bold leading-tight">{{ $area['shortName'] }}</p>
+                        @if ($area['name'] !== $area['shortName'])
+                            <p class="mt-1 text-sm text-ink/70">{{ $area['name'] }}</p>
+                        @endif
+                        <p class="mt-4 font-display text-3xl font-bold tabular-nums text-sambal-600">{{ number_format($area['places']) }}</p>
+                        <p class="text-sm font-semibold text-ink/70">places nearby</p>
+                    </li>
+                @endforeach
+
+                <li class="flex flex-col justify-center rounded-xl border-2 border-dashed border-ink/30 p-6">
+                    <p class="font-display text-xl font-semibold">Your campus missing?</p>
+                    <p class="mt-1 text-ink/75">Ambassadors put their campus on the map.</p>
+                    <a href="{{ route('marketing.ambassadors') }}" class="mt-3 w-fit font-display text-lg font-semibold text-sambal-700 underline decoration-2 underline-offset-4">Become an ambassador</a>
+                </li>
+            </ul>
+        </section>
+    @endif
+
     {{-- FEATURES: what the app does beyond the pick. Sizes follow how much there is to show. ---- --}}
-    <section id="features" class="scroll-mt-20 border-t border-ink/10 bg-paper-50/60">
+    <section id="features" class="scroll-mt-24 border-t border-ink/10 bg-paper-50/60">
         <div class="mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
             <div class="max-w-2xl">
                 <h2 class="type-section">Small things.<br>Big difference.</h2>
@@ -758,15 +734,19 @@
                     {{-- Rubber stamp, not a badge: this one isn't out yet. --}}
                     <span class="mt-3 inline-block w-fit -rotate-6 rounded-md border-[3px] border-sambal-600 px-2.5 py-0.5 font-display text-lg font-bold text-sambal-600 opacity-85 mix-blend-multiply sm:absolute sm:right-5 sm:top-5 sm:mt-0 sm:-rotate-12">Coming soon</span>
                     <p class="mt-3 text-ink/75">Everyone votes, one place wins. Still cooking.</p>
-                    <img src="{{ asset('images/mascot-geng.svg') }}" alt="" aria-hidden="true" width="790" height="530" loading="lazy"
-                         class="mx-auto -mb-3 mt-auto w-48 pt-4">
+                    {{-- The group: three moods of the mascot, huddled up to vote. --}}
+                    <div class="mx-auto -mb-3 mt-auto flex items-end pt-4" aria-hidden="true">
+                        <img src="{{ asset('images/mascot/thinking-160.webp') }}" alt="" width="80" height="80" loading="lazy" class="-mr-4 h-20 w-20 -rotate-6">
+                        <img src="{{ asset('images/mascot/excited-320.webp') }}" alt="" width="104" height="104" loading="lazy" class="relative z-10 h-26 w-26">
+                        <img src="{{ asset('images/mascot/wave-160.webp') }}" alt="" width="80" height="80" loading="lazy" class="-ml-4 h-20 w-20 rotate-6">
+                    </div>
                 </article>
             </div>
         </div>
     </section>
 
     {{-- AMBASSADORS: the people behind each campus's picks. ------------------------------------- --}}
-    <section id="ambassadors" class="scroll-mt-20 border-y border-ink/10 bg-paper">
+    <section id="ambassadors" class="scroll-mt-24 border-y border-ink/10 bg-paper">
         <div class="mx-auto grid max-w-6xl items-center gap-14 px-5 py-24 sm:px-6 sm:py-28 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
                 <h2 class="type-section">Every campus has someone who knows where to eat.</h2>
@@ -791,7 +771,7 @@
                 <div class="sketch rotate-2 bg-paper-50 p-6 text-center" style="--sketch-radius: 18px">
                     <span class="tape -top-3 left-1/2 -translate-x-1/2 -rotate-3" aria-hidden="true"></span>
                     <img src="{{ asset('images/ambassador-crest-320.webp') }}" srcset="{{ asset('images/ambassador-crest-320.webp') }} 320w, {{ asset('images/ambassador-crest-720.webp') }} 720w" sizes="16rem"
-                         alt="MakanApa ambassador crest: Bubu in a red cap holding a spoon" width="320" height="320" loading="lazy" class="mx-auto w-56">
+                         alt="MakanApa ambassador crest: the MakanApa rice-ball mascot in a red cap holding a spoon" width="320" height="320" loading="lazy" class="mx-auto w-56">
                     <p class="mt-2 text-sm font-medium text-ink/70">MakanApa ambassador for</p>
                     <p class="font-display text-2xl font-bold">Your campus</p>
                     <p class="mt-3 text-ink/75">“Can't decide what to eat? Ask me, or let MakanApa pick.”</p>
@@ -821,14 +801,45 @@
                 ] as $index => [$quote, $pos])
                     <p role="listitem" class="sketch sm:absolute {{ $pos }} bg-paper-50 px-5 py-2 font-display text-xl font-semibold text-ink sm:text-2xl" style="--sketch-radius: 26px">{{ $quote }}</p>
                 @endforeach
-                <img src="{{ asset('images/mascot-default.svg') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy"
-                     class="animate-sketch-bob mx-auto h-32 w-32 sm:absolute sm:bottom-2 sm:left-1/2 sm:h-36 sm:w-36 sm:-translate-x-1/2">
+                <img src="{{ asset('images/mascot/wave-320.webp') }}" alt="" aria-hidden="true" width="140" height="140" loading="lazy"
+                     class="mx-auto h-32 w-32 sm:absolute sm:bottom-2 sm:left-1/2 sm:h-36 sm:w-36 sm:-translate-x-1/2">
             </div>
         </div>
     </section>
 
+    {{-- REVIEWS: real App Store reviews, quoted as written (see RefreshAppStoreRating). Hidden
+         until there are enough 4 and 5 star ones to choose from. ------------------------------ --}}
+    @if ($reviews)
+        <section class="mx-auto max-w-6xl px-5 py-24 sm:px-6 sm:py-28" aria-labelledby="reviews-title">
+            <div class="text-center">
+                <p class="font-hand text-3xl text-sambal-700">From the App Store</p>
+                <h2 id="reviews-title" class="type-section mt-1">What people say.</h2>
+            </div>
+
+            <ul class="mt-14 grid gap-10 md:grid-cols-3 md:gap-8">
+                @foreach ($reviews as $index => $review)
+                    <li class="sketch {{ ['-rotate-1', 'rotate-1 md:translate-y-4', '-rotate-[0.6deg]'][$index % 3] }} flex flex-col bg-paper-50 p-7 transition-[rotate] duration-300 hover:rotate-0" style="--sketch-radius: 12px">
+                        <span class="tape -top-3 left-1/2 w-20 -translate-x-1/2 {{ $index % 2 ? 'rotate-3' : '-rotate-2' }}" aria-hidden="true"></span>
+                        <p class="text-xl tracking-widest text-kunyit"><span aria-hidden="true">{{ str_repeat('★', $review['rating']) }}</span><span class="sr-only">{{ $review['rating'] }} out of 5 stars</span></p>
+                        <blockquote class="mt-3">
+                            @if ($review['title'] !== '')
+                                <p class="font-display text-xl font-semibold leading-snug">{{ $review['title'] }}</p>
+                            @endif
+                            <p class="mt-2 text-ink/80">{{ $review['body'] }}</p>
+                        </blockquote>
+                        <p class="mt-auto pt-5 font-hand text-2xl text-ink/70">{{ $review['author'] }}, App Store</p>
+                    </li>
+                @endforeach
+            </ul>
+
+            <p class="mt-12 text-center">
+                <a href="{{ route('marketing.download', ['from' => 'reviews']) }}" class="font-display text-lg font-semibold text-sambal-700 underline decoration-2 underline-offset-4">Read more on the App Store</a>
+            </p>
+        </section>
+    @endif
+
     {{-- FAQ ------------------------------------------------------------------------------------- --}}
-    <section id="faq" class="scroll-mt-20 mx-auto grid max-w-6xl gap-10 border-t border-ink/10 px-5 py-24 sm:px-6 lg:grid-cols-[14rem_1fr_1fr] lg:gap-10">
+    <section id="faq" class="scroll-mt-24 mx-auto grid max-w-6xl gap-10 border-t border-ink/10 px-5 py-24 sm:px-6 lg:grid-cols-[14rem_1fr_1fr] lg:gap-10">
         <h2 class="type-section lg:pt-2">Okay but…<span class="sr-only"> Frequently asked questions</span></h2>
 
         @php
@@ -877,8 +888,8 @@
                 <p class="absolute -top-4 right-0 z-10 rotate-6 rounded-2xl bg-paper px-4 py-1.5 font-hand text-3xl text-ink shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] sm:-right-4">Let's eat!</p>
                 <x-marketing.doodle type="sparkle" class="absolute left-2 top-10 h-6 w-6 text-kunyit" />
                 <x-marketing.doodle type="sparkle" class="absolute right-6 top-1/2 h-4 w-4 text-paper" />
-                <img src="{{ asset('images/mascot-celebrate.svg') }}" alt="" width="320" height="320" loading="lazy"
-                     class="animate-sketch-bob -mb-8 w-full drop-shadow-[0_18px_22px_rgba(0,0,0,0.25)] lg:-mb-12">
+                <img src="{{ asset('images/mascot/excited-640.webp') }}" alt="" width="320" height="320" loading="lazy"
+                     class="-mb-8 w-full drop-shadow-[0_18px_22px_rgba(0,0,0,0.25)] lg:-mb-12">
             </div>
         </div>
     </section>
@@ -903,7 +914,7 @@
                 'url' => \App\Support\MarketingUrl::to('/'),
                 'downloadUrl' => config('marketing.app_download_url'),
                 'installUrl' => config('marketing.app_download_url'),
-                'sameAs' => [config('marketing.app_download_url')],
+                'sameAs' => [config('marketing.app_download_url'), config('marketing.threads_url')],
                 'image' => asset('images/og.jpg'),
                 'screenshot' => array_map(fn (string $screen) => asset("images/screens/{$screen}-720.webp"), ['mood', 'result', 'nearby']),
                 'inLanguage' => 'en-MY',
@@ -989,7 +1000,7 @@
             form.addEventListener('input', update);
         })();
 
-        // Hero spinner: lands the spoon on a random dish; "Find …" sends that dish to "Try it".
+        // Hero spinner: lands the spoon on a random dish; "Find …" goes to the App Store.
         (function () {
             var spin = document.querySelector('[data-spin]');
             if (!spin) return;
@@ -1008,8 +1019,7 @@
                 var dish = dishes[index];
                 dishes.forEach(function (item) { item.classList.toggle('is-picked', item === dish); });
                 result.textContent = dish.dataset.name + ' it is.';
-                find.textContent = 'Find ' + dish.dataset.name.toLowerCase() + ' near ' + spin.dataset.area;
-                find.dataset.mood = dish.dataset.mood;
+                find.textContent = 'Find ' + dish.dataset.name.toLowerCase() + ' near you';
                 spin.dataset.state = 'landed';
                 busy = false;
             }
@@ -1029,16 +1039,6 @@
 
             spin.querySelector('[data-spin-again]').addEventListener('click', go);
 
-            find.addEventListener('click', function (event) {
-                var form = document.getElementById('try-form');
-                if (!form) return;
-                event.preventDefault();
-                var mood = form.querySelector('input[name="mood"][value="' + (find.dataset.mood || '') + '"]');
-                if (mood) mood.checked = true;
-                document.getElementById('try').scrollIntoView({ behavior: calm ? 'auto' : 'smooth' });
-                form.requestSubmit();
-            });
-
             // One spin on its own, once the page is uncovered; a still page just shows the first pick.
             function first() { if (still()) { land(0); } else { setTimeout(go, 700); } }
             if (root.classList.contains('intro-active')) {
@@ -1046,109 +1046,6 @@
             } else {
                 first();
             }
-        })();
-
-        // How it works: whichever step is mid-screen puts its screenshot on the one sticky phone.
-        (function () {
-            var steps = document.querySelectorAll('.walk [data-step]');
-            var screens = document.querySelectorAll('.walk [data-screen]');
-            if (!steps.length || !screens.length || !('IntersectionObserver' in window)) return;
-
-            var current = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (!entry.isIntersecting) return;
-                    screens.forEach(function (img) {
-                        img.classList.toggle('is-current', img.dataset.screen === entry.target.dataset.step);
-                    });
-                });
-            }, { rootMargin: '-45% 0px -45% 0px' });
-            steps.forEach(function (step) { current.observe(step); });
-        })();
-
-        // "Try it": asks /try for one real pick, spins the reel while it waits (at least long enough
-        // to read as a spin), and "Find another" re-asks while skipping what's already been shown.
-        (function () {
-            var form = document.getElementById('try-form');
-            if (!form) return;
-            var panel = document.querySelector('.try-panel');
-            var calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-            var minSpin = calm ? 0 : 1100;
-            var shown = [];
-
-            function field(name) { return panel.querySelector('[data-field="' + name + '"]'); }
-
-            function settle(started) {
-                return new Promise(function (resolve) {
-                    setTimeout(resolve, Math.max(0, minSpin - (performance.now() - started)));
-                });
-            }
-
-            function render(data) {
-                var pick = data.pick;
-                if (!pick) {
-                    panel.querySelector('[data-variant="first"]').hidden = shown.length > 0;
-                    panel.querySelector('[data-variant="more"]').hidden = shown.length === 0;
-                    panel.dataset.show = 'none';
-                    return;
-                }
-
-                shown.push(pick.id);
-                field('name').textContent = pick.name;
-                field('headline').textContent = pick.headline;
-                field('url').href = pick.url;
-
-                var facts = field('facts');
-                facts.replaceChildren();
-                [pick.distanceKm.toFixed(1) + ' km', pick.price, pick.rating ? '★ ' + pick.rating.toFixed(1) : null, pick.halal]
-                    .filter(Boolean)
-                    .forEach(function (text) {
-                        var fact = document.createElement('li');
-                        fact.className = 'rounded-full border border-ink/15 bg-paper px-3 py-1 text-sm font-medium text-ink/80';
-                        fact.textContent = text;
-                        facts.appendChild(fact);
-                    });
-
-                panel.dataset.show = 'pick';
-            }
-
-            // 429 is the endpoint's rate limit; anything else (offline, 5xx) gets the generic message.
-            function fail(error) {
-                var busy = Boolean(error && error.status === 429);
-                panel.querySelector('[data-variant="busy"]').hidden = !busy;
-                panel.querySelector('[data-variant="offline"]').hidden = busy;
-                panel.dataset.show = 'error';
-            }
-
-            function ask(reroll) {
-                if (!reroll) shown = [];
-                var answers = new FormData(form);
-                var params = new URLSearchParams({ km: answers.get('km') || '2' });
-                if (answers.get('mood')) params.set('mood', answers.get('mood'));
-                if (answers.get('budget')) params.set('budget', answers.get('budget'));
-                shown.slice(-20).forEach(function (id) { params.append('exclude[]', id); });
-
-                panel.dataset.show = 'spinning';
-                if (panel.getBoundingClientRect().top > window.innerHeight - 120) {
-                    panel.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
-                }
-
-                var started = performance.now();
-                fetch(form.action + '?' + params, { headers: { Accept: 'application/json' } })
-                    .then(function (response) {
-                        if (!response.ok) {
-                            var error = new Error('HTTP ' + response.status);
-                            error.status = response.status;
-                            throw error;
-                        }
-                        return response.json();
-                    })
-                    .then(function (data) { return settle(started).then(function () { render(data); }); })
-                    .catch(function (error) { return settle(started).then(function () { fail(error); }); });
-            }
-
-            form.addEventListener('submit', function (event) { event.preventDefault(); ask(false); });
-            form.addEventListener('change', function () { shown = []; });
-            panel.querySelector('[data-reroll]').addEventListener('click', function () { ask(true); });
         })();
     </script>
 @endpush

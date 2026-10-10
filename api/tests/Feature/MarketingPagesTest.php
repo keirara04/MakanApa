@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\MarketingController;
 use App\Models\MarketingEvent;
 use App\Models\Restaurant;
 use App\Support\ShareLinks;
@@ -200,13 +199,6 @@ class MarketingPagesTest extends TestCase
         $this->assertStringNotContainsString('<', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
     }
 
-    public function test_try_it_offers_exactly_the_moods_the_endpoint_accepts(): void
-    {
-        preg_match_all('#name="mood" value="([a-z_]*)"#', $this->get('/')->getContent(), $matches);
-
-        $this->assertSame([...MarketingController::DEMO_MOODS, ''], $matches[1]);
-    }
-
     public function test_missing_pages_get_the_sketchbook_404_but_api_404s_stay_json(): void
     {
         $this->get('/no-such-page')->assertNotFound()->assertSee('This page went out to eat.');
@@ -244,13 +236,11 @@ class MarketingPagesTest extends TestCase
         }
     }
 
-    public function test_home_has_a_motion_pause_button_and_separate_try_it_errors(): void
+    public function test_home_has_a_motion_pause_button(): void
     {
         $this->get('/')
             ->assertSee('id="motion-toggle"', false)
-            ->assertSee('aria-label="Pause animations"', false)
-            ->assertSee('data-variant="busy"', false)
-            ->assertSee('data-variant="offline"', false);
+            ->assertSee('aria-label="Pause animations"', false);
 
         $this->get('/support')->assertDontSee('id="motion-toggle"', false);
     }
