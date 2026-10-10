@@ -153,7 +153,7 @@ The build itself uses the frontend-design skill, with screenshots at 360 px and 
 | 5 | Push: server Web Push, subscription flow, priming sheet, preferences, tap routing, nudge events | 1 week |
 | 6 | Community: feed, switcher and requests, posts, threads, composer, reactions, report, block; add place wizard with pin picker and photos; My places; halal report, owner claim, history; ambassador apply, picks, share card, welcome | 2.5 weeks |
 | 7 | Landing page entry (section 6), install card, offline states, Content-Security-Policy header on the static host (the session token lives in localStorage; allow only self, the API, Google sign-in and Maps), performance and accessibility pass, Lighthouse PWA checks | 3–4 days |
-| 8 | Google Play: Trusted Web Activity with Bubblewrap, `assetlinks.json`, store listing | 3–4 days |
+| 8 | Google Play: Trusted Web Activity with Bubblewrap, `assetlinks.json`, store listing (full plan in section 10) | 3–4 days |
 
 Total: roughly **9–10 weeks** of focused work. Each phase ends with a deploy to staging and a test on a real Android phone (Chrome). The landing page only starts sending people there after Phase 7, so earlier phases can ship to staging without risk.
 
@@ -170,6 +170,66 @@ Total: roughly **9–10 weeks** of focused work. Each phase ends with a deploy t
 | iPhone users landing on the web app | Low | iPhone visitors keep the App Store button; web push on iOS needs install, not a target |
 | Plus billing later | Medium | App Store payments don't exist on the web. Plus on Android needs RevenueCat Web Billing (Stripe), or Play Billing once it is on Google Play. Add to SUBSCRIPTIONS_PLAN.md when Plus is confirmed |
 | Production API not provisioned | High | Phase 0 blocker |
+
+## 10. Phase 8: Google Play (plan, not started)
+
+The web app goes on Google Play as a **Trusted Web Activity (TWA)**: a small Android app, made with Bubblewrap, that opens `app.trymakanapa.com` full screen in Chrome. There's no second codebase. Updates to the web app reach Play users at once, and a new Play release is only needed when the wrapper itself changes (icon, name, package settings).
+
+**Before starting:** the web app is hosted at `https://app.trymakanapa.com` (owner to-dos 2, 3 and 6), with a valid manifest (`/manifest.webmanifest`, done) and a service worker (done).
+
+### Owner steps (Play Console and decisions)
+
+1. **Play Console developer account**: a one-time US$25 fee and identity verification. A new *personal* account must run a closed test with at least 12 testers for 14 days before it can publish to production (check the current rule when signing up). An *organisation* account skips that but needs a D-U-N-S number.
+2. **Package name**, permanent once published. Suggested: `com.trymakanapa.app`.
+3. **Signing**: let Play manage the app signing key (Play App Signing). Bubblewrap makes the *upload* key. Keep that keystore file and its passwords safe and out of git. Losing it means asking Google to reset the upload key.
+4. **Store listing**:
+   - App name and a short description (80 characters)
+   - Full description
+   - 512×512 icon (from `web/public/icon-512.png`)
+   - 1024×500 feature graphic
+   - 2–8 phone screenshots (the walkthrough screenshots at 412 px are a start)
+   - Category: Food & Drink
+   - Contact email: support@trymakanapa.com
+5. **Policy forms**:
+   - **Privacy policy URL:** `https://trymakanapa.com/privacy`.
+   - **Data safety:** location (used for picks, saved with picks), account info (name, email), photos users upload, and push tokens. Nothing is sold, and nothing goes to ad networks.
+   - **Account deletion URL:** Play requires a web page where people can ask for deletion, not just the in-app button. Use the web app's Settings page, or a short page on trymakanapa.com explaining both ways.
+   - **Content rating questionnaire:** user-generated content (community posts, with reporting and blocking).
+   - **Target audience:** 13+, matching the iOS age rating.
+   - **Ads:** none.
+6. **Testing tracks**: internal testing (yourself), then closed testing (the 12 testers, e.g. ambassadors at UiTM Jasin and UniMAP), then production.
+
+### Build steps (Claude)
+
+1. **`assetlinks.json`** at `https://app.trymakanapa.com/.well-known/assetlinks.json`: the package name plus the SHA-256 fingerprints of the Play app signing key and the upload key (both shown in Play Console under App integrity). Without it the app shows a browser address bar. It ships from `web/public/.well-known/` and must be served as `application/json`.
+2. **Bubblewrap project** in `android/` (config only: `twa-manifest.json`; the keystore stays out of git):
+   - `npx @bubblewrap/cli init --manifest https://app.trymakanapa.com/manifest.webmanifest`
+   - Settings:
+     - app name MakanApa
+     - theme and background colour `#FFF4DD`
+     - start URL `/`
+     - portrait
+     - **notification delegation on**, so web push shows as the app's own notifications
+     - **location delegation on**, so picks use the phone's location permission
+3. **Build**: `bubblewrap build`, which makes an `.aab` for Play.
+4. **Check on a phone** from the internal track:
+   - opens full screen with no address bar (proves assetlinks works)
+   - sign-in with Google and email
+   - location prompt, then a pick
+   - push notifications arrive and open the right screen
+   - shared `/p/…` links open in the app
+   - back button behaviour
+   - offline start
+5. **Landing page**: once the app is live on Play, Android "Open MakanApa" buttons can point to the Play listing instead of (or as well as) the web app. Behind its own switch, like `WEB_APP_LIVE`.
+6. **Web app manifest**: add `related_applications` pointing at the Play listing, so Chrome can offer the Play app to browser visitors.
+
+### Things to know
+
+- **Plus on Android**: if Plus is sold inside the Play app, Google requires Play Billing for it (the Digital Goods API works from a TWA). The web version can't use App Store payments either; see the Plus billing risk in section 8. Decide this before Plus launches on Android.
+- **Google sign-in in the TWA** runs in Chrome, so the same web OAuth client and origins work. No Android OAuth client is needed.
+- **Updates**: web changes are live straight away. New Play releases are only for wrapper changes. Bump the version code each release.
+
+Estimate: 3–4 days of build and checks once the owner steps are done. The closed test adds 14 days of calendar time for a new personal account.
 
 ## On hold: owner to-dos (paused 2026-10-10, owner's call)
 
