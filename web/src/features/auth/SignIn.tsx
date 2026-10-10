@@ -68,7 +68,7 @@ export function SignIn() {
   const heading = linkOffer ? 'Link your Google account' : mode === 'create' ? 'Create your account' : 'Welcome back'
 
   return (
-    <Screen>
+    <Screen wide>
       <header className="flex items-center justify-between">
         {(isGuest || getStored('onboarded') === undefined) && (
           <Button variant="quiet" className="-ml-3" onClick={() => navigate(-1)}>
@@ -77,87 +77,101 @@ export function SignIn() {
         )}
       </header>
 
-      <div className="flex items-end gap-3 pt-4">
-        <h1 className="flex-1 font-display text-4xl font-bold leading-tight tracking-tight">{heading}</h1>
-        <Mascot mood="thinking" size={88} className="-mb-1 shrink-0" />
-      </div>
-      <p className="mt-3 text-kicap-soft">
-        {linkOffer
-          ? `There’s already a MakanApa account for ${linkOffer.email}. Enter its password once to sign in with Google from now on.`
-          : isGuest
-            ? 'Your picks, saved places and taste profile all come with you. Nothing lost.'
-            : 'Eat first. Decide later.'}
-      </p>
-
-      {!linkOffer && (
-        <>
-          <div className="mt-8">
-            <GoogleButton onCredential={google} />
+      <div className="flex flex-1 flex-col md:grid md:grid-cols-[1fr_minmax(0,26rem)] md:items-center md:gap-16">
+        {/* Who and why: on wide screens a panel beside the form. */}
+        <div>
+          <div className="flex items-end gap-3 pt-4 md:flex-col-reverse md:items-start md:gap-6">
+            <h1 className="flex-1 font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl">{heading}</h1>
+            <Mascot mood="thinking" size={88} className="-mb-1 shrink-0 md:mb-0 md:h-44 md:w-44" />
           </div>
-          <div className="my-6 flex items-center gap-3 text-sm text-kicap-soft" aria-hidden="true">
-            <span className="h-px flex-1 bg-hairline" />
-            or with email
-            <span className="h-px flex-1 bg-hairline" />
-          </div>
-        </>
-      )}
-
-      <form onSubmit={submit} className={`flex flex-col gap-4 ${linkOffer ? 'mt-8' : ''}`} noValidate={false}>
-        {mode === 'create' && !linkOffer && <Field label="Name" name="name" autoComplete="name" required maxLength={100} />}
-        {!linkOffer && <Field label="Email" name="email" type="email" autoComplete="email" inputMode="email" required />}
-        <Field
-          label="Password"
-          name="password"
-          type="password"
-          autoComplete={mode === 'create' && !linkOffer ? 'new-password' : 'current-password'}
-          minLength={mode === 'create' && !linkOffer ? 8 : undefined}
-          required
-        />
-        {mode === 'create' && !linkOffer && <p className="-mt-2 text-sm text-kicap-soft">At least 8 characters.</p>}
-
-        {error && (
-          <p role="alert" className="text-sambal-deep">
-            {error}
+          <p className="mt-3 text-kicap-soft md:text-lg">
+            {linkOffer
+              ? `There’s already a MakanApa account for ${linkOffer.email}. Enter its password once to sign in with Google from now on.`
+              : isGuest
+                ? 'Your picks, saved places and taste profile all come with you. Nothing lost.'
+                : 'Eat first. Decide later.'}
           </p>
-        )}
+        </div>
 
-        <Button type="submit" busy={busy === 'form'} disabled={busy !== null} className="mt-2">
-          {linkOffer ? 'Link and sign in' : mode === 'create' ? 'Create account' : 'Sign in'}
-        </Button>
-      </form>
+        <div className="flex flex-col">
+          {!linkOffer && (
+            <>
+              <div className="mt-8 md:mt-0">
+                <GoogleButton onCredential={google} />
+              </div>
+              <div className="my-6 flex items-center gap-3 text-sm text-kicap-soft" aria-hidden="true">
+                <span className="h-px flex-1 bg-hairline" />
+                or with email
+                <span className="h-px flex-1 bg-hairline" />
+              </div>
+            </>
+          )}
 
-      <div className="mt-4 flex flex-col items-center gap-1">
-        {linkOffer ? (
-          <Button variant="quiet" onClick={() => setLinkOffer(null)}>
-            Use a different account
-          </Button>
-        ) : (
-          <Button variant="quiet" onClick={() => setMode(mode === 'create' ? 'signIn' : 'create')}>
-            {mode === 'create' ? 'I already have an account' : 'Create an account'}
-          </Button>
-        )}
+          <form onSubmit={submit} className={`flex flex-col gap-4 ${linkOffer ? 'mt-8' : ''}`} noValidate={false}>
+            {mode === 'create' && !linkOffer && <Field label="Name" name="name" autoComplete="name" required maxLength={100} />}
+            {!linkOffer && <Field label="Email" name="email" type="email" autoComplete="email" inputMode="email" required />}
+            <Field
+              label="Password"
+              name="password"
+              type="password"
+              autoComplete={mode === 'create' && !linkOffer ? 'new-password' : 'current-password'}
+              minLength={mode === 'create' && !linkOffer ? 8 : undefined}
+              required
+            />
+            {mode === 'create' && !linkOffer && <p className="-mt-2 text-sm text-kicap-soft">At least 8 characters.</p>}
 
-        {!user && (
-          <Button variant="quiet" busy={busy === 'guest'} disabled={busy !== null} onClick={() => void attempt('guest', async () => {
-            await continueAsGuest()
-            done()
-          })}>
-            Continue without an account
-          </Button>
-        )}
+            {error && (
+              <p role="alert" className="text-sambal-deep">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" busy={busy === 'form'} disabled={busy !== null} className="mt-2">
+              {linkOffer ? 'Link and sign in' : mode === 'create' ? 'Create account' : 'Sign in'}
+            </Button>
+          </form>
+
+          <div className="mt-4 flex flex-col items-center gap-1">
+            {linkOffer ? (
+              <Button variant="quiet" onClick={() => setLinkOffer(null)}>
+                Use a different account
+              </Button>
+            ) : (
+              <Button variant="quiet" onClick={() => setMode(mode === 'create' ? 'signIn' : 'create')}>
+                {mode === 'create' ? 'I already have an account' : 'Create an account'}
+              </Button>
+            )}
+
+            {!user && (
+              <Button
+                variant="quiet"
+                busy={busy === 'guest'}
+                disabled={busy !== null}
+                onClick={() =>
+                  void attempt('guest', async () => {
+                    await continueAsGuest()
+                    done()
+                  })
+                }
+              >
+                Continue without an account
+              </Button>
+            )}
+          </div>
+
+          <p className="mt-auto pt-8 text-center text-sm text-kicap-soft md:mt-8">
+            By continuing you agree to the{' '}
+            <a className="underline" href="https://trymakanapa.com/terms" target="_blank" rel="noreferrer">
+              Terms of Use
+            </a>{' '}
+            and{' '}
+            <a className="underline" href="https://trymakanapa.com/privacy" target="_blank" rel="noreferrer">
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
       </div>
-
-      <p className="mt-auto pt-8 text-center text-sm text-kicap-soft">
-        By continuing you agree to the{' '}
-        <a className="underline" href="https://trymakanapa.com/terms" target="_blank" rel="noreferrer">
-          Terms of Use
-        </a>{' '}
-        and{' '}
-        <a className="underline" href="https://trymakanapa.com/privacy" target="_blank" rel="noreferrer">
-          Privacy Policy
-        </a>
-        .
-      </p>
     </Screen>
   )
 }

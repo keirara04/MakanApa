@@ -61,8 +61,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/settings" element={<Settings />} />
       <Route element={<AppShell />}>
+        <Route path="settings" element={<Settings />} />
         <Route index element={<ComingSoon mood="thinking" title="What should we eat?" detail="Picking arrives in the next build of the web app." />} />
         <Route path="nearby" element={<ComingSoon mood="wave" title="Food around you" detail="The map of nearby places arrives in a later build." />} />
         <Route path="community" element={<ComingSoon mood="excited" title="Your community" detail="Trending picks and posts arrive in a later build." />} />

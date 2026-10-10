@@ -171,6 +171,21 @@ Total: roughly **9–10 weeks** of focused work. Each phase ends with a deploy t
 | Plus billing later | Medium | App Store payments don't exist on the web. Plus on Android needs RevenueCat Web Billing (Stripe), or Play Billing once it is on Google Play. Add to SUBSCRIPTIONS_PLAN.md when Plus is confirmed |
 | Production API not provisioned | High | Phase 0 blocker |
 
+## On hold: owner to-dos (paused 2026-10-10, owner's call)
+
+Building continues without these; they're needed before the web app goes live.
+
+1. Google Cloud: add `http://localhost:5174` and `https://app.trymakanapa.com` to the web OAuth client's authorized JavaScript origins, and put the client id in `web/.env.local` as `VITE_GOOGLE_CLIENT_ID`. Until then the sign-in screen shows email only.
+2. Deploy: set `CORS_ALLOWED_ORIGINS` on the API server and `VITE_API_BASE_URL` for the web build.
+3. Production API (phase 0 blocker for launch).
+
+## Responsive web (owner request, 2026-10-10)
+
+The web app must work well on desktop and tablet browsers too, not just phones:
+- Phone (< 768 px): bottom tab bar, single column, as on iOS.
+- Tablet and desktop (≥ 768 px): a left sidebar with the wordmark, the three sections and settings; content in a readable column (max ~720 px), two columns where the content has two parts (onboarding art and text, sign-in panel and form, result photo and details, Nearby map and list).
+- Every screen is checked at 360, 412, 768 and 1280 px wide.
+
 ## 9. Owner decisions (2026-10-10)
 
 1. Address: `app.trymakanapa.com`.

@@ -5,7 +5,6 @@ import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { getStored, setStored, type Stored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
-import { Screen } from '../../ui/Screen'
 
 const MAPS_APPS: { value: NonNullable<Stored['mapsApp']>; label: string }[] = [
   { value: 'google', label: 'Google Maps' },
@@ -38,12 +37,9 @@ export function Settings() {
   }
 
   return (
-    <Screen className="gap-8">
+    <div className="flex flex-col gap-8 pt-2 md:max-w-xl">
       <header className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-bold tracking-tight">Settings</h1>
-        <Button variant="quiet" className="-mr-3" onClick={() => navigate(-1)}>
-          Done
-        </Button>
+        <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Settings</h1>
       </header>
 
       <section className="sketch px-5 py-5" style={{ ['--sketch-radius' as string]: '20px' }}>
@@ -51,7 +47,7 @@ export function Settings() {
           <>
             <p className="font-display text-xl font-semibold">You’re using MakanApa without an account</p>
             <p className="mt-1 text-kicap-soft">Sign in to add places and post. Your picks, saves and taste profile come with you.</p>
-            <Button className="mt-4" onClick={() => navigate('/sign-in')}>
+            <Button className="mt-4 md:max-w-xs" onClick={() => navigate('/sign-in')}>
               Sign in or create an account
             </Button>
           </>
@@ -128,6 +124,7 @@ export function Settings() {
       {!user.isGuest && (
         <Button
           variant="secondary"
+          className="md:max-w-xs"
           onClick={() => {
             void logout().then(() => navigate('/sign-in', { replace: true }))
           }}
@@ -135,7 +132,7 @@ export function Settings() {
           Log out
         </Button>
       )}
-    </Screen>
+    </div>
   )
 }
 
