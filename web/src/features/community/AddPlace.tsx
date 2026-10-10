@@ -102,6 +102,16 @@ function Wizard() {
   const step: Step = !selection ? steps[0] : requested === 'review' && !coords ? 'details' : steps.includes(requested) ? requested : steps[0]
   const index = steps.indexOf(step)
 
+  // Landed on a later step with nothing chosen (reload, or Back from Sent for review): the URL
+  // follows what's shown, so Back doesn't walk through steps that can't be shown.
+  useEffect(() => {
+    if (!selection && !handover.existing && params.has('step')) {
+      const next = new URLSearchParams(params)
+      next.delete('step')
+      setParams(next, { replace: true })
+    }
+  }, [selection, handover.existing, params, setParams])
+
   const go = (next: Step) => setParams({ step: next })
   const leave = () => navigate(handover.from ?? '/community')
 
@@ -159,8 +169,9 @@ function Wizard() {
 
   // Leaving without submitting withdraws the draft, so it doesn't sit there for the pruner.
   useEffect(() => {
-    // keepalive only when the page is going away: Chrome won't preflight a keepalive request,
-    // and this cross-origin DELETE needs one, so in-app navigation uses a plain request.
+    // A plain request while the page is alive; keepalive only on pagehide. In headless Chromium
+    // that cross-origin keepalive never reaches the API, so a reload can still leave a draft
+    // behind: PruneAbandonedSubmissionDrafts clears those.
     const abandon = (keepalive: boolean) => {
       if (draft.current && !submitted.current) {
         void submissionsApi.cancel(draft.current.id, keepalive).catch(() => {})
@@ -798,8 +809,15 @@ function DetailsStep({
 }
 
 function Disclosure({ title, subtitle, open, children }: { title: string; subtitle: string; open: boolean; children: ReactNode }) {
+  // The open prop only ever opens it: if React removed the attribute when the error clears, the
+  // panel would snap shut on the first keystroke of the fix.
+  const ref = useRef<HTMLDetailsElement>(null)
+  const [initial] = useState(open)
+  useEffect(() => {
+    if (open && ref.current) ref.current.open = true
+  }, [open])
   return (
-    <details open={open || undefined} className="group rounded-card border-2 border-hairline bg-surface/70 px-5 py-1">
+    <details ref={ref} open={initial || undefined} className="group rounded-card border-2 border-hairline bg-surface/70 px-5 py-1">
       <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
         <span className="flex-1">
           <span className="block font-semibold">{title}</span>

@@ -46,8 +46,11 @@ const shot = async (name) => {
 }
 
 const cleanUp = () =>
-  tinker(`$u = App\\Models\\User::where('email', '${email}')->first(); if ($u) { $ids = App\\Models\\RestaurantSubmission::where('user_id', $u->id)->pluck('id'); App\\Models\\RestaurantPhoto::whereIn('restaurant_submission_id', $ids)->get()->each->delete(); App\\Models\\RestaurantSubmission::whereIn('id', $ids)->delete(); $u->tokens()->delete(); $u->forceDelete(); }`)
+  tinker(`$u = App\\Models\\User::where('email', '${email}')->first(); if ($u) { $ids = App\\Models\\RestaurantSubmission::where('user_id', $u->id)->pluck('id'); App\\Models\\RestaurantPhoto::whereIn('restaurant_submission_id', $ids)->get()->each(function ($p) { Illuminate\\Support\\Facades\\Storage::disk($p->disk)->delete($p->path); $p->delete(); }); App\\Models\\RestaurantSubmission::whereIn('id', $ids)->delete(); $u->tokens()->delete(); $u->forceDelete(); }`)
 let kept = null
+let photoDisks = null
+let reloadStatus = null
+let focusKept = null
 let cards = []
 try {
 await page.goto(`${APP}/welcome`, { waitUntil: 'networkidle' })
@@ -81,7 +84,10 @@ await page.getByText('Add more details').click()
 await page.getByLabel('Website').fill('kakros')
 await page.getByRole('button', { name: 'Continue' }).click()
 await page.getByText('Enter the full address, starting with https://').waitFor()
-await page.getByLabel('Website').fill('https://kakros.example.com')
+await page.getByLabel('Website').click()
+await page.keyboard.press('ControlOrMeta+A')
+await page.getByLabel('Website').pressSequentially('https://kakros.example.com')
+focusKept = await page.getByLabel('Website').evaluate((element) => element === document.activeElement && element.closest('details').open)
 await page.getByText('Add menu').click()
 await page.getByLabel('Dish', { exact: true }).fill('Nasi lemak ayam')
 await page.getByLabel('Price (RM)').fill('7.5')
@@ -103,6 +109,21 @@ await shot('4-review')
 await page.getByRole('button', { name: 'Submit for review' }).click()
 await page.getByRole('heading', { name: 'Sent for review!' }).waitFor()
 await shot('5-done')
+photoDisks = tinker(`echo App\\Models\\RestaurantPhoto::whereIn('restaurant_submission_id', App\\Models\\RestaurantSubmission::where('user_id', App\\Models\\User::where('email', '${email}')->value('id'))->pluck('id'))->pluck('disk')->join(',');`)
+// Back from Sent for review: a fresh start, with the URL to match.
+await page.goBack()
+await page.getByRole('heading', { name: 'Find the place' }).waitFor()
+const backUrl = new URL(page.url())
+if (backUrl.searchParams.has('step')) throw new Error(`stale step in ${backUrl}`)
+
+// A search handed over in the URL (Nearby and Saved do this).
+await page.goto(`${APP}/community/add?q=Warung`)
+if ((await page.getByPlaceholder('Search for a place').inputValue()) !== 'Warung') throw new Error('q not prefilled')
+
+// Settings links to My places.
+await page.goto(`${APP}/settings`)
+await page.getByRole('link', { name: /My places/ }).click()
+await page.waitForURL(`${APP}/community/mine`)
 
 // 2. An edit to a listed place: no Location step; Back returns to the search as it was.
 await page.goto(`${APP}/community/add`)
@@ -135,7 +156,19 @@ await page.getByRole('dialog').getByRole('button', { name: 'Discard' }).click()
 await page.waitForURL(`${APP}/community`)
 await withdrawn
 
-// My places: two in review, one withdrawn.
+// Reloading at Review: reports whether the keepalive request on pagehide withdrew the draft.
+await page.goto(`${APP}/community/add`)
+await page.getByPlaceholder('Search for a place').fill('Kedai Reloaded')
+await page.getByRole('button', { name: /Add it yourself/ }).click()
+await page.getByRole('button', { name: 'Continue' }).click()
+await page.getByRole('button', { name: /Use my current location/ }).click()
+await page.getByRole('button', { name: 'Looks right' }).click()
+await page.getByLabel('Add photos').waitFor({ state: 'attached' })
+await page.reload()
+await page.waitForTimeout(2000)
+reloadStatus = tinker(`echo App\\Models\\RestaurantSubmission::where('name', 'Kedai Reloaded')->where('user_id', App\\Models\\User::where('email', '${email}')->value('id'))->value('status');`)
+
+// My places.
 await page.goto(`${APP}/community/mine`)
 await page.getByText('Warung Kak Ros').waitFor()
 await shot('7-mine')
@@ -147,7 +180,8 @@ cards = await page.locator('li').allInnerTexts()
   await page.screenshot({ path: `${out}/addplace-${W}-last.png`, fullPage: true }).catch(() => {})
 }
 
-console.log(W, 'kept query', JSON.stringify(kept))
+console.log(W, 'kept query', JSON.stringify(kept), 'focus kept while fixing', focusKept)
+console.log(W, 'photo disks', photoDisks, 'after reload at Review', reloadStatus)
 console.log(W, 'cards', JSON.stringify(cards.map((text) => text.replace(/\s+/g, ' '))))
 console.log(W, 'api', JSON.stringify(statuses.filter((line) => !line.includes('places/search'))))
 console.log(W, 'page errors', JSON.stringify(problems))
