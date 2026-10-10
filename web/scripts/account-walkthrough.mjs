@@ -43,14 +43,17 @@ const shot = async (name) => {
   await page.screenshot({ path: `${out}/account-${W}-${name}.png`, fullPage: true })
 }
 
-// Guest first, then create an account from Settings (upgrades the guest in place).
-await page.goto(`${APP}/welcome`, { waitUntil: 'networkidle' })
+// A link opened before onboarding is where onboarding ends: guest first (made at the last
+// onboarding step), then create an account from Settings (upgrades the guest in place).
+await page.goto(`${APP}/community/mine`, { waitUntil: 'networkidle' })
+await page.waitForURL(`${APP}/welcome`)
 await page.getByRole('button', { name: 'Get started' }).click()
 await page.waitForTimeout(800)
 if (await page.getByRole('button', { name: 'Turn on location' }).count()) await page.getByRole('button', { name: 'Turn on location' }).click()
 await page.getByRole('button', { name: 'Continue' }).click()
 await page.getByRole('button', { name: 'No, show everything' }).click()
-await page.waitForURL(`${APP}/`)
+await page.waitForURL(`${APP}/community/mine`)
+await page.getByRole('heading', { name: /Sign in to see places/ }).waitFor()
 await page.goto(`${APP}/settings`)
 await shot('1-guest-settings')
 await page.getByRole('link', { name: /Using MakanApa as a guest/ }).click()
@@ -105,7 +108,7 @@ await page.goto(`${APP}/settings`)
 await page.getByRole('button', { name: 'Delete account' }).click()
 await page.getByRole('dialog').getByLabel('Password').fill('wrong-password')
 await page.getByRole('button', { name: 'Delete my account' }).click()
-await page.getByText('Couldn’t delete your account. Check your password and try again.').waitFor()
+await page.getByText('That password doesn’t match. Try again.').waitFor()
 await shot('8-delete-wrong')
 await page.getByRole('dialog').getByLabel('Password').fill('correct-horse-9')
 await page.getByRole('button', { name: 'Delete my account' }).click()

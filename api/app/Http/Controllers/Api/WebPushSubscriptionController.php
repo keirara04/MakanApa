@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use NotificationChannels\WebPush\PushSubscription;
 
 /**
@@ -21,12 +22,6 @@ class WebPushSubscriptionController extends Controller
         return response()->json(['publicKey' => config('webpush.vapid.public_key')]);
     }
 
-    /**
-     * The browsers' push services. Anything else would have the server POST to an address a
-     * client chose (and hang a send on it), so other hosts are refused.
-     */
-    private const PUSH_SERVICE_HOSTS = ['fcm.googleapis.com', 'updates.push.services.mozilla.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'];
-
     /** Browsers per account; the oldest goes when a new one subscribes. */
     private const MAX_PER_USER = 10;
 
@@ -34,9 +29,13 @@ class WebPushSubscriptionController extends Controller
     {
         $data = $request->validate([
             'endpoint' => ['required', 'url:https', 'max:'.PushSubscription::ENDPOINT_MAX_LENGTH, function (string $attribute, mixed $value, Closure $fail) {
+                // Browsers' push services only (config/webpush.php): anything else would have the
+                // server POST to an address a client chose. Logged, so a browser with its own
+                // push service shows up the first time someone tries it.
                 $host = strtolower((string) parse_url((string) $value, PHP_URL_HOST));
-                $known = collect(self::PUSH_SERVICE_HOSTS)->contains(fn (string $service) => $host === $service || str_ends_with($host, '.'.$service));
+                $known = collect(config('webpush.push_service_hosts'))->contains(fn (string $service) => $host === $service || str_ends_with($host, '.'.$service));
                 if (! $known) {
+                    Log::info('web_push.unknown_host', ['host' => $host]);
                     $fail('This browser’s push service isn’t supported.');
                 }
             }],

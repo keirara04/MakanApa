@@ -18,6 +18,13 @@ return [
     /**
      * This is model that will be used to for push subscriptions.
      */
+    // Push services a browser subscription may point at (a host or its subdomains). Others are
+    // refused; add one here (comma-separated in WEBPUSH_SERVICE_HOSTS) if a browser needs it.
+    'push_service_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+        'WEBPUSH_SERVICE_HOSTS',
+        'fcm.googleapis.com,push.services.mozilla.com,notify.windows.com,push.apple.com',
+    ))))),
+
     'model' => PushSubscription::class,
 
     /**
