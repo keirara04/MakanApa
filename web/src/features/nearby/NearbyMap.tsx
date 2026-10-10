@@ -184,7 +184,7 @@ function pill(place: NearbyPlace, winner: boolean, focused: boolean): HTMLElemen
   const element = document.createElement('div')
   element.textContent = place.rating !== null ? `★${place.rating.toFixed(1)}` : '•'
   element.className = winner
-    ? 'rounded-full bg-[#e94b35] px-3 py-1.5 font-[Fredoka] text-[15px] font-bold text-white shadow-lg'
+    ? 'rounded-full bg-[#c13a26] px-3 py-1.5 font-[Fredoka] text-[15px] font-bold text-white shadow-lg'
     : `rounded-full bg-white px-2 py-1 font-[Fredoka] text-xs font-bold text-[#29201d] shadow-md ${focused ? 'scale-110 outline-2 outline-[#29201d]' : ''}`
   return element
 }

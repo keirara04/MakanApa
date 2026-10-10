@@ -6,6 +6,7 @@ import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
 import { directionsUrl } from '../../lib/maps'
 import { budgetAmount, categoryLabel, distanceShort, mealGreeting, priceLabel, relativeDay } from '../../lib/presentation'
+import { install, useCanInstall } from '../../lib/install'
 import { getStored, setStored, useStored, type RecentPick } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
@@ -51,6 +52,7 @@ export function DecideHome() {
       </div>
 
       <GuestNudge />
+      <InstallCard />
       <Recent />
       <DecideGuide />
       <VibeFollowUp />
@@ -111,7 +113,7 @@ function QuickPickCard({ onLocationNeeded }: { onLocationNeeded: () => void }) {
       >
         <span className="flex flex-wrap gap-1.5">
           {chips.map((chip) => (
-            <span key={chip} className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm font-semibold">
+            <span key={chip} className="rounded-full bg-kicap/25 px-2.5 py-0.5 text-sm font-semibold">
               {chip}
             </span>
           ))}
@@ -131,6 +133,37 @@ function QuickPickCard({ onLocationNeeded }: { onLocationNeeded: () => void }) {
 }
 
 const WEEK = 7 * 86_400_000
+
+const MONTH = 30 * 86_400_000
+
+/**
+ * "Add to home screen", when the browser offers installing (Chrome on Android and computers).
+ * Gone once installed; "Not now" hides it for a month.
+ */
+function InstallCard() {
+  const canInstall = useCanInstall()
+  const dismissedAt = useStored('installDismissedAt') ?? 0
+  const [now] = useState(() => Date.now())
+  if (!canInstall || now - dismissedAt < MONTH) return null
+
+  return (
+    <section className="flex flex-col gap-3 rounded-card border-2 border-hairline bg-surface px-6 py-5 sm:flex-row sm:items-center">
+      <img src="/icon-192.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-2xl" />
+      <div className="flex-1">
+        <h2 className="font-display text-xl font-bold">Add MakanApa to your home screen</h2>
+        <p className="text-kicap-soft">It opens like an app, full screen, with mealtime notifications. No app store needed.</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button className="sm:w-auto" onClick={() => void install()}>
+          Add
+        </Button>
+        <Button variant="quiet" className="whitespace-nowrap" onClick={() => setStored('installDismissedAt', Date.now())}>
+          Not now
+        </Button>
+      </div>
+    </section>
+  )
+}
 
 /** The iOS GuestUpgradeNudge: after 3 accepted picks or 3 saves, guests are asked to keep them. */
 function GuestNudge() {

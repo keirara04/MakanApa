@@ -53,7 +53,7 @@ export function FilterRibbon({ trailing }: { trailing?: ReactNode }) {
             <select
               value={moreMode ? moreMode[0] : ''}
               onChange={(event) => setFilters({ mode: (event.target.value || 'normal') as DiscoveryMode })}
-              className={`press min-h-10 cursor-pointer appearance-none rounded-full border-2 py-0 pl-4 pr-8 font-display text-sm font-semibold shadow-sm ${moreMode ? 'border-sambal bg-sambal text-white' : 'border-hairline bg-surface text-kicap'}`}
+              className={`press min-h-10 cursor-pointer appearance-none rounded-full border-2 py-0 pl-4 pr-8 font-display text-sm font-semibold shadow-sm ${moreMode ? 'border-sambal-deep bg-sambal-deep text-white' : 'border-hairline bg-surface text-kicap'}`}
             >
               <option value="">More</option>
               {MORE_MODES.map(([mode, label]) => (
@@ -107,7 +107,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={`press min-h-10 shrink-0 whitespace-nowrap rounded-full border-2 px-4 font-display text-sm font-semibold shadow-sm ${on ? 'border-sambal bg-sambal text-white' : 'border-hairline bg-surface text-kicap'}`}
+      className={`press min-h-10 shrink-0 whitespace-nowrap rounded-full border-2 px-4 font-display text-sm font-semibold shadow-sm ${on ? 'border-sambal-deep bg-sambal-deep text-white' : 'border-hairline bg-surface text-kicap'}`}
     >
       {children}
     </button>

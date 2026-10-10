@@ -1,8 +1,9 @@
-import { useEffect, type ReactNode } from 'react'
+import { Suspense, useEffect, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
+import { useOnline } from '../../lib/install'
 import { installationId } from '../../lib/storage'
 import { AmbassadorWelcome } from '../community/Ambassador'
 import { useNudgeOpened } from '../notifications/useNudgeLinks'
@@ -63,8 +64,17 @@ export function AppShell() {
         </header>
 
         <AmbassadorWelcome />
+        <Offline />
         <main className={`mx-auto flex w-full flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12 ${pathname === '/nearby' ? 'max-w-6xl' : 'max-w-3xl'}`}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <p role="status" className="pt-6 text-kicap-soft">
+                Loading…
+              </p>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 
@@ -125,6 +135,20 @@ function Avatar({ avatarKey, initial, small = false }: { avatarKey?: string | nu
         </svg>
       )}
     </span>
+  )
+}
+
+/**
+ * Offline: the app itself still opens (it's cached), and saved places and recent picks work;
+ * anything that asks MakanApa needs the connection back.
+ */
+function Offline() {
+  const online = useOnline()
+  if (online) return null
+  return (
+    <p role="status" className="mx-5 mt-2 rounded-row bg-kicap px-4 py-3 text-cream md:mx-10 md:mt-6">
+      You’re offline. Saved places and recent picks still work. Picks, Nearby and the community need a connection.
+    </p>
   )
 }
 

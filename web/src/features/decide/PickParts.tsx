@@ -213,7 +213,7 @@ export function Tune({ used, onTune }: { used: TuneDirection[]; onTune: (directi
                   .catch((caught) => setError(errorMessage(caught)))
                   .finally(() => setBusy(null))
               }}
-              className={`press min-h-11 rounded-full border-2 px-4 font-display font-semibold disabled:cursor-default ${done ? 'border-sambal bg-sambal text-white' : 'border-kicap bg-surface disabled:opacity-50'}`}
+              className={`press min-h-11 rounded-full border-2 px-4 font-display font-semibold disabled:cursor-default ${done ? 'border-sambal-deep bg-sambal-deep text-white' : 'border-kicap bg-surface disabled:opacity-50'}`}
             >
               {label}
             </button>

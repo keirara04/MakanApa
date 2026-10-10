@@ -76,7 +76,7 @@ export function PlaceSheet({ place, search, origin = null, user: me, onClose, on
           href={directionsUrl({ ...place, placeGoogleMapsUrl: details?.placeGoogleMapsUrl }, getStored('mapsApp'))}
           target="_blank"
           rel="noreferrer"
-          className="press flex min-h-12 flex-1 items-center justify-center rounded-full bg-sambal font-display text-lg font-semibold text-white"
+          className="press flex min-h-12 flex-1 items-center justify-center rounded-full bg-sambal-deep font-display text-lg font-semibold text-white"
         >
           Directions
         </a>

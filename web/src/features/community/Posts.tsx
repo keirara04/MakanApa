@@ -87,7 +87,7 @@ export function AllPosts() {
         <button
           type="button"
           onClick={() => runPost(() => setComposer({ parent: null }))}
-          className="press fixed bottom-24 right-5 z-20 min-h-12 rounded-full bg-sambal px-5 font-display font-semibold text-white shadow-lift md:bottom-8 md:right-8"
+          className="press fixed bottom-24 right-5 z-20 min-h-12 rounded-full bg-sambal-deep px-5 font-display font-semibold text-white shadow-lift md:bottom-8 md:right-8"
         >
           Share a thought
         </button>

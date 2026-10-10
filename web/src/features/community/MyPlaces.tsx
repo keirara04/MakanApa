@@ -80,7 +80,7 @@ function MyPlacesList() {
       <div className="-mt-2 flex items-end justify-between gap-3">
         <h1 className="font-display text-3xl font-bold tracking-tight">My places</h1>
         {submissions.length > 0 && (
-          <Link to="/community/add" state={{ from: '/community/mine' }} className="press inline-flex min-h-11 items-center rounded-full bg-sambal px-4 font-display font-semibold text-white">
+          <Link to="/community/add" state={{ from: '/community/mine' }} className="press inline-flex min-h-11 items-center rounded-full bg-sambal-deep px-4 font-display font-semibold text-white">
             Add a place
           </Link>
         )}

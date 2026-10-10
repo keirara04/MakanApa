@@ -167,7 +167,7 @@ export function Nearby() {
           <>
             <FilterRibbon trailing={searchButton} />
             {nearby.error ? (
-              <div role="alert" className="flex items-start gap-3 rounded-row bg-sambal px-4 py-3 text-white">
+              <div role="alert" className="flex items-start gap-3 rounded-row bg-sambal-deep px-4 py-3 text-white">
                 <p className="flex-1">{errorMessage(nearby.error)}</p>
                 <button type="button" onClick={nearby.retry} className="min-h-11 px-2 font-display font-semibold underline">
                   Try again

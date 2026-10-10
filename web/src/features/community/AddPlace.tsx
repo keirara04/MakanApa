@@ -57,7 +57,7 @@ export function SignInNeeded({ feature }: { feature: string }) {
       <Mascot mood="wave" size={96} />
       <h1 className="font-display text-2xl font-bold">Sign in to {feature}</h1>
       <p className="max-w-sm text-kicap-soft">Picks, Nearby and saves work without an account. Adding places needs one, so the community knows who’s contributing.</p>
-      <Link to="/sign-in" className="press mt-2 inline-flex min-h-14 items-center rounded-full bg-sambal px-8 font-display text-xl font-semibold text-white shadow-lift">
+      <Link to="/sign-in" className="press mt-2 inline-flex min-h-14 items-center rounded-full bg-sambal px-8 font-display text-xl font-bold text-white shadow-lift">
         Sign in or create an account
       </Link>
     </div>
@@ -796,7 +796,7 @@ function DetailsStep({
                 type="button"
                 aria-pressed={selected}
                 onClick={() => onChange({ ...form, foodCategory: selected ? '' : category })}
-                className={`press min-h-10 rounded-full border-2 px-3.5 text-sm font-semibold ${selected ? 'border-sambal bg-sambal text-white' : 'border-hairline bg-surface'}`}
+                className={`press min-h-10 rounded-full border-2 px-3.5 text-sm font-semibold ${selected ? 'border-sambal-deep bg-sambal-deep text-white' : 'border-hairline bg-surface'}`}
               >
                 {category}
               </button>

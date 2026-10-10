@@ -101,7 +101,7 @@ export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyP
               type="button"
               aria-pressed={sort === key}
               onClick={() => setSort(key)}
-              className={`press min-h-9 rounded-full px-3 text-sm font-semibold ${sort === key ? 'bg-sambal text-white' : 'bg-kicap/5'}`}
+              className={`press min-h-9 rounded-full px-3 text-sm font-semibold ${sort === key ? 'bg-sambal-deep text-white' : 'bg-kicap/5'}`}
             >
               {label}
             </button>

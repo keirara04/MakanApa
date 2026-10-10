@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { StrictMode } from 'react'
+import { lazy, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
@@ -11,26 +11,32 @@ import { Preferences } from './features/decide/Preferences'
 import { Result } from './features/decide/Result'
 import { SavedPick } from './features/decide/SavedPick'
 import { DecideProvider } from './features/decide/state'
-import { Community } from './features/community/Community'
-import { AddPlace, AddPlaceDone } from './features/community/AddPlace'
-import { MyPlaces } from './features/community/MyPlaces'
-import { AllPosts, ThreadPage } from './features/community/Posts'
-import { Nearby } from './features/nearby/Nearby'
-import { NotificationSettings } from './features/notifications/Notifications'
 import { NearbyProvider } from './features/nearby/state'
 import { Onboarding } from './features/onboarding/Onboarding'
-import { BlockedPeople } from './features/settings/BlockedPeople'
-import { EditProfile } from './features/settings/EditProfile'
-import { SavedPlaces } from './features/settings/SavedPlaces'
-import { SeleraPage } from './features/settings/SeleraPage'
-import { Settings } from './features/settings/Settings'
 import { AppShell } from './features/shell/AppShell'
 import './index.css'
+import './lib/install'
 import { getStored } from './lib/storage'
 import { Button } from './ui/Button'
 import { Mascot } from './ui/Mascot'
 import { Screen } from './ui/Screen'
 import { SketchFilters } from './ui/SketchFilters'
+
+// Loaded when first opened (and cached for offline by the service worker): the first screens
+// (welcome, sign-in, Decide) don't wait for Nearby's map, the community or settings.
+const Community = lazy(() => import('./features/community/Community').then((module) => ({ default: module.Community })))
+const MyPlaces = lazy(() => import('./features/community/MyPlaces').then((module) => ({ default: module.MyPlaces })))
+const Nearby = lazy(() => import('./features/nearby/Nearby').then((module) => ({ default: module.Nearby })))
+const NotificationSettings = lazy(() => import('./features/notifications/Notifications').then((module) => ({ default: module.NotificationSettings })))
+const BlockedPeople = lazy(() => import('./features/settings/BlockedPeople').then((module) => ({ default: module.BlockedPeople })))
+const EditProfile = lazy(() => import('./features/settings/EditProfile').then((module) => ({ default: module.EditProfile })))
+const SavedPlaces = lazy(() => import('./features/settings/SavedPlaces').then((module) => ({ default: module.SavedPlaces })))
+const SeleraPage = lazy(() => import('./features/settings/SeleraPage').then((module) => ({ default: module.SeleraPage })))
+const Settings = lazy(() => import('./features/settings/Settings').then((module) => ({ default: module.Settings })))
+const AddPlace = lazy(() => import('./features/community/AddPlace').then((module) => ({ default: module.AddPlace })))
+const AddPlaceDone = lazy(() => import('./features/community/AddPlace').then((module) => ({ default: module.AddPlaceDone })))
+const AllPosts = lazy(() => import('./features/community/Posts').then((module) => ({ default: module.AllPosts })))
+const ThreadPage = lazy(() => import('./features/community/Posts').then((module) => ({ default: module.ThreadPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },

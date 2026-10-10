@@ -52,7 +52,7 @@ export function SavedPlaces() {
             ))}
           </ul>
           {saved.length >= 2 ? (
-            <Link to="/decide/saved" className="press flex min-h-14 items-center justify-center rounded-full bg-sambal font-display text-xl font-semibold text-white">
+            <Link to="/decide/saved" className="press flex min-h-14 items-center justify-center rounded-full bg-sambal font-display text-xl font-bold text-white">
               Pick one for me
             </Link>
           ) : (
