@@ -54,6 +54,8 @@ struct HomeView: View {
     @State private var pendingDeepLink = PendingDeepLink.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var quickPickTask: Task<Void, Never>?
+    /// Tapped while location is allowed but the first fix hasn't landed — runs once it does.
+    @State private var quickPickAwaitingFix = false
     @State private var entered = HomeView.hasEntered
     @State private var quickPickTaps = 0
     @State private var recentTaps = 0
@@ -113,6 +115,18 @@ struct HomeView: View {
             checkVibeFollowUp()
             Self.hasEntered = true
             entered = true
+        }
+        .onChange(of: locationService.state) { _, state in
+            guard quickPickAwaitingFix else { return }
+            switch state {
+            case .authorized:
+                startQuickPick()
+            case .denied, .unavailable:
+                quickPickAwaitingFix = false
+                router.push(.locationPermission)
+            case .notDetermined:
+                break
+            }
         }
         .onChange(of: pendingDeepLink.quickPickRequest, initial: true) { _, request in
             // A generic mealtime nudge (or "Pick something else") asked for a one-tap pick.
@@ -376,9 +390,15 @@ struct HomeView: View {
 
     private func startQuickPick() {
         guard case let .authorized(coordinate) = locationService.state else {
-            router.push(.locationPermission)
+            if locationService.isAwaitingFix {
+                quickPickAwaitingFix = true
+                locationService.requestLocation()
+            } else {
+                router.push(.locationPermission)
+            }
             return
         }
+        quickPickAwaitingFix = false
 
         quickPickTaps += 1
         soloViewModel.prepareQuickPick()

@@ -56,6 +56,21 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
     }
 
+    /// Already allowed, but no fix yet (or one from an earlier launch) — a pick should wait for
+    /// the fix instead of reading as "never asked."
+    var isAwaitingFix: Bool {
+        guard authorization == .authorizedWhenInUse || authorization == .authorizedAlways else { return false }
+        if case .authorized = state { return false }
+        return state != .unavailable
+    }
+
+    /// A fresh fix when the app comes back to the foreground, so a pick hours later doesn't use
+    /// where the app was last opened. Never shows the permission prompt.
+    func refreshIfAuthorized() {
+        guard authorization == .authorizedWhenInUse || authorization == .authorizedAlways else { return }
+        requestLocation()
+    }
+
     private func refreshAuthorizationState() {
         authorization = manager.authorizationStatus
         isPrecise = manager.accuracyAuthorization == .fullAccuracy

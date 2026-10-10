@@ -202,7 +202,7 @@ enum Copy {
     static let nudgePicksTitle = "You've been picking well"
     static let nudgePicksDetail = "MakanApa is learning what you like. Save it to an account so a new phone doesn't mean starting over."
     static let nudgeSavesTitle = "Your food list is growing"
-    static let nudgeSavesDetail = "Keep your saved places safe, on this phone or the next one."
+    static let nudgeSavesDetail = "Sign in to keep your picks and taste profile with your account."
     static let continueAsGuestFailed = "Couldn't start. Check your connection and try again."
     static let communityLocationDeniedHeadline = "Location is off"
     static let communityLocationDeniedDetail = "Turn on location access to see what's trending nearby."

@@ -149,7 +149,7 @@ struct NearbyView: View {
                         onPickOneLah: { Task { await pickOneLah() } },
                         isPicking: viewModel.isPicking,
                         isLoading: isFindingSpots,
-                        hasPlaces: !viewModel.places.isEmpty,
+                        hasPlaces: !viewModel.filteredPlaces.isEmpty,
                         windowHeight: windowHeight,
                         state: $panelState
                     )
@@ -1037,7 +1037,7 @@ struct NearbyView: View {
             .padding(20)
         }
         .fullScreenCover(isPresented: $showingPhotoGallery) {
-            PhotoGalleryView(urls: galleryURLs)
+            PhotoGalleryView(urls: galleryURLs, credits: galleryCredits)
         }
         .sheet(isPresented: $showNotificationPriming) {
             NotificationPrimingView(onFinished: {
@@ -1167,6 +1167,11 @@ struct NearbyView: View {
         return googleURLs + communityURLs
     }
 
+    /// Credits for the Google prefix of `galleryURLs`, index for index.
+    private var galleryCredits: [[RecommendationResponse.PhotoAttribution]] {
+        viewModel.placeDetails?.photos.filter { URL(string: $0.url) != nil }.map(\.authorAttributions) ?? []
+    }
+
     @ViewBuilder
     private func placePhoto(for place: NearbyPlace) -> some View {
         // Google photo first (real, free coverage where it exists); a community-contributed
@@ -1196,6 +1201,12 @@ struct NearbyView: View {
         .frame(height: 160)
         .frame(maxWidth: .infinity)
         .background(Color.kicap.opacity(0.06))
+        .overlay(alignment: .bottomLeading) {
+            // Only the Google hero carries a credit; the community fallback has none.
+            if let googleHero = viewModel.placeDetails?.photos.first, URL(string: googleHero.url) != nil {
+                GooglePhotoCredit(attributions: googleHero.authorAttributions)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
