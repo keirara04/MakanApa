@@ -53,6 +53,7 @@ Ask Bubu is the anchor; the launch set adds two cheap features that reuse existi
 On the paywall, in order:
 1. **Ask Bubu** — personal AI assistant that knows your cravings, budget and taste.
 2. **Bubu's lunch call** — at your usual mealtime, a pick is already waiting with a one-line reason ("Rainy, you liked Thai last week, here's one 400 m away"). Builds on existing meal nudges (`MealNudge*`, `MealNudgeDispatcher`) + `MakanBrain::decide` over `localRestaurantsNear()` — no Places calls. **Free nudges stay exactly as they are**; Plus adds the ready-made pick and reason.
+   - **Blocked on push opt-in.** Today few users can receive it: mealtime nudges are opt-in (`NotificationCategory::DEFAULT_FALSE`), the priming toggle defaults off (`NotificationPrimingView`), priming only shows after a first accepted pick and never again after a denial, the Settings toggle never checks OS permission (denied users are silently skipped as `no_device`), and nudges stop for good after 3 pauses. Fix the chain first (Phase P): default the priming toggle on, check `authorizationStatus` when the Settings toggle flips (prompt, or deep-link to iOS Settings if denied), re-prime after a few accepted picks, and replace the permanent stop with a monthly win-back.
 3. **Named collections** — organise saves into lists ("Date spots", "Near campus"). Today `RestaurantSave` is a flat list keyed on `installation_id`/`user_id`; collections are a new `collections` table + pivot. Existing saves stay free and unlimited.
 4. **Your taste, explained** — deeper Selera insights (builds on `SeleraTraits::describe`) + a monthly taste recap.
 5. **Plus crest** — cosmetic, separate from earned badges and the ambassador crest (see [Plus crest](#plus-crest)).
@@ -121,6 +122,8 @@ Final art: `marketing/plus-badge/makanapa-plus-purple-v2.png` (1254×1254, trans
   - Post-purchase sequence: purchase succeeds → `POST /me/billing/sync` → refresh `auth/me` → dismiss. The RevenueCat success callback alone unlocks nothing.
 - Settings: a Plus card after `yourMakanApaCard` in `SettingsView`, showing status/expiry from `auth/me`, Restore, and Manage subscription.
 
+**Android:** Plus on the web app needs RevenueCat Web Billing (Stripe), or Google Play Billing once it is on Google Play. See ANDROID_PWA_PLAN.md.
+
 ## Pricing by storefront (MYR, KRW, USD)
 
 Yes — App Store Connect supports a different price per storefront. Apple prices by the **Apple ID's country**, not the user's location (a Korean visitor in KL with a Korean Apple ID pays in KRW).
@@ -174,6 +177,8 @@ Notes:
 
 **Measurement and kill criteria**
 - Funnel events: `paywall_view` (with `placement`), `purchase_start`, `purchase_success`, `purchase_cancel`, `trial_start`, `trial_convert`, `subscription_cancel`. RevenueCat charts cover revenue/churn; our events cover *where* people convert. Store in a small `billing_events` table (or reuse `MarketingEvent` only if it gains `user_id`).
+- **Push reach** (needed before the lunch call can be sold): store OS push permission status alongside the device token, and report push opt-in rate and mealtime-nudge opt-in rate on the admin page.
+- **Install attribution:** add `ct=share` to `share/go/download` and `ct=web_<from>` to the website's App Store buttons (reuse `MarketingController::downloadUrl()`; today only campus links carry `ct`). Without it, installs from shares look organic and the referral/ambassador channels in Phase 3 can't be compared.
 - Admin page: conversion by placement, trial → paid rate, Ask Bubu cost per Plus user, free-tier Ask Bubu cost.
 - **Success bar after 60 days of billing:** ≥ 2% of MAU paying, Ask Bubu + Places cost per Plus user < 30% of net revenue, **no drop** in free-user d30 retention. Miss it → turn Plus features free and add a tip jar instead.
 
@@ -193,7 +198,12 @@ Chat where users ask e.g. "spicy, cheap, near campus, open now", answered throug
 **Rule inherited from `config/judgment.php`:** AI informs the system, never becomes it. Never changes halal status, hides content, or deletes anything.
 
 **Prerequisites (do first)**
-- **Brain must be ON in production.** `BRAIN_ENABLED` defaults OFF in production and stays off until the Filament **System → Makan Brain** page shows v2 beating v1 per cohort; with it off, `decide` is skipped and tune/what-if return 404. Ask Bubu is therefore blocked on the Brain rollout, not just on code. The Brain itself stays deterministic and LLM-free — the LLM only calls it as a tool.
+- **Brain must be ON in production.** `BRAIN_ENABLED` defaults OFF in production; with it off, `decide` is skipped and tune/what-if return 404. Ask Bubu is therefore blocked on the Brain rollout, not just on code. The Brain itself stays deterministic and LLM-free — the LLM only calls it as a tool.
+  - **How it's judged.** `BrainStateFactory::enabled()` is one global switch, so production is 100% v1 or 100% v2 — there's no per-cohort split to compare. Judge it before/after instead, with the kill switch ready.
+  - **Primary metric (proposed — confirm):** accept rate (accepted decisions ÷ decisions), with regret rate as the guardrail. Flip only after at least 300 v1 decisions are logged; keep v2 if, after 300 v2 decisions, accept rate is not lower and regret is not higher. The other eval-page metrics (fatigue, concentration, coverage) are regression checks, not the verdict.
+  - **Switch-over runbook:** (1) confirm taste events are being recorded with the Brain off (they are since 2026-10-10: accept, search choice and vibe tags no longer check the switch); (2) `php artisan brain:backfill-events` (idempotent) to seed history from before that; (3) `php artisan brain:rebuild-taste --all`; (4) set `BRAIN_ENABLED=true` on web, worker and scheduler together; (5) watch the eval page daily for a week. Skipping (2)–(3) means every user starts with an empty Selera.
+  - **v1 is pinned by a test** (`MakanBrainTest::test_v1_ranking_is_pinned_and_ignores_taste_history`) — the "byte-identical v1" rule below is now enforced, including that taste history never changes v1.
+- **Hard daily cap on Google Places spend.** Today `admin:check-api-budget` only emails at 08:00; nothing stops spend, and guest tokens are free to mint (30/IP/day, 30 requests/min each). Add a daily call cap using the `DailyAiBudget` pattern with a `places` scope; over the cap, serve `localRestaurantsNear()` instead of calling Google. Also cap the viewport radius in `NearbyRequest` (e.g. 10 km). This bounds the existing free Nearby/Decide paths, not just the assistant.
 - When extracting the service, keep the v1 path byte-identical with the switch off (existing rollout rule).
 - **Extract the decision pipeline into a service.** All of it lives in `RecommendationController::solo()` / `soloWithBrain()`; there's nothing to call from the assistant. Extracting a `SoloDecisionService` also cleans up the controller.
 - **Move what-if and choose logic out of `DecisionBrainController`** into services (tune already lives in `TuneService`).
@@ -264,7 +274,7 @@ Users already have free AI chatbots that will answer "where should I eat?". Ask 
 
 Takeaways:
 - On Haiku 5.5, LLM cost is small: 100 turns ≈ $0.08. **Google Places is the real cost** — one cache-miss decision costs as much as ~300 assistant turns. Hence local-only `find_places`.
-- Allowances exist mainly to cap abuse and Places spend, not LLM spend.
+- Allowances exist mainly to cap abuse and Places spend, not LLM spend — but they only bound the assistant. The free Nearby/Decide paths have no Places ceiling today; the hard daily cap in the prerequisites is what bounds those.
 
 **Allowances (starting values, tune from measured usage)**
 - Plus: **150 turns/month**, shown in-app ("112 of 150 left this month").
@@ -401,10 +411,10 @@ Max follows Pro: one RevenueCat product attached to both entitlements, shown onl
 
 | # | Phase | Size | Depends on |
 |---|---|---|---|
-| P | Prerequisites: Brain rollout passes the Makan Brain eval page and is ON in production; extract `SoloDecisionService`; move what-if/choose into services | Medium, ~2–3 days | — |
+| P | Prerequisites: Brain switch-over runbook done and ON in production (judged on the primary metric); hard daily Places cap + viewport radius cap; push opt-in chain fixed + push/nudge opt-in tracked; `ct=` install attribution; extract `SoloDecisionService` (Brain decide also runs in `NearbyController` and `SearchChoiceService`); move what-if/choose into services | Medium, ~4–5 days | — |
 | 0 | `user_entitlements`, admin grant, `entitlements` on `auth/me`, iOS reads it; free certified-halal filter | Low, ~1–2 days | — |
 | 1 | RevenueCat Plus: dashboard, Small Business Program, storefront prices, intro offer, grace period, webhook + queue, sync, deletion hook, iOS SDK, paywall + placements, Customer Center, Settings card, funnel events, Terms/Privacy updates | Medium–High, ~6–7 days | 0 |
-| 1b | Plus features: lunch call (nudge + local Brain pick), named collections | Medium, ~4–5 days | P, 0 |
+| 1b | Plus features: lunch call (nudge + local Brain pick), named collections | Medium, ~4–5 days | P (incl. push opt-in fix), 0 |
 | 2b | Bubu message packs: consumable products, credit ledger, sync + webhook grants, refunds, out-of-messages sheet | Low–Medium, ~2–3 days | 1, 2 |
 | 2 | Ask Bubu: engine, tools, allowances, cost reporting, model eval, privacy, iOS chat, fact chips, "Why Bubu?" page | High, ~2 weeks + 1–2 days | P, 0 (parallel with 1) |
 | 3 | Referrals + email verification + ambassador offer codes + ambassador Plus grants | Medium, ~6–7 days | 0, 2 |
@@ -436,6 +446,9 @@ Still open:
 - **Medium:** Low MYR price + free Ask Bubu — free-tier AI cost can approach Plus revenue at scale; watch the cost page.
 - **Medium:** Manually overridden KRW/USD prices don't follow FX — review yearly.
 - **High:** Google Places spend from assistant — local-only `find_places`; tune is the only Places-touching tool.
+- **High:** Google Places spend from the free app — no hard cap exists today (alert email only); hard daily cap is a Phase P prerequisite.
+- **Medium:** Lunch call reaches few users until the push opt-in chain is fixed.
+- **Medium:** Billing gate read from biased retention — use `segment=registered`.
 - **High:** Referral farming — Apple/Google sign-in requirement, hashed deleted identities, monthly cap, first-pick-after-attribution.
 - **Medium:** App Review on referral grants — fallback to offer codes ready.
 - **Medium:** Haiku 5.5 is days old — eval before launch, env switch back to 4.5.
@@ -445,7 +458,9 @@ Still open:
 
 ## When to turn it on
 
-Charging before retention is solid kills growth. Use **Admin → Retention** (d30 by weekly cohort, from `app_sessions`). Flip `BILLING_ENABLED` when d30 is healthy and stable for several cohorts, a power-user group exists, and Places/AI cost per heavy user shows on the cost page. Referrals and free Ask Bubu can launch before billing — they grow the user base and measure real Plus usage.
+Charging before retention is solid kills growth. Use **Admin → Retention** (d30 by weekly cohort, from `app_sessions`). Flip `BILLING_ENABLED` when d30 is healthy and stable for several cohorts, a power-user group exists, and Places/AI cost per heavy user shows on the cost page.
+
+**Read the registered segment.** `PruneStaleGuests` hard-deletes guests after 90 idle days, so in any cohort older than ~13 weeks the guests who churned have vanished from the denominator and the all-users d30 reads too high. Gate on `segment=registered`, which isn't affected. To make the all-users view honest too, keep a small tombstone (id, created_at, is_guest) for each pruned guest and count it in cohorts. Referrals and free Ask Bubu can launch before billing — they grow the user base and measure real Plus usage.
 
 ## Audit changelog
 
@@ -453,6 +468,12 @@ Changes from the previous draft, with reasons:
 
 | Change | Why |
 |---|---|
+| Brain judged before/after on accept rate (regret as guardrail), proposed min 300 decisions per version; switch-over runbook added | `enabled()` is one global switch, so "v2 beats v1 per cohort" can't be measured; backfill + rebuild were missing |
+| Taste events recorded with the Brain off; v1 ranking pinned by a test | Profiles were empty on Brain day; nothing enforced "byte-identical v1" |
+| Hard daily Places cap + radius cap added to Phase P | Only an alert email existed; free Nearby/Decide spend was unbounded |
+| Lunch call blocked on the push opt-in fix; push/nudge opt-in rates added to measurement | Nudges are opt-in, priming defaults off, denied users silently skipped, permanent stop after 3 pauses |
+| Billing gate reads `segment=registered` retention | 90-day guest hard-delete inflates older all-user cohorts |
+| `ct=share` / `ct=web_<from>` attribution added | Share and website installs looked organic |
 | Default model → Haiku 5.5 | 10× cheaper than 4.5 ($0.10/$0.50 vs $1/$5 per 1M); eval first |
 | Allowances raised (150/mo Plus, 5/wk free) | LLM cost per turn ~$0.0008 on Haiku 5.5 |
 | `find_places` local-only | Places dominates cost: cache-miss decision up to $0.245; area cache is 8 h, not 24 h |
