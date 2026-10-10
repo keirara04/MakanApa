@@ -11,6 +11,7 @@ use App\Services\Judgment\JudgmentEngine;
 use App\Services\Judgment\NullJudgmentEngine;
 use App\Services\Judgment\OpenRouterJudgmentEngine;
 use App\Services\Push\ApnAuthProvider;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Notifications\Events\NotificationFailed;
@@ -98,6 +99,21 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', function ($request) {
             return Limit::perMinute(5)->by($request->ip());
         });
+
+        // Reset emails: a few per address (the broker also waits 60s between links to one
+        // account), and an IP-wide ceiling so the endpoint can't be used to spam inboxes.
+        RateLimiter::for('password-reset', function ($request) {
+            $email = Str::lower((string) $request->input('email'));
+
+            return [
+                Limit::perHour(5)->by('email:'.$email),
+                Limit::perMinute(10)->by('ip:'.$request->ip()),
+            ];
+        });
+
+        // The emailed reset link opens the web app, which has the reset form.
+        ResetPassword::createUrlUsing(fn ($user, string $token) => rtrim((string) config('marketing.web_app_url'), '/')
+            .'/reset-password?'.http_build_query(['token' => $token, 'email' => $user->getEmailForPasswordReset()]));
 
         // Anyone can mint a guest token now (no identity needed), so this per-IP cap is what
         // bounds how much Google Places usage a stream of fresh guests can reach. Distinct

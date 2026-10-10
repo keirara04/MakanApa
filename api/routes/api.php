@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\MealNudgeController;
 use App\Http\Controllers\Api\NearbyController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotificationPreferenceController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PhotoController;
 use App\Http\Controllers\Api\PlaceSearchController;
 use App\Http\Controllers\Api\RecommendationController;
@@ -43,6 +44,8 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/apple', [AuthController::class, 'apple'])->middleware('throttle:social');
     Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:social');
     Route::post('auth/link', [AuthController::class, 'link'])->middleware('throttle:link');
+    Route::post('auth/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:password-reset');
+    Route::post('auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
 
     // Bare signed URL, no Sanctum — AsyncImage/browsers/img-tag loaders fetch this directly
     // and can't attach an Authorization header. The signature itself is the auth: it's

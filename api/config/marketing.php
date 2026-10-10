@@ -24,6 +24,9 @@ return [
     // so Apple sends each visitor to their own country's store.
     'app_download_url' => env('APP_DOWNLOAD_URL', 'https://apps.apple.com/app/makanapa-what-to-eat/id6812670941'),
 
+    // The web app (Android and any browser). Password reset emails link to its reset page.
+    'web_app_url' => env('WEB_APP_URL', 'https://app.trymakanapa.com'),
+
     // MakanApa on Threads: footer link and the structured data's sameAs.
     'threads_url' => env('THREADS_URL', 'https://www.threads.com/@keiraaraar'),
 
