@@ -22,7 +22,7 @@ return [
     // The web app (app.trymakanapa.com) is the only browser client. The iOS app sends no
     // Origin header, so this never affects it. Comma-separated, e.g. for staging and Vite dev.
     'allowed_origins' => array_values(array_filter(array_map('trim', explode(',', (string) env(
-        'CORS_ALLOWED_ORIGINS', 'https://app.trymakanapa.com,http://localhost:5173'
+        'CORS_ALLOWED_ORIGINS', 'https://app.trymakanapa.com,http://localhost:5174'
     ))))),
 
     'allowed_origins_patterns' => [],

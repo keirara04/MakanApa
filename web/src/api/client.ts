@@ -1,5 +1,6 @@
 import { getStored } from '../lib/storage'
 
+// Production builds without VITE_API_BASE_URL fail in vite.config.ts, so this fallback is dev only.
 export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1'
 
 /** The 403 codes the API uses to say why, same as the iOS client handles. */
@@ -38,6 +39,8 @@ export interface RequestOptions {
    */
   session?: boolean
   signal?: AbortSignal
+  /** Lets the request finish after the page is hidden or closed (session end). */
+  keepalive?: boolean
 }
 
 let onUnauthorized: () => void = () => {}
@@ -48,7 +51,7 @@ export function setUnauthorizedHandler(handler: () => void): void {
 }
 
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, decisionToken, session = true, signal } = options
+  const { method = 'GET', body, decisionToken, session = true, signal, keepalive } = options
   const token = getStored('token')
   const isForm = body instanceof FormData
 
@@ -64,6 +67,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
       headers,
       body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       signal,
+      keepalive,
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error

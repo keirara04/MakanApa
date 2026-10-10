@@ -1,6 +1,6 @@
 # MakanApa web app (Android PWA) plan
 
-Status: **confirmed 2026-10-10; Phase 0 and 1 in progress on branch `webapp`.**
+Status: **confirmed 2026-10-10. Phase 0 and 1 done on branch `webapp` (2026-10-10); Phase 2 next.**
 
 Goal: a complete MakanApa for Android users, as an installable web app (PWA), built with React + Vite + Tailwind. Full parity with the iOS app, not a demo. Reachable from the landing page, with sign-in and push notifications. Later wrapped for Google Play.
 
@@ -152,7 +152,7 @@ The build itself uses the frontend-design skill, with screenshots at 360 px and 
 | 4 | Account: link account, guest upgrade, password reset (server), edit profile, Selera, saved places, blocked people, legal, terms agreement, delete account, log out | 1 week |
 | 5 | Push: server Web Push, subscription flow, priming sheet, preferences, tap routing, nudge events | 1 week |
 | 6 | Community: feed, switcher and requests, posts, threads, composer, reactions, report, block; add place wizard with pin picker and photos; My places; halal report, owner claim, history; ambassador apply, picks, share card, welcome | 2.5 weeks |
-| 7 | Landing page entry (section 6), install card, offline states, performance and accessibility pass, Lighthouse PWA checks | 3–4 days |
+| 7 | Landing page entry (section 6), install card, offline states, Content-Security-Policy header on the static host (the session token lives in localStorage; allow only self, the API, Google sign-in and Maps), performance and accessibility pass, Lighthouse PWA checks | 3–4 days |
 | 8 | Google Play: Trusted Web Activity with Bubblewrap, `assetlinks.json`, store listing | 3–4 days |
 
 Total: roughly **9–10 weeks** of focused work. Each phase ends with a deploy to staging and a test on a real Android phone (Chrome). The landing page only starts sending people there after Phase 7, so earlier phases can ship to staging without risk.

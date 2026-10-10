@@ -1,10 +1,10 @@
 /// <reference types="vitest/config" />
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv, type UserConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+const config: UserConfig = {
   plugins: [
     react(),
     tailwindcss(),
@@ -38,7 +38,17 @@ export default defineConfig({
       },
     }),
   ],
+  // 5173 belongs to the Laravel site's own Vite dev server (api/).
+  server: { port: 5174, strictPort: true },
   test: {
     environment: 'jsdom',
   },
+}
+
+export default defineConfig(({ command, mode }) => {
+  // A production build without an API URL would quietly talk to localhost. Fail the build instead.
+  if (command === 'build' && mode === 'production' && !loadEnv(mode, process.cwd()).VITE_API_BASE_URL) {
+    throw new Error('Set VITE_API_BASE_URL (e.g. in .env.production.local) before building for production.')
+  }
+  return config
 })

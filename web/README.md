@@ -6,7 +6,7 @@ phases and decisions: [`../ANDROID_PWA_PLAN.md`](../ANDROID_PWA_PLAN.md).
 ```sh
 cp .env.example .env.local   # API URL and Google client id
 npm install
-npm run dev                  # http://localhost:5173 (the API must allow this origin: CORS_ALLOWED_ORIGINS)
+npm run dev                  # http://localhost:5174 (the API must allow this origin: CORS_ALLOWED_ORIGINS)
 npm test                     # vitest
 npm run build                # production build with the service worker
 ```

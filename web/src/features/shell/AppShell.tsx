@@ -74,7 +74,7 @@ function useAppSessions() {
     }
     const end = () => {
       if (sessionId === null) return
-      void api(`app-sessions/${sessionId}/end`, { method: 'POST' }).catch(() => {})
+      void api(`app-sessions/${sessionId}/end`, { method: 'POST', keepalive: true }).catch(() => {})
       sessionId = null
     }
     const onVisibility = () => (document.visibilityState === 'visible' ? start() : end())
