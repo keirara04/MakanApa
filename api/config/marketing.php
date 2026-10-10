@@ -27,6 +27,10 @@ return [
     // The web app (Android and any browser). Password reset emails link to its reset page.
     'web_app_url' => env('WEB_APP_URL', 'https://app.trymakanapa.com'),
 
+    // Once the web app is hosted: Android visitors' "Get the app" buttons open it instead of the
+    // App Store, and shared place pages offer it. Off, the website is exactly as before.
+    'web_app_live' => (bool) env('WEB_APP_LIVE', false),
+
     // MakanApa on Threads: footer link and the structured data's sameAs.
     'threads_url' => env('THREADS_URL', 'https://www.threads.com/@keiraaraar'),
 

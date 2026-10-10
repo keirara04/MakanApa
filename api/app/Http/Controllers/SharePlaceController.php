@@ -13,6 +13,7 @@ use App\Support\OpeningHours;
 use App\Support\RecommendationHeadline;
 use App\Support\ShareCardImage;
 use App\Support\ShareLinks;
+use App\Support\WebAppEntry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,6 +80,9 @@ class SharePlaceController extends Controller
             'canonicalUrl' => $canonicalUrl,
             'openAppUrl' => url("/p/{$key}/go/app").($ref ? "?ref={$ref}" : ''),
             'getAppUrl' => url("/p/{$key}/go/download").($ref ? "?ref={$ref}" : ''),
+            'webAppUrl' => WebAppEntry::live() ? url("/p/{$key}/go/web").($ref ? "?ref={$ref}" : '') : null,
+            'android' => WebAppEntry::forAndroid($request),
+            'apple' => WebAppEntry::forApple($request),
             'directionsUrl' => $this->directionsUrl($restaurant),
             'ogImage' => $this->cardUrl($restaurant, $halal['display']),
             'indexable' => $indexable,
@@ -112,6 +116,13 @@ class SharePlaceController extends Controller
                 'downloadUrl' => url("/p/{$key}/go/download").$query,
                 'placeUrl' => url("/p/{$key}").$query,
             ]);
+        }
+
+        // The place in the web app (Android and computers): counted as opening it, like the app.
+        if ($target === 'web') {
+            $this->record($request, MarketingEvent::SHARE_OPEN_APP, $restaurant, $ref);
+
+            return redirect()->away(rtrim((string) config('marketing.web_app_url'), '/').'/p/'.ShareLinks::placeKey($restaurant->id, $restaurant->name));
         }
 
         $this->record($request, MarketingEvent::SHARE_GET_APP, $restaurant, $ref);

@@ -20,6 +20,7 @@ Route::withoutMiddleware([
     Route::get('/go/app-store', [MarketingController::class, 'download'])->name('marketing.download');
     // Beta-era path, still printed in old QR codes and shared links.
     Route::get('/go/testflight', [MarketingController::class, 'download']);
+    Route::get('/go/web-app', [MarketingController::class, 'webApp'])->name('marketing.web-app');
     Route::get('/ambassadors', [MarketingController::class, 'ambassadors'])->name('marketing.ambassadors');
     Route::view('/support', 'support');
 
@@ -35,7 +36,7 @@ Route::withoutMiddleware([
         ->name('share.place');
     Route::get('/p/{place}/go/{target}', [SharePlaceController::class, 'go'])
         ->where('place', '[0-9]+(-[A-Za-z0-9-]*)?')
-        ->whereIn('target', ['app', 'download']);
+        ->whereIn('target', ['app', 'download', 'web']);
     // Link-preview image for a shared place. Outside /p/* so the universal link never claims it.
     Route::get('/og/p/{place}/{version}.png', [SharePlaceController::class, 'card'])
         ->where(['place' => '[0-9]+', 'version' => '[a-f0-9]{12}']);

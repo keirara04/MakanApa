@@ -18,7 +18,7 @@ class MarketingFunnelWidget extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        ['views' => $views, 'clicksBySource' => $clicksBySource] = Cache::remember(
+        ['views' => $views, 'clicksBySource' => $clicksBySource, 'webApp' => $webApp] = Cache::remember(
             'admin-widget:marketing-funnel',
             now()->addMinutes(2),
             function (): array {
@@ -34,6 +34,10 @@ class MarketingFunnelWidget extends StatsOverviewWidget
                         ->groupBy('source')
                         ->pluck('total', 'source')
                         ->all(),
+                    // "Open MakanApa" (Android visitors, once the web app is live).
+                    'webApp' => MarketingEvent::where('event', MarketingEvent::WEB_APP_CLICK)
+                        ->where('created_at', '>=', $since)
+                        ->count(),
                 ];
             },
         );
@@ -52,6 +56,7 @@ class MarketingFunnelWidget extends StatsOverviewWidget
                 ->description($breakdown ?: 'No clicks yet'),
             Stat::make('Click rate', $views > 0 ? round($clicks / $views * 100, 1).'%' : '–')
                 ->description('Clicks ÷ views'),
+            ...($webApp > 0 || config('marketing.web_app_live') ? [Stat::make('Web app opens', $webApp)->description('Android visitors')] : []),
         ];
     }
 }

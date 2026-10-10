@@ -60,11 +60,20 @@
             <a href="{{ $directionsUrl }}" rel="noopener" class="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-sambal-600 px-6 py-3 font-semibold text-white hover:bg-sambal-700 sm:w-auto">
                 Get directions
             </a>
-            <x-marketing.app-store-badge :href="$getAppUrl" size="md" />
+            @if ($android && $webAppUrl)
+                <x-marketing.download-button from="share" size="lg" :href="$webAppUrl" class="w-full sm:w-auto">Open in MakanApa</x-marketing.download-button>
+            @else
+                <x-marketing.app-store-badge :href="$getAppUrl" size="md" />
+            @endif
         </div>
-        <p class="mt-1 text-center text-sm text-ink/70 sm:text-left">
-            Already have MakanApa? <a href="{{ $openAppUrl }}" class="font-medium text-sambal-700 underline">Open this place in the app</a>
-        </p>
+        @unless ($android && $webAppUrl)
+            <p class="mt-1 text-center text-sm text-ink/70 sm:text-left">
+                Already have MakanApa? <a href="{{ $openAppUrl }}" class="font-medium text-sambal-700 underline">Open this place in the app</a>
+                @if ($webAppUrl && ! $apple)
+                    or <a href="{{ $webAppUrl }}" class="font-medium text-sambal-700 underline">open it in your browser</a>
+                @endif
+            </p>
+        @endunless
 
         <section class="mt-10 rounded-3xl bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold">Can't decide where to eat?</h2>

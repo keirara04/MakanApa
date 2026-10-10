@@ -12,6 +12,9 @@ class MarketingEvent extends Model
     public const APP_STORE_CLICK = 'app_store_click';
 
     /** Share funnel: the app's "Send to geng" tap → a recipient views the page → opens the app / gets it. */
+    /** "Open MakanApa" tapped (Android visitors, or "use it in your browser"). */
+    public const WEB_APP_CLICK = 'web_app_click';
+
     public const SHARE_STARTED = 'share_started';
 
     public const SHARE_VIEW = 'share_view';

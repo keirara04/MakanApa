@@ -25,7 +25,9 @@
             ['Do I need an account?', 'No. Picks, Nearby and saved places all work without one. Adding places, posting and halal reports need an account, so the community knows who\'s contributing. Sign up later and everything comes with you.'],
         ],
         [
-            ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
+            \App\Support\WebAppEntry::live()
+                ? ['Is there an Android version?', 'Yes. On Android, MakanApa runs in Chrome: <a href="'.route('marketing.web-app', ['from' => 'faq']).'" class="font-medium text-sambal-700 underline">open MakanApa</a>, then choose <strong>Add to Home screen</strong> from the menu to keep it with your apps.']
+                : ['Is there an Android version?', 'Not yet. MakanApa is iPhone only for now.'],
             ['Does MakanApa keep my location?', 'Your location is used to find places near you and work out distance. We save it with each pick you ask for, linked to your account, and it\'s never shown publicly. <a href="'.route('privacy').'#location" class="font-medium text-sambal-700 underline">Read the privacy policy</a>.'],
             ['How does halal info work?', 'Each place shows what we actually know: <strong>Halal certified</strong>, <strong>not certified</strong> with community notes, or <strong>not verified</strong> yet. We don\'t label a place halal without a certificate, and you can help verify places from the app.'],
             ['How do I become an ambassador?', 'Join your university or area community in the app, then apply from the Community tab. We read every application. <a href="'.route('marketing.ambassadors').'" class="font-medium text-sambal-700 underline">See what ambassadors do</a>.'],
@@ -198,12 +200,15 @@
                 <div class="hero-in mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6 lg:justify-start" style="--i: 2">
                     <x-marketing.app-store-badge from="hero" class="lg:-ml-3.5" />
                     <p class="font-display text-lg font-medium text-ink/70">
-                        Free on iPhone
+                        {{ \App\Support\WebAppEntry::forAndroid() ? 'Free, right in your browser' : 'Free on iPhone' }}
                         {{-- Only once enough people have rated it; the same value backs the structured data. --}}
                         @if ($appRating)
                             <span class="whitespace-nowrap">and rated ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
                         @endif
                     </p>
+                    @if (\App\Support\WebAppEntry::live() && ! \App\Support\WebAppEntry::forAndroid() && ! \App\Support\WebAppEntry::forApple())
+                        <a href="{{ route('marketing.web-app', ['from' => 'hero']) }}" class="font-medium text-sambal-700 underline">Or use it in your browser</a>
+                    @endif
                 </div>
 
                 {{-- Scan-to-install for desktop visitors. --}}

@@ -7,39 +7,39 @@ use App\Services\Marketing\LandingInsights;
 use App\Support\BotUserAgent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 class MarketingController extends Controller
 {
-    public function home(Request $request, LandingInsights $insights): View
+    public function home(Request $request, LandingInsights $insights): Response
     {
         if (! $this->isBot($request)) {
             MarketingEvent::create(['event' => MarketingEvent::LANDING_VIEW]);
         }
 
-        return view('home', [
+        return response()->view('home', [
             'demoArea' => $insights->anchor()['label'],
             'stats' => $insights->stats(),
             'appRating' => $insights->appRating(),
             'nearby' => $insights->nearbyList(),
             'coverage' => $insights->coverage(),
             'reviews' => $insights->appReviews(),
-        ]);
+        ])->header('Vary', 'User-Agent');
     }
 
     /**
      * The page ambassadors share (community posts can't carry links). `?campus=` names their
      * campus on the page and tags its download buttons with that campus's App Store campaign.
      */
-    public function ambassadors(Request $request): View
+    public function ambassadors(Request $request): Response
     {
         $campuses = config('marketing.ambassador_campuses');
         $campus = $request->query('campus');
 
-        return view('ambassadors', [
+        return response()->view('ambassadors', [
             'campuses' => $campuses,
             'campus' => is_string($campus) && isset($campuses[$campus]) ? $campus : null,
-        ]);
+        ])->header('Vary', 'User-Agent');
     }
 
     /**
@@ -58,6 +58,21 @@ class MarketingController extends Controller
         }
 
         return redirect()->away($this->downloadUrl($request->query('campus')));
+    }
+
+    /** "Open MakanApa": the web app, counted per placement like the App Store clicks. */
+    public function webApp(Request $request): RedirectResponse
+    {
+        if (! $this->isBot($request)) {
+            $source = $request->query('from');
+
+            MarketingEvent::create([
+                'event' => MarketingEvent::WEB_APP_CLICK,
+                'source' => in_array($source, MarketingEvent::SOURCES, true) ? $source : null,
+            ]);
+        }
+
+        return redirect()->away((string) config('marketing.web_app_url'));
     }
 
     /**
