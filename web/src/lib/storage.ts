@@ -71,10 +71,20 @@ export interface Stored {
 const listeners = new Set<() => void>()
 let snapshot: Stored = load()
 
+// Another tab wrote (signed in, saved a place): this tab sees it too.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== KEY && event.key !== null) return
+    snapshot = load()
+    listeners.forEach((listener) => listener())
+  })
+}
+
 function load(): Stored {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? (JSON.parse(raw) as Stored) : {}
+    const parsed: unknown = raw ? JSON.parse(raw) : null
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Stored) : {}
   } catch {
     return {}
   }
@@ -85,7 +95,8 @@ export function getStored<K extends keyof Stored>(key: K): Stored[K] {
 }
 
 export function setStored<K extends keyof Stored>(key: K, value: Stored[K]): void {
-  const next = { ...snapshot, [key]: value }
+  // On top of what's on disk now, so another tab's writes since this one loaded aren't undone.
+  const next = { ...load(), [key]: value }
   if (value === undefined) delete next[key]
   snapshot = next
   try {

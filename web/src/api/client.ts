@@ -80,7 +80,9 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
 
   const message: string = data?.message ?? 'Something went wrong. Try again.'
 
-  if (response.status === 401 && session && token) onUnauthorized()
+  // Only for the token still in use: a late 401 for a replaced token (guest upgraded, signed
+  // in again) must not sign the new session out.
+  if (response.status === 401 && session && token && getStored('token') === token) onUnauthorized()
 
   const retryAfter = Number(response.headers.get('Retry-After'))
   throw new ApiError(response.status, message, {

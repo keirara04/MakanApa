@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
@@ -22,6 +22,7 @@ export function AppShell() {
   const { pathname } = useLocation()
   useAppSessions()
   useNudgeOpened()
+  useWorkerNavigation()
   // Decide covers its whole flow (/decide, /decide/result), not just the home screen.
   const active = (to: string) => (to === '/' ? pathname === '/' || pathname.startsWith('/decide') : pathname.startsWith(to))
 
@@ -127,20 +128,40 @@ function Avatar({ avatarKey, initial, small = false }: { avatarKey?: string | nu
   )
 }
 
+/** A tapped notification when the worker can't move this tab itself: it asks the page to. */
+function useWorkerNavigation() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    const worker = navigator.serviceWorker
+    if (!worker) return
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'NAVIGATE' || typeof event.data.url !== 'string') return
+      const url = new URL(event.data.url, location.origin)
+      if (url.origin === location.origin) navigate(url.pathname + url.search)
+    }
+    worker.addEventListener('message', onMessage)
+    return () => worker.removeEventListener('message', onMessage)
+  }, [navigate])
+}
+
 /** POST app-sessions/start when the app is in front, /end when it goes to the background, like iOS. */
 function useAppSessions() {
   useEffect(() => {
-    let sessionId: number | null = null
+    // The session being started, so hiding the tab before start answers still ends it.
+    let current: Promise<number | null> | null = null
 
     const start = () => {
-      api<{ sessionId: number }>('app-sessions/start', { method: 'POST', body: { installationId: installationId(), platform: 'web' } })
-        .then((response) => (sessionId = response.sessionId))
-        .catch(() => {})
+      current = api<{ sessionId: number }>('app-sessions/start', { method: 'POST', body: { installationId: installationId(), platform: 'web' } })
+        .then((response) => response.sessionId)
+        .catch(() => null)
     }
+    // A plain request: the tab is only hidden, still alive. (A cross-origin keepalive request
+    // with a token never reaches the API in Chromium.) Closing the tab may lose it; the
+    // server keeps a session without an end.
     const end = () => {
-      if (sessionId === null) return
-      void api(`app-sessions/${sessionId}/end`, { method: 'POST', keepalive: true }).catch(() => {})
-      sessionId = null
+      const ending = current
+      current = null
+      void ending?.then((sessionId) => sessionId !== null && api(`app-sessions/${sessionId}/end`, { method: 'POST' }).catch(() => {}))
     }
     const onVisibility = () => (document.visibilityState === 'visible' ? start() : end())
 

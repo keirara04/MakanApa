@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { accountApi } from '../api/account'
 import { authApi } from '../api/auth'
@@ -12,6 +13,8 @@ export type Session =
   | { status: 'signedIn'; user: User }
   /** Couldn't reach the API on start, with a token we still trust: show a retry, don't sign out. */
   | { status: 'offline' }
+  /** The account is suspended (403 account_suspended on start). */
+  | { status: 'suspended' }
 
 interface SessionContextValue {
   session: Session
@@ -28,11 +31,14 @@ interface SessionContextValue {
   deleteAccount: (password: string | null) => Promise<void>
   setUser: (user: User) => void
   retry: () => void
+  /** Drops the token on this device only (the suspended screen's way out). */
+  signOutHere: () => void
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [session, setSession] = useState<Session>(() => (getStored('token') ? { status: 'loading' } : { status: 'signedOut' }))
   const [attempt, setAttempt] = useState(0)
 
@@ -40,15 +46,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOutLocally = useCallback(() => {
     setStored('token', undefined)
     setStored('nearbyCache', undefined)
+    // Cached answers (taste profile, blocked people, ...) belong to the account that fetched them.
+    queryClient.clear()
     setSession({ status: 'signedOut' })
-  }, [])
+  }, [queryClient])
 
   useEffect(() => setUnauthorizedHandler(signOutLocally), [signOutLocally])
 
-  // Signed in: make sure this browser's push subscription (if any) belongs to this account.
+  // Signed in, or signed in as someone else: this browser's push subscription (if any) moves to
+  // this account.
+  const userId = session.status === 'signedIn' ? session.user.id : null
   useEffect(() => {
-    if (session.status === 'signedIn') void syncPush()
-  }, [session.status])
+    if (userId !== null) void syncPush()
+  }, [userId])
 
   // Restore the session on start: the stored token is checked against GET auth/me.
   useEffect(() => {
@@ -60,7 +70,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .catch((error: unknown) => {
         if (cancelled) return
         // 401 already signed out through the handler; anything else is the network or server.
-        if (!(error instanceof ApiError && error.status === 401)) setSession({ status: 'offline' })
+        if (error instanceof ApiError && error.code === 'account_suspended') setSession({ status: 'suspended' })
+        else if (!(error instanceof ApiError && error.status === 401)) setSession({ status: 'offline' })
       })
     return () => {
       cancelled = true
@@ -69,8 +80,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const adopt = useCallback(({ token, user }: SessionResponse) => {
     setStored('token', token)
+    queryClient.clear()
     setSession({ status: 'signedIn', user })
-  }, [])
+  }, [queryClient])
 
   const value = useMemo<SessionContextValue>(() => ({
     session,
@@ -100,6 +112,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession({ status: 'loading' })
       setAttempt((count) => count + 1)
     },
+    signOutHere: signOutLocally,
   }), [session, adopt, signOutLocally])
 
   return <SessionContext value={value}>{children}</SessionContext>

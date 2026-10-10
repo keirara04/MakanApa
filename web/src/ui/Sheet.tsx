@@ -21,6 +21,12 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       aria-labelledby={titleId}
       // React passes `close` up its tree, so a sheet opened from inside this one would close it too.
       onClose={(event) => event.target === event.currentTarget && onClose()}
+      // Escape asks instead of closing the dialog by itself; the parent decides.
+      onCancel={(event) => {
+        if (event.target !== event.currentTarget) return
+        event.preventDefault()
+        onClose()
+      }}
       onClick={(event) => event.target === dialog.current && onClose()}
       className="sheet m-0 mt-auto max-h-[90dvh] w-full max-w-none rounded-t-[28px] bg-surface p-0 text-kicap backdrop:bg-kicap/40 md:m-auto md:max-w-lg md:rounded-[28px]"
     >

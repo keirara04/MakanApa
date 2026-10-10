@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SessionProvider, useSession } from './auth/session'
 import { ForgotPassword, ResetPassword } from './features/auth/PasswordReset'
@@ -37,7 +37,8 @@ const queryClient = new QueryClient({
 })
 
 function AppRoutes() {
-  const { session, retry } = useSession()
+  const { session, retry, signOutHere } = useSession()
+  const { pathname, search } = useLocation()
 
   if (session.status === 'loading') {
     return (
@@ -63,6 +64,19 @@ function AppRoutes() {
     )
   }
 
+  if (session.status === 'suspended') {
+    return (
+      <Screen className="items-center justify-center text-center">
+        <Mascot mood="sad" size={140} />
+        <h1 className="mt-4 font-display text-2xl font-bold">This account is suspended</h1>
+        <p className="mt-2 max-w-xs text-kicap-soft">Contact support@trymakanapa.com if you think this is a mistake.</p>
+        <Button variant="secondary" className="mt-6 max-w-xs" onClick={signOutHere}>
+          Sign out
+        </Button>
+      </Screen>
+    )
+  }
+
   if (session.status === 'signedOut') {
     return (
       <Routes>
@@ -70,7 +84,8 @@ function AppRoutes() {
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<Navigate to={getStored('onboarded') ? '/sign-in' : '/welcome'} replace />} />
+        {/* Where the link was going comes along, so signing in lands there. */}
+        <Route path="*" element={<Navigate to={getStored('onboarded') ? '/sign-in' : '/welcome'} replace state={pathname === '/' ? undefined : { from: pathname + search }} />} />
       </Routes>
     )
   }

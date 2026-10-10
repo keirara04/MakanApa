@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { accountApi, avatarSrc, type Contributions } from '../../api/account'
 import { authApi } from '../../api/auth'
 import { useSession } from '../../auth/session'
+import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
 import { getStored, setStored, type Stored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
@@ -190,10 +191,10 @@ function DeleteAccount({ open, onClose, needsPassword }: { open: boolean; onClos
     setBusy(true)
     setError(null)
     try {
-      await deleteAccount(password.trim() || null)
+      await deleteAccount(password === '' ? null : password)
       navigate('/welcome', { replace: true })
-    } catch {
-      setError('Couldn’t delete your account. Check your password and try again.')
+    } catch (caught) {
+      setError(caught instanceof ApiError && caught.status === 401 ? 'That password doesn’t match. Try again.' : errorMessage(caught))
       setBusy(false)
     }
   }

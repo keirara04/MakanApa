@@ -38,10 +38,16 @@ self.addEventListener('push', (event) => {
       icon: payload.icon ?? '/icon-192.png',
       badge: payload.badge ?? '/icon-192.png',
       tag: payload.tag,
+      // A newer push with the same tag replaces the old one: still alert for it.
+      renotify: Boolean(payload.tag),
       data: payload.data ?? {},
-    }),
+      // `renotify` is in browsers but not yet in TypeScript's DOM types.
+    } as NotificationOptions),
   )
 })
+
+// Take over open tabs as soon as this worker is active, so a notification tap can move them.
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
 
 // Tapping a notification focuses an open MakanApa tab (moving it to the right screen) or opens one.
 self.addEventListener('notificationclick', (event) => {

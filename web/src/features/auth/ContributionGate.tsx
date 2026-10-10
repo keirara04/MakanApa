@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import { accountApi } from '../../api/account'
 import { authApi } from '../../api/auth'
-import { ApiError } from '../../api/client'
+import { errorMessage } from '../../lib/errors'
 import { useSession } from '../../auth/session'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
@@ -23,6 +23,7 @@ const RULES = [
 export function useContributionGate(feature: string, { terms = true }: { terms?: boolean } = {}): { gate: ReactNode; run: (action: () => void) => void } {
   const { user, setUser } = useSession()
   const navigate = useNavigate()
+  const { pathname, search } = useLocation()
   const [pending, setPending] = useState<(() => void) | null>(null)
   const [step, setStep] = useState<'account' | 'agree' | null>(null)
   const [agreed, setAgreed] = useState(false)
@@ -60,7 +61,7 @@ export function useContributionGate(feature: string, { terms = true }: { terms?:
       // The documents may have changed since the page loaded: refresh, ask again.
       await authApi.me().then(({ user: fresh }) => setUser(fresh)).catch(() => {})
       setAgreed(false)
-      setError(caught instanceof ApiError && !caught.isNetwork ? caught.message : 'Couldn’t save that. Check your connection and try again.')
+      setError(errorMessage(caught))
     } finally {
       setBusy(false)
     }
@@ -74,7 +75,7 @@ export function useContributionGate(feature: string, { terms = true }: { terms?:
           Picks, Nearby and saves work without an account. Adding places, posting and halal reports need one, so the community knows who’s contributing.
         </p>
         <p className="font-semibold text-pandan">Your picks, saved places and taste profile all come with you. Nothing lost.</p>
-        <Button onClick={() => navigate('/sign-in')}>Sign in or create an account</Button>
+        <Button onClick={() => navigate('/sign-in', { state: { from: pathname + search } })}>Sign in or create an account</Button>
         <Button variant="quiet" onClick={close}>
           Not now
         </Button>

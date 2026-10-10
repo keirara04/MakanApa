@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation as useRouterLocation, useNavigate } from 'react-router'
 import { authApi } from '../../api/auth'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
-import { setStored } from '../../lib/storage'
+import { getStored, setStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
 import { Screen, StepLayout } from '../../ui/Screen'
@@ -16,6 +16,8 @@ const STEPS: Step[] = ['hello', 'location', 'halal']
 export function Onboarding() {
   const [step, setStep] = useState<Step>('hello')
   const navigate = useNavigate()
+  // A link opened before onboarding (a shared place, a post) is where onboarding ends.
+  const from = (useRouterLocation().state as { from?: string } | null)?.from
 
   return (
     <Screen wide>
@@ -25,9 +27,9 @@ export function Onboarding() {
         ))}
       </ol>
 
-      {step === 'hello' && <Hello onNext={() => setStep('location')} onSignIn={() => navigate('/sign-in')} />}
+      {step === 'hello' && <Hello onNext={() => setStep('location')} onSignIn={() => navigate('/sign-in', { state: { from } })} />}
       {step === 'location' && <Location onNext={() => setStep('halal')} />}
-      {step === 'halal' && <Halal onDone={() => navigate('/', { replace: true })} />}
+      {step === 'halal' && <Halal onDone={() => navigate(from ?? '/', { replace: true })} />}
     </Screen>
   )
 }
@@ -108,7 +110,7 @@ function Location({ onNext }: { onNext: () => void }) {
 }
 
 function Halal({ onDone }: { onDone: () => void }) {
-  const { session, continueAsGuest, setUser } = useSession()
+  const { setUser } = useSession()
   const [busy, setBusy] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -116,11 +118,15 @@ function Halal({ onDone }: { onDone: () => void }) {
     setBusy(halalOnly)
     setError(null)
     try {
-      if (session.status !== 'signedIn') await continueAsGuest()
+      // The guest token is stored before the profile is saved, but the session only becomes
+      // signed in at the end: that swaps the route tree, which would restart onboarding midway.
+      // A retry after a failure reuses the guest already made.
+      if (!getStored('token')) setStored('token', (await authApi.guest()).token)
       const { user } = await authApi.updateProfile({ halalPreference: halalOnly })
-      setUser(user)
       setStored('halalOnly', halalOnly)
       setStored('onboarded', true)
+      // Same render (batched): the signed-in routes and the next page arrive together.
+      setUser(user)
       onDone()
     } catch (caught) {
       setError(errorMessage(caught))

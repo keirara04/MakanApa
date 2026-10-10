@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { ApiError } from '../../api/client'
 import type { LinkOffer } from '../../api/types'
 import { GoogleButton } from '../../auth/GoogleButton'
@@ -20,6 +20,7 @@ type Mode = 'signIn' | 'create'
 export function SignIn() {
   const { user, login, register, signInWithGoogle, linkAccount, continueAsGuest } = useSession()
   const navigate = useNavigate()
+  const from = (useLocation().state as { from?: string } | null)?.from
   const isGuest = user?.isGuest ?? false
   const [mode, setMode] = useState<Mode>(isGuest ? 'create' : 'signIn')
   const [linkOffer, setLinkOffer] = useState<LinkOffer | null>(null)
@@ -28,7 +29,7 @@ export function SignIn() {
 
   function done() {
     setStored('onboarded', true)
-    navigate('/', { replace: true })
+    navigate(from ?? '/', { replace: true })
   }
 
   async function attempt(kind: 'form' | 'google' | 'guest', work: () => Promise<void>) {
@@ -37,8 +38,14 @@ export function SignIn() {
     try {
       await work()
     } catch (caught) {
-      // A 401 here is never an expired session: it's the email and password not matching.
-      setError(caught instanceof ApiError && caught.status === 401 ? 'Email or password doesn’t match.' : errorMessage(caught))
+      // A 401 here is never an expired session: it says which sign-in step didn't work.
+      if (caught instanceof ApiError && caught.status === 401) {
+        if (/no longer valid/i.test(caught.message)) {
+          setLinkOffer(null)
+          setError('That took too long. Continue with Google again to link your account.')
+        } else if (/google/i.test(caught.message)) setError('Google sign-in didn’t work. Try again.')
+        else setError('Email or password doesn’t match.')
+      } else setError(errorMessage(caught))
     } finally {
       setBusy(null)
     }
