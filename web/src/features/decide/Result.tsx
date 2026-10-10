@@ -62,7 +62,7 @@ function Failure({ error, onRetry, canRetry }: { error: unknown; onRetry: () => 
 const RUNGS = [1, 2, 5, 10]
 
 function NoResult() {
-  const { request, asked, decide } = useDecide()
+  const { request, asked, decide, source } = useDecide()
   const navigate = useNavigate()
   const km = request?.maxDistanceKm
   const wider = km === undefined ? undefined : RUNGS.find((rung) => rung > km)
@@ -74,14 +74,16 @@ function NoResult() {
       <p className="max-w-sm text-kicap-soft">
         {km !== undefined
           ? `Nothing matched within ${km} km. Go a bit further, or loosen the filters.`
-          : 'None of your saved places can be picked right now. They may be closed, or hidden by halal-only.'}
+          : source === 'nearby'
+            ? 'Nothing on the map fits right now. Try moving the map or clearing a filter.'
+            : 'None of your saved places can be picked right now. They may be closed, or hidden by halal-only.'}
       </p>
       <div className="flex w-full max-w-xs flex-col gap-2">
         {request && asked && wider && (
           <Button onClick={() => void decide({ ...request, maxDistanceKm: wider }, { ...asked, distance: `Within ${wider} km` })}>Search within {wider} km</Button>
         )}
-        <Button variant="quiet" onClick={() => navigate(request ? '/decide' : '/')}>
-          {request ? 'Change preferences' : 'Back home'}
+        <Button variant="quiet" onClick={() => navigate(request ? '/decide' : source === 'nearby' ? '/nearby' : '/')}>
+          {request ? 'Change preferences' : source === 'nearby' ? 'Back to the map' : 'Back home'}
         </Button>
       </div>
     </section>

@@ -57,7 +57,7 @@ export function AppShell() {
           </Link>
         </header>
 
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12">
+        <main className={`mx-auto flex w-full flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12 ${pathname === '/nearby' ? 'max-w-6xl' : 'max-w-3xl'}`}>
           <Outlet />
         </main>
       </div>

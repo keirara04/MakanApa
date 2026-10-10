@@ -26,12 +26,14 @@ interface DecideState {
   widen: TuneResponse | null
   /** True for a pick fresh from a decide call (plays the thinking trace once). */
   fresh: boolean
+  /** Where the pick came from, for Recent. */
+  source: 'solo' | 'saved' | 'nearby'
 }
 
 interface DecideContextValue extends DecideState {
   decide: (request: SoloRequest, asked: AskedFor) => Promise<void>
   /** Run a saved-places pick through the same result screen machinery. */
-  adopt: (decision: Decision, asked: AskedFor | null) => void
+  adopt: (decision: Decision, asked: AskedFor | null, source: 'saved' | 'nearby') => void
   retry: () => Promise<void>
   reroll: (options?: { exclude?: boolean }) => Promise<void>
   cancelReroll: () => void
@@ -43,7 +45,7 @@ interface DecideContextValue extends DecideState {
 }
 
 const MIN_THINKING_MS = 700
-const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false }
+const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false, source: 'solo' }
 
 const DecideContext = createContext<DecideContextValue | null>(null)
 
@@ -74,9 +76,9 @@ export function DecideProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const adopt = useCallback((decision: Decision, asked: AskedFor | null) => {
+  const adopt = useCallback((decision: Decision, asked: AskedFor | null, source: 'saved' | 'nearby') => {
     generation.current++
-    setState({ ...initial, decision, asked, pick: decision.recommendation, status: decision.recommendation ? 'ready' : 'none' })
+    setState({ ...initial, decision, asked, source, pick: decision.recommendation, status: decision.recommendation ? 'ready' : 'none', fresh: true })
   }, [])
 
   const retry = useCallback(async () => {
@@ -146,7 +148,7 @@ export function DecideProvider({ children }: { children: ReactNode }) {
       {
         id: pick.id, name: pick.name, latitude: pick.latitude, longitude: pick.longitude, foodCategory: pick.foodCategory,
         priceLevel: pick.priceLevel, placeGoogleMapsUrl: pick.placeGoogleMapsUrl, at: Date.now(),
-        source: current.current.request ? ('solo' as const) : ('saved' as const),
+        source: current.current.source,
       },
       ...recent,
     ].slice(0, 5))

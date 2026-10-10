@@ -10,6 +10,8 @@ import { Preferences } from './features/decide/Preferences'
 import { Result } from './features/decide/Result'
 import { SavedPick } from './features/decide/SavedPick'
 import { DecideProvider } from './features/decide/state'
+import { Nearby } from './features/nearby/Nearby'
+import { NearbyProvider } from './features/nearby/state'
 import { Onboarding } from './features/onboarding/Onboarding'
 import { Settings } from './features/settings/Settings'
 import { AppShell } from './features/shell/AppShell'
@@ -64,6 +66,7 @@ function AppRoutes() {
 
   return (
     <DecideProvider>
+    <NearbyProvider>
     <Routes>
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/sign-in" element={<SignIn />} />
@@ -73,11 +76,13 @@ function AppRoutes() {
         <Route path="decide" element={<Preferences />} />
         <Route path="decide/result" element={<Result />} />
         <Route path="decide/saved" element={<SavedPick />} />
-        <Route path="nearby" element={<ComingSoon mood="wave" title="Food around you" detail="The map of nearby places arrives in a later build." />} />
+        <Route path="nearby" element={<Nearby />} />
+        <Route path="nearby/result" element={<Result />} />
         <Route path="community" element={<ComingSoon mood="excited" title="Your community" detail="Trending picks and posts arrive in a later build." />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </NearbyProvider>
     </DecideProvider>
   )
 }

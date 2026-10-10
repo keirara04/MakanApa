@@ -56,6 +56,12 @@ export interface Stored {
   nudgePicks?: number[]
   nudgeDismissed?: ('picks' | 'saves')[]
   nudgeSnoozedUntil?: number
+  /** Nearby chips other than halal (halal follows the account's preference). */
+  nearbyFilters?: { openNow: boolean; budgetMax: number | null; minRating: number | null; mode: string; vibe: string | null }
+  recentSearches?: string[]
+  halalNoticeDismissed?: boolean
+  /** Last Nearby result, painted at once on the next visit if it still covers where you are (12 h). */
+  nearbyCache?: { viewport: { north: number; south: number; east: number; west: number }; filterKey: string; places: unknown[]; areaSummary: unknown; savedAt: number }
 }
 
 const listeners = new Set<() => void>()

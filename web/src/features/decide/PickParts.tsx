@@ -51,7 +51,7 @@ const TONE: Record<HalalInfo['display']['tone'], string> = {
   non_halal: 'bg-kicap text-cream',
 }
 
-export function HalalBadge({ halal }: { halal: HalalInfo }) {
+export function HalalBadge({ halal }: { halal: { display: Pick<HalalInfo['display'], 'shortLabel' | 'tone'> } }) {
   return <span className={`inline-flex min-h-8 items-center rounded-full px-3 text-sm font-semibold ${TONE[halal.display.tone]}`}>{halal.display.shortLabel}</span>
 }
 
