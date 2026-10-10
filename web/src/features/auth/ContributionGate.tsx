@@ -20,7 +20,7 @@ const RULES = [
  * guests are asked to sign in, and accounts that haven't agreed to the current rules agree first.
  * `run(action)` performs the action straight away when neither applies.
  */
-export function useContributionGate(feature: string): { gate: ReactNode; run: (action: () => void) => void } {
+export function useContributionGate(feature: string, { terms = true }: { terms?: boolean } = {}): { gate: ReactNode; run: (action: () => void) => void } {
   const { user, setUser } = useSession()
   const navigate = useNavigate()
   const [pending, setPending] = useState<(() => void) | null>(null)
@@ -40,7 +40,7 @@ export function useContributionGate(feature: string): { gate: ReactNode; run: (a
     if (!user || user.isGuest) {
       setPending(() => action)
       setStep('account')
-    } else if (user.legal.needsAcceptance) {
+    } else if (terms && user.legal.needsAcceptance) {
       setPending(() => action)
       setStep('agree')
     } else action()

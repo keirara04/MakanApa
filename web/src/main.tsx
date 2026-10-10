@@ -11,6 +11,8 @@ import { Preferences } from './features/decide/Preferences'
 import { Result } from './features/decide/Result'
 import { SavedPick } from './features/decide/SavedPick'
 import { DecideProvider } from './features/decide/state'
+import { Community } from './features/community/Community'
+import { AllPosts, ThreadPage } from './features/community/Posts'
 import { Nearby } from './features/nearby/Nearby'
 import { NotificationSettings } from './features/notifications/Notifications'
 import { NearbyProvider } from './features/nearby/state'
@@ -21,7 +23,6 @@ import { SavedPlaces } from './features/settings/SavedPlaces'
 import { SeleraPage } from './features/settings/SeleraPage'
 import { Settings } from './features/settings/Settings'
 import { AppShell } from './features/shell/AppShell'
-import { ComingSoon } from './features/shell/ComingSoon'
 import './index.css'
 import { getStored } from './lib/storage'
 import { Button } from './ui/Button'
@@ -93,7 +94,9 @@ function AppRoutes() {
         <Route path="decide/saved" element={<SavedPick />} />
         <Route path="nearby" element={<Nearby />} />
         <Route path="nearby/result" element={<Result />} />
-        <Route path="community" element={<ComingSoon mood="excited" title="Your community" detail="Trending picks and posts arrive in a later build." />} />
+        <Route path="community" element={<Community />} />
+        <Route path="community/posts" element={<AllPosts />} />
+        <Route path="community/posts/:id" element={<ThreadPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

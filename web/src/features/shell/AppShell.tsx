@@ -4,6 +4,7 @@ import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
 import { installationId } from '../../lib/storage'
+import { AmbassadorWelcome } from '../community/Ambassador'
 import { useNudgeOpened } from '../notifications/useNudgeLinks'
 
 const SECTIONS: { to: string; label: string; icon: ReactNode }[] = [
@@ -60,6 +61,7 @@ export function AppShell() {
           </Link>
         </header>
 
+        <AmbassadorWelcome />
         <main className={`mx-auto flex w-full flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12 ${pathname === '/nearby' ? 'max-w-6xl' : 'max-w-3xl'}`}>
           <Outlet />
         </main>
