@@ -12,7 +12,7 @@ const W = Number(width)
 const APP = 'http://localhost:5174'
 const email = `halal-${Date.now()}@example.test`
 const tinker = (code) => execFileSync('php', ['artisan', 'tinker', '--execute', code], { cwd: API_DIR }).toString().trim()
-const place = JSON.parse(tinker(`echo json_encode(App\\Models\\Restaurant::where('is_active', true)->where('provider', '<>', 'google')->first(['id', 'name']));`))
+const place = JSON.parse(tinker(`echo json_encode(App\\Models\\Restaurant::where('is_active', true)->where('provider', '<>', 'google')->orderBy('id')->first(['id', 'name']));`))
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
 const photo = (name) => ({ name, mimeType: 'image/png', buffer: PNG })
 
@@ -38,6 +38,8 @@ const cleanUp = () =>
 let disks = null
 let duplicate = null
 let certBlocked = null
+let sentCert = null
+let resumed = null
 try {
   await page.goto(`${APP}/welcome`, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: 'Get started' }).click()
@@ -64,9 +66,13 @@ try {
   const vouch = page.getByRole('dialog', { name: 'Vouch for this place' })
   await vouch.waitFor()
   certBlocked = await vouch.getByRole('button', { name: 'Send vouch for review' }).isDisabled()
-  await vouch.getByLabel('No certificate (community notes)').check()
-  await vouch.getByLabel('How do you know?').fill('Owner is Muslim, no alcohol or pork on the menu.')
-  await vouch.getByLabel('Storefront or menu photos').setInputFiles(photo('front.png'))
+  // A certified claim: certificate photo, issuer, number and expiry.
+  await vouch.getByLabel('Certificate photo (required)').setInputFiles(photo('cert.png'))
+  await vouch.getByLabel('Issued by').selectOption('jakim')
+  await vouch.getByLabel('Certificate number (if readable)').fill('jakim-1234')
+  await vouch.getByLabel('I can see the expiry date').check()
+  await vouch.getByLabel('Expires').fill('2027-03-01')
+  await vouch.getByLabel('How do you know?').fill('Cert displayed beside the cashier.')
   await shot('2-vouch')
   await vouch.getByRole('button', { name: 'Send vouch for review' }).click()
   await page.getByRole('heading', { name: 'Thanks for vouching!' }).waitFor()
@@ -74,6 +80,26 @@ try {
   await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
   await section.getByText(/Waiting for review/).waitFor()
   await shot('4-waiting')
+  sentCert = tinker(`echo json_encode(App\\Models\\RestaurantSubmission::where('user_id', App\\Models\\User::where('email', '${email}')->value('id'))->where('submission_type', 'halal_report')->first(['halal_claim', 'certification_authority', 'certificate_number', 'certificate_expires_at', 'status']));`)
+
+  // Sent back for more evidence: the vouch reopens with what was sent, and adds to it.
+  tinker(`App\\Models\\RestaurantSubmission::where('user_id', App\\Models\\User::where('email', '${email}')->value('id'))->where('submission_type', 'halal_report')->update(['status' => 'changes_requested', 'review_note' => 'The certificate photo is blurry. Can you add a clearer one?']);`)
+  await page.goto(`${APP}/nearby?place=${place.id}`)
+  await section.getByText('Our team needs a bit more evidence').waitFor()
+  await section.getByText('The certificate photo is blurry').waitFor()
+  await section.getByRole('button', { name: 'Add evidence' }).click()
+  await vouch.waitFor()
+  resumed = {
+    claim: await vouch.getByLabel('Halal (has certificate)').isChecked(),
+    comment: await vouch.getByLabel('How do you know?').inputValue(),
+    attached: await vouch.getByText('1 photo from before is already attached').count(),
+  }
+  await vouch.getByLabel('Another certificate photo').setInputFiles(photo('cert-clear.png'))
+  await shot('4b-resume')
+  await vouch.getByRole('button', { name: 'Send vouch for review' }).click()
+  await page.getByRole('heading', { name: 'Thanks for vouching!' }).waitFor()
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click()
+  await section.getByText(/Waiting for review/).waitFor()
 
   // Claim the place, then try again: the server says a claim is already open.
   await section.getByRole('button', { name: 'Own this place?' }).click()
@@ -127,6 +153,7 @@ try {
 }
 
 console.log(W, 'place', place.name, 'send disabled without cert photo', certBlocked)
+console.log(W, 'certified vouch', sentCert, 'resumed', JSON.stringify(resumed))
 console.log(W, 'duplicate claim', JSON.stringify(duplicate), 'photo disks', disks)
 console.log(W, 'api', JSON.stringify(statuses))
 console.log(W, 'page errors', JSON.stringify(problems))

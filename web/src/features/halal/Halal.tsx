@@ -343,7 +343,7 @@ function VouchSheet({ restaurantId, name, existing, onClose, onSent }: { restaur
 
           {limits.other > 0 && <PhotoPicker label="Storefront or menu photos" files={otherFiles} limit={limits.other} onChange={setOtherFiles} />}
           <div className="text-sm text-kicap-soft">
-            {attached > 0 && <p>{attached === 1 ? '1 photo' : `${attached} photos`} from before are already attached, so no need to add them again.</p>}
+            {attached > 0 && <p>{attached === 1 ? '1 photo from before is already attached, so no need to add it' : `${attached} photos from before are already attached, so no need to add them`} again.</p>}
             {tooMany && <p className="text-sambal-deep">That’s more photos than fit. Only {limits.slots} more can be added to this vouch.</p>}
             <p>Your name and comment are shown with your vouch once approved.</p>
           </div>
