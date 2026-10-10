@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { decideApi, type VibeTag } from '../../api/decide'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
@@ -9,6 +9,7 @@ import { budgetAmount, categoryLabel, distanceShort, mealGreeting, priceLabel, r
 import { getStored, setStored, useStored, type RecentPick } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
+import { recordNudge } from '../notifications/useNudgeLinks'
 import { ContextStrip } from './ContextStrip'
 import { buildSoloRequest, LocationNeeded, quickPickAnswers } from './request'
 import { useDecide } from './state'
@@ -65,6 +66,20 @@ function QuickPickCard({ onLocationNeeded }: { onLocationNeeded: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const answers = quickPickAnswers()
   const chips = ['Anything', budgetAmount(answers.budgetMax) ?? 'Any budget', distanceShort(answers.maxDistanceKm)]
+  const [params, setParams] = useSearchParams()
+
+  // Opened from a mealtime push that named no place: straight into the pick, as on iOS.
+  const fromPush = params.get('quickPick')
+  const started = useRef<string | null>(null)
+  useEffect(() => {
+    if (!fromPush || started.current === fromPush) return
+    started.current = fromPush
+    setParams({}, { replace: true })
+    recordNudge(fromPush, 'quick_pick_started')
+    void pick()
+    // pick reads the latest answers when it runs; this is for the push only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromPush])
 
   async function pick() {
     setBusy(true)

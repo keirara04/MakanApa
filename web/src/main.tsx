@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SessionProvider, useSession } from './auth/session'
 import { ForgotPassword, ResetPassword } from './features/auth/PasswordReset'
@@ -117,12 +117,23 @@ function AppRoutes() {
         <Route path="community/add" element={<AddPlace />} />
         <Route path="community/add/done" element={<AddPlaceDone />} />
         <Route path="community/mine" element={<MyPlaces />} />
+        <Route path="p/:key" element={<SharedPlace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </NearbyProvider>
     </DecideProvider>
   )
+}
+
+/**
+ * A shared place link, same path as the website's (`/p/624-kfc`): the place opens in Nearby.
+ * Signed out, onboarding or sign-in comes first and lands back here.
+ */
+function SharedPlace() {
+  const { key = '' } = useParams()
+  const id = Number(/^\d+/.exec(key)?.[0])
+  return <Navigate to={id ? `/nearby?place=${id}` : '/nearby'} replace />
 }
 
 /** Shown when a new version of the web app has downloaded; reloading switches to it. */

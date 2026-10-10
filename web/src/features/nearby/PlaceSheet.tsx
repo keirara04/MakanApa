@@ -10,6 +10,7 @@ import { resizeForUpload } from '../../lib/photos'
 import { categoryLabel, priceLabel } from '../../lib/presentation'
 import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
+import { PhotoViewer, viewerPhotos } from '../../ui/PhotoViewer'
 import { Sheet } from '../../ui/Sheet'
 import { useContributionGate } from '../auth/ContributionGate'
 import { HalalBadge } from '../decide/PickParts'
@@ -263,7 +264,8 @@ function AmbassadorPick({ place }: { place: NearbyPlace }) {
 }
 
 function DetailBody({ details }: { details: PlaceDetails }) {
-  const photos = [...details.photos.map((photo) => photo.url), ...details.communityPhotos]
+  const photos = viewerPhotos(details.photos, details.communityPhotos)
+  const [viewing, setViewing] = useState<number | null>(null)
   const contact: [string, string][] = []
   if (details.phone) contact.push(['Call', `tel:${details.phone.replace(/[^\d+]/g, '')}`])
   if (details.instagramHandle) contact.push(['Instagram', `https://instagram.com/${details.instagramHandle.replace(/^@/, '')}`])
@@ -276,14 +278,17 @@ function DetailBody({ details }: { details: PlaceDetails }) {
 
       {photos.length > 0 ? (
         <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto [scrollbar-width:none]" aria-label="Photos">
-          {photos.map((url, index) => (
-            <img key={url} src={url} alt={index === 0 ? details.name : ''} loading="lazy" className="h-44 w-64 shrink-0 snap-start rounded-row bg-hairline object-cover" />
+          {photos.map((photo, index) => (
+            <button key={photo.url} type="button" onClick={() => setViewing(index)} aria-label={`Open photo ${index + 1} of ${photos.length} full screen`} className="press h-44 w-64 shrink-0 snap-start">
+              <img src={photo.url} alt={index === 0 ? details.name : ''} loading="lazy" className="h-full w-full rounded-row bg-hairline object-cover" />
+            </button>
           ))}
         </div>
       ) : (
         <QuickAddPhoto placeId={details.id} />
       )}
       {details.communityPhotos.length > 0 && <p className="-mt-2 text-xs text-kicap-soft">Some photos shared by the MakanApa community</p>}
+      {viewing !== null && <PhotoViewer photos={photos} start={viewing} title={details.name} onClose={() => setViewing(null)} />}
 
       {details.menuItems.length > 0 && (
         <Section title="Menu">

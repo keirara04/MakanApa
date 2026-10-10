@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
+import { PhotoViewer, viewerPhotos } from '../../ui/PhotoViewer'
 import type { AddPlaceState } from '../community/AddPlace'
 import { decideApi, type Decision, type HalalInfo, type Recommendation, type TuneDirection, type WhatIfRow, type WhyNotDetail, type WhyNotReason } from '../../api/decide'
 import { errorMessage } from '../../lib/errors'
@@ -10,18 +11,15 @@ import type { AskedFor } from './state'
 
 /** Swipeable photos with the rating; the headline ("NASI LEMAK.") stands in when there are none. */
 export function Photos({ pick }: { pick: Recommendation }) {
+  const [viewing, setViewing] = useState<number | null>(null)
   return (
     <div className="relative">
       {pick.photos.length > 0 ? (
         <div className="flex aspect-[4/3] snap-x snap-mandatory overflow-x-auto rounded-card bg-hairline [scrollbar-width:none]" tabIndex={0} aria-label={`Photos of ${pick.name}`}>
           {pick.photos.map((photo, index) => (
-            <img
-              key={photo.url}
-              src={photo.url}
-              alt={index === 0 ? `${pick.name}` : ''}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              className="h-full w-full shrink-0 snap-center object-cover"
-            />
+            <button key={photo.url} type="button" onClick={() => setViewing(index)} aria-label={`Open photo ${index + 1} of ${pick.photos.length} full screen`} className="h-full w-full shrink-0 snap-center">
+              <img src={photo.url} alt={index === 0 ? `${pick.name}` : ''} loading={index === 0 ? 'eager' : 'lazy'} className="h-full w-full object-cover" />
+            </button>
           ))}
         </div>
       ) : (
@@ -41,6 +39,7 @@ export function Photos({ pick }: { pick: Recommendation }) {
           {pick.photos.length} photos, swipe
         </span>
       )}
+      {viewing !== null && <PhotoViewer photos={viewerPhotos(pick.photos)} start={viewing} title={pick.name} onClose={() => setViewing(null)} />}
     </div>
   )
 }

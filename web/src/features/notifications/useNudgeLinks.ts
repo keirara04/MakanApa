@@ -16,6 +16,9 @@ export function recordNudge(nudgeId: string | number, event: NudgeEvent): void {
   void api(`me/nudges/${nudgeId}/events`, { method: 'POST', body: { event } }).catch(() => {})
 }
 
+// Each push counts as opened once, even if this runs twice for it.
+const counted = new Set<string>()
+
 /** A tapped mealtime push lands with ?nudge=ID: count it as opened, once, then tidy the URL. */
 export function useNudgeOpened(): void {
   const { search, pathname } = useLocation()
@@ -24,9 +27,12 @@ export function useNudgeOpened(): void {
     const params = new URLSearchParams(search)
     const nudge = params.get('nudge')
     if (!nudge) return
-    recordNudge(nudge, 'opened')
+    if (!counted.has(nudge)) recordNudge(nudge, 'opened')
+    counted.add(nudge)
     params.delete('nudge')
     if (params.has('place')) params.set('fromNudge', nudge)
+    // A mealtime push that names no place asks for a one-tap pick (Home runs it).
+    else params.set('quickPick', nudge)
     navigate({ pathname, search: params.toString() ? `?${params}` : '' }, { replace: true })
   }, [search, pathname, navigate])
 }
