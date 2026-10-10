@@ -24,6 +24,8 @@ export interface SavedPlace {
   name: string
   latitude: number
   longitude: number
+  rating?: number | null
+  priceLevel?: number | null
   savedAt: number
 }
 

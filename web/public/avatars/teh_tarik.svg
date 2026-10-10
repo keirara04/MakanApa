@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+<title id="title">Teh Tarik — MakanApa Local Favorites avatar</title>
+<desc id="description">A warm pulled-tea glass character with a foamy cap, tiny arms and feet, and rosy cheeks.</desc>
+<defs>
+<radialGradient id="blush"><stop offset="0" stop-color="#efa6a1" stop-opacity=".76"/><stop offset="1" stop-color="#efa6a1" stop-opacity="0"/></radialGradient>
+<linearGradient id="shine" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+
+    <linearGradient id="body" x1=".1" y1="0" x2=".94" y2="1"><stop offset="0" stop-color="#e8b17a"/><stop offset=".48" stop-color="#c87d48"/><stop offset="1" stop-color="#97542f"/></linearGradient>
+    <linearGradient id="feet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bf824f"/><stop offset="1" stop-color="#87502f"/></linearGradient>
+    <radialGradient id="foam" cx="32%" cy="16%" r="81%"><stop offset="0" stop-color="#fff8e4"/><stop offset=".68" stop-color="#f6e7c9"/><stop offset="1" stop-color="#dbc6a1"/></radialGradient>
+    </defs>
+
+    <path d="M201 419c-14 3-25 15-27 29-2 12 8 21 24 22 17 1 35-5 41-15 8-13-2-31-18-35-7-2-14-2-20-1Z" fill="url(#feet)" stroke="#7b4c31" stroke-width="3"/>
+    <path d="M311 419c14 3 25 15 27 29 2 12-8 21-24 22-17 1-35-5-41-15-8-13 2-31 18-35 7-2 14-2 20-1Z" fill="url(#feet)" stroke="#7b4c31" stroke-width="3"/>
+    <path d="M187 442c-3 7 1 12 11 13m127-13c3 7-1 12-11 13" fill="none" stroke="#ddb58b" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+    
+    <path d="M154 285c-19-8-35 1-39 17-4 16 3 34 19 42 14 7 28-1 34-15l12-32Z" fill="#d29968" stroke="#9f633d" stroke-width="3"/>
+    <path d="M358 285c19-8 35 1 39 17 4 16-3 34-19 42-14 7-28-1-34-15l-12-32Z" fill="#d29968" stroke="#9f633d" stroke-width="3"/>
+    <path d="M125 309c-2 10 2 19 9 23m387 309c2 10-2 19-9 23" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="5" stroke-linecap="round"/>
+    
+    <path d="M154 183h204l-20 223c-2 20-14 31-34 31h-96c-20 0-32-11-34-31Z" fill="url(#body)" stroke="#96572f" stroke-width="3"/>
+    <path d="M178 211h22l-10 185c-1 12 3 22 11 30-19-5-23-16-24-33Z" fill="url(#shine)" opacity=".68"/>
+    <path d="M335 220h13l-17 179c-1 13-7 22-17 27 8-13 11-25 12-42Z" fill="#7d4029" opacity=".19"/>
+    <path d="M164 181c3-24 21-38 42-35 9-17 24-24 41-17 17-23 48-20 62 0 21-5 36 3 41 21 19 2 28 13 29 31-3 23-41 39-120 39-76 0-96-14-95-39Z" fill="url(#foam)" stroke="#ceb994" stroke-width="3"/>
+    <path d="M177 174c29 17 77 22 118 16 34-4 53-12 70-22" fill="none" stroke="#fffdf0" stroke-opacity=".8" stroke-width="10" stroke-linecap="round"/>
+    <path d="M202 155c8-7 18-7 27-4m36-8c9-8 22-6 31 1" fill="none" stroke="#fffefa" stroke-opacity=".7" stroke-width="6" stroke-linecap="round"/>
+    <path d="M161 202c26 16 61 22 95 22s69-6 95-22" fill="none" stroke="#e7ca9e" stroke-width="7" stroke-linecap="round"/>
+    <path d="M183 256c47 12 91 9 135-1" fill="none" stroke="#ffe2b4" stroke-opacity=".37" stroke-width="7" stroke-linecap="round"/>
+    
+    <ellipse cx="188" cy="332" rx="20" ry="14" fill="url(#blush)"/>
+    <ellipse cx="324" cy="332" rx="20" ry="14" fill="url(#blush)"/>
+    <circle cx="211" cy="303" r="12" fill="#342f2e"/>
+    <circle cx="301" cy="303" r="12" fill="#342f2e"/>
+    <circle cx="207" cy="299" r="3.5" fill="#fffdfa"/>
+    <circle cx="297" cy="299" r="3.5" fill="#fffdfa"/>
+    <path d="M231 341c12 17 38 17 50 0" fill="none" stroke="#795245" stroke-width="7" stroke-linecap="round"/>
+    
+</svg>

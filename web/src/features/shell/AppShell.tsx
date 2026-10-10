@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
 import { installationId } from '../../lib/storage'
@@ -44,7 +45,7 @@ export function AppShell() {
             `press mt-auto flex min-h-12 items-center gap-3 rounded-row px-3 font-display text-lg font-semibold ${isActive ? 'bg-cream text-sambal-deep' : 'text-kicap-soft hover:text-kicap'}`
           }
         >
-          <Avatar initial={initial(user?.name)} small />
+          <Avatar avatarKey={user?.avatarKey} initial={initial(user?.name)} small />
           Settings
         </NavLink>
       </aside>
@@ -53,7 +54,7 @@ export function AppShell() {
         <header className="flex items-center justify-between px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] md:hidden">
           <Wordmark />
           <Link to="/settings" aria-label="Settings" className="press">
-            <Avatar initial={initial(user?.name)} />
+            <Avatar avatarKey={user?.avatarKey} initial={initial(user?.name)} />
           </Link>
         </header>
 
@@ -102,7 +103,11 @@ function initial(name: string | null | undefined): string | null {
   return name?.trim()?.[0]?.toUpperCase() ?? null
 }
 
-function Avatar({ initial, small = false }: { initial: string | null; small?: boolean }) {
+/** The character the person picked, else their initial, else a plain person icon. */
+function Avatar({ avatarKey, initial, small = false }: { avatarKey?: string | null; initial: string | null; small?: boolean }) {
+  if (avatarKey) {
+    return <img src={avatarSrc(avatarKey)} alt="" aria-hidden="true" className={`shrink-0 rounded-full border-2 border-kicap bg-kunyit/25 object-cover ${small ? 'h-8 w-8' : 'h-11 w-11'}`} />
+  }
   return (
     <span
       aria-hidden="true"

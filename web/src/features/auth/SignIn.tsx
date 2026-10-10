@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { ApiError } from '../../api/client'
 import type { LinkOffer } from '../../api/types'
 import { GoogleButton } from '../../auth/GoogleButton'
@@ -119,6 +119,11 @@ export function SignIn() {
               required
             />
             {mode === 'create' && !linkOffer && <p className="-mt-2 text-sm text-kicap-soft">At least 8 characters.</p>}
+            {(mode === 'signIn' || linkOffer) && (
+              <Link to="/forgot-password" className="-mt-2 self-start text-sm font-semibold text-sambal-deep underline">
+                Forgot password?
+              </Link>
+            )}
 
             {error && (
               <p role="alert" className="text-sambal-deep">

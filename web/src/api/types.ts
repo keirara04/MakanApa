@@ -8,7 +8,7 @@ export interface User {
   role: 'user' | 'superadmin' | string
   status: 'active' | string
   isGuest: boolean
-  affiliationType: 'university' | 'area' | null
+  affiliationType: 'university' | 'area' | 'public' | null
   university: string | null
   area: string | null
   affiliationVerificationStatus: string | null

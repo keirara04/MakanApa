@@ -30,6 +30,12 @@ export const authApi = {
   link: (linkToken: string, password: string) =>
     api<SessionResponse>('auth/link', { method: 'POST', body: { linkToken, password, deviceLabel: deviceLabel() }, session: false }),
 
+  /** Always succeeds for a valid email, whether or not an account exists. */
+  forgotPassword: (email: string) => api<{ sent: true }>('auth/password/forgot', { method: 'POST', body: { email }, session: false }),
+
+  resetPassword: (email: string, token: string, password: string) =>
+    api<{ reset: true }>('auth/password/reset', { method: 'POST', body: { email, token, password }, session: false }),
+
   me: () => api<{ user: User }>('auth/me'),
 
   logout: () => api<{ loggedOut: true }>('auth/logout', { method: 'POST' }),

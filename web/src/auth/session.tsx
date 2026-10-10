@@ -1,4 +1,5 @@
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { accountApi } from '../api/account'
 import { authApi } from '../api/auth'
 import { ApiError, setUnauthorizedHandler } from '../api/client'
 import { isLinkOffer, type LinkOffer, type SessionResponse, type User } from '../api/types'
@@ -22,6 +23,8 @@ interface SessionContextValue {
   signInWithGoogle: (idToken: string) => Promise<LinkOffer | null>
   linkAccount: (linkToken: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  /** Deletes the account for good. Password only for accounts that have one. */
+  deleteAccount: (password: string | null) => Promise<void>
   setUser: (user: User) => void
   retry: () => void
 }
@@ -32,8 +35,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session>(() => (getStored('token') ? { status: 'loading' } : { status: 'signedOut' }))
   const [attempt, setAttempt] = useState(0)
 
+  // Account-bound things go with the session, as on iOS. Saved places stay on the device.
   const signOutLocally = useCallback(() => {
     setStored('token', undefined)
+    setStored('nearbyCache', undefined)
     setSession({ status: 'signedOut' })
   }, [])
 
@@ -77,6 +82,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     logout: async () => {
       // Best effort: the token is dropped locally whatever the server says.
       await authApi.logout().catch(() => {})
+      signOutLocally()
+    },
+    deleteAccount: async (password) => {
+      await accountApi.deleteAccount(password)
       signOutLocally()
     },
     setUser: (user) => setSession({ status: 'signedIn', user }),

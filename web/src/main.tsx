@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SessionProvider, useSession } from './auth/session'
+import { ForgotPassword, ResetPassword } from './features/auth/PasswordReset'
 import { SignIn } from './features/auth/SignIn'
 import { DecideHome } from './features/decide/Home'
 import { Preferences } from './features/decide/Preferences'
@@ -13,6 +14,10 @@ import { DecideProvider } from './features/decide/state'
 import { Nearby } from './features/nearby/Nearby'
 import { NearbyProvider } from './features/nearby/state'
 import { Onboarding } from './features/onboarding/Onboarding'
+import { BlockedPeople } from './features/settings/BlockedPeople'
+import { EditProfile } from './features/settings/EditProfile'
+import { SavedPlaces } from './features/settings/SavedPlaces'
+import { SeleraPage } from './features/settings/SeleraPage'
 import { Settings } from './features/settings/Settings'
 import { AppShell } from './features/shell/AppShell'
 import { ComingSoon } from './features/shell/ComingSoon'
@@ -59,6 +64,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to={getStored('onboarded') ? '/sign-in' : '/welcome'} replace />} />
       </Routes>
     )
@@ -70,8 +77,14 @@ function AppRoutes() {
     <Routes>
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/sign-in" element={<SignIn />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<AppShell />}>
         <Route path="settings" element={<Settings />} />
+        <Route path="settings/profile" element={<EditProfile />} />
+        <Route path="settings/selera" element={<SeleraPage />} />
+        <Route path="settings/saved" element={<SavedPlaces />} />
+        <Route path="settings/blocked" element={<BlockedPeople />} />
         <Route index element={<DecideHome />} />
         <Route path="decide" element={<Preferences />} />
         <Route path="decide/result" element={<Result />} />

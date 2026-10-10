@@ -65,7 +65,7 @@ export function SaveButton({ pick }: { pick: Recommendation }) {
       setStored('saved', list.filter((place) => place.id !== pick.id))
       void decideApi.unsave(pick.id).catch(() => {})
     } else {
-      setStored('saved', [{ id: pick.id, name: pick.name, latitude: pick.latitude, longitude: pick.longitude, savedAt: Date.now() }, ...list])
+      setStored('saved', [{ id: pick.id, name: pick.name, latitude: pick.latitude, longitude: pick.longitude, rating: pick.rating, priceLevel: pick.priceLevel, savedAt: Date.now() }, ...list])
       void decideApi.save(pick.id).catch(() => {})
     }
   }

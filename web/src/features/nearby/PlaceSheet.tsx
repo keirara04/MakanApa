@@ -1,6 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useRef, useState, type ReactNode } from 'react'
 import { ApiError } from '../../api/client'
 import { decideApi } from '../../api/decide'
 import { distanceKm, nearbyApi, type NearbyPlace, type PlaceDetails } from '../../api/nearby'
@@ -13,6 +12,7 @@ import { categoryLabel, priceLabel } from '../../lib/presentation'
 import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
+import { useContributionGate } from '../auth/ContributionGate'
 import { HalalBadge, HalalSection } from '../decide/PickParts'
 import type { SearchContext } from './SearchPanel'
 
@@ -113,7 +113,7 @@ function SaveHeart({ place }: { place: NearbyPlace }) {
           setStored('saved', list.filter((item) => item.id !== place.id))
           void decideApi.unsave(place.id).catch(() => {})
         } else {
-          setStored('saved', [{ id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude, savedAt: Date.now() }, ...list])
+          setStored('saved', [{ id: place.id, name: place.name, latitude: place.latitude, longitude: place.longitude, rating: place.rating, priceLevel: place.priceLevel, savedAt: Date.now() }, ...list])
           void decideApi.save(place.id).catch(() => {})
         }
       }}
@@ -201,6 +201,7 @@ function AmbassadorPick({ place }: { place: NearbyPlace }) {
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { data } = useQuery({ queryKey: ['ambassador-picks'], queryFn: nearbyApi.ambassadorPicks, enabled: Boolean(user?.ambassadorOf) })
+  const { gate, run } = useContributionGate('add picks')
   if (!user?.ambassadorOf) return null
 
   const current = data?.picks.find((pick) => pick.restaurantId === place.id)
@@ -213,11 +214,13 @@ function AmbassadorPick({ place }: { place: NearbyPlace }) {
     <>
       <button
         type="button"
-        onClick={() => {
-          setNote(current?.note ?? '')
-          setError(null)
-          setOpen(true)
-        }}
+        onClick={() =>
+          run(() => {
+            setNote(current?.note ?? '')
+            setError(null)
+            setOpen(true)
+          })
+        }
         className={`press min-h-11 rounded-full border-2 border-kunyit font-display font-semibold ${current ? 'bg-kunyit/25' : 'bg-surface'}`}
       >
         {current ? '★ In your picks' : '☆ Add to my picks'}
@@ -249,6 +252,7 @@ function AmbassadorPick({ place }: { place: NearbyPlace }) {
           Cancel
         </Button>
       </Sheet>
+      {gate}
     </>
   )
 }
@@ -327,61 +331,40 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /** No photos yet: signed-in people can add one (reviewed before it's public). */
 function QuickAddPhoto({ placeId }: { placeId: number }) {
-  const { user } = useSession()
-  const navigate = useNavigate()
-  const [state, setState] = useState<'idle' | 'uploading' | 'done' | 'failed' | 'gate'>('idle')
-  const [message, setMessage] = useState<string | null>(null)
-
-  if (state === 'gate') {
-    return (
-      <div className="rounded-row border-2 border-dashed border-hairline p-4">
-        <p className="font-display font-semibold">Sign in to add photos</p>
-        <p className="mt-1 text-sm text-kicap-soft">
-          Picks, Nearby and saves work without an account. Adding places, posting and halal reports need one, so the community knows who’s contributing.
-        </p>
-        <div className="mt-3 flex gap-2">
-          <Button className="max-w-xs" onClick={() => navigate('/sign-in')}>
-            Sign in
-          </Button>
-          <Button variant="quiet" onClick={() => setState('idle')}>
-            Not now
-          </Button>
-        </div>
-      </div>
-    )
-  }
+  const { gate, run } = useContributionGate('add photos')
+  const input = useRef<HTMLInputElement>(null)
+  const [state, setState] = useState<'idle' | 'uploading' | 'done' | 'failed'>('idle')
 
   return (
-    <label className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-row border-2 border-dashed border-hairline text-center ${state === 'uploading' ? 'opacity-60' : ''}`}>
-      <span className="font-display font-semibold">
-        {state === 'done' ? 'Thanks! Pending review' : state === 'failed' ? 'Couldn’t add. Tap to retry' : state === 'uploading' ? 'Uploading…' : 'Add a photo'}
-      </span>
-      {message && <span className="px-4 text-sm text-kicap-soft">{message}</span>}
+    <>
+      <button
+        type="button"
+        disabled={state === 'uploading' || state === 'done'}
+        onClick={() => run(() => input.current?.click())}
+        className={`flex min-h-32 w-full flex-col items-center justify-center gap-1 rounded-row border-2 border-dashed border-hairline text-center ${state === 'uploading' ? 'opacity-60' : ''}`}
+      >
+        <span className="font-display font-semibold">
+          {state === 'done' ? 'Thanks! Pending review' : state === 'failed' ? 'Couldn’t add. Tap to retry' : state === 'uploading' ? 'Uploading…' : 'Add a photo'}
+        </span>
+      </button>
       <input
+        ref={input}
         type="file"
         accept="image/*"
-        className="sr-only"
-        disabled={state === 'uploading' || state === 'done'}
-        onClick={(event) => {
-          if (user?.isGuest) {
-            event.preventDefault()
-            setState('gate')
-          }
-        }}
+        className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0]
           if (!file) return
           setState('uploading')
-          setMessage(null)
           try {
             await nearbyApi.quickAddPhoto(placeId, await resizeForUpload(file))
             setState('done')
-          } catch (caught) {
+          } catch {
             setState('failed')
-            if (caught instanceof ApiError && caught.code === 'terms_required') setMessage(caught.message)
           }
         }}
       />
-    </label>
+      {gate}
+    </>
   )
 }
