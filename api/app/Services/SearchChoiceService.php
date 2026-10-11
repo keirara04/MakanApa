@@ -6,7 +6,6 @@ use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\Restaurant;
 use App\Models\User;
-use App\Services\Brain\BrainStateFactory;
 use App\Services\Brain\TasteEventRecorder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -94,9 +93,8 @@ class SearchChoiceService
             return $this->replay(Decision::where('client_choice_id', $clientChoiceId)->firstOrFail(), $user, $restaurant);
         }
 
-        if (BrainStateFactory::enabled()) {
-            $this->recorder->searchChoose($decision, $row, $user);
-        }
+        // Recorded with Makan Brain on or off — see RecommendationController::accept().
+        $this->recorder->searchChoose($decision, $row, $user);
 
         return ['decision' => $decision, 'created' => true];
     }

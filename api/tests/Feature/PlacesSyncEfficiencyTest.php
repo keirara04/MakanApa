@@ -9,6 +9,7 @@ use App\Support\DiscoveryMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -74,6 +75,31 @@ class PlacesSyncEfficiencyTest extends TestCase
         app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 0.5);
 
         Http::assertSentCount(1);
+    }
+
+    public function test_a_failed_tile_keeps_the_tiles_that_succeeded(): void
+    {
+        $sequence = Http::sequence()->push(['places' => [$this->googlePlace('ChIJ-ok', 'Kedai OK')]]);
+        foreach (range(1, 6) as $_) {
+            $sequence->push(['error' => 'unavailable'], 503);
+        }
+        Http::fake(['*searchNearby*' => $sequence]);
+
+        $restaurants = app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 2.0);
+
+        Http::assertSentCount(7);
+        $this->assertSame(['Kedai OK'], array_column($restaurants, 'name'));
+        // Only the tile that answered counts as covered; the failed ones retry next time.
+        $this->assertSame(1, PlaceSyncArea::count());
+    }
+
+    public function test_every_tile_failing_with_nothing_stored_still_errors(): void
+    {
+        Http::fake(['*searchNearby*' => Http::response(['error' => 'quota'], 429)]);
+
+        $this->expectException(RequestException::class);
+
+        app(PlacesService::class)->nearbyRestaurants(self::LAT, self::LNG, 2.0);
     }
 
     public function test_cached_text_search_does_not_rewrite_restaurants(): void

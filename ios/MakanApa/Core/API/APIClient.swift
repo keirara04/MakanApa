@@ -20,12 +20,14 @@ enum APIClient {
         latitude: Double, longitude: Double, budgetMax: Int?, maxDistanceKm: Double,
         moods: [String], craving: String? = nil, mode: DiscoveryMode? = nil, vibe: Vibe? = nil, lens: Lens? = nil
     ) async throws -> RecommendationResponse {
+        let excludedPlaceIds = await Array(PlacePreferencesStore.shared.excludedPlaceIds)
         let body = SoloRecommendationRequestBody(
             latitude: latitude, longitude: longitude, budgetMax: budgetMax,
             maxDistanceKm: maxDistanceKm, moods: moods, craving: craving,
             mode: mode, vibe: vibe, installationId: InstallationID.current,
             halal: HalalPreference.isOn,
-            lens: lens, ignoreContext: ContextPreferences.ignoredKeys
+            lens: lens, ignoreContext: ContextPreferences.ignoredKeys,
+            excludedPlaceIds: excludedPlaceIds
         )
         return try await post("recommendations/solo", body: body, timeout: placesTimeout)
     }
@@ -190,7 +192,7 @@ enum APIClient {
     // MARK: - Auth
 
     static func login(email: String, password: String, deviceLabel: String) async throws -> LoginResponse {
-        try await post("auth/login", body: LoginRequestBody(email: email, password: password, deviceLabel: deviceLabel), authenticated: false)
+        try await post("auth/login", body: LoginRequestBody(email: email, password: password, deviceLabel: deviceLabel))
     }
 
     /// No personal info — a device-scoped account so recommendations and Nearby work without
@@ -199,8 +201,9 @@ enum APIClient {
         try await post("auth/guest", body: GuestLoginRequestBody(deviceLabel: deviceLabel), authenticated: false)
     }
 
-    // register/apple/google send the current token when there is one: for a guest, the backend
-    // upgrades that same account in place so its history carries over. No token, no header.
+    // login/register/apple/google/link send the current token when there is one: for a guest, the
+    // backend upgrades that same account in place (or, signing in to an existing account, moves
+    // the guest's picks, saves and taste history onto it). No token, no header.
     static func register(name: String, email: String, password: String, deviceLabel: String, signupSource: String?) async throws -> LoginResponse {
         try await post("auth/register", body: RegisterRequestBody(name: name, email: email, password: password, deviceLabel: deviceLabel, signupSource: signupSource))
     }
@@ -222,7 +225,7 @@ enum APIClient {
     }
 
     static func completeLink(password: String, linkToken: String, deviceLabel: String) async throws -> LoginResponse {
-        try await post("auth/link", body: LinkAccountRequestBody(password: password, linkToken: linkToken, deviceLabel: deviceLabel), authenticated: false)
+        try await post("auth/link", body: LinkAccountRequestBody(password: password, linkToken: linkToken, deviceLabel: deviceLabel))
     }
 
     static func logout() async throws -> LogoutResponse {

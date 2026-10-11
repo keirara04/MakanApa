@@ -631,6 +631,8 @@ struct SoloRecommendationRequestBody: Encodable {
     /// Makan Brain: explicit "how do I want to decide" lens + context signals the user switched off.
     var lens: Lens? = nil
     var ignoreContext: [String]? = nil
+    /// Places the user tapped "Not this" on — kept on the device, so sent with every pick.
+    var excludedPlaceIds: [Int]? = nil
 }
 
 struct RecommendationResponse: Decodable, Equatable {

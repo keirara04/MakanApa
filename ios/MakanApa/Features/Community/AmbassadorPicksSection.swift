@@ -169,7 +169,7 @@ struct AmbassadorPickCard: View {
 
     /// Google photo fetched lazily when the card is on screen, only when the ambassador hasn't
     /// added their own (community) photo.
-    @State private var googlePhoto: URL?
+    @State private var googlePhoto: RecommendationResponse.Photo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -244,14 +244,15 @@ struct AmbassadorPickCard: View {
                 RemoteImage(url: url, maxPixelSize: 720) { placeholder }
                     .scaledToFill()
             }
-        } else if let googlePhoto {
+        } else if let googlePhoto, let url = URL(string: googlePhoto.url) {
             Color.nasiCream.overlay {
-                RemoteImage(url: googlePhoto, maxPixelSize: 720) { placeholder }
+                RemoteImage(url: url, maxPixelSize: 720) { placeholder }
                     .scaledToFill()
             }
-            // Google's terms: a Places photo is shown with its source.
+            // Google's terms: a Places photo is shown with its author (or at least its source).
+            // Plain text, not GooglePhotoCredit's link — the whole card is already one tap target.
             .overlay(alignment: .bottomLeading) {
-                Text(Copy.googlePhotoCredit)
+                Text(photoCredit(googlePhoto))
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
@@ -262,6 +263,11 @@ struct AmbassadorPickCard: View {
         } else {
             placeholder
         }
+    }
+
+    private func photoCredit(_ photo: RecommendationResponse.Photo) -> String {
+        let names = photo.authorAttributions.compactMap(\.name).filter { !$0.isEmpty }
+        return names.isEmpty ? Copy.googlePhotoCredit : "Photo: \(names.joined(separator: ", "))"
     }
 
     /// "Malay · ≈ RM10/person · 1.2 km"
@@ -291,14 +297,13 @@ struct AmbassadorPickCard: View {
 /// so entries older than 25 min are refetched.
 @MainActor
 private enum PickPhotoLoader {
-    private static var cache: [Int: (url: URL?, at: Date)] = [:]
+    private static var cache: [Int: (photo: RecommendationResponse.Photo?, at: Date)] = [:]
 
-    static func googlePhoto(for restaurantId: Int) async -> URL? {
-        if let hit = cache[restaurantId], Date.now.timeIntervalSince(hit.at) < 25 * 60 { return hit.url }
-        let url = (try? await APIClient.placeDetails(restaurantId: restaurantId))?
-            .photos.first.flatMap { URL(string: $0.url) }
-        cache[restaurantId] = (url, .now)
-        return url
+    static func googlePhoto(for restaurantId: Int) async -> RecommendationResponse.Photo? {
+        if let hit = cache[restaurantId], Date.now.timeIntervalSince(hit.at) < 25 * 60 { return hit.photo }
+        let photo = (try? await APIClient.placeDetails(restaurantId: restaurantId))?.photos.first
+        cache[restaurantId] = (photo, .now)
+        return photo
     }
 }
 

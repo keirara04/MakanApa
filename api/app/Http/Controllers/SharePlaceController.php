@@ -66,6 +66,7 @@ class SharePlaceController extends Controller
         $price = self::priceLabel($restaurant->price_level);
         $menuRange = $this->menuPriceRange($restaurant);
         $indexable = (bool) config('marketing.share_indexable') && $restaurant->provider === self::INDEXABLE_PROVIDER;
+        $ogImage = $this->cardUrl($restaurant, $halal['display']);
 
         return response()->view('share.place', [
             'restaurant' => $restaurant,
@@ -84,9 +85,9 @@ class SharePlaceController extends Controller
             'android' => WebAppEntry::forAndroid($request),
             'apple' => WebAppEntry::forApple($request),
             'directionsUrl' => $this->directionsUrl($restaurant),
-            'ogImage' => $this->cardUrl($restaurant, $halal['display']),
+            'ogImage' => $ogImage,
             'indexable' => $indexable,
-            'structuredData' => $indexable ? $this->structuredData($restaurant, $canonicalUrl, $menuRange ?? $price) : null,
+            'structuredData' => $indexable ? $this->structuredData($restaurant, $canonicalUrl, $menuRange ?? $price, $ogImage) : null,
         ]);
     }
 
@@ -255,7 +256,7 @@ class SharePlaceController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function structuredData(Restaurant $restaurant, string $url, ?string $priceRange): array
+    private function structuredData(Restaurant $restaurant, string $url, ?string $priceRange, string $image): array
     {
         $cuisines = $restaurant->cuisines->pluck('name')->all();
         $category = RecommendationHeadline::categoryLabel($restaurant->food_category);
@@ -265,7 +266,7 @@ class SharePlaceController extends Controller
             '@type' => 'Restaurant',
             'name' => $restaurant->name,
             'url' => $url,
-            'image' => $this->ogImage($restaurant->food_category),
+            'image' => $image,
             'address' => $restaurant->address
                 ? ['@type' => 'PostalAddress', 'streetAddress' => $restaurant->address, 'addressCountry' => 'MY']
                 : null,

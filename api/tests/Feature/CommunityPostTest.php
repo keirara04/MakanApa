@@ -256,6 +256,20 @@ class CommunityPostTest extends TestCase
         $this->signIn($viewer)->postJson('/api/v1/community/posts', ['body' => 'r', 'parentId' => $postId])->assertNotFound();
     }
 
+    public function test_guest_reports_are_counted_but_never_auto_hide(): void
+    {
+        $postId = $this->publish($this->member());
+
+        foreach (range(1, 3) as $_) {
+            $this->signIn($this->member(null, ['is_guest' => true]))
+                ->postJson("/api/v1/community/posts/{$postId}/report", ['reason' => 'spam'])->assertOk();
+        }
+
+        $post = CommunityPost::find($postId);
+        $this->assertSame('visible', $post->status);
+        $this->assertSame(3, $post->report_count);
+    }
+
     public function test_admin_restore_resolves_reports_and_remove_is_audited(): void
     {
         $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);

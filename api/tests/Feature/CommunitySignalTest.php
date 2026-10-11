@@ -107,6 +107,23 @@ class CommunitySignalTest extends TestCase
         ]);
     }
 
+    public function test_replaying_a_vibe_tag_keeps_one_vote_per_decision(): void
+    {
+        $this->seed(RestaurantSeeder::class);
+        $decision = $this->decide();
+
+        foreach (['study', 'study', 'study', 'date'] as $vibe) {
+            $this->postJson(
+                "/api/v1/decisions/{$decision['decisionId']}/vibe-tag",
+                ['vibe' => $vibe],
+                ['X-Decision-Token' => $decision['clientToken']]
+            )->assertOk();
+        }
+
+        $this->assertDatabaseCount('restaurant_vibe_votes', 1);
+        $this->assertDatabaseHas('restaurant_vibe_votes', ['decision_id' => $decision['decisionId'], 'vibe' => 'date']);
+    }
+
     public function test_personal_fit_is_absent_below_the_minimum_accept_history(): void
     {
         config(['recommendation.debug' => true]);

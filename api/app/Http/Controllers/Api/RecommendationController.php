@@ -75,6 +75,11 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'Could not find nearby places right now.'], 500);
         }
 
+        if (! empty($data['excludedPlaceIds'])) {
+            $excluded = array_flip($data['excludedPlaceIds']);
+            $restaurants = array_values(array_filter($restaurants, fn (array $restaurant) => ! isset($excluded[$restaurant['id'] ?? null])));
+        }
+
         $preference = array_merge([
             'moodTags' => $data['moods'] ?? [],
             'cuisines' => [],
@@ -360,7 +365,9 @@ class RecommendationController extends Controller
             return $current;
         });
 
-        if ($accepted && BrainStateFactory::enabled()) {
+        // Recorded whether or not Makan Brain ranks yet, so Selera is already filled in when it
+        // switches on. v1 never reads taste events, so its picks are unaffected.
+        if ($accepted) {
             $this->recorder->accept($decision, $accepted, $request->user());
         }
 
@@ -390,15 +397,18 @@ class RecommendationController extends Controller
             return response()->json(['message' => 'No shown recommendation to tag for this decision.'], 422);
         }
 
-        RestaurantVibeVote::create([
-            'restaurant_id' => $target->restaurant_id,
-            'decision_id' => $decision->id,
-            'university_id' => $request->user()?->universityId(),
-            'area_id' => $request->user()?->areaId(),
-            'vibe' => $data['vibe'],
-        ]);
+        // One vote per decision and place — replaying the same decision changes the vote instead
+        // of stacking more, so one guest can't push a vibe badge over its vote floor.
+        $vote = RestaurantVibeVote::updateOrCreate(
+            ['decision_id' => $decision->id, 'restaurant_id' => $target->restaurant_id],
+            [
+                'university_id' => $request->user()?->universityId(),
+                'area_id' => $request->user()?->areaId(),
+                'vibe' => $data['vibe'],
+            ],
+        );
 
-        if (BrainStateFactory::enabled()) {
+        if ($vote->wasRecentlyCreated || $vote->wasChanged('vibe')) {
             $this->recorder->vibeTag($decision, $target, $request->user(), $data['vibe'] instanceof CommunityTag ? $data['vibe']->value : (string) $data['vibe']);
         }
 

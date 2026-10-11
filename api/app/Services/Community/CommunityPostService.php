@@ -172,10 +172,15 @@ class CommunityPostService
             );
 
             $openReports = $post->reports()->whereNull('resolved_at')->count();
+            // Guest tokens are free to mint, so only registered reporters count toward auto-hide;
+            // guest reports still reach the admin queue.
+            $registeredOpenReports = $post->reports()->whereNull('resolved_at')
+                ->whereHas('reporter', fn ($query) => $query->where('is_guest', false))
+                ->count();
             $threshold = (int) Config::get('moderation.community_posts.report_hide_threshold', 3);
 
             $post->report_count = $openReports;
-            $justHidden = $post->isVisible() && $openReports >= $threshold;
+            $justHidden = $post->isVisible() && $registeredOpenReports >= $threshold;
             if ($justHidden) {
                 $post->status = CommunityPost::STATUS_HIDDEN;
                 $post->hidden_reason = 'reports';

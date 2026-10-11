@@ -35,6 +35,9 @@ class SoloRecommendationRequest extends FormRequest
             'lens' => ['nullable', Rule::enum(Lens::class)],
             'ignoreContext' => ['nullable', 'array'],
             'ignoreContext.*' => ['string', Rule::in(ContextEngine::SIGNALS)],
+            // Places the user tapped "Not this" on. Kept on the device, so sent with every pick.
+            'excludedPlaceIds' => ['nullable', 'array', 'max:500'],
+            'excludedPlaceIds.*' => ['integer'],
         ];
     }
 

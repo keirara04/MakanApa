@@ -76,8 +76,8 @@ class MarketingPagesTest extends TestCase
         config(['marketing.app_store_id' => '123', 'marketing.app_store_provider_token' => '456']);
 
         $this->withHeader('User-Agent', self::BROWSER)
-            ->get('/go/app-store?from=ambassadors&campus=unimap')
-            ->assertRedirect('https://apps.apple.com/app/apple-store/id123?pt=456&ct=amb_unimap&mt=8');
+            ->get('/go/app-store?from=ambassadors&campus=uitmsgbuloh')
+            ->assertRedirect('https://apps.apple.com/app/apple-store/id123?pt=456&ct=amb_uitmsgbuloh&mt=8');
 
         $this->assertDatabaseHas('marketing_events', ['event' => MarketingEvent::APP_STORE_CLICK, 'source' => 'ambassadors']);
     }
@@ -93,9 +93,9 @@ class MarketingPagesTest extends TestCase
 
     public function test_ambassadors_page_tags_downloads_with_the_campus_it_was_shared_for(): void
     {
-        $this->get('/ambassadors?campus=unimap')->assertOk()
-            ->assertSee('UniMAP has a MakanApa ambassador.')
-            ->assertSee('href="'.e(route('marketing.download', ['from' => 'ambassadors', 'campus' => 'unimap'])).'"', false)
+        $this->get('/ambassadors?campus=uitmsgbuloh')->assertOk()
+            ->assertSee('UiTM Sungai Buloh has a MakanApa ambassador.')
+            ->assertSee('href="'.e(route('marketing.download', ['from' => 'ambassadors', 'campus' => 'uitmsgbuloh'])).'"', false)
             ->assertSee('<link rel="canonical" href="'.url('/ambassadors').'">', false);
 
         $this->get('/ambassadors?campus=nowhere')->assertOk()

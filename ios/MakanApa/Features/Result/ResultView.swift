@@ -378,6 +378,12 @@ struct ResultView: View {
             .scaleEffect(revealed || reduceMotion ? 1 : 1.06)
             .animation(revealed ? Motion.standard : nil, value: revealed)
 
+            if pick.photos.indices.contains(photoPage) {
+                GooglePhotoCredit(attributions: pick.photos[photoPage].authorAttributions)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, pick.photos.count > 1 ? 18 : 6)
+            }
+
             if let rating = pick.rating {
                 Label(rating.formatted(.number.precision(.fractionLength(1))), systemImage: "star.fill")
                     .font(.footnote.weight(.semibold))

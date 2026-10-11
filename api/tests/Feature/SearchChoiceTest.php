@@ -105,12 +105,12 @@ class SearchChoiceTest extends TestCase
         $this->assertSame('fast_food', TasteProfile::sole()->memory['recent'][0]['category'] ?? null);
     }
 
-    public function test_with_makan_brain_off_no_taste_events_are_written(): void
+    public function test_with_makan_brain_off_taste_events_are_still_written(): void
     {
         Config::set('brain.enabled', false);
 
         $this->choose($this->makeRestaurant(), (string) Str::uuid())->assertCreated();
 
-        $this->assertSame(0, TasteEvent::count());
+        $this->assertSame('search_choose', TasteEvent::where('dimension', 'category')->sole()->signal);
     }
 }

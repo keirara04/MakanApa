@@ -80,6 +80,10 @@ struct MakanApaApp: App {
                 pendingDeepLink.destination = destination
             }
             .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    locationService.refreshIfAuthorized()
+                }
+
                 // Only tracked once actually signed in — a logged-out person opening/closing
                 // the app has no user_id for the admin dashboard's "App opens" chart to attach
                 // to. .background specifically, not .inactive, so a transient system alert or
@@ -248,12 +252,9 @@ struct MakanApaApp: App {
         .tint(.sambalRed)
         .preferredColorScheme(.light)
         .task {
-            // First-time users get the system location prompt immediately on launch,
-            // instead of only after tapping into the Solo flow — reduces drop-off from
-            // people never realizing the app needs it.
-            if case .notDetermined = locationService.state {
-                locationService.requestLocation()
-            }
+            // A first fix for people who already allowed location. Never the permission prompt:
+            // onboarding, Nearby and the quick pick each ask in context, with an explanation.
+            locationService.refreshIfAuthorized()
             warmUpGoogleMaps()
         }
     }
