@@ -233,7 +233,7 @@ export function Preferences() {
         )}
       </div>
 
-      <div className="sticky bottom-24 flex flex-col gap-2 bg-cream/95 pb-2 pt-3 backdrop-blur md:bottom-0">
+      <div className="sticky bottom-(--tab-bar) flex flex-col gap-2 bg-cream/95 pb-2 pt-3 backdrop-blur md:bottom-0">
         {error && (
           <p role="alert" className="text-sm text-sambal-deep">
             {error}

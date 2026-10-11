@@ -137,13 +137,14 @@ function PickView() {
   }
 
   return (
-    <article className="tape-in flex flex-col gap-6 pb-24 pt-2 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-10 md:pb-28">
-      <div className="relative md:sticky md:top-12">
+    <article className="flex flex-col gap-6 pb-24 pt-2 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-10 md:pb-28">
+      {/* Taped in piece by piece: an animated translate on the article would trap the fixed action bar inside it. */}
+      <div className="tape-in relative md:sticky md:top-12">
         <span className="tape -top-3 left-8 -rotate-6" aria-hidden="true" />
         <Photos pick={pick} />
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="tape-in flex flex-col gap-6">
         <header>
           <p className="text-sm font-semibold text-sambal-deep">
             {pick.fatigue ? 'Okay, enough choosing' : 'Picked for you'}
@@ -205,7 +206,7 @@ function PickView() {
       </div>
 
       {/* The three actions stay in reach: above the tab bar on phones, at the foot of the page on desktop. */}
-      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 px-5 md:sticky md:bottom-4 md:col-span-2 md:px-0">
+      <div className="fixed inset-x-0 bottom-[calc(var(--tab-bar)+0.5rem)] z-10 px-5 md:sticky md:bottom-4 md:col-span-2 md:px-0">
         <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-full bg-surface/95 p-2 shadow-lift backdrop-blur md:max-w-md">
           <Button onClick={letsEat} className="flex-1">
             Let’s eat

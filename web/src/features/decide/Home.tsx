@@ -6,12 +6,15 @@ import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
 import { directionsUrl } from '../../lib/maps'
 import { budgetAmount, categoryLabel, distanceShort, mealGreeting, priceLabel, relativeDay } from '../../lib/presentation'
-import { install, useCanInstall } from '../../lib/install'
-import { getStored, setStored, useStored, type RecentPick } from '../../lib/storage'
+import { install, installPlatform, isInstalled, useCanInstall } from '../../lib/install'
+import { getStored, setStored, useStored, type RecentPick, type SavedPlace } from '../../lib/storage'
 import { Button } from '../../ui/Button'
+import { Mascot } from '../../ui/Mascot'
 import { Sheet } from '../../ui/Sheet'
+import { InstallGuide } from '../install/InstallGuide'
 import { recordNudge } from '../notifications/useNudgeLinks'
 import { ContextStrip } from './ContextStrip'
+import { GuideDemo } from './GuideDemos'
 import { buildSoloRequest, LocationNeeded, quickPickAnswers } from './request'
 import { useDecide } from './state'
 
@@ -38,17 +41,17 @@ export function DecideHome() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <QuickPickCard onLocationNeeded={() => void location.request()} />
-        <Link to="/decide" className="press flex min-h-36 flex-col justify-between rounded-card border-2 border-kicap bg-surface p-6">
-          <span className="font-display text-sm font-semibold text-kicap-soft">Craving, budget, distance</span>
-          <span className="font-display text-3xl font-bold tracking-tight">I know what I want</span>
+        <div className="md:col-span-2">
+          <QuickPickCard onLocationNeeded={() => void location.request()} />
+        </div>
+        <Link to="/decide" className="press flex min-h-28 items-center gap-3 rounded-card border border-hairline bg-surface p-5 shadow-sm">
+          <span className="flex-1">
+            <span className="block font-display text-xl font-bold">I know what I want</span>
+            <span className="mt-0.5 block text-sm text-kicap-soft">Choose a craving, budget and distance</span>
+          </span>
+          <DishStack />
         </Link>
-        {saved.length >= 2 && (
-          <Link to="/decide/saved" className="press flex min-h-28 flex-col justify-between rounded-card border-2 border-dashed border-kicap/40 p-6 md:col-span-2">
-            <span className="font-display text-sm font-semibold text-kicap-soft">Shuffle your {saved.length} saved places</span>
-            <span className="font-display text-2xl font-bold tracking-tight">Pick from my saved</span>
-          </Link>
-        )}
+        <SavedShuffleCard saved={saved} />
       </div>
 
       <GuestNudge />
@@ -108,17 +111,37 @@ function QuickPickCard({ onLocationNeeded }: { onLocationNeeded: () => void }) {
         type="button"
         onClick={() => void pick()}
         disabled={busy}
+        aria-label={busy ? 'Finding you…' : 'Pick for me'}
         aria-describedby="quick-pick-hint"
-        className="press flex min-h-36 w-full flex-col justify-between gap-4 rounded-card bg-sambal p-6 text-left text-white shadow-lift disabled:opacity-70"
+        className="press-raised relative flex w-full flex-col gap-4 overflow-hidden rounded-card bg-sambal p-6 text-left text-white"
       >
-        <span className="flex flex-wrap gap-1.5">
+        <img
+          src="/choices/mood-nasilemak.webp"
+          alt=""
+          width={104}
+          height={104}
+          className="absolute top-4 -right-7 h-26 w-26 rounded-full border-[5px] border-white/90 object-cover shadow-lg"
+        />
+        <span className="max-w-[calc(100%-5rem)] font-display text-3xl leading-tight font-bold tracking-tight">Can’t decide?</span>
+        <span className="flex max-w-[calc(100%-4rem)] flex-wrap gap-1.5">
           {chips.map((chip) => (
-            <span key={chip} className="rounded-full bg-kicap/25 px-2.5 py-0.5 text-sm font-semibold">
+            <span key={chip} className="rounded-full bg-kicap/30 px-2.5 py-1 text-sm font-semibold">
               {chip}
             </span>
           ))}
         </span>
-        <span className="font-display text-3xl font-bold tracking-tight">{busy ? 'Finding you…' : 'Pick for me'}</span>
+        <span className="relative flex min-h-14 items-center justify-center gap-2.5 rounded-full bg-white font-display text-xl font-bold text-sambal-deep shadow-md">
+          {/* The dice rolls while the pick is made. */}
+          <svg viewBox="0 0 24 24" className={`h-6 w-6 ${busy ? 'spoon-spin' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+            <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" stroke="none" />
+            <circle cx="15.5" cy="8.5" r="1.4" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+            <circle cx="8.5" cy="15.5" r="1.4" fill="currentColor" stroke="none" />
+            <circle cx="15.5" cy="15.5" r="1.4" fill="currentColor" stroke="none" />
+          </svg>
+          {busy ? 'Finding you…' : 'Pick for me'}
+        </span>
       </button>
       <p id="quick-pick-hint" className="sr-only">
         Picks somewhere nearby right away using your usual budget and distance
@@ -132,35 +155,105 @@ function QuickPickCard({ onLocationNeeded }: { onLocationNeeded: () => void }) {
   )
 }
 
+const DISHES = ['mood-charkueyteow', 'mood-dimsum', 'mood-nasikandar']
+
+/** Three cravings overlapping, the kind of choice the next screen offers. */
+function DishStack() {
+  return (
+    <span className="flex shrink-0" aria-hidden="true">
+      {DISHES.map((dish, index) => (
+        <img
+          key={dish}
+          src={`/choices/${dish}.webp`}
+          alt=""
+          width={40}
+          height={40}
+          className={`h-10 w-10 rounded-full border-[3px] border-surface object-cover ${index > 0 ? '-ml-4' : ''}`}
+        />
+      ))}
+    </span>
+  )
+}
+
+const DECK_TINTS = ['bg-kunyit text-kicap', 'bg-pandan text-white', 'bg-sambal text-white']
+
+/**
+ * Always shown, so people learn the shuffle exists. With two or more saved places it opens the
+ * deck; before that it shows how many are saved and sends them to Nearby to save some.
+ */
+export function SavedShuffleCard({ saved }: { saved: SavedPlace[] }) {
+  const ready = saved.length >= 2
+  const deck: (SavedPlace | null)[] = ready ? saved.slice(0, 3) : [null, null, saved[0] ?? null]
+
+  return (
+    <Link
+      to={ready ? '/decide/saved' : '/nearby'}
+      className="press flex min-h-28 items-center gap-4 rounded-card border border-hairline bg-surface p-5 shadow-sm"
+    >
+      <span className="flex-1">
+        <span className="block font-display text-xl font-bold">{ready ? 'Pick from my saved' : 'Shuffle your saved places'}</span>
+        <span className="mt-0.5 block text-sm text-kicap-soft">
+          {ready
+            ? `Shuffle your ${saved.length} saved places`
+            : saved.length === 1
+              ? 'Save one more place and MakanApa can pick between them.'
+              : 'Save two places from Nearby and MakanApa deals you one.'}
+        </span>
+      </span>
+      {/* A small fanned deck of saved places; until two are saved, empty outlines sit behind the one saved. */}
+      <span className="relative mr-2 h-14 w-16 shrink-0" aria-hidden="true">
+        {deck.map((place, slot) => {
+          const offset = slot - (deck.length - 1) / 2
+          return (
+            <span
+              key={slot}
+              style={{ rotate: `${offset * 12}deg`, translate: `${offset * 10}px 0` }}
+              className={`absolute inset-x-3 inset-y-0 flex origin-bottom items-center justify-center rounded-lg font-display text-lg font-bold ${
+                place ? `${DECK_TINTS[slot]} shadow-md` : 'border-2 border-dashed border-kicap/30 bg-cream text-kicap/40'
+              }`}
+            >
+              {place ? place.name.trim().charAt(0).toUpperCase() : '+'}
+            </span>
+          )
+        })}
+      </span>
+    </Link>
+  )
+}
+
 const WEEK = 7 * 86_400_000
 
 const MONTH = 30 * 86_400_000
 
 /**
- * "Add to home screen", when the browser offers installing (Chrome on Android and computers).
- * Gone once installed; "Not now" hides it for a month.
+ * "Add to home screen": one tap where the browser can install (Chrome, Edge), the how-to guide on
+ * phones that can't (Safari on iPhone never offers it). Gone once installed; "Not now" hides it
+ * for a month.
  */
 function InstallCard() {
   const canInstall = useCanInstall()
   const dismissedAt = useStored('installDismissedAt') ?? 0
   const [now] = useState(() => Date.now())
-  if (!canInstall || now - dismissedAt < MONTH) return null
+  const [phone] = useState(() => installPlatform() !== 'computer')
+  const [guide, setGuide] = useState(false)
+  if (isInstalled() || (!canInstall && !phone) || now - dismissedAt < MONTH) return null
 
   return (
-    <section className="flex flex-col gap-3 rounded-card border-2 border-hairline bg-surface px-6 py-5 sm:flex-row sm:items-center">
+    <section className="flex flex-col gap-3 rounded-card border border-hairline bg-surface p-5 shadow-sm sm:flex-row sm:items-center">
       <img src="/icon-192.png" alt="" width={56} height={56} className="h-14 w-14 shrink-0 rounded-2xl" />
       <div className="flex-1">
         <h2 className="font-display text-xl font-bold">Add MakanApa to your home screen</h2>
         <p className="text-kicap-soft">It opens like an app, full screen, with mealtime notifications. No app store needed.</p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <Button className="sm:w-auto" onClick={() => void install()}>
-          Add
+        <Button className="sm:w-auto" onClick={() => (canInstall ? void install() : setGuide(true))}>
+          {canInstall ? 'Add' : 'Show me how'}
         </Button>
         <Button variant="quiet" className="whitespace-nowrap" onClick={() => setStored('installDismissedAt', Date.now())}>
           Not now
         </Button>
       </div>
+      <InstallGuide open={guide} onClose={() => setGuide(false)} />
     </section>
   )
 }
@@ -184,16 +277,21 @@ function GuestNudge() {
       : { title: 'Your food list is growing', detail: 'Keep your saved places safe, on this phone or the next one.' }
 
   return (
-    <section className="sketch px-6 py-6" style={{ ['--sketch-radius' as string]: '22px' }}>
-      <h2 className="font-display text-2xl font-bold">{copy.title}</h2>
-      <p className="mt-2 text-kicap-soft">{copy.detail}</p>
-      <p className="mt-2 text-kicap-soft">Your picks, saved places and taste profile all come with you. Nothing lost.</p>
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Button className="md:max-w-xs" onClick={() => navigate('/sign-in')}>
+    <section className="flex flex-col gap-4 rounded-card border border-hairline bg-surface p-5 shadow-sm">
+      <div className="flex items-start gap-4">
+        <Mascot mood="excited" size={56} className="h-14 w-14 shrink-0" />
+        <div>
+          <h2 className="font-display text-xl font-bold">{copy.title}</h2>
+          <p className="mt-1 text-sm text-kicap-soft">{copy.detail}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button className="min-h-12 flex-1 px-4 text-base whitespace-nowrap" onClick={() => navigate('/sign-in')}>
           Create an account
         </Button>
         <Button
           variant="quiet"
+          className="whitespace-nowrap"
           onClick={() => {
             setStored('nudgeDismissed', [...dismissed, reason])
             setStored('nudgeSnoozedUntil', Date.now() + WEEK)
@@ -219,29 +317,34 @@ function Recent() {
         Recent
       </h2>
       {recent.length === 0 ? (
-        <p className="mt-2 text-kicap-soft">Places you pick will show up here.</p>
+        <p className="mt-2 rounded-card border border-dashed border-kicap/25 px-5 py-4 text-kicap-soft">Places you pick will show up here.</p>
       ) : (
-        <ul className="mt-3 divide-y-2 divide-hairline border-y-2 border-hairline">
+        <ul className="mt-3 divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface shadow-sm">
           {recent.map((item) => (
-            <li key={item.id} className="flex items-center gap-3">
+            <li key={item.id} className="flex items-center gap-1 pr-2">
               <a
                 href={directionsUrl(item, getStored('mapsApp'))}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-h-16 flex-1 flex-col justify-center py-3"
+                className="flex min-h-18 flex-1 items-center gap-3 py-3 pl-4"
               >
-                <span className="font-display text-lg font-semibold">{item.name}</span>
-                <span className="text-sm text-kicap-soft">
-                  {[categoryLabel(item.foodCategory), priceLabel(item.priceLevel), relativeDay(item.at)].filter(Boolean).join(', ')}
+                <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-row bg-cream font-display text-lg font-bold text-sambal-deep">
+                  {item.name.trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-lg font-semibold">{item.name}</span>
+                  <span className="block text-sm text-kicap-soft">
+                    {[categoryLabel(item.foodCategory), priceLabel(item.priceLevel), relativeDay(item.at)].filter(Boolean).join(', ')}
+                  </span>
                 </span>
               </a>
               <button
                 type="button"
                 onClick={() => remove(item)}
                 aria-label={`Remove ${item.name} from Recent`}
-                className="press flex h-11 w-11 items-center justify-center rounded-full text-kicap-soft hover:bg-surface"
+                className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-kicap-soft/70 hover:bg-cream"
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true">
                   <path d="M6 6l12 12M18 6 6 18" />
                 </svg>
               </button>
@@ -275,25 +378,40 @@ function DecideGuide() {
           setPage(0)
           setOpen(true)
         }}
-        className="press flex min-h-16 items-center justify-between rounded-row border-2 border-hairline px-5 py-3 text-left"
+        className="press flex min-h-18 items-center gap-4 rounded-card border border-hairline bg-surface px-5 py-3 text-left shadow-sm"
       >
-        <span>
+        <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-kunyit/30 font-display text-xl font-bold">
+          ?
+        </span>
+        <span className="flex-1">
           <span className="block font-display text-lg font-semibold">New to MakanApa?</span>
           <span className="text-sm text-kicap-soft">See how picking works.</span>
         </span>
-        <span aria-hidden="true" className="font-hand text-3xl text-sambal-deep">
-          ?
-        </span>
+        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-kicap-soft" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="How Decide works">
-        <p className="text-sm text-kicap-soft">
-          Page {page + 1} of {GUIDE.length}
-        </p>
+        <GuideDemo key={page} page={page} />
         <div aria-live="polite">
           <h3 className="font-display text-xl font-semibold">{title}</h3>
-          <p className="mt-2 text-kicap-soft">{body}</p>
+          <p className="mt-1 min-h-18 text-kicap-soft">{body}</p>
         </div>
-        <Button onClick={() => (page + 1 < GUIDE.length ? setPage(page + 1) : setOpen(false))}>{page + 1 < GUIDE.length ? 'Next' : 'Got it'}</Button>
+        <div className="flex items-center justify-center gap-1.5" aria-label={`Page ${page + 1} of ${GUIDE.length}`} role="img">
+          {GUIDE.map(([name], index) => (
+            <span key={name} className={`h-2 rounded-full transition-[width] motion-reduce:transition-none ${index === page ? 'w-6 bg-kicap' : 'w-2 bg-hairline'}`} />
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {page > 0 && (
+            <Button variant="secondary" className="flex-1" onClick={() => setPage(page - 1)}>
+              Back
+            </Button>
+          )}
+          <Button className="flex-1" onClick={() => (page + 1 < GUIDE.length ? setPage(page + 1) : setOpen(false))}>
+            {page + 1 < GUIDE.length ? 'Next' : 'Got it'}
+          </Button>
+        </div>
       </Sheet>
     </>
   )

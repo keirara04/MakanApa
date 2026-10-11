@@ -32,6 +32,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Height of the phone tab bar (border, padding, 56px links, home indicator). Bars that sit
+     on top of it use this, so the two always meet. */
+  :root {
+    --tab-bar: calc(4.125rem + max(0.5rem, env(safe-area-inset-bottom)));
+  }
+
   body {
     min-height: 100dvh;
     background: var(--color-cream);
@@ -96,6 +102,23 @@
 
 .press:active {
   scale: 0.96;
+}
+
+/* The main Pick button: a raised edge that sinks when pressed, so it reads as a button. */
+.press-raised {
+  box-shadow:
+    0 6px 0 var(--color-sambal-deep),
+    0 18px 30px -16px rgb(193 58 38 / 0.6);
+  transition:
+    translate 90ms ease-out,
+    box-shadow 90ms ease-out;
+}
+
+.press-raised:active:not(:disabled) {
+  translate: 0 4px;
+  box-shadow:
+    0 2px 0 var(--color-sambal-deep),
+    0 8px 16px -12px rgb(193 58 38 / 0.6);
 }
 
 /* Sheets rise into place when opened (a reply to a tap). */
@@ -176,5 +199,9 @@
   .press:active {
     transition: none;
     scale: 1;
+  }
+
+  .press-raised {
+    transition: none;
   }
 }

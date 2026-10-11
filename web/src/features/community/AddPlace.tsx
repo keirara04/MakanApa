@@ -580,7 +580,7 @@ function StepHeading({ id, title, subtitle }: { id: string; title: string; subti
 /** The one pinned action area, above the tab bar on phones. */
 function ActionBar({ hint, children }: { hint?: string; children: ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 border-t-2 border-hairline bg-cream/95 px-5 py-3 backdrop-blur md:bottom-0 md:left-60 lg:left-64">
+    <div className="fixed inset-x-0 bottom-(--tab-bar) z-10 border-t-2 border-hairline bg-cream/95 px-5 py-3 backdrop-blur md:bottom-0 md:left-60 lg:left-64">
       <div className="mx-auto flex max-w-2xl flex-col gap-2">
         {hint && <p className="text-center text-sm text-kicap-soft">{hint}</p>}
         {children}

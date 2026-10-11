@@ -230,7 +230,7 @@ function ReplyBar({ parent, onPosted }: { parent: Post; onPosted: (post: Post) =
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 border-t-2 border-hairline bg-surface/95 px-5 py-3 backdrop-blur md:bottom-0 md:left-60 lg:left-64">
+    <div className="fixed inset-x-0 bottom-(--tab-bar) z-10 border-t-2 border-hairline bg-surface/95 px-5 py-3 backdrop-blur md:bottom-0 md:left-60 lg:left-64">
       <div className="mx-auto flex max-w-3xl items-end gap-2">
         <label className="flex-1">
           <span className="sr-only">Write a reply</span>
