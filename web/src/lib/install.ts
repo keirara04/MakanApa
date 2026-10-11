@@ -45,6 +45,20 @@ export async function install(): Promise<boolean> {
   return outcome === 'accepted'
 }
 
+export type InstallPlatform = 'iphone' | 'android' | 'computer'
+
+/** Which "add to home screen" steps fit this device. iPadOS reports itself as a Mac, so touch decides. */
+export function installPlatform(userAgent = navigator.userAgent, touchPoints = navigator.maxTouchPoints): InstallPlatform {
+  if (/iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && touchPoints > 1)) return 'iphone'
+  if (/Android/.test(userAgent)) return 'android'
+  return 'computer'
+}
+
+/** True when MakanApa is already running from the home screen (or as an installed app). */
+export function isInstalled(): boolean {
+  return window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true
+}
+
 /** Online or not, kept current. */
 export function useOnline(): boolean {
   return useSyncExternalStore(
