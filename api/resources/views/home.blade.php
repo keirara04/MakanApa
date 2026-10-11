@@ -197,18 +197,21 @@
                     Tell MakanApa your mood, budget and how far you'll go. It picks one place nearby and tells you why. Not feeling it? Find another.
                 </p>
 
-                <div class="hero-in mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6 lg:justify-start" style="--i: 2">
-                    <x-marketing.app-store-badge from="hero" class="lg:-ml-3.5" />
-                    <p class="font-display text-lg font-medium text-ink/70">
-                        {{ \App\Support\WebAppEntry::forAndroid() ? 'Free, right in your browser' : 'Free on iPhone' }}
+                {{-- The ways in side by side, then one line of small print under them. --}}
+                <div class="hero-in mt-8" style="--i: 2">
+                    <div class="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3 lg:justify-start">
+                        <x-marketing.app-store-badge from="hero" class="lg:-ml-3.5" />
+                        <x-marketing.web-app-button from="hero" />
+                    </div>
+                    <p class="mt-1 font-display text-lg font-medium text-ink/70">
+                        {{ \App\Support\WebAppEntry::forAndroid() ? 'Free, right in your browser.' : 'Free on iPhone.' }}
                         {{-- Only once enough people have rated it; the same value backs the structured data. --}}
                         @if ($appRating)
-                            <span class="whitespace-nowrap">and rated ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
+                            <span class="whitespace-nowrap">Rated ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings).</span>
                         @endif
+                        <x-marketing.android-link from="hero" />
                     </p>
                 </div>
-                <x-marketing.web-app-button from="hero" class="hero-in mt-4" style="--i: 2" />
-                <x-marketing.android-link from="hero" class="hero-in mt-4" style="--i: 2" />
 
                 {{-- Scan-to-install for desktop visitors. --}}
                 <div class="hero-in mt-10 hidden items-center gap-4 lg:flex" style="--i: 3">
@@ -885,8 +888,10 @@
                         <p class="font-hand text-2xl leading-6 text-paper/90">Or scan it<br>with your iPhone.</p>
                     </div>
                 </div>
-                <p class="mt-3 font-display text-lg font-medium text-paper/85">Free on iPhone</p>
-                <x-marketing.android-link from="final" tone="paper" class="mt-2" />
+                <p class="mt-3 font-display text-lg font-medium text-paper/85">
+                    Free on iPhone.
+                    <x-marketing.android-link from="final" tone="paper" />
+                </p>
             </div>
 
             {{-- Bubu, standing on the bottom edge. --}}
