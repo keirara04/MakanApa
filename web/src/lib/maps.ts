@@ -1,5 +1,8 @@
 import type { Stored } from './storage'
 
+/** The Google Maps key; without one, Nearby and Add a place work without a map. */
+export const MAPS_KEY: string | undefined = import.meta.env.VITE_GOOGLE_MAPS_KEY || undefined
+
 export type MapsApp = NonNullable<Stored['mapsApp']>
 
 interface Place {

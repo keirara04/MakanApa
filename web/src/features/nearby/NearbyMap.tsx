@@ -3,8 +3,9 @@ import { APIProvider, Map, useMap, useMapsLibrary } from '@vis.gl/react-google-m
 import { useEffect, useRef, useState } from 'react'
 import type { NearbyPlace, Viewport } from '../../api/nearby'
 import type { Coordinates } from '../../lib/location'
+import { MAPS_KEY } from '../../lib/maps'
 
-export const MAPS_KEY: string | undefined = import.meta.env.VITE_GOOGLE_MAPS_KEY || undefined
+export { MAPS_KEY }
 const MAP_ID: string = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID'
 const MIN_ZOOM_FOR_PLACES = 14
 /** iOS: the "Search this area" pill shows once the centre has moved 35% of the last span. */
@@ -21,6 +22,10 @@ interface Props {
   focusId: number | null
   onSelect: (place: NearbyPlace) => void
   onLoadArea: (viewport: Viewport) => void
+  /** Where the "Zoom in" notice sits; lower when other controls float over the map's top. */
+  controlsTop?: string
+  /** Where My location and Search this area sit: the top corner, or the bottom one on phones. */
+  stackAt?: 'top' | 'bottom'
 }
 
 /** Google's map, required for showing Google Places results. Only rendered when a key is set. */
@@ -41,7 +46,7 @@ export function NearbyMap(props: Props) {
   )
 }
 
-function MapLayer({ user, places, matching, loadedViewport, winnerId, focusId, onSelect, onLoadArea }: Props) {
+function MapLayer({ user, places, matching, loadedViewport, winnerId, focusId, onSelect, onLoadArea, controlsTop = 'top-3', stackAt = 'top' }: Props) {
   const map = useMap()
   const markerLib = useMapsLibrary('marker')
   const clusterer = useRef<MarkerClusterer | null>(null)
@@ -142,41 +147,51 @@ function MapLayer({ user, places, matching, loadedViewport, winnerId, focusId, o
     }
   }, [map, focusId, places])
 
+  const searchable = state.moved && state.bounds !== null
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex flex-col items-center gap-2 px-3">
-      {state.zoomedOut ? (
-        <p className="rounded-full bg-kicap px-4 py-2 font-display text-sm font-semibold text-cream shadow-lift">Zoom in to see places to eat</p>
-      ) : (
-        state.moved &&
-        state.bounds && (
+    <>
+      {state.zoomedOut && (
+        <p className={`pointer-events-none absolute inset-x-0 ${controlsTop} z-10 mx-auto w-fit rounded-full bg-kicap px-4 py-2 font-display text-sm font-semibold text-cream shadow-lift`}>
+          Zoom in to see places to eat
+        </p>
+      )}
+      {/* One stack in the corner (above Google's credits at the bottom). Search this area is always there, live once the map has moved (each search can be a paid lookup). */}
+      <div
+        className={`absolute right-3 z-10 flex flex-col overflow-hidden rounded-full border border-hairline bg-surface shadow-lift ${stackAt === 'top' ? 'top-3' : 'bottom-9'}`}
+      >
+        {user && map && (
           <button
             type="button"
+            aria-label="Go to my location"
+            title="Go to my location"
             onClick={() => {
-              onLoadArea(state.bounds!)
-              setState((current) => ({ ...current, moved: false }))
+              map.panTo({ lat: user.latitude, lng: user.longitude })
+              map.setZoom(15)
             }}
-            className="press pointer-events-auto min-h-11 rounded-full bg-kicap px-5 font-display font-semibold text-cream shadow-lift"
+            className="press flex h-12 w-12 items-center justify-center border-b border-hairline text-kicap"
           >
-            Search this area
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+              <path d="M12 2 4 20l8-4 8 4z" transform="rotate(45 12 12)" />
+            </svg>
           </button>
-        )
-      )}
-      {user && map && (
+        )}
         <button
           type="button"
-          aria-label="Go to my location"
+          aria-label="Search this area"
+          title={searchable ? 'Search this area' : 'Move the map to search somewhere new'}
+          disabled={!searchable}
           onClick={() => {
-            map.panTo({ lat: user.latitude, lng: user.longitude })
-            map.setZoom(15)
+            onLoadArea(state.bounds!)
+            setState((current) => ({ ...current, moved: false }))
           }}
-          className="press pointer-events-auto absolute right-3 top-0 flex h-11 w-11 items-center justify-center rounded-full border-2 border-kicap bg-surface shadow-lift"
+          className={`press flex h-12 w-12 items-center justify-center ${searchable ? 'bg-kicap text-cream' : 'text-kicap/30'}`}
         >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-            <path d="M12 2 4 20l8-4 8 4z" transform="rotate(45 12 12)" />
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4" />
           </svg>
         </button>
-      )}
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useNavigate } from 'react-router'
 import { boxAround, centreOf, nearbyApi, type NearbyPlace, type Viewport } from '../../api/nearby'
 import { errorMessage } from '../../lib/errors'
@@ -10,6 +10,7 @@ import { useDecide } from '../decide/state'
 import { AreaPanel } from './AreaPanel'
 import { FilterRibbon } from './FilterRibbon'
 import { MAPS_KEY, NearbyMap } from './NearbyMap'
+import { NearbyPanel } from './NearbyPanel'
 import { PlaceSheet } from './PlaceSheet'
 import { SearchPanel, type SearchContext } from './SearchPanel'
 import { usePlaceLink, type PlaceOrigin } from '../notifications/useNudgeLinks'
@@ -17,10 +18,22 @@ import { useNearby } from './state'
 
 const MIN_PICK_MS = 600
 
+const PHONE = '(max-width: 767.98px)'
+const usePhone = () =>
+  useSyncExternalStore(
+    (changed) => {
+      const query = window.matchMedia(PHONE)
+      query.addEventListener('change', changed)
+      return () => query.removeEventListener('change', changed)
+    },
+    () => window.matchMedia(PHONE).matches,
+  )
+
 /**
  * Nearby: what's around, with filters, search, place details and Pick for me. With a Maps key
  * the map leads (beside the panel on wide screens, above it on phones); without one the list
- * stands on its own, loaded around where you are.
+ * stands on its own, loaded around where you are. On phones with a map it's full screen, as on
+ * iOS: the filters float over the top and the list lives in a panel dragged up from the bottom.
  */
 export function Nearby() {
   const location = useLocation()
@@ -33,6 +46,7 @@ export function Nearby() {
   const [picking, setPicking] = useState(false)
   const [winnerId, setWinnerId] = useState<number | null>(null)
   const [pickError, setPickError] = useState<string | null>(null)
+  const phone = usePhone()
 
   // Without a map, the list is loaded around the person (one Google tile's worth).
   const { load } = nearby
@@ -93,7 +107,7 @@ export function Nearby() {
   // A place link (push or shared) still opens its sheet over this.
   if (!coords && location.state.status !== 'locating' && !nearby.viewport) {
     return (
-      <section className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <section className="flex flex-1 flex-col items-center justify-center gap-4 px-5 text-center">
         <img src="/illustrations/location-map.svg" alt="" aria-hidden="true" width={140} height={140} />
         <h1 className="font-display text-3xl font-bold">Food around you</h1>
         {location.state.status === 'denied' ? (
@@ -118,7 +132,7 @@ export function Nearby() {
       type="button"
       onClick={() => setSearching(true)}
       aria-label="Search places, food, or cuisine"
-      className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-kicap bg-surface"
+      className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-hairline bg-surface shadow-sm"
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
         <circle cx="11" cy="11" r="7" />
@@ -127,8 +141,77 @@ export function Nearby() {
     </button>
   )
 
+  const banners = (
+    <>
+      {nearby.error ? (
+        <div role="alert" className="flex items-start gap-3 rounded-row bg-sambal-deep px-4 py-3 text-white">
+          <p className="flex-1">{errorMessage(nearby.error)}</p>
+          <button type="button" onClick={nearby.retry} className="min-h-11 px-2 font-display font-semibold underline">
+            Try again
+          </button>
+          <button type="button" aria-label="Dismiss" onClick={nearby.clearError} className="h-11 w-11">
+            ✕
+          </button>
+        </div>
+      ) : null}
+      {pickError && (
+        <p role="alert" className="rounded-row bg-surface px-4 py-3 text-sambal-deep shadow-lift">
+          {pickError}
+        </p>
+      )}
+    </>
+  )
+
+  if (MAPS_KEY && centre && phone) {
+    return (
+      <div className="relative flex-1 overflow-hidden">
+        {/* Ends above the collapsed panel (COLLAPSED in panelSnap.ts), so Google's logo and map credits stay visible. */}
+        <div className="absolute inset-x-0 top-0 bottom-26">
+          <NearbyMap
+            centre={centre}
+            user={coords}
+            places={nearby.places}
+            matching={matching}
+            loadedViewport={nearby.viewport}
+            winnerId={winnerId}
+            focusId={open?.place.id ?? null}
+            onSelect={(place) => openPlace(place)}
+            onLoadArea={onLoadArea}
+            controlsTop="top-[calc(max(0.75rem,env(safe-area-inset-top))+3.75rem)]"
+            stackAt="bottom"
+          />
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] [&>*]:pointer-events-auto">
+          <FilterRibbon trailing={searchButton} />
+          {banners}
+        </div>
+
+        {searching ? (
+          <div className="absolute inset-0 z-30 overflow-y-auto bg-cream px-5 pb-6 pt-[max(1rem,env(safe-area-inset-top))]">
+            <SearchPanel
+              centre={centre}
+              onClose={() => setSearching(false)}
+              onSelect={(place, context) => {
+                nearby.addPlace(place)
+                openPlace(place, context)
+              }}
+            />
+          </div>
+        ) : (
+          <NearbyPanel header={<PanelHeader onPick={() => void pick()} picking={picking} />}>
+            <AreaPanel onOpen={(place) => openPlace(place)} onPick={() => void pick()} picking={picking} inPanel />
+          </NearbyPanel>
+        )}
+
+        {sheet}
+      </div>
+    )
+  }
+
   return (
-    <div className={`flex flex-1 flex-col gap-4 ${MAPS_KEY ? 'md:grid md:grid-cols-[minmax(0,1fr)_24rem] md:gap-6' : 'mx-auto w-full max-w-3xl'}`}>
+    // With a map key the phone shell drops its padding (for the full-screen map), so this needs its own.
+    <div className={`flex flex-1 flex-col gap-4 ${MAPS_KEY ? 'max-md:px-5 max-md:pt-[max(1rem,env(safe-area-inset-top))] md:grid md:grid-cols-[minmax(0,1fr)_24rem] md:gap-6' : 'mx-auto w-full max-w-3xl'}`}>
       {MAPS_KEY && centre && (
         <div className="relative h-[45dvh] overflow-hidden rounded-card border-2 border-kicap md:sticky md:top-6 md:h-[calc(100dvh-6rem)]">
           <NearbyMap
@@ -166,18 +249,7 @@ export function Nearby() {
         ) : (
           <>
             <FilterRibbon trailing={searchButton} />
-            {nearby.error ? (
-              <div role="alert" className="flex items-start gap-3 rounded-row bg-sambal-deep px-4 py-3 text-white">
-                <p className="flex-1">{errorMessage(nearby.error)}</p>
-                <button type="button" onClick={nearby.retry} className="min-h-11 px-2 font-display font-semibold underline">
-                  Try again
-                </button>
-                <button type="button" aria-label="Dismiss" onClick={nearby.clearError} className="h-11 w-11">
-                  ✕
-                </button>
-              </div>
-            ) : null}
-            {pickError && <p role="alert" className="text-sambal-deep">{pickError}</p>}
+            {banners}
             <AreaPanel onOpen={(place) => openPlace(place)} onPick={() => void pick()} picking={picking} />
             {!nearby.summary && !nearby.loading && !nearby.error && (
               <div className="flex flex-col items-center gap-2 text-center">
@@ -189,6 +261,30 @@ export function Nearby() {
       </div>
 
       {sheet}
+    </div>
+  )
+}
+
+/** The panel's always-visible row: what's around and Pick for me, reachable at every height. */
+function PanelHeader({ onPick, picking }: { onPick: () => void; picking: boolean }) {
+  const { summary, filtered, places, loading } = useNearby()
+  const detail = loading
+    ? 'Finding places to eat…'
+    : summary
+      ? `${filtered.length} ${filtered.length === 1 ? 'place' : 'places'}, ${summary.openNowCount} open now`
+      : 'Move the map to look around'
+
+  return (
+    <div className="flex items-center gap-3 px-5 pb-4">
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-xl font-bold">Around here</p>
+        <p className="truncate text-sm text-kicap-soft" aria-live="polite">
+          {detail}
+        </p>
+      </div>
+      <Button onClick={onPick} busy={picking} disabled={picking || places.length === 0} className="min-h-12 max-w-fit shrink-0 px-5 text-lg">
+        {picking ? 'Thinking…' : 'Pick for me'}
+      </Button>
     </div>
   )
 }

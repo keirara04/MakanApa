@@ -16,7 +16,7 @@ const SORTS: [Sort, string][] = [
  * "Around here": the area summary and every place that fits the chips, with Pick for me.
  * The map sits beside it on wide screens, above it on phones (or on its own without a map key).
  */
-export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyPlace) => void; onPick: () => void; picking: boolean }) {
+export function AreaPanel({ onOpen, onPick, picking, inPanel = false }: { onOpen: (place: NearbyPlace) => void; onPick: () => void; picking: boolean; inPanel?: boolean }) {
   const { summary, filtered, places, loading, viewport } = useNearby()
   // The summary comes from the server; places hidden with "Don't suggest" leave its lists too.
   const excluded = useStored('excluded') ?? []
@@ -56,16 +56,17 @@ export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyP
   return (
     <section className="flex flex-col gap-6" aria-labelledby="around-title">
       <div>
-        <h2 id="around-title" className="font-display text-2xl font-bold">
+        {/* In the phone panel, its header already says this and holds Pick for me. */}
+        <h2 id="around-title" className={inPanel ? 'sr-only' : 'font-display text-2xl font-bold'}>
           Around here
         </h2>
-        <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <dl className={`${inPanel ? '' : 'mt-3'} grid grid-cols-3 gap-2 text-center`}>
           {[
             [summary.placeCount, 'places'],
             [summary.openNowCount, 'open now'],
             [summary.budgetFriendlyCount, 'under RM20'],
           ].map(([count, label]) => (
-            <div key={label} className="rounded-row bg-surface px-2 py-3">
+            <div key={label} className={`rounded-row px-2 py-3 ${inPanel ? 'bg-cream' : 'bg-surface'}`}>
               <dt className="sr-only">{label}</dt>
               <dd className="font-display text-2xl font-bold">{count}</dd>
               <dd aria-hidden="true" className="text-xs text-kicap-soft">
@@ -88,7 +89,7 @@ export function AreaPanel({ onOpen, onPick, picking }: { onOpen: (place: NearbyP
       {topRated.length > 0 && <PlaceList title="Top rated" places={topRated} onOpen={onOpen} numbered />}
       {communityFinds.length > 0 && <PlaceList title="Community finds" places={communityFinds} onOpen={onOpen} />}
 
-      {pickButton}
+      {!inPanel && pickButton}
 
       <div>
         <div className="flex items-center justify-between gap-2">

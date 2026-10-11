@@ -4,6 +4,7 @@ import { avatarSrc } from '../../api/account'
 import { api } from '../../api/client'
 import { useSession } from '../../auth/session'
 import { useOnline } from '../../lib/install'
+import { MAPS_KEY } from '../../lib/maps'
 import { installationId } from '../../lib/storage'
 import { AmbassadorWelcome } from '../community/Ambassador'
 import { useNudgeOpened } from '../notifications/useNudgeLinks'
@@ -25,6 +26,8 @@ export function AppShell() {
   useNudgeOpened()
   useWorkerNavigation()
   // Decide covers its whole flow (/decide, /decide/result), not just the home screen.
+  // Nearby with a map is full screen on phones, as on iOS: no top bar, no page scroll.
+  const fullBleed = pathname === '/nearby' && Boolean(MAPS_KEY)
   const active = (to: string) => (to === '/' ? pathname === '/' || pathname.startsWith('/decide') : pathname.startsWith(to))
 
   return (
@@ -55,8 +58,8 @@ export function AppShell() {
         </NavLink>
       </aside>
 
-      <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] md:hidden">
+      <div className={`flex min-h-dvh min-w-0 flex-1 flex-col ${fullBleed ? 'max-md:h-dvh max-md:overflow-hidden' : ''}`}>
+        <header className={`${fullBleed ? 'hidden' : 'flex'} items-center justify-between px-5 pb-2 pt-[max(1rem,env(safe-area-inset-top))] md:hidden`}>
           <Wordmark />
           <Link to="/settings" aria-label="Settings" className="press">
             <Avatar avatarKey={user?.avatarKey} initial={initial(user?.name)} />
@@ -65,7 +68,7 @@ export function AppShell() {
 
         <AmbassadorWelcome />
         <Offline />
-        <main className={`mx-auto flex w-full flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12 ${pathname === '/nearby' ? 'max-w-6xl' : 'max-w-3xl'}`}>
+        <main className={`mx-auto flex w-full flex-1 flex-col px-5 pb-28 md:px-10 md:pb-14 md:pt-12 ${pathname === '/nearby' ? 'max-w-6xl' : 'max-w-3xl'} ${fullBleed ? 'max-md:min-h-0 max-md:px-0 max-md:pb-(--tab-bar)' : ''}`}>
           <Suspense
             fallback={
               <p role="status" className="pt-6 text-kicap-soft">
