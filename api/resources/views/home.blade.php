@@ -206,10 +206,8 @@
                             <span class="whitespace-nowrap">and rated ★ {{ number_format($appRating['rating'], 1) }}<span class="sr-only"> out of 5,</span> ({{ number_format($appRating['count']) }} ratings)</span>
                         @endif
                     </p>
-                    @if (\App\Support\WebAppEntry::live() && ! \App\Support\WebAppEntry::forAndroid() && ! \App\Support\WebAppEntry::forApple())
-                        <a href="{{ route('marketing.web-app', ['from' => 'hero']) }}" class="font-medium text-sambal-700 underline">Or use it in your browser</a>
-                    @endif
                 </div>
+                <x-marketing.web-app-button from="hero" class="hero-in mt-4" style="--i: 2" />
 
                 {{-- Scan-to-install for desktop visitors. --}}
                 <div class="hero-in mt-10 hidden items-center gap-4 lg:flex" style="--i: 3">
@@ -879,6 +877,7 @@
 
                 <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8 lg:justify-start">
                     <x-marketing.app-store-badge from="final" class="lg:-ml-3.5" />
+                    <x-marketing.web-app-button from="final" tone="paper" />
                     <div class="hidden items-center gap-3 lg:flex">
                         <img src="{{ asset('images/qr-app-store.svg') }}" alt="QR code to download MakanApa from the App Store"
                              width="64" height="64" loading="lazy" class="h-16 w-16 rounded-lg bg-paper p-1.5">

@@ -55,11 +55,13 @@ class WebAppEntryTest extends TestCase
 
         $this->withHeader('User-Agent', self::IPHONE)->get('/')
             ->assertSee('alt="Download on the App Store"', false)
-            ->assertDontSee('Or use it in your browser');
+            ->assertDontSee('Use it in your browser');
 
         $this->withHeader('User-Agent', self::DESKTOP)->get('/')
             ->assertSee('alt="Download on the App Store"', false)
-            ->assertSee('Or use it in your browser');
+            ->assertSee('Use it in your browser')
+            ->assertSee('/go/web-app?from=hero', false)
+            ->assertSee('/go/web-app?from=final', false);
     }
 
     public function test_search_engines_index_the_app_store_page(): void
