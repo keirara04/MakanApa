@@ -41,7 +41,8 @@ return [
     // here falls back to the plain listing, so a link can't carry a made-up campaign.
     'ambassador_campuses' => [
         'uitmjasin' => 'UiTM Jasin',
-        'unimap' => 'UniMAP',
+        'uitmsgbuloh' => 'UiTM Sungai Buloh',
+        'koreauniv' => 'Korea University',
         'pennstate' => 'Penn State',
     ],
 
