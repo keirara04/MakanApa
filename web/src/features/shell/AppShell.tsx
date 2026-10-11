@@ -83,7 +83,7 @@ export function AppShell() {
 
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 flex justify-around border-t-2 border-hairline bg-surface/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
+        className="tab-bar fixed inset-x-0 bottom-0 z-20 flex justify-around border-t-2 border-hairline bg-surface/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden"
       >
         {SECTIONS.map((section) => (
           <Link
@@ -92,7 +92,10 @@ export function AppShell() {
             aria-current={active(section.to) ? 'page' : undefined}
             className={`press flex min-h-14 min-w-20 flex-col items-center justify-center gap-0.5 rounded-row font-display text-sm font-semibold ${active(section.to) ? 'text-sambal-deep' : 'text-kicap-soft'}`}
           >
-            <Icon>{section.icon}</Icon>
+            {/* Re-keyed so the icon pops once each time its tab becomes the current one. */}
+            <span key={String(active(section.to))} className={active(section.to) ? 'tab-pop' : undefined}>
+              <Icon>{section.icon}</Icon>
+            </span>
             {section.label}
           </Link>
         ))}

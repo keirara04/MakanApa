@@ -6,10 +6,12 @@ import { authApi } from '../../api/auth'
 import { useSession } from '../../auth/session'
 import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
+import { isInstalled } from '../../lib/install'
 import { getStored, setStored, type Stored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
 import { Sheet } from '../../ui/Sheet'
+import { InstallGuide } from '../install/InstallGuide'
 
 const MAPS_APPS: { value: NonNullable<Stored['mapsApp']>; label: string }[] = [
   { value: 'google', label: 'Google Maps' },
@@ -24,7 +26,8 @@ export function Settings() {
   const [halalBusy, setHalalBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mapsApp, setMapsApp] = useState(getStored('mapsApp') ?? 'google')
-  const [sheet, setSheet] = useState<'about' | 'logout' | 'delete' | null>(null)
+  const [sheet, setSheet] = useState<'about' | 'install' | 'logout' | 'delete' | null>(null)
+  const [installed] = useState(isInstalled)
   const { data: contributions } = useQuery({ queryKey: ['contributions', user?.id], queryFn: accountApi.contributions, enabled: Boolean(user && !user.isGuest) })
 
   if (!user) return null
@@ -44,23 +47,31 @@ export function Settings() {
   }
 
   return (
-    <div className="flex flex-col gap-8 pt-2 md:max-w-xl">
+    <div className="flex flex-col gap-7 pt-2 md:max-w-xl">
       <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Settings</h1>
 
       {user.isGuest ? (
-        <Link to="/sign-in" className="sketch flex items-center gap-4 px-5 py-5" style={{ ['--sketch-radius' as string]: '20px' }}>
-          <Mascot mood="wave" size={64} />
-          <span className="flex-1">
-            <span className="block font-display text-xl font-semibold">Using MakanApa as a guest</span>
-            <span className="text-sm text-kicap-soft">Sign in to add places and post. Your picks, saves and taste profile come with you.</span>
-          </span>
-          <Chevron />
-        </Link>
+        <section className="flex flex-col gap-4 rounded-card border border-hairline bg-surface p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <Mascot mood="wave" size={56} className="h-14 w-14 shrink-0" />
+            <div>
+              <h2 className="font-display text-xl font-bold">You’re using MakanApa as a guest</h2>
+              <p className="mt-1 text-sm text-kicap-soft">Sign in to add places and post. Your picks, saves and taste profile come with you.</p>
+            </div>
+          </div>
+          <Button className="min-h-12 text-lg" onClick={() => navigate('/sign-in')}>
+            Create an account or sign in
+          </Button>
+        </section>
       ) : (
-        <Link to="/settings/profile" className="sketch flex items-center gap-4 px-5 py-5" style={{ ['--sketch-radius' as string]: '20px' }} aria-label="Edit your profile">
-          <img src={avatarSrc(user.avatarKey)} alt="" width={64} height={64} className="h-16 w-16 shrink-0 rounded-full border-[3px] border-white bg-kunyit/25 object-cover" />
+        <Link
+          to="/settings/profile"
+          aria-label="Edit your profile"
+          className="press flex items-center gap-4 rounded-card border border-hairline bg-surface p-5 shadow-sm"
+        >
+          <img src={avatarSrc(user.avatarKey)} alt="" width={64} height={64} className="h-16 w-16 shrink-0 rounded-full border-[3px] border-cream bg-kunyit/25 object-cover" />
           <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="font-display text-xl font-semibold">{user.name?.trim() || 'Your profile'}</span>
+            <span className="font-display text-xl font-bold">{user.name?.trim() || 'Your profile'}</span>
             {user.email && <span className="truncate text-sm text-kicap-soft">{user.email}</span>}
             <span className="flex flex-wrap gap-1.5">
               {(user.university ?? user.area) && <Pill tone="sambal">{user.university ?? user.area}</Pill>}
@@ -74,17 +85,14 @@ export function Settings() {
       )}
 
       <Group title="Your MakanApa">
-        <NavRow to="/settings/selera" title="Your Selera" detail="What I’ve learned about your taste" />
-        <NavRow to="/settings/saved" title="Saved places" detail="Places you kept" />
-        <NavRow to="/community/mine" title="My places" detail="Places you’ve added or edited" />
+        <NavRow to="/settings/selera" icon="selera" tone="sambal" title="Your Selera" detail="What I’ve learned about your taste" />
+        <NavRow to="/settings/saved" icon="saved" tone="sambal" title="Saved places" detail="Places you kept" />
+        <NavRow to="/community/mine" icon="mine" tone="sambal" title="My places" detail="Places you’ve added or edited" />
       </Group>
 
       <Group title="Preferences">
-        <div className="flex items-center gap-4 py-4">
-          <div className="flex-1">
-            <p className="font-display text-lg font-semibold">Hide non-halal</p>
-            <p className="text-sm text-kicap-soft">Hides places known to be non-halal</p>
-          </div>
+        <div className={ROW}>
+          <RowBody icon="halal" tone="pandan" title="Hide non-halal" detail="Hides places known to be non-halal" />
           <button
             type="button"
             role="switch"
@@ -92,17 +100,19 @@ export function Settings() {
             aria-label="Hide non-halal places"
             disabled={halalBusy}
             onClick={() => void toggleHalal()}
-            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${user.halalPreference ? 'bg-pandan' : 'bg-hairline'}`}
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${user.halalPreference ? 'bg-pandan' : 'bg-kicap/15'}`}
           >
-            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] ${user.halalPreference ? 'left-7' : 'left-1'}`} />
+            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-[left] motion-reduce:transition-none ${user.halalPreference ? 'left-7' : 'left-1'}`} />
           </button>
         </div>
-        <fieldset className="py-4">
-          <legend className="font-display text-lg font-semibold">Open directions in</legend>
-          <p className="text-sm text-kicap-soft">Used by Let’s eat and Directions</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <fieldset className="flex flex-col gap-3 px-4 py-3">
+          <legend className="sr-only">Open directions in</legend>
+          <div className="flex items-center gap-3">
+            <RowBody icon="directions" tone="pandan" title="Open directions in" detail="Used by Let’s eat and Directions" />
+          </div>
+          <div className="flex gap-1 rounded-full bg-cream p-1">
             {MAPS_APPS.map((app) => (
-              <label key={app.value} className="press cursor-pointer">
+              <label key={app.value} className="press flex-auto cursor-pointer">
                 <input
                   type="radio"
                   name="mapsApp"
@@ -114,50 +124,51 @@ export function Settings() {
                   }}
                   className="peer sr-only"
                 />
-                <span className="inline-flex min-h-11 items-center rounded-full border-2 border-hairline px-4 font-display font-semibold text-kicap-soft peer-checked:border-kicap peer-checked:bg-surface peer-checked:text-kicap peer-focus-visible:outline-3 peer-focus-visible:outline-sambal">
+                <span className="flex min-h-10 items-center justify-center rounded-full px-3 text-center font-display text-sm font-semibold whitespace-nowrap text-kicap-soft peer-checked:bg-surface peer-checked:text-kicap peer-checked:shadow-sm peer-focus-visible:outline-3 peer-focus-visible:outline-sambal">
                   {app.label}
                 </span>
               </label>
             ))}
           </div>
         </fieldset>
-        <NavRow to="/settings/notifications" title="Notifications" detail="Choose what pings you" />
-        {error && <p role="alert" className="pb-3 text-sambal-deep">{error}</p>}
+        <NavRow to="/settings/notifications" icon="bell" tone="pandan" title="Notifications" detail="Choose what pings you" />
+        {error && (
+          <p role="alert" className="px-4 py-3 text-sambal-deep">
+            {error}
+          </p>
+        )}
       </Group>
 
       <Group title="Privacy and safety">
-        <NavRow to="/settings/blocked" title="Blocked people" detail="People you’ve hidden" />
-        <LinkRow href="https://trymakanapa.com/privacy" title="Privacy Policy" />
-        <LinkRow href="https://trymakanapa.com/terms" title="Terms of Use" />
-        <LinkRow href="https://trymakanapa.com/community-guidelines" title="Community Guidelines" />
+        <NavRow to="/settings/blocked" icon="blocked" tone="kicap" title="Blocked people" detail="People you’ve hidden" />
+        <LinkRow href="https://trymakanapa.com/privacy" icon="privacy" tone="kicap" title="Privacy Policy" />
+        <LinkRow href="https://trymakanapa.com/terms" icon="terms" tone="kicap" title="Terms of Use" />
+        <LinkRow href="https://trymakanapa.com/community-guidelines" icon="guidelines" tone="kicap" title="Community Guidelines" />
       </Group>
 
       <Group title="Help">
-        <ButtonRow title="What is MakanApa?" onClick={() => setSheet('about')} />
+        {!installed && <ButtonRow icon="install" tone="kunyit" title="Add to your home screen" detail="Use MakanApa like an app" onClick={() => setSheet('install')} />}
+        <ButtonRow icon="about" tone="kunyit" title="What is MakanApa?" onClick={() => setSheet('about')} />
         <ButtonRow
+          icon="replay"
+          tone="kunyit"
           title="Replay the intro"
           onClick={() => {
             setStored('onboarded', false)
             navigate('/welcome')
           }}
         />
-        <LinkRow href="https://trymakanapa.com/support" title="Help and support" />
-        <LinkRow href={`mailto:${SUPPORT_EMAIL}?subject=MakanApa%20support`} title="Contact and report a problem" detail={SUPPORT_EMAIL} />
+        <LinkRow href="https://trymakanapa.com/support" icon="help" tone="kunyit" title="Help and support" />
+        <LinkRow href={`mailto:${SUPPORT_EMAIL}?subject=MakanApa%20support`} icon="mail" tone="kunyit" title="Contact and report a problem" detail={SUPPORT_EMAIL} />
       </Group>
 
-      <div className="flex flex-col items-start gap-2">
-        {!user.isGuest && (
-          <Button variant="secondary" className="md:max-w-xs" onClick={() => setSheet('logout')}>
-            Log out
-          </Button>
-        )}
-        <button type="button" onClick={() => setSheet('delete')} className="min-h-11 text-sm font-semibold text-kicap-soft underline">
-          Delete account
-        </button>
-      </div>
+      <Group title="Account">
+        {!user.isGuest && <ButtonRow icon="logout" tone="kicap" title="Log out" onClick={() => setSheet('logout')} />}
+        <ButtonRow icon="delete" tone="sambal" title="Delete account" danger onClick={() => setSheet('delete')} />
+      </Group>
 
       <footer className="flex flex-col items-center gap-1 pb-4 text-center">
-        <Mascot mood="wave" size={72} />
+        <Mascot mood="wave" size={56} />
         <p className="font-hand text-2xl text-kicap-soft">Less thinking. More eating.</p>
         <p className="text-xs text-kicap-soft">MakanApa for the web</p>
       </footer>
@@ -166,6 +177,8 @@ export function Settings() {
         <p>MakanApa helps you decide what to eat. Tell it your mood and budget, and it picks food nearby. Less thinking, more eating.</p>
         <Button onClick={() => setSheet(null)}>Got it</Button>
       </Sheet>
+
+      <InstallGuide open={sheet === 'install'} onClose={() => setSheet(null)} />
 
       <Sheet open={sheet === 'logout'} onClose={() => setSheet(null)} title="Log out of MakanApa?">
         <p className="text-kicap-soft">Your saved places stay on this device. Sign in again to pick up where you left off.</p>
@@ -259,40 +272,161 @@ export function Chevron() {
   )
 }
 
+const ROW = 'flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left'
+
+const TONES = {
+  sambal: 'bg-sambal/12 text-sambal-deep',
+  pandan: 'bg-pandan/15 text-pandan',
+  kunyit: 'bg-kunyit/30 text-kicap',
+  kicap: 'bg-kicap/8 text-kicap',
+}
+type Tone = keyof typeof TONES
+
+/** One stroke icon per row, drawn on a 24px grid. */
+const ICONS = {
+  selera: <path d="M12 3c.6 4.6 4 8 8.6 8.6C16 12.2 12.6 15.6 12 20.2 11.4 15.6 8 12.2 3.4 11.6 8 11 11.4 7.6 12 3z" />,
+  saved: <path d="M6 4h12v17l-6-4-6 4z" />,
+  mine: (
+    <>
+      <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+      <path d="M12 6.5v6M9 9.5h6" />
+    </>
+  ),
+  halal: (
+    <>
+      <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  directions: <path d="M12 2 4 20l8-4 8 4z" transform="rotate(45 12 12)" />,
+  bell: (
+    <>
+      <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </>
+  ),
+  blocked: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m6 6 12 12" />
+    </>
+  ),
+  privacy: (
+    <>
+      <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+      <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
+    </>
+  ),
+  terms: (
+    <>
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M10 12h5M10 16h5" />
+    </>
+  ),
+  guidelines: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="17" cy="9" r="2.3" />
+      <path d="M3.5 19.5c.8-3.4 3-5.2 5.5-5.2s4.7 1.8 5.5 5.2M15.5 14.4c2.4-.2 4.2 1.3 5 4.1" />
+    </>
+  ),
+  install: (
+    <>
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
+      <path d="M12 7.5v6M9.5 11 12 13.5 14.5 11M10.5 18.5h3" />
+    </>
+  ),
+  about: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5.5M12 7.6v.1" />
+    </>
+  ),
+  replay: (
+    <>
+      <path d="M4 12a8 8 0 1 0 2.3-5.7" />
+      <path d="M4 4v4h4" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.3-1.1.9-1.1 1.6v.4M12 16.6v.1" />
+    </>
+  ),
+  mail: (
+    <>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2.5" />
+      <path d="m4.5 7 7.5 6 7.5-6" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M14 4h4.5v16H14" />
+      <path d="M10 8l-4 4 4 4M6 12h9" />
+    </>
+  ),
+  delete: (
+    <>
+      <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13" />
+    </>
+  ),
+}
+type IconName = keyof typeof ICONS
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="font-display text-base font-semibold text-kicap-soft">{title}</h2>
-      <div className="mt-2 divide-y-2 divide-hairline border-y-2 border-hairline">{children}</div>
+      <h2 className="px-1 font-display text-sm font-semibold text-kicap-soft">{title}</h2>
+      <div className="mt-2 divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface shadow-sm">{children}</div>
     </section>
   )
 }
 
-function NavRow({ to, title, detail }: { to: string; title: string; detail: string }) {
+function RowBody({ icon, tone, title, detail, danger = false }: { icon: IconName; tone: Tone; title: string; detail?: string; danger?: boolean }) {
   return (
-    <Link to={to} className="flex min-h-16 items-center gap-3 py-3">
-      <span className="flex-1">
-        <span className="block font-display text-lg font-semibold">{title}</span>
-        <span className="text-sm text-kicap-soft">{detail}</span>
+    <>
+      <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] ${TONES[tone]}`}>
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {ICONS[icon]}
+        </svg>
       </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block font-display text-base font-semibold ${danger ? 'text-sambal-deep' : ''}`}>{title}</span>
+        {detail && <span className="block text-sm [overflow-wrap:anywhere] text-kicap-soft">{detail}</span>}
+      </span>
+    </>
+  )
+}
+
+type RowProps = { icon: IconName; tone: Tone; title: string; detail?: string }
+
+function NavRow({ to, ...row }: RowProps & { to: string }) {
+  return (
+    <Link to={to} className={`${ROW} transition-colors hover:bg-cream/60 active:bg-cream motion-reduce:transition-none`}>
+      <RowBody {...row} />
       <Chevron />
     </Link>
   )
 }
 
-function LinkRow({ href, title, detail }: { href: string; title: string; detail?: string }) {
+/** Leaves the app (a website or the mail app), so it says so. */
+function LinkRow({ href, ...row }: RowProps & { href: string }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="flex min-h-13 flex-col justify-center py-3">
-      <span className="font-display text-lg font-semibold">{title}</span>
-      {detail && <span className="text-sm text-kicap-soft">{detail}</span>}
+    <a href={href} target="_blank" rel="noreferrer" className={`${ROW} transition-colors hover:bg-cream/60 active:bg-cream motion-reduce:transition-none`}>
+      <RowBody {...row} />
+      <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-kicap-soft" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M14 5h5v5M19 5l-8 8M17 14v5H5V7h5" />
+      </svg>
+      <span className="sr-only">(opens outside MakanApa)</span>
     </a>
   )
 }
 
-function ButtonRow({ title, onClick }: { title: string; onClick: () => void }) {
+function ButtonRow({ onClick, danger = false, ...row }: RowProps & { onClick: () => void; danger?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className="flex min-h-13 w-full items-center py-3 text-left font-display text-lg font-semibold">
-      {title}
+    <button type="button" onClick={onClick} className={`${ROW} transition-colors hover:bg-cream/60 active:bg-cream motion-reduce:transition-none`}>
+      <RowBody {...row} danger={danger} />
     </button>
   )
 }

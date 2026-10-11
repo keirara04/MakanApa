@@ -97,7 +97,12 @@
 
 /* Press feedback, the web version of iOS's PressCompressStyle. Motion answers taps only. */
 .press {
-  transition: scale 120ms ease-out;
+  transition:
+    scale 120ms ease-out,
+    background-color 160ms ease-out,
+    color 160ms ease-out,
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out;
 }
 
 .press:active {
@@ -119,6 +124,95 @@
   box-shadow:
     0 2px 0 var(--color-sambal-deep),
     0 8px 16px -12px rgb(193 58 38 / 0.6);
+}
+
+/* Page changes (lib/pageTransition.ts): deeper pages slide in from the right, going back slides
+   from the left, other tabs fade up. The tab bar stays put. Each answers a tap. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-nav] .tab-bar {
+    view-transition-name: tab-bar;
+  }
+
+  ::view-transition-group(tab-bar) {
+    animation: none;
+  }
+
+  ::view-transition-old(root) {
+    animation: page-out 140ms ease-in both;
+  }
+
+  ::view-transition-new(root) {
+    animation: page-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  html[data-nav='forward']::view-transition-old(root) {
+    animation-name: push-out;
+  }
+
+  html[data-nav='forward']::view-transition-new(root) {
+    animation-name: push-in;
+  }
+
+  html[data-nav='back']::view-transition-old(root) {
+    animation-name: back-out;
+  }
+
+  html[data-nav='back']::view-transition-new(root) {
+    animation-name: back-in;
+  }
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+@keyframes push-out {
+  to {
+    opacity: 0;
+    translate: -24px 0;
+  }
+}
+
+@keyframes push-in {
+  from {
+    opacity: 0;
+    translate: 32px 0;
+  }
+}
+
+@keyframes back-out {
+  to {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+@keyframes back-in {
+  from {
+    opacity: 0;
+    translate: -32px 0;
+  }
+}
+
+/* A tab's icon pops when it becomes the current tab. */
+.tab-pop {
+  display: inline-flex;
+  animation: tab-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes tab-pop {
+  from {
+    scale: 0.7;
+  }
 }
 
 /* Sheets rise into place when opened (a reply to a tap). */
@@ -188,6 +282,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sheet[open],
+  .tab-pop,
   .spoon-spin,
   .tape-in,
   .trace-line,

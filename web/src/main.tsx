@@ -16,6 +16,7 @@ import { Onboarding } from './features/onboarding/Onboarding'
 import { AppShell } from './features/shell/AppShell'
 import './index.css'
 import './lib/install'
+import { useTransitionedLocation } from './lib/pageTransition'
 import { getStored } from './lib/storage'
 import { Button } from './ui/Button'
 import { Mascot } from './ui/Mascot'
@@ -45,6 +46,8 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   const { session, retry, signOutHere } = useSession()
   const { pathname, search } = useLocation()
+  // Every page change below animates; the routes render this location, not the live one.
+  const shown = useTransitionedLocation()
 
   if (session.status === 'loading') {
     return (
@@ -85,7 +88,7 @@ function AppRoutes() {
 
   if (session.status === 'signedOut') {
     return (
-      <Routes>
+      <Routes location={shown}>
         <Route path="/welcome" element={<Onboarding />} />
         <Route path="/sign-in" element={<SignIn />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -99,7 +102,7 @@ function AppRoutes() {
   return (
     <DecideProvider>
     <NearbyProvider>
-    <Routes>
+    <Routes location={shown}>
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
