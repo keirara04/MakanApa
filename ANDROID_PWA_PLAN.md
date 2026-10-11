@@ -36,7 +36,7 @@ Not in the PWA: home-screen widgets, Live Activities, App Store billing (none ex
 | 4 | Maps | Google Maps JavaScript API with a new web key restricted to the app's domain, via `@vis.gl/react-google-maps` and `@googlemaps/markerclusterer`. Same map as iOS, and the API already returns Google place data. Watch cost (see Risks). |
 | 5 | Sign-in methods | **Decided: Google and email only** (plus guest). No Sign in with Apple on the web app. |
 | 6 | Copy | English only, and no mascot name in any user-facing text until Plus launches. Port strings from `Copy.swift` so both apps say the same thing. |
-| 7 | Production API | The iOS app still points at `api-dev`. Production must exist before the PWA is public. |
+| 7 | Production API | **Decided 2026-10-11: option A.** The current server (`api-dev`, which the App Store iOS app already uses) becomes production under the name `api.trymakanapa.com`. See section 11. |
 
 ## 3. Server work (Laravel)
 
@@ -169,7 +169,7 @@ Total: roughly **9–10 weeks** of focused work. Each phase ends with a deploy t
 | Web Push reliability on Android (battery savers, Chrome not open) | Medium | Mealtime nudges are nice-to-have; the app works without push |
 | iPhone users landing on the web app | Low | iPhone visitors keep the App Store button; web push on iOS needs install, not a target |
 | Plus billing later | Medium | App Store payments don't exist on the web. Plus on Android needs RevenueCat Web Billing (Stripe), or Play Billing once it is on Google Play. Add to SUBSCRIPTIONS_PLAN.md when Plus is confirmed |
-| Production API not provisioned | High | Phase 0 blocker |
+| Production server is one shared 4 GB box | High | Section 11: off-site backups, more memory or builds elsewhere, uptime alerts, before Android launch |
 
 ## 10. Phase 8: Google Play (plan, not started)
 
@@ -231,13 +231,34 @@ The web app goes on Google Play as a **Trusted Web Activity (TWA)**: a small And
 
 Estimate: 3–4 days of build and checks once the owner steps are done. The closed test adds 14 days of calendar time for a new personal account.
 
+## 11. Production API: option A (decided 2026-10-11)
+
+The server the iOS app already uses (Dokploy on the DigitalOcean box, `api-dev.hakeemiridza.com`, its `postgres-staging` database) is production in practice: App Store users and their posts, places and halal reports live there. It stays production and gets a proper name. There's no new server and no data migration. The web app, the next iOS release and Google Play all use the new name.
+
+**Steps (owner, with Claude's checklist when deploying):**
+
+1. **Name:** add a DNS record `api.trymakanapa.com` pointing at the box (152.42.217.68), and add that domain to the Laravel web service in Dokploy. If the certificate doesn't issue, restart Traefik (`docker restart dokploy-traefik`). Check that `https://api.trymakanapa.com/up` answers 200.
+2. **Keep the old name:** `api-dev.hakeemiridza.com` stays on the same service indefinitely, because installed iOS apps call it until people update. Drop it only once almost nobody runs an old version.
+3. **Clients:**
+   - The web build uses `VITE_API_BASE_URL=https://api.trymakanapa.com/api/v1`.
+   - The next iOS release changes `APIConfig.baseURL` to the same.
+   - The Play app wraps the web app, so it follows automatically.
+4. **Backups (before Android launch):** a daily off-site backup of the database, e.g. Dokploy's database backups to a DigitalOcean Spaces bucket or other S3 storage, kept for at least 14 days. Do one test restore into a scratch database to prove it works.
+5. **Room to breathe (before Android launch):** the box has 4 GB shared with three other projects, and image builds have crashed it before. Choose one:
+   - resize it to 8 GB
+   - move the other projects off it
+   - build the image elsewhere (e.g. GitHub Actions pushing to a registry) so the box only runs it
+6. **Uptime alerts:** a free monitor (e.g. UptimeRobot or Better Stack) on `https://api.trymakanapa.com/up` every 5 minutes, emailing you when it's down. Optionally a second one on `https://trymakanapa.com`.
+
+**Testing without staging:** changes are tested locally (as during this build: the branch's API on port 8001 with a local database and local photo storage) before they're deployed. A separate small staging server can be added later, at the latest when Plus takes real payments, or if traffic outgrows the box. That would be option B: a new production server with the data moved, and `api-dev` turned into true staging.
+
 ## On hold: owner to-dos (paused 2026-10-10, owner's call)
 
 Building continues without these; they're needed before the web app goes live.
 
 1. ~~Google Cloud web OAuth client with both origins~~ Done 2026-10-11: its own web client, in `web/.env.local` and the API's `GOOGLE_WEB_CLIENT_ID`; sign-in confirmed working locally.
 2. Deploy: set `CORS_ALLOWED_ORIGINS`, `WEB_APP_URL` and `GOOGLE_WEB_CLIENT_ID` on the API server, and `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_MAPS_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` for the web build. Deploying this branch's API runs 3 migrations and adds a composer package (web push), on the server the iOS app uses: do it with a checklist.
-3. Production API (phase 0 blocker for launch).
+3. Production API: option A chosen (section 11). Do its steps 1–6 before the web app goes public.
 4. ~~Google Maps JavaScript API key and Map ID~~ Done 2026-10-11 (in `web/.env.local`; map confirmed loading). Still worth checking: a billing alert on the Google Cloud project.
 5. Web Push: set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (`php artisan webpush:vapid --show`) and `VAPID_SUBJECT` on the API server, then check a real push on an Android phone (headless test browsers have no push service). Also turn notifications on from Samsung Internet and, if you can, a Huawei/Honor browser: subscriptions are only accepted from known push services (`WEBPUSH_SERVICE_HOSTS`), and a refused one logs `web_push.unknown_host` with the host to add.
 6. Hosting `app.trymakanapa.com` (static files from `web/dist`, every path falling back to `index.html`): send `Content-Security-Policy: frame-ancestors 'none'` and `Strict-Transport-Security` as response headers (a meta tag can't carry them; the rest of the policy ships in the page). Then set `WEB_APP_LIVE=true` on the API so the landing page starts sending Android visitors there.
