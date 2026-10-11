@@ -208,6 +208,7 @@
                     </p>
                 </div>
                 <x-marketing.web-app-button from="hero" class="hero-in mt-4" style="--i: 2" />
+                <x-marketing.android-link from="hero" class="hero-in mt-4" style="--i: 2" />
 
                 {{-- Scan-to-install for desktop visitors. --}}
                 <div class="hero-in mt-10 hidden items-center gap-4 lg:flex" style="--i: 3">
@@ -885,6 +886,7 @@
                     </div>
                 </div>
                 <p class="mt-3 font-display text-lg font-medium text-paper/85">Free on iPhone</p>
+                <x-marketing.android-link from="final" tone="paper" class="mt-2" />
             </div>
 
             {{-- Bubu, standing on the bottom edge. --}}

@@ -46,6 +46,7 @@ class WebAppEntryTest extends TestCase
             ->assertSee('/go/web-app?from=nav', false)
             ->assertSee('/go/web-app?from=hero', false)
             ->assertDontSee('alt="Download on the App Store"', false)
+            ->assertDontSee('On Android?')
             ->assertSee('Yes. On Android, MakanApa runs in Chrome');
     }
 
@@ -55,9 +56,11 @@ class WebAppEntryTest extends TestCase
 
         $this->withHeader('User-Agent', self::IPHONE)->get('/')
             ->assertSee('alt="Download on the App Store"', false)
-            ->assertDontSee('Use it in your browser');
+            ->assertDontSee('Use it in your browser')
+            ->assertSee('On Android?');
 
         $this->withHeader('User-Agent', self::DESKTOP)->get('/')
+            ->assertSee('On Android?')
             ->assertSee('alt="Download on the App Store"', false)
             ->assertSee('Use it in your browser')
             ->assertSee('/go/web-app?from=hero', false)
