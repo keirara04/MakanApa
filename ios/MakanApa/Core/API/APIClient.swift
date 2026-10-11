@@ -1,10 +1,9 @@
 import Foundation
 
 enum APIConfig {
-    // api.makanapa.app isn't provisioned yet (DNS doesn't resolve) — Release/TestFlight
-    // builds point at the dev server too until production is live, so beta testers aren't
-    // hitting a dead host.
-    static let baseURL = URL(string: "https://api-dev.hakeemiridza.com/api/v1")!
+    // Production for every build. api-dev.hakeemiridza.com is the same server and stays as an
+    // alias for installed versions from before this name existed.
+    static let baseURL = URL(string: "https://api.trymakanapa.com/api/v1")!
 }
 
 enum APIClient {
