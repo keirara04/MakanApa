@@ -5,7 +5,7 @@ import { communityApi, type CommunityTag, type Post } from '../../api/community'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
-import { priceLabel } from '../../lib/presentation'
+import { categoryLabel, priceLabel } from '../../lib/presentation'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 import { useToast } from '../../ui/Toast'
@@ -24,6 +24,11 @@ export const VIBE_LABELS: Record<CommunityTag, string> = {
 
 function titleCase(value: string): string {
   return value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+/** "Malay", "Hamburger": the place's kind, from its category or else its cuisines. */
+function kind(item: { foodCategory: string | null; cuisines: string[] }): string {
+  return categoryLabel(item.foodCategory) ?? item.cuisines.map(titleCase).join(', ')
 }
 
 /** Community: what your university or area (or everyone nearby) is eating and saying. */
@@ -74,18 +79,23 @@ export function Community() {
             type="button"
             onClick={() => setChoosing(true)}
             aria-label={`Community, ${community ?? 'Public'}. Change community`}
-            className="press inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-kicap bg-surface px-4 font-display font-semibold"
+            className="press inline-flex min-h-11 items-center gap-2 rounded-full border border-hairline bg-surface pl-4 pr-3 font-display font-semibold shadow-sm"
           >
             {community ?? (user?.affiliationType ? 'Public' : 'Not assigned')}
-            <span aria-hidden="true">▾</span>
+            <svg viewBox="0 0 24 24" className="h-4 w-4 text-kicap-soft" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </button>
           <button
             type="button"
             onClick={() => setPlusMenu(true)}
             aria-label="Add a place or see your places"
-            className="press flex h-11 w-11 items-center justify-center rounded-full bg-sambal text-2xl font-bold text-white"
+            className="press inline-flex min-h-11 items-center gap-1.5 rounded-full bg-sambal pl-3 pr-4 font-display font-semibold text-white shadow-lift"
           >
-            +
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add
           </button>
         </div>
         <div>
@@ -134,10 +144,10 @@ export function Community() {
                 <ul className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:px-0">
                   {feed.data.newInArea.map((item) => (
                     <li key={item.id} className="w-40 shrink-0">
-                      <button type="button" onClick={() => setPlaceId(item.id)} className="flex h-full w-full flex-col rounded-row border border-hairline bg-surface p-3 text-left" aria-label={`${item.name}, newly added${item.rating ? `, rated ${item.rating.toFixed(1)}` : ''}`}>
+                      <button type="button" onClick={() => setPlaceId(item.id)} className="press flex h-full w-full flex-col rounded-row border border-hairline bg-surface p-3 text-left shadow-sm" aria-label={`${item.name}, newly added${item.rating ? `, rated ${item.rating.toFixed(1)}` : ''}`}>
                         <span className="text-xs font-semibold text-pandan">New</span>
                         <span className="truncate font-semibold">{item.name}</span>
-                        <span className="truncate text-xs text-kicap-soft">{item.foodCategory ? titleCase(item.foodCategory) : item.cuisines.map(titleCase).join(', ')}</span>
+                        <span className="truncate text-xs text-kicap-soft">{kind(item)}</span>
                         <span className="mt-auto pt-2 text-xs">
                           {[item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? `${item.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
                         </span>
@@ -154,7 +164,7 @@ export function Community() {
                 action={
                   posts.posts.length > 0 || posts.hasMore ? (
                     <Link to="/community/posts" className="font-semibold text-sambal-deep">
-                      See all ›
+                      See all
                     </Link>
                   ) : null
                 }
@@ -181,18 +191,23 @@ export function Community() {
 
             {feed.data.trending.length > 0 && (
               <Section title="Trending around you">
-                <ol className="flex flex-col gap-3">
+                <ol className="divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface shadow-sm">
                   {feed.data.trending.map((item, index) => (
                     <li key={item.id}>
-                      <button type="button" onClick={() => setPlaceId(item.id)} className="flex w-full items-center gap-4 rounded-[22px] border border-hairline bg-surface p-4 text-left">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-display font-bold ${index < 3 ? 'bg-sambal text-xl text-white' : 'bg-kicap/5 text-base text-kicap-soft'}`}>{index + 1}</span>
+                      <button type="button" onClick={() => setPlaceId(item.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-cream/60 active:bg-cream motion-reduce:transition-none">
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display font-bold ${index < 3 ? 'bg-sambal text-lg text-white' : 'bg-kicap/8 text-kicap-soft'}`}
+                        >
+                          {index + 1}
+                        </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate font-display text-lg font-semibold">{item.name}</span>
-                          <span className="block truncate text-sm text-kicap-soft">{item.foodCategory ? titleCase(item.foodCategory) : item.cuisines.map(titleCase).join(', ')}</span>
-                          <span className="block text-sm">
-                            {[item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, priceLabel(item.priceLevel), item.distanceKm !== null ? `${item.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
+                          <span className="block truncate font-display text-base font-semibold">{item.name}</span>
+                          <span className="block truncate text-sm text-kicap-soft">
+                            {[kind(item), item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? `${item.distanceKm.toFixed(1)} km` : null, priceLabel(item.priceLevel)]
+                              .filter(Boolean)
+                              .join(', ')}
                           </span>
-                          <span className="mt-1 flex flex-wrap items-center gap-2 text-sm font-semibold text-sambal-deep">
+                          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-sm font-semibold text-sambal-deep">
                             {item.pickerCount} {item.pickerCount === 1 ? 'person' : 'people'} picked this
                             {item.trendingVibe && <span className="rounded-full bg-kunyit/25 px-2 py-0.5 text-xs text-kicap">{VIBE_LABELS[item.trendingVibe] ?? titleCase(item.trendingVibe)}</span>}
                           </span>
@@ -206,16 +221,16 @@ export function Community() {
             )}
 
             {feed.data.trending.length === 0 && feed.data.newInArea.length === 0 && (
-              <ActionCard title="Know a spot worth sharing?" detail="Add it so your community can find it." onClick={() => navigate('/community/add')} />
+              <ActionCard icon="add" title="Know a spot worth sharing?" detail="Add it so your community can find it." onClick={() => navigate('/community/add')} />
             )}
           </>
         )
       )}
 
       {affiliated && !user?.ambassadorOf && (
-        <ActionCard title={`Become an ambassador for ${communityLabel}`} detail="Pick the best spots for your community." onClick={() => runApply(() => setApplying(true))} />
+        <ActionCard icon="star" title={`Become an ambassador for ${communityLabel}`} detail="Pick the best spots for your community." onClick={() => runApply(() => setApplying(true))} />
       )}
-      <ActionCard title="New to Community?" detail="See how to add places, post and react." onClick={() => setGuide(true)} />
+      <ActionCard icon="help" title="New to Community?" detail="See how to add places, post and react." onClick={() => setGuide(true)} />
 
       <Composer
         open={composer !== null}
@@ -258,7 +273,7 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold">{title}</h2>
+        <h2 className="font-display text-xl font-bold">{title}</h2>
         {action}
       </div>
       {children}
@@ -266,11 +281,27 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
   )
 }
 
-export function ActionCard({ title, detail, onClick }: { title: string; detail: string; onClick: () => void }) {
+const ACTION_ICONS = {
+  add: <path d="M12 5v14M5 12h14" />,
+  star: <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.7 9.5a2.4 2.4 0 1 1 3.4 2.2c-.7.3-1.1.9-1.1 1.6v.4M12 16.6v.1" />
+    </>
+  ),
+}
+
+function ActionCard({ icon, title, detail, onClick }: { icon: keyof typeof ACTION_ICONS; title: string; detail: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="press flex min-h-14 items-center gap-3 rounded-row border border-hairline bg-surface px-4 py-3 text-left">
+    <button type="button" onClick={onClick} className="press flex min-h-14 items-center gap-3 rounded-card border border-hairline bg-surface px-4 py-3 text-left shadow-sm">
+      <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-kunyit/30 text-kicap">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {ACTION_ICONS[icon]}
+        </svg>
+      </span>
       <span className="flex-1">
-        <span className="block font-semibold">{title}</span>
+        <span className="block font-display font-semibold">{title}</span>
         <span className="text-sm text-kicap-soft">{detail}</span>
       </span>
       <Chevron />

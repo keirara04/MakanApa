@@ -89,7 +89,18 @@ function PickCard({ pick, mine, onOpen, onRemoved }: { pick: AmbassadorPickItem;
       <div className="relative overflow-hidden rounded-card border border-hairline bg-surface">
         <button type="button" onClick={onOpen} className="block w-full text-left">
           <div className="relative h-36 bg-cream">
-            {photo && <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />}
+            {photo ? (
+              <img src={photo} alt="" loading="lazy" className="h-full w-full object-cover" />
+            ) : (
+              // No photo yet: a plate mark instead of an empty box.
+              <span aria-hidden="true" className="flex h-full w-full items-center justify-center bg-kunyit/20 text-kicap/40">
+                <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="13" r="7" />
+                  <circle cx="12" cy="13" r="3.5" />
+                  <path d="M4 3v5M2.5 3v3.5a1.5 1.5 0 0 0 3 0V3M4 9.5V21M20 3c-1.4.8-2 2.6-2 4.5V11h2v10" />
+                </svg>
+              </span>
+            )}
             {!pick.photoUrl && photo && <span className="absolute bottom-2 left-2 rounded-full bg-kicap/70 px-2 py-0.5 text-xs text-white">Google Maps</span>}
           </div>
           <div className="p-3">
