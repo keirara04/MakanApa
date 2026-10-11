@@ -252,9 +252,39 @@ The server the iOS app already uses (Dokploy on the DigitalOcean box, `api-dev.h
 
 **Testing without staging:** changes are tested locally (as during this build: the branch's API on port 8001 with a local database and local photo storage) before they're deployed. A separate small staging server can be added later, at the latest when Plus takes real payments, or if traffic outgrows the box. That would be option B: a new production server with the data moved, and `api-dev` turned into true staging.
 
+## 12. Deploy order (paused 2026-10-11: web app UI work first)
+
+All three MakanApa services in Dokploy (`MakanApa Laravel API Layer`, `api-queue-worker`, `api-scheduler`) build `main` from GitHub (build path `/api`) and **redeploy automatically on every push**. So deploying this branch means merging `webapp` into `main`, and that push at once:
+- rebuilds all three services on the box
+- runs the branch's 3 migrations (`app_sessions.platform`, `push_subscriptions` and its endpoint length) on the database App Store users rely on
+
+Hence the order:
+
+1. **Backups first** (section 11, step 4): a Dokploy S3 destination (e.g. a DigitalOcean Spaces bucket), a daily backup of `postgres-staging` kept 14 days, and one test restore. As of 2026-10-11 nothing is configured: no destination, no backup schedule, no backup cron on the box.
+2. **Memory** (section 11, step 5): resize the droplet to 8 GB, or move the other projects off, or build images elsewhere. As of 2026-10-11 the box still has 3.8 GB and 2 CPUs. Three simultaneous rebuilds are what crashed it before.
+3. **Server settings in Dokploy, before merging.** Set them on all three services (one image):
+   - `CORS_ALLOWED_ORIGINS=https://app.trymakanapa.com`
+   - `WEB_APP_URL=https://app.trymakanapa.com`
+   - `GOOGLE_WEB_CLIENT_ID=<the web OAuth client id>`
+   - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`: a fresh pair for production, from `php artisan webpush:vapid --show`, run anywhere and pasted in
+   - `VAPID_SUBJECT=mailto:support@trymakanapa.com`
+   - `WEB_APP_LIVE=false`
+4. **Merge `webapp` into `main` and push** (Claude, on the owner's go):
+   - Dry run on 2026-10-11 against `origin/main` (3 new commits: Plus plan doc, iOS fixes, API fixes from the app review) **merged cleanly, with no conflicts**.
+   - Files changed on both sides (`AuthController`, `SharePlaceController`, `routes/api.php`, `GuestAuthTest`) don't overlap in behaviour. Main's `ogImage` fix should clear the 3 known failing tests.
+   - Before pushing: run the full API suite and the web checks on the merged result, and check that the deploy runs migrations.
+   - After: check `https://api.trymakanapa.com/api/v1/web-push/key` answers (404 before the deploy) and the iOS app still works.
+5. **Host the web app:**
+   - DNS: add `app.trymakanapa.com` pointing at 152.42.217.68.
+   - In Dokploy, a new application from the same repo, branch `main`, build path `/web`, built with the Dockerfile there (`web/Dockerfile`: Vite build served by nginx, with SPA fallback, caching and the frame-ancestors and HSTS headers; checked locally with docker).
+   - Build arguments: `VITE_API_BASE_URL=https://api.trymakanapa.com/api/v1`, `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_MAPS_KEY`, `VITE_GOOGLE_MAPS_MAP_ID`. Domain `app.trymakanapa.com` with HTTPS, container port 80.
+   - Because this app also builds from `main`, every later push rebuilds it too. Keep memory in mind, or turn its auto-deploy off.
+6. **On an Android phone:** sign in, pick, Nearby map, push notifications (Chrome and Samsung Internet), install from the home-screen card.
+7. **Go live:** set `WEB_APP_LIVE=true` on the API. The landing page starts sending Android visitors to the web app.
+
 ## On hold: owner to-dos (paused 2026-10-10, owner's call)
 
-Building continues without these; they're needed before the web app goes live.
+Building continues without these; they're needed before the web app goes live. The order to do them in is section 12.
 
 1. ~~Google Cloud web OAuth client with both origins~~ Done 2026-10-11: its own web client, in `web/.env.local` and the API's `GOOGLE_WEB_CLIENT_ID`; sign-in confirmed working locally.
 2. Deploy: set `CORS_ALLOWED_ORIGINS`, `WEB_APP_URL` and `GOOGLE_WEB_CLIENT_ID` on the API server, and `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`, `VITE_GOOGLE_MAPS_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` for the web build. Deploying this branch's API runs 3 migrations and adds a composer package (web push), on the server the iOS app uses: do it with a checklist.
