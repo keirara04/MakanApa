@@ -957,10 +957,12 @@ class PlacesService
      * almost every legitimately-matched restaurant (this was caught by PlacesServiceCravingTest
      * failing on a plain 'hamburger_restaurant' candidate).
      *
-     * Instead this only excludes what the leak bug actually was: a place typed as one of
-     * CAFE_EXTRA_TYPES (cafe/coffee_shop/bakery) showing up in a mode that never asked for those
-     * types. A row with no recorded google_types (synced before that column existed) is always
-     * treated as compatible.
+     * Instead this only excludes what the leak bug actually was: a pure cafe/coffee_shop/bakery
+     * (CAFE_EXTRA_TYPES with no restaurant type alongside) showing up in a mode that never asked
+     * for those types. A place Google also types as a restaurant (`restaurant`, any
+     * `*_restaurant`, or another BASE_TYPES entry) stays: plenty of real restaurants, Korean
+     * ones especially, carry `cafe` too. A row with no recorded google_types (synced before that
+     * column existed) is always treated as compatible.
      */
     private function readGoogleRestaurantsNear(float $latitude, float $longitude, float $radiusKm, array $includedTypes): array
     {
@@ -973,10 +975,18 @@ class PlacesService
             ) <= $radiusKm)
             ->filter(fn (Restaurant $restaurant) => $modeAllowsCafeLeaning
                 || empty($restaurant->google_types)
-                || empty(array_intersect($restaurant->google_types, self::CAFE_EXTRA_TYPES)))
+                || ! self::isPureCafe($restaurant->google_types))
             ->map(fn (Restaurant $restaurant) => $restaurant->toRecommendationArray())
             ->values()
             ->all();
+    }
+
+    /** Typed cafe/coffee_shop/bakery with nothing that also makes it a restaurant. */
+    private static function isPureCafe(array $types): bool
+    {
+        $restaurantLike = array_filter($types, fn (string $type) => in_array($type, self::BASE_TYPES, true) || str_ends_with($type, '_restaurant'));
+
+        return ! empty(array_intersect($types, self::CAFE_EXTRA_TYPES)) && empty($restaurantLike);
     }
 
     /**

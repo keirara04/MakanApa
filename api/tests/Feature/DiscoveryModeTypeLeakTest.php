@@ -96,6 +96,29 @@ class DiscoveryModeTypeLeakTest extends TestCase
         $this->assertTrue($names->contains('Best Burger In Town'));
     }
 
+    public function test_a_restaurant_also_typed_cafe_stays_visible_in_normal_mode(): void
+    {
+        // Many real restaurants (Korean ones especially) carry `cafe` alongside a restaurant type;
+        // only a pure cafe/coffee_shop/bakery is left to Cafe mode.
+        config(['services.places.provider' => 'google', 'services.places.google_api_key' => 'fake-key']);
+
+        Http::fake([
+            '*searchNearby*' => Http::response(['places' => [
+                $this->place('k1', 'Hanok Kitchen', ['korean_restaurant', 'cafe']),
+                $this->place('k2', 'Brunch House', ['cafe', 'restaurant']),
+                $this->place('c1', 'Quiet Corner Cafe', ['cafe', 'coffee_shop']),
+            ]]),
+            '*searchText*' => Http::response(['places' => []]),
+        ]);
+
+        $response = $this->getJson('/api/v1/places/nearby?'.http_build_query(self::BOX))->assertOk();
+        $names = collect($response->json('places'))->pluck('name');
+
+        $this->assertTrue($names->contains('Hanok Kitchen'));
+        $this->assertTrue($names->contains('Brunch House'));
+        $this->assertFalse($names->contains('Quiet Corner Cafe'));
+    }
+
     public function test_legacy_restaurant_with_no_recorded_google_types_stays_visible(): void
     {
         config(['services.places.provider' => 'google', 'services.places.google_api_key' => 'fake-key']);
