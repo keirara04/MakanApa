@@ -33,6 +33,15 @@ class PlaceNormalizerTest extends TestCase
         $this->assertSame([], $result['cuisines']);
     }
 
+    public function test_kebab_shop_names_read_as_middle_eastern(): void
+    {
+        $normalizer = new PlaceNormalizer;
+
+        $this->assertSame(['middle_eastern'], $normalizer->normalize(collect([$this->makePlace(['restaurant'], 'Smash Falafel')]))->first()['cuisines']);
+        $this->assertSame(['middle_eastern'], $normalizer->normalize(collect([$this->makePlace(['turkish_restaurant'], 'Istanbul Kebab House')]))->first()['cuisines']);
+        $this->assertSame([], $normalizer->normalize(collect([$this->makePlace(['restaurant'], 'Gyrocopter Diner')]))->first()['cuisines']);
+    }
+
     public function test_specificity_order_wins_over_types_array_order(): void
     {
         // fast_food_restaurant appears first in $types, but hamburger_restaurant is more

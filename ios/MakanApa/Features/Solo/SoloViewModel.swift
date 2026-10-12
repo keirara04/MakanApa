@@ -44,7 +44,7 @@ final class SoloViewModel {
     /// A live Kakao Map pick (Korea) in place of `currentPick`. Shown, never stored.
     private(set) var kakaoPick: RecommendationResponse.KakaoPick?
     private(set) var apiError: APIError?
-    /// "No Indian places nearby, so here's something else." when an abroad cuisine mood found nothing.
+    /// "Nothing Indian nearby fits right now, …" when an abroad cuisine mood found nothing that fits.
     private(set) var moodMissNote: String?
     private(set) var isEmptyResult = false
     /// Set when Tune ran out of better options in the stored pool — the UI offers to search wider.

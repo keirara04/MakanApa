@@ -74,6 +74,8 @@ class PlaceNormalizer
         'fast_food_restaurant' => 'fast_food',
     ];
 
+    private const MIDDLE_EASTERN_NAME = '/\b(kebabs?|kebap|doner|döner|shawarma|falafel|gyros?|halal guys)\b/iu';
+
     /**
      * @param  Collection<int, ProviderPlace>  $places
      * @return Collection<int, array<string, mixed>> normalized, unpersisted restaurant data
@@ -93,6 +95,11 @@ class PlaceNormalizer
                 $cuisines = array_merge($cuisines, self::TYPE_MAP[$type]['cuisines']);
                 $tags = array_merge($tags, self::TYPE_MAP[$type]['tags']);
             }
+        }
+
+        // Kebab shops abroad are often typed only "restaurant"; the name says what they serve.
+        if (preg_match(self::MIDDLE_EASTERN_NAME, $place->name) === 1) {
+            $cuisines[] = 'middle_eastern';
         }
 
         $foodCategory = $this->foodCategoryFor($place->types);

@@ -149,10 +149,10 @@ const MOOD_CUISINES: Record<string, string> = {
   pizza: 'pizza',
 }
 
-/** "No Indian places nearby, so here's something else." when an abroad cuisine mood found nothing. */
+/** "Nothing Indian nearby fits right now, …" when an abroad cuisine mood found nothing open that fits. */
 export function moodMissNote(match: Decision['moodMatch']): string | null {
   const cuisine = match && !match.matched ? MOOD_CUISINES[match.mood] : undefined
-  return cuisine ? `No ${cuisine} places nearby, so here’s something else.` : null
+  return cuisine ? `Nothing ${cuisine} nearby fits right now, so here’s something else.` : null
 }
 
 export type Lens = 'cheap_today' | 'treat_myself' | 'quick_one' | 'surprise_me' | 'community_favs'
