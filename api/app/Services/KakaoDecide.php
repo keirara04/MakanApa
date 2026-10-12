@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Decision;
 use App\Services\Craving\CravingIntent;
 use App\Services\Places\KakaoLocalSearch;
+use App\Support\MoodSearch;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -21,31 +22,23 @@ class KakaoDecide
     public function __construct(private readonly RecommendationService $recommendations) {}
 
     /**
-     * Kakao keyword for the Korea mood chips (KakaoLocalSearch translates them). Moods without
-     * one (korean, healthy, quick) keep the plain restaurant category search.
+     * Kakao keyword for a Korea mood chip (KakaoLocalSearch translates it). Moods without one
+     * (korean, healthy, quick) keep the plain restaurant category search.
+     *
+     * @param  string[]  $moods
      */
-    private const MOOD_QUERIES = [
-        'middle_eastern' => 'kebab',
-        'indian' => 'indian',
-        'malay' => 'malaysian',
-        'chicken' => 'fried chicken',
-        'burger' => 'burger',
-        'thai' => 'thai',
-    ];
-
-    /** @param  string[]  $moods */
     private static function moodQuery(array $moods): ?string
     {
         foreach ($moods as $mood) {
-            if (isset(self::MOOD_QUERIES[$mood])) {
-                return self::MOOD_QUERIES[$mood];
+            if (($query = MoodSearch::MOODS[$mood]['kakao'] ?? null) !== null) {
+                return $query;
             }
         }
 
         return null;
     }
 
-    /** Kakao takes over when fewer than `services.kakao.decide_min_pool` places qualify, or none match the craving. */
+    /** Kakao takes over when fewer than `services.kakao.decide_min_pool` places qualify, or none match the craving or cuisine mood. */
     public function wanted(array $restaurants, array $preference, ?CravingIntent $craving): bool
     {
         $eligible = $this->recommendations->eligibleRestaurants($restaurants, $preference);
@@ -54,7 +47,9 @@ class KakaoDecide
             return true;
         }
 
-        return ($this->recommendations->cravingMatchStatus($eligible, $craving)['matched'] ?? true) === false;
+        return ($this->recommendations->cravingMatchStatus($eligible, $craving)['matched'] ?? true) === false
+            || (self::moodQuery($preference['moodTags'] ?? []) !== null
+                && ($this->recommendations->moodMatchStatus($eligible, $preference['moodTags'])['matched'] ?? true) === false);
     }
 
     /**

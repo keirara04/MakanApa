@@ -21,6 +21,7 @@ use App\Support\FoodTaxonomy;
 use App\Support\Halal\HalalEligibility;
 use App\Support\Halal\HalalHeuristic;
 use App\Support\Halal\HalalStatus;
+use App\Support\MoodSearch;
 use App\Support\OpeningHours;
 use App\Support\Vibe;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,9 +117,14 @@ class PlacesService
     /**
      * @return array<int, array<string, mixed>> normalized restaurant arrays, shaped for RecommendationService
      */
+    /**
+     * @param  string[]  $moods  Decide's mood chips; an abroad cuisine mood with no match nearby
+     *                           triggers one Google Text Search for it (MoodSearch); with
+     *                           $halalOnly, a known non-halal match doesn't count
+     */
     public function nearbyRestaurants(
         float $latitude, float $longitude, float $radiusKm,
-        ?CravingIntent $craving = null, ?DiscoveryMode $mode = null, ?Vibe $vibe = null,
+        ?CravingIntent $craving = null, ?DiscoveryMode $mode = null, ?Vibe $vibe = null, array $moods = [], bool $halalOnly = false,
     ): array {
         $provider = Config::get('services.places.provider', 'fixture');
 
@@ -197,6 +203,23 @@ class PlacesService
             $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes),
             $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
         );
+
+        // A cuisine mood abroad ("Indian") with nothing matching in the area pool: the 20-per-tile
+        // Nearby Search ranks by prominence and can miss a whole cuisine, so ask Google for it
+        // once. Found places are stored, so the next request matches without another call.
+        $mood = $craving === null ? MoodSearch::first($moods) : null;
+        if ($mood !== null && ! MoodSearch::anyMatches(HalalEligibility::filter($restaurants, $halalOnly), $mood)) {
+            $search = MoodSearch::MOODS[$mood];
+            $found = $this->syncTextSearchLanes($latitude, $longitude, $radiusKm, $apiKey, [[
+                'kind' => 'mood', 'query' => $search['google'], 'discriminator' => 'mood:'.$mood, 'includedType' => $search['googleType'],
+            ]]);
+            if ($found > 0) {
+                $restaurants = array_merge(
+                    $this->readGoogleRestaurantsNear($latitude, $longitude, $radiusKm, $includedTypes),
+                    $this->readUserSubmittedRestaurantsNear($latitude, $longitude, $radiusKm)
+                );
+            }
+        }
 
         // Failed tiles fall back to whatever is already stored there; only an area with nothing
         // to show at all surfaces Google's error.
@@ -869,12 +892,14 @@ class PlacesService
         foreach ($misses as $index => $lane) {
             $result = $results[$index];
             if ($result instanceof Throwable) {
-                Log::warning($lane['kind'] === 'craving'
-                    ? 'Craving text search failed, continuing with nearby-only results'
-                    : 'Discovery text search failed, continuing without it', [
-                        'error' => $result->getMessage(),
-                        'query' => $lane['query'],
-                    ]);
+                Log::warning(match ($lane['kind']) {
+                    'craving' => 'Craving text search failed, continuing with nearby-only results',
+                    'mood' => 'Mood text search failed, continuing with nearby-only results',
+                    default => 'Discovery text search failed, continuing without it',
+                }, [
+                    'error' => $result->getMessage(),
+                    'query' => $lane['query'],
+                ]);
 
                 continue;
             }

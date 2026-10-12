@@ -66,7 +66,7 @@ class RecommendationController extends Controller
 
         try {
             $restaurants = $this->placesService->nearbyRestaurants(
-                $data['latitude'], $data['longitude'], $data['maxDistanceKm'], $cravingIntent, $mode, $vibe
+                $data['latitude'], $data['longitude'], $data['maxDistanceKm'], $cravingIntent, $mode, $vibe, $data['moods'] ?? [], $halalOnly
             );
         } catch (RequestException $e) {
             Log::error('Places provider request failed', ['error' => $e->getMessage()]);
@@ -168,6 +168,7 @@ class RecommendationController extends Controller
                 ? $this->presentCandidate($result['pick'], $this->enrichWinner($result['pick']['restaurant']))
                 : null,
             'craving' => $result['craving'],
+            'moodMatch' => $this->moodMatch($restaurants, $preference),
         ];
 
         if (config('recommendation.debug')) {
@@ -175,6 +176,14 @@ class RecommendationController extends Controller
         }
 
         return response()->json($response);
+    }
+
+    /** Additive: older clients ignore it. Null unless an abroad cuisine mood was picked. */
+    private function moodMatch(array $restaurants, array $preference): ?array
+    {
+        return $this->recommendationService->moodMatchStatus(
+            $this->recommendationService->eligibleRestaurants($restaurants, $preference), $preference['moodTags']
+        );
     }
 
     /**
@@ -206,6 +215,7 @@ class RecommendationController extends Controller
                 ...$this->brainPayload($decision, $result['winnerRow'], withTrace: true),
             ] : null,
             'craving' => $result['craving'],
+            'moodMatch' => $this->moodMatch($restaurants, $preference),
         ];
 
         if (config('recommendation.debug')) {

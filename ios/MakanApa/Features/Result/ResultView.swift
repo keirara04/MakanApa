@@ -345,6 +345,13 @@ struct ResultView: View {
             .font(.footnote.weight(.semibold))
             .reveal(revealed, delay: 0.05)
 
+            if let note = viewModel.moodMissNote {
+                Label(note, systemImage: "info.circle")
+                    .font(.footnote)
+                    .foregroundStyle(Color.kicapSecondary)
+                    .reveal(revealed, delay: 0.05)
+            }
+
             Text(pick.name)
                 .font(.title.weight(.bold))
                 .foregroundStyle(Color.kicap)
@@ -849,7 +856,7 @@ struct ResultView: View {
                     .font(.makanDisplay(24))
                     .foregroundStyle(Color.kicap)
                     .multilineTextAlignment(.center)
-                Text("Nothing matched within \(viewModel.maxDistanceKm.formatted()) km. Go a bit further, or loosen the filters.")
+                Text("Nothing matched within \(Region.current.radius(viewModel.maxDistanceKm)). Go a bit further, or loosen the filters.")
                     .font(.makanBody(14))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

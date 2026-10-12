@@ -476,7 +476,8 @@ struct SettingsView: View {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 set(newValue)
                 debugLocationTick += 1
-                if case .authorized = locationService.state {
+                // Also from .unavailable (no simulator GPS), so the test location lands right away.
+                if locationService.authorization == .authorizedWhenInUse || locationService.authorization == .authorizedAlways {
                     locationService.requestLocation()
                 }
             }

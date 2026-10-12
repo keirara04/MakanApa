@@ -729,6 +729,13 @@ struct RecommendationResponse: Decodable, Equatable {
     /// Set instead of `recommendation` for a Kakao pick.
     let kakaoPick: KakaoPick?
     let craving: CravingMatch?
+    /// Abroad cuisine moods only: whether anything nearby matched. Missing on older backends.
+    let moodMatch: MoodMatch?
+
+    struct MoodMatch: Decodable, Equatable {
+        let mood: String
+        let matched: Bool
+    }
 }
 
 struct RerollResponse: Decodable {

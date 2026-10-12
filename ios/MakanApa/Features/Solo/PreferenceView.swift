@@ -11,6 +11,8 @@ struct PreferenceView: View {
     @State private var isThinking = false
     @State private var goingForward = true
     @State private var thinkingTask: Task<Void, Never>?
+    /// "Find my food" tapped before a location fix: the pick starts as soon as one lands.
+    @State private var awaitingFix = false
 
     private let totalSteps = 3
 
@@ -65,6 +67,18 @@ struct PreferenceView: View {
         .sensoryFeedback(.selection, trigger: viewModel.maxDistanceKm)
         .background(Color.nasiCream)
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: locationService.state) { _, state in
+            guard awaitingFix else { return }
+            switch state {
+            case .authorized:
+                startThinking()
+            case .denied:
+                awaitingFix = false
+                router.push(.locationPermission)
+            case .notDetermined, .unavailable:
+                break
+            }
+        }
         .onDisappear {
             // A swipe-back mid-request doesn't tear down this view's plain `Task {}` on its
             // own — without cancelling here, a slow Google response resolves after the user
@@ -276,7 +290,18 @@ struct PreferenceView: View {
     private static let minimumThinkingDuration: Duration = .milliseconds(700)
 
     private func startThinking() {
-        guard case let .authorized(coordinate) = locationService.state else { return }
+        guard case let .authorized(coordinate) = locationService.state else {
+            // Same as Home's quick pick: wait for a fix when location is allowed, otherwise
+            // explain why it's needed. Returning silently left the button doing nothing.
+            if locationService.authorization == .authorizedWhenInUse || locationService.authorization == .authorizedAlways {
+                awaitingFix = true
+                locationService.requestLocation()
+            } else {
+                router.push(.locationPermission)
+            }
+            return
+        }
+        awaitingFix = false
 
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         viewModel.rememberChoices()

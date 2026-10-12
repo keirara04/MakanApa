@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
-import { decideApi } from '../../api/decide'
+import { decideApi, moodMissNote } from '../../api/decide'
 import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
 import { detailsLine, kmLabel, withinLabel } from '../../lib/presentation'
@@ -151,6 +151,7 @@ function NoResult() {
 
 function PickView() {
   const { decision, pick, asked, skipped, tunesUsed, widen, fresh, request, tune, choose, reroll, accept, decide, notice } = useDecide()
+  const missNote = moodMissNote(decision?.moodMatch)
   const trace = fresh ? (pick?.thinkingTrace ?? []) : []
   const [tracing, setTracing] = useState(trace.length > 0)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
@@ -206,6 +207,7 @@ function PickView() {
             {pick.fatigue ? 'Okay, enough choosing' : 'Picked for you'}
             {pick.fit && <span className="text-kicap-soft">, {FIT[pick.fit].toLowerCase()}</span>}
           </p>
+          {missNote && <p className="mt-1 text-sm text-kicap-soft">{missNote}</p>}
           <div className="mt-1 flex items-start gap-3">
             <h1 className="flex-1 font-display text-4xl font-bold leading-tight tracking-tight">{pick.name}</h1>
             <SaveButton pick={pick} />

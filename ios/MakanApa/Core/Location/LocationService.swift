@@ -114,13 +114,19 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let coordinate = locations.last?.coordinate else { return }
         Task { @MainActor in
-            self.state = .authorized(coordinate)
+            // A real fix that was already in flight must not replace a DEBUG test location.
+            self.state = .authorized(self.debugOverrideCoordinate() ?? coordinate)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
-            self.state = .unavailable
+            // Same for a real GPS failure (the simulator often has no fix at all).
+            if let override = self.debugOverrideCoordinate() {
+                self.state = .authorized(override)
+            } else {
+                self.state = .unavailable
+            }
         }
     }
 }

@@ -8,6 +8,7 @@ use App\Services\Craving\CravingIntent;
 use App\Support\FoodTaxonomy;
 use App\Support\Halal\HalalEligibility;
 use App\Support\Halal\HalalStatus;
+use App\Support\MoodSearch;
 use App\Support\ScoreWeights;
 use App\Support\Vibe;
 
@@ -396,9 +397,7 @@ class RecommendationService
             // Moods match tags, cuisines or the food category: the Malaysian chips are dish tags,
             // the abroad ones (indian, middle_eastern, burger, …) are cuisines and categories.
             // The two vocabularies don't overlap, so Malaysian mood scores are unchanged.
-            $components['mood'] = self::tagMatchComponent($moodTags, [
-                ...($restaurant['tags'] ?? []), ...($restaurant['cuisines'] ?? []), ...array_filter([$restaurant['food_category'] ?? null]),
-            ]);
+            $components['mood'] = self::tagMatchComponent($moodTags, MoodSearch::vocabulary($restaurant));
             $activeWeights[] = [$weights['mood'], $components['mood']];
             $relevanceTier = self::tierFromMoodFraction($components['mood']);
         } elseif ($hasCraving) {
@@ -729,14 +728,49 @@ class RecommendationService
     /**
      * @param  array<int, array<string, mixed>>  $restaurants
      */
+    /**
+     * @param  array<int, array{relevanceTier: int}>  $candidates  sorted tier-then-score
+     * @return array<int, array{relevanceTier: int}>
+     */
+    private static function topTier(array $candidates): array
+    {
+        if ($candidates === []) {
+            return [];
+        }
+        $tier = max(array_column($candidates, 'relevanceTier'));
+
+        return array_values(array_filter($candidates, fn (array $candidate) => $candidate['relevanceTier'] === $tier));
+    }
+
     public function recommend(array $restaurants, array $preference): array
     {
         $candidates = $this->topCandidates($restaurants, $preference);
 
         return [
             'candidates' => $candidates,
-            'pick' => $this->pick($candidates),
+            // Only among the best-matching tier, as the Brain's ExplorationPolicy does: with one
+            // Indian place and four others, "Indian" must not pick the others 40–60% of the time.
+            'pick' => $this->pick(self::topTier($candidates)),
             'craving' => $this->cravingMatchStatus($candidates, $preference['cravingIntent'] ?? null),
+        ];
+    }
+
+    /**
+     * Whether an abroad cuisine mood ("indian") matched anything that qualifies, so the result can
+     * say "no Indian places nearby" instead of passing off an unrelated pick. Null for Malaysia's
+     * dish moods and no mood.
+     *
+     * @param  array<int, array{restaurant: array<string, mixed>}>  $candidates
+     * @param  string[]  $moods
+     * @return array{mood: string, matched: bool}|null
+     */
+    public function moodMatchStatus(array $candidates, array $moods): ?array
+    {
+        $mood = MoodSearch::first($moods);
+
+        return $mood === null ? null : [
+            'mood' => $mood,
+            'matched' => MoodSearch::anyMatches(array_column($candidates, 'restaurant'), $mood),
         ];
     }
 

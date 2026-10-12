@@ -134,6 +134,21 @@ enum Copy {
     static let moodKoreanSubtext = "Rice bowls, stews, noodles"
     static let moodBurgerSubtext = "Quick and filling"
     static let moodPizzaSubtext = "By the slice or the pie"
+    /// Shown on the result when an abroad cuisine mood matched nothing nearby.
+    static func moodMissNote(tag: String) -> String? {
+        let cuisine: String? = switch tag {
+        case "middle_eastern": "Middle Eastern"
+        case "indian": "Indian"
+        case "malay": "Malaysian or Indonesian"
+        case "chicken": "fried chicken"
+        case "korean": "Korean"
+        case "burger": "burger"
+        case "pizza": "pizza"
+        default: nil
+        }
+        return cuisine.map { "No \($0) places nearby, so here's something else." }
+    }
+
     static let moodCustomCravingPlaceholder = "Tell me what you're craving..."
 
     static let thinking = "Thinking so you don't have to..."

@@ -330,7 +330,8 @@ struct SearchResultRow: View {
         .padding(bare ? 0 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(bare ? Color.clear : Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        // Bare rows have no padding, so a rounded clip would shave the corner text ("Closed").
+        .clipShape(RoundedRectangle(cornerRadius: bare ? 0 : 14))
         .shadow(color: .black.opacity(bare ? 0 : 0.06), radius: 4, y: 2)
         .accessibilityElement(children: .combine)
     }

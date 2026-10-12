@@ -135,6 +135,24 @@ export interface Decision {
   recommendation: Recommendation | null
   /** Set instead of `recommendation` for a Kakao pick. */
   kakaoPick?: KakaoPick | null
+  /** Abroad cuisine moods only: whether anything nearby matched. Missing on older backends. */
+  moodMatch?: { mood: string; matched: boolean } | null
+}
+
+const MOOD_CUISINES: Record<string, string> = {
+  middle_eastern: 'Middle Eastern',
+  indian: 'Indian',
+  malay: 'Malaysian or Indonesian',
+  chicken: 'fried chicken',
+  korean: 'Korean',
+  burger: 'burger',
+  pizza: 'pizza',
+}
+
+/** "No Indian places nearby, so here's something else." when an abroad cuisine mood found nothing. */
+export function moodMissNote(match: Decision['moodMatch']): string | null {
+  const cuisine = match && !match.matched ? MOOD_CUISINES[match.mood] : undefined
+  return cuisine ? `No ${cuisine} places nearby, so here’s something else.` : null
 }
 
 export type Lens = 'cheap_today' | 'treat_myself' | 'quick_one' | 'surprise_me' | 'community_favs'
