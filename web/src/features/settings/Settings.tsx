@@ -154,10 +154,9 @@ export function Settings() {
           icon="replay"
           tone="kunyit"
           title="Replay the intro"
-          onClick={() => {
-            setStored('onboarded', false)
-            navigate('/welcome')
-          }}
+          // Only a replay: the onboarded flag stays as is (it decides where a signed-out visit lands),
+          // and finishing or closing it comes back here.
+          onClick={() => navigate('/welcome', { state: { from: '/settings' } })}
         />
         <LinkRow href="https://trymakanapa.com/support" icon="help" tone="kunyit" title="Help and support" />
         <LinkRow href={`mailto:${SUPPORT_EMAIL}?subject=MakanApa%20support`} icon="mail" tone="kunyit" title="Contact and report a problem" detail={SUPPORT_EMAIL} />

@@ -19,6 +19,9 @@ export function Onboarding() {
   const navigate = useNavigate()
   // A link opened before onboarding (a shared place, a post) is where onboarding ends.
   const from = (useRouterLocation().state as { from?: string } | null)?.from
+  // Signed in already: "Replay the intro" from Settings. It can be closed, and has no sign-in.
+  const replay = useSession().user !== null
+  const close = () => navigate(from ?? '/', { replace: true })
 
   const index = STEPS.indexOf(step)
 
@@ -39,9 +42,18 @@ export function Onboarding() {
             <li key={item} className={`h-2 rounded-full transition-[width] ${item === step ? 'w-6 bg-kicap' : 'w-2 bg-hairline'}`} />
           ))}
         </ol>
+        {replay ? (
+          <button type="button" onClick={close} aria-label="Close the intro" className="press -mr-2 flex h-11 w-11 items-center justify-center justify-self-end rounded-full text-kicap">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        ) : (
+          <span />
+        )}
       </div>
 
-      {step === 'hello' && <Hello onNext={() => setStep('location')} onSignIn={() => navigate('/sign-in', { state: { from } })} />}
+      {step === 'hello' && <Hello onNext={() => setStep('location')} onSignIn={replay ? undefined : () => navigate('/sign-in', { state: { from } })} />}
       {step === 'location' && <Location onNext={() => setStep('halal')} />}
       {step === 'halal' && <Halal onDone={() => navigate(from ?? '/', { replace: true })} />}
     </Screen>
@@ -59,7 +71,7 @@ const EXAMPLE: Record<Region, [dish: string, line: string]> = {
 const title = 'font-display text-4xl font-bold leading-[1.08] tracking-tight md:text-5xl'
 const lead = 'mt-4 text-lg leading-relaxed text-kicap-soft'
 
-function Hello({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
+function Hello({ onNext, onSignIn }: { onNext: () => void; onSignIn?: () => void }) {
   const region = useRegion()
   const [dish, line] = EXAMPLE[region]
   return (
@@ -70,9 +82,11 @@ function Hello({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void 
           <Button onClick={onNext} className="md:max-w-xs">
             Get started
           </Button>
-          <Button variant="quiet" onClick={onSignIn} className="md:-ml-3">
-            I already have an account
-          </Button>
+          {onSignIn && (
+            <Button variant="quiet" onClick={onSignIn} className="md:-ml-3">
+              I already have an account
+            </Button>
+          )}
         </div>
       }
     >
