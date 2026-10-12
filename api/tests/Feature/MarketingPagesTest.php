@@ -186,17 +186,18 @@ class MarketingPagesTest extends TestCase
         $this->getJson('/up')->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
-    public function test_home_describes_the_app_and_faq_as_structured_data(): void
+    public function test_home_describes_the_site_app_and_faq_as_structured_data(): void
     {
         preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $this->get('/')->getContent(), $match);
 
         $data = json_decode($match[1] ?? '', true);
-        $this->assertSame(['MobileApplication', 'FAQPage'], array_column($data, '@type'));
-        $this->assertSame(config('marketing.app_download_url'), $data[0]['downloadUrl']);
-        $this->assertSame('Is it free?', $data[1]['mainEntity'][1]['name']);
+        $this->assertSame(['WebSite', 'MobileApplication', 'FAQPage'], array_column($data, '@type'));
+        $this->assertSame('MakanApa', $data[0]['name']);
+        $this->assertSame(config('marketing.app_download_url'), $data[1]['downloadUrl']);
+        $this->assertSame('Is it free?', $data[2]['mainEntity'][1]['name']);
         // No markup leaks into the text.
-        $this->assertStringContainsString('Found a bug? Let us know.', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
-        $this->assertStringNotContainsString('<', $data[1]['mainEntity'][0]['acceptedAnswer']['text']);
+        $this->assertStringContainsString('Found a bug? Let us know.', $data[2]['mainEntity'][0]['acceptedAnswer']['text']);
+        $this->assertStringNotContainsString('<', $data[2]['mainEntity'][0]['acceptedAnswer']['text']);
     }
 
     public function test_missing_pages_get_the_sketchbook_404_but_api_404s_stay_json(): void

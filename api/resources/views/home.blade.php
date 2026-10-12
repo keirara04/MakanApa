@@ -186,7 +186,7 @@
         <div class="mx-auto grid max-w-6xl items-center gap-16 px-5 pb-12 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:pb-24 lg:pt-14">
             <div class="text-center lg:text-left">
                 <h1 class="hero-in type-hero hero-title" style="--i: 0">
-                    <span class="whitespace-nowrap">Can't decide?</span><br>
+                    Can't decide what to eat?<br>
                     <span class="relative inline-block">
                         We'll pick.
                         <x-marketing.doodle type="underline" class="draw absolute -bottom-3 left-0 h-4 w-full text-sambal-600" style="--draw-delay: 900ms; --draw-dur: 1100ms" />
@@ -909,12 +909,18 @@
 
 @endsection
 
-{{-- Structured data: the app itself, and the FAQ above as a FAQPage. Answers have their tags
-     stripped; JSON_HEX_TAG keeps it inside <script>. --}}
+{{-- Structured data: the site (gives Google its name for results), the app itself, and the FAQ above
+     as a FAQPage. Answers have their tags stripped; JSON_HEX_TAG keeps it inside <script>. --}}
 @push('meta')
     @php
         $plainAnswer = fn (string $html) => trim(preg_replace('/\s+/', ' ', strip_tags($html)));
         $structuredData = [
+            [
+                '@context' => 'https://schema.org',
+                '@type' => 'WebSite',
+                'name' => 'MakanApa',
+                'url' => \App\Support\MarketingUrl::to('/'),
+            ],
             [
                 '@context' => 'https://schema.org',
                 '@type' => 'MobileApplication',
@@ -947,7 +953,7 @@
                 ])->all(),
             ],
         ];
-        $structuredData[0] = array_filter($structuredData[0], fn ($value) => $value !== null);
+        $structuredData[1] = array_filter($structuredData[1], fn ($value) => $value !== null);
     @endphp
     <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 @endpush

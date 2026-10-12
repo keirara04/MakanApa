@@ -2,7 +2,7 @@
 
 Short muted loops used on the marketing home page. All from Pexels, under the Pexels License
 (free to use and modify, no attribution required — credited here anyway). Re-encoded to small
-H.264 loops without audio; the `.jpg` next to each clip is its poster frame.
+H.264 loops without audio; the `.webp` next to each clip is its poster frame.
 
 | File | Source | Creator |
 | --- | --- | --- |

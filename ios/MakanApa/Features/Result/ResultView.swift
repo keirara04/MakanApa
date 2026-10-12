@@ -1,11 +1,14 @@
 import SwiftUI
 import MapKit
 import UIKit
+import StoreKit
 
 struct ResultView: View {
     @Environment(AppRouter.self) private var router
     @Environment(SoloViewModel.self) private var viewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.requestReview) private var requestReview
 
     /// One switch for the whole reveal; each piece staggers off it with its own delay.
     @State private var revealed = false
@@ -25,6 +28,8 @@ struct ResultView: View {
     @State private var whatIfEntries: [WhatIfEntry] = []
     @State private var whatIfLoading = false
     @State private var isTuning = false
+    /// Set on an accept that earned a review ask; it fires when they come back from Maps.
+    @State private var askReviewOnReturn = false
 
     private static let minimumRerollDuration: Duration = .milliseconds(700)
     private static let traceReplayLatencyLimit: Duration = .seconds(2)
@@ -85,6 +90,12 @@ struct ResultView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, askReviewOnReturn else { return }
+            askReviewOnReturn = false
+            ReviewAsk.markAsked()
+            requestReview()
+        }
         .sheet(isPresented: $showNotificationPriming) {
             NotificationPrimingView(onFinished: {
                 NotificationPrimingState.shared.complete()
@@ -126,11 +137,14 @@ struct ResultView: View {
     /// moment is instead where a first-time user is asked about notifications — right after
     /// the app has actually been useful, not before they've even signed in.
     private func afterAccept() {
-        // One ask per accept: notifications on the first, cravings on the next.
+        // One ask per accept: notifications on the first, cravings on the next, then a review.
+        ReviewAsk.recordAccept()
         if !NotificationPrimingState.shared.hasSeenPriming {
             showNotificationPriming = true
         } else if OnboardingState.shared.shouldAskTaste {
             showTastePrompt = true
+        } else if ReviewAsk.isDue {
+            askReviewOnReturn = true
         }
     }
 
@@ -960,6 +974,31 @@ struct ResultView: View {
             googleMapsURL: recommendation.placeGoogleMapsUrl.flatMap(URL.init(string:))
         )
         PreferredMapsLauncher.open(destination: destination, provider: MapProviderPreference.current)
+    }
+}
+
+/// App Store review ask: only after a few picks they actually went to, and at most once per app
+/// version (iOS also caps the sheet at three a year). Plain UserDefaults, no @AppStorage.
+private enum ReviewAsk {
+    private static let acceptsKey = "reviewAsk.accepts"
+    private static let askedVersionKey = "reviewAsk.askedVersion"
+    private static let minimumAccepts = 3
+
+    private static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    }
+
+    static var isDue: Bool {
+        UserDefaults.standard.integer(forKey: acceptsKey) >= minimumAccepts
+            && UserDefaults.standard.string(forKey: askedVersionKey) != appVersion
+    }
+
+    static func recordAccept() {
+        UserDefaults.standard.set(UserDefaults.standard.integer(forKey: acceptsKey) + 1, forKey: acceptsKey)
+    }
+
+    static func markAsked() {
+        UserDefaults.standard.set(appVersion, forKey: askedVersionKey)
     }
 }
 

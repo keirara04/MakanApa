@@ -6,6 +6,6 @@
      said in the caption next to it, so screen readers skip it. --}}
 <video {{ $attributes->merge(['class' => 'block h-full w-full object-cover']) }}
        data-clip="{{ $name }}" muted loop playsinline preload="none" disablepictureinpicture disableremoteplayback
-       poster="{{ asset("videos/{$name}.jpg") }}" aria-hidden="true" tabindex="-1">
+       poster="{{ asset("videos/{$name}.webp") }}" aria-hidden="true" tabindex="-1">
     <source src="{{ asset("videos/{$name}.mp4") }}" type="video/mp4">
 </video>
