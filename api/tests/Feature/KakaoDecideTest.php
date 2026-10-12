@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ApiUsageDaily;
 use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,6 +110,7 @@ class KakaoDecideTest extends TestCase
         $this->fakeProviders(['k1']);
 
         $this->solo(['moods' => ['middle_eastern']])->assertOk()->assertJsonPath('kakaoPick.kakaoPlaceId', 'k1');
+        $this->assertGreaterThan(0, (int) ApiUsageDaily::where('provider', ApiUsageDaily::PROVIDER_KAKAO_LOCAL)->where('endpoint', 'keyword')->sum('calls'));
 
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'keyword.json') && $r['query'] === '케밥');
         $this->assertSame('kebab', Decision::latest('id')->first()->kakao_pick['query']);

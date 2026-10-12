@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SearchMisses\Tables;
 
 use App\Filament\Resources\Restaurants\RestaurantResource;
 use App\Models\SearchMiss;
+use App\Support\Region;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -28,6 +29,11 @@ class SearchMissesTable
                 TextColumn::make('resolved_at')->since()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('region')
+                    ->options(Region::LABELS)
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereRaw(Region::sqlCase('latitude_cell', 'longitude_cell').' = ?', [$data['value']])
+                        : $query),
                 SelectFilter::make('status')
                     ->options(['open' => 'Open', 'resolved' => 'Resolved'])
                     ->default('open')

@@ -2,9 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
 use App\Notifications\AccountAdminNotice;
 use App\Notifications\ReleaseAnnouncement;
 use App\Services\NotificationBroadcastService;
+use App\Support\NotificationCategory;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -83,6 +86,36 @@ class BroadcastNotification extends Page
                     ->helperText('Optional — included in the push payload for deep-linking.')
                     ->visible(fn (Get $get) => $get('category') === 'release_announcements'),
             ]);
+    }
+
+    /**
+     * The only way the form sends: a confirm step naming how many people it reaches, so a stray
+     * Enter in the Title field can't push to everyone.
+     */
+    public function sendAction(): Action
+    {
+        return Action::make('send')
+            ->label('Send broadcast')
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->requiresConfirmation()
+            ->modalHeading('Send this push now?')
+            ->modalDescription(fn (): string => sprintf(
+                'It goes to %d %s with this category on and notifications set up. It cannot be recalled.',
+                $count = $this->reachableCount(), $count === 1 ? 'person' : 'people',
+            ))
+            ->modalSubmitActionLabel('Send now')
+            ->action(fn (NotificationBroadcastService $service) => $this->send($service));
+    }
+
+    /** Users who'd get it: category on (or on by default) and an iPhone token or web push subscription. */
+    private function reachableCount(): int
+    {
+        $category = (string) ($this->data['category'] ?? 'account_admin');
+
+        return User::query()
+            ->whereRaw('coalesce((notification_preferences->>?)::boolean, ?)', [$category, in_array($category, NotificationCategory::DEFAULT_TRUE, true)])
+            ->where(fn ($query) => $query->whereHas('deviceTokens')->orWhereHas('pushSubscriptions'))
+            ->count();
     }
 
     public function send(NotificationBroadcastService $service): void

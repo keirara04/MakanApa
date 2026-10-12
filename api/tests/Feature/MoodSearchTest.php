@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Widgets\PickMatchWidget;
+use App\Models\Decision;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Support\Halal\HalalStatus;
@@ -10,6 +12,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -100,6 +103,11 @@ class MoodSearchTest extends TestCase
         $this->solo('indian')->assertOk()
             ->assertJsonPath('recommendation.name', 'Place burger')
             ->assertJsonPath('moodMatch', ['mood' => 'indian', 'label' => 'Indian', 'matched' => false]);
+
+        // Feeds the admin's per-campus match rate.
+        $this->assertFalse(Decision::latest('id')->first()->intent_matched);
+        $this->actingAs(User::factory()->create(['role' => 'superadmin', 'status' => 'active']), 'web');
+        Livewire::test(PickMatchWidget::class)->assertOk()->assertSee('0% matched')->assertSee('United States');
     }
 
     public function test_malaysian_dish_moods_search_by_dish_name(): void

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ScheduledNotifications\Schemas;
 
 use App\Models\ScheduledNotification;
+use App\Support\AdminTimezone;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -31,7 +32,7 @@ class ScheduledNotificationForm
                 ->required()
                 ->native(false)
                 ->minDate(fn (?ScheduledNotification $record) => $record === null ? now() : null)
-                ->helperText('Local server time. A pending schedule can be edited any time before this passes — the send picks up the latest content and time automatically.')
+                ->helperText(fn (): string => 'In your display time zone ('.(auth()->user()?->displayTimezone() ?? AdminTimezone::DEFAULT).'), not the server\'s UTC. A pending schedule can be edited any time before this passes; the send picks up the latest content and time automatically.')
                 ->disabled(fn (?ScheduledNotification $record) => $record !== null && $record->status !== 'pending'),
 
             TextInput::make('title')

@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\Restaurants\Tables;
 
 use App\Filament\Resources\Restaurants\RestaurantActions;
+use App\Support\Region;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
@@ -28,6 +30,11 @@ class RestaurantsTable
                 TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('region')
+                    ->options(Region::LABELS)
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereRaw(Region::sqlCase('latitude', 'longitude').' = ?', [$data['value']])
+                        : $query),
                 TernaryFilter::make('is_active'),
             ])
             ->recordActions([

@@ -7,10 +7,12 @@ use App\Http\Requests\CreateUserRequest;
 use App\Models\University;
 use App\Models\User;
 use App\Models\UserAffiliation;
+use App\Services\AdminUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * Deliberately minimal for this beta phase: the seeded account is the only superadmin, so
@@ -26,6 +28,7 @@ class UserController extends Controller
         $users = User::registered()
             ->with('affiliation.university')
             ->orderByDesc('created_at')
+            ->limit(500) // ponytail: newest 500 until the app pages
             ->get(['id', 'email', 'role', 'status', 'created_at'])
             ->map(fn (User $user) => $this->presentUser($user));
 
@@ -82,9 +85,23 @@ class UserController extends Controller
     {
         abort_if($request->user()->id === $user->id, 422, 'You cannot revoke your own access.');
 
-        $user->update(['status' => 'revoked']);
-        $user->tokens()->delete();
+        // A suspend (audited, last-superadmin guard, signs out), so the panel can see and reactivate it.
+        try {
+            app(AdminUserService::class)->suspend($user, 'Access revoked from the app', $request->user());
+        } catch (RuntimeException $e) {
+            abort(422, $e->getMessage());
+        }
 
         return response()->json(['revoked' => true]);
+    }
+
+    /** Undoes a revoke (or any suspension) from the app — same audited path as the panel's Reactivate. */
+    public function reactivate(Request $request, User $user): JsonResponse
+    {
+        abort_unless($user->status === 'suspended', 422, 'Only a suspended account can be reactivated.');
+
+        app(AdminUserService::class)->reactivate($user, $request->user());
+
+        return response()->json(['reactivated' => true]);
     }
 }

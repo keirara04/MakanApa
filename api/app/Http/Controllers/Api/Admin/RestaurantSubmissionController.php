@@ -26,17 +26,26 @@ use Illuminate\Validation\Rule;
  */
 class RestaurantSubmissionController extends Controller
 {
+    /** ponytail: hard cap instead of paging; add a cursor when the app can follow one. */
+    private const LIST_LIMIT = 200;
+
     public function __construct(private readonly RestaurantSubmissionModerationService $moderation) {}
 
     public function index(Request $request): JsonResponse
     {
-        $status = $request->query('status', 'pending');
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(['pending', 'approved', 'rejected', 'changes_requested', 'cancelled'])],
+            'type' => ['nullable', Rule::in(['new_place', 'edit_place', 'closure', 'reopen', 'halal_report', 'owner_claim'])],
+        ]);
+        $status = $filters['status'] ?? 'pending';
 
-        // `type=halal_report` powers the iOS halal review queue — highest priority first.
+        // `type=halal_report` powers the iOS halal review queue — highest priority first. The queue
+        // reads oldest first; history tabs newest first. Capped until the app pages (phone list).
         $submissions = RestaurantSubmission::where('status', $status)
-            ->when($request->query('type'), fn ($q, $type) => $q->where('submission_type', $type)->orderByDesc('review_priority'))
+            ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('submission_type', $type)->orderByDesc('review_priority'))
             ->with(['user', 'university', 'restaurant'])
-            ->orderBy('created_at')
+            ->orderBy('created_at', $status === 'pending' ? 'asc' : 'desc')
+            ->limit(self::LIST_LIMIT)
             ->get();
 
         return response()->json([
@@ -70,6 +79,10 @@ class RestaurantSubmissionController extends Controller
             'certificate.verificationMethod' => ['nullable', Rule::enum(CertificateVerificationMethod::class)],
             'certificate.confirmed' => ['nullable', 'boolean'],
         ]);
+        // The generic Approve in the app sends no halal decision; for a halal report that would
+        // apply the reporter's claim unseen. Only the halal review screen (which always sends one) may.
+        abort_if($submission->submission_type === 'halal_report' && empty($halal['resolvedStatus']), 422,
+            'Review halal reports in the Halal review queue and choose the status to record.');
 
         $restaurant = $this->moderation->approve($submission, $request->user(), $request->boolean('releaseToGoogle'), array_filter([
             'resolved_status' => $halal['resolvedStatus'] ?? null,

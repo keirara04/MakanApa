@@ -58,4 +58,13 @@ class RegionTest extends TestCase
         $this->assertSame('Closer: only 0.3 mi away', TuneService::lead(['closer'], ['distanceKm' => 0.48, 'region' => 'US']));
         $this->assertSame('Closer: only 500 m away', TuneService::lead(['closer'], ['distanceKm' => 0.48])); // facts from before regions
     }
+
+    public function test_sql_case_lists_the_same_boxes_in_the_same_order(): void
+    {
+        $sql = Region::sqlCase('lat', 'lng');
+
+        $this->assertStringStartsWith("(case when lat between 1.15 and 1.47 and lng between 103.6 and 104.1 then 'OTHER'", $sql);
+        $this->assertStringContainsString("then 'KR'", $sql);
+        $this->assertStringEndsWith("then 'US' else 'OTHER' end)", $sql);
+    }
 }

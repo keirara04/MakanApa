@@ -18,22 +18,51 @@ enum Region: string
     case Other = 'OTHER';
 
     /**
-     * Peninsular Malaysia stops short of southern Thailand and Batam; Singapore, Toronto,
-     * Ottawa–Montreal–Quebec and everything north of 49° (Vancouver) are cut out of their boxes.
+     * First match wins, so the cut-outs sit before the box they cut from: Singapore before
+     * Malaysia, Toronto and Ottawa–Montreal–Quebec before the US. Peninsular Malaysia stops short
+     * of southern Thailand and Batam; the US stops at 49° (Vancouver).
+     *
+     * @var list<array{0: string, 1: list<array{0: float, 1: float, 2: float, 3: float}>}> [region, [south, north, west, east] boxes]
      */
+    private const BOXES = [
+        ['OTHER', [[1.15, 1.47, 103.6, 104.1]]],
+        ['MY', [[1.2, 6.8, 99.5, 104.6], [0.8, 7.5, 109.5, 119.5]]],
+        ['KR', [[33.0, 38.7, 124.5, 131.0]]],
+        ['OTHER', [[43.4, 44.6, -80.6, -78.4], [45.0, 46.9, -76.5, -71.0]]],
+        ['US', [[24.4, 49.0, -125.0, -66.9]]],
+    ];
+
     public static function at(float $latitude, float $longitude): self
     {
-        $in = fn (float $south, float $north, float $west, float $east): bool => $latitude >= $south && $latitude <= $north && $longitude >= $west && $longitude <= $east;
+        foreach (self::BOXES as [$region, $boxes]) {
+            foreach ($boxes as [$south, $north, $west, $east]) {
+                if ($latitude >= $south && $latitude <= $north && $longitude >= $west && $longitude <= $east) {
+                    return self::from($region);
+                }
+            }
+        }
 
-        return match (true) {
-            $in(1.15, 1.47, 103.6, 104.1) => self::Other, // Singapore
-            $in(1.2, 6.8, 99.5, 104.6), $in(0.8, 7.5, 109.5, 119.5) => self::Malaysia,
-            $in(33.0, 38.7, 124.5, 131.0) => self::Korea,
-            $in(43.4, 44.6, -80.6, -78.4), $in(45.0, 46.9, -76.5, -71.0) => self::Other, // Toronto, Ottawa–Montreal–Quebec
-            $in(24.4, 49.0, -125.0, -66.9) => self::UnitedStates,
-            default => self::Other,
-        };
+        return self::Other;
     }
+
+    /**
+     * The same rules as a SQL CASE over two columns, for admin filters:
+     * whereRaw(Region::sqlCase('latitude', 'longitude').' = ?', ['KR']).
+     */
+    public static function sqlCase(string $latitudeColumn, string $longitudeColumn): string
+    {
+        $whens = '';
+        foreach (self::BOXES as [$region, $boxes]) {
+            foreach ($boxes as [$south, $north, $west, $east]) {
+                $whens .= " when {$latitudeColumn} between {$south} and {$north} and {$longitudeColumn} between {$west} and {$east} then '{$region}'";
+            }
+        }
+
+        return "(case{$whens} else 'OTHER' end)";
+    }
+
+    /** Admin filter labels. */
+    public const LABELS = ['MY' => 'Malaysia', 'KR' => 'Korea', 'US' => 'United States', 'OTHER' => 'Elsewhere'];
 
     /** Zone for a point, or brain.timezone when there is none. */
     public static function timezoneAt(?float $latitude, ?float $longitude): string

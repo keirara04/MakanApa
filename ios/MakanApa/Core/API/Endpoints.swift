@@ -110,6 +110,10 @@ struct RevokeUserResponse: Decodable {
     let revoked: Bool
 }
 
+struct ReactivateUserResponse: Decodable {
+    let reactivated: Bool
+}
+
 struct UpdateMyCommunityRequestBody: Encodable {
     let university: String?
     let area: String?
@@ -1134,6 +1138,12 @@ enum CertificationAuthority: String, Codable, CaseIterable, Identifiable {
     case other
 
     var id: String { rawValue }
+
+    /// A body this build doesn't know yet (the server may add KMF, IFANCA, …) reads as Other
+    /// instead of failing the whole payload.
+    init(from decoder: Decoder) throws {
+        self = Self(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .other
+    }
 
     var label: String {
         switch self {

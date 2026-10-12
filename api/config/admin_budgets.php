@@ -16,6 +16,17 @@ return [
 
     'alert_thresholds' => [0.8, 1.0],
 
+    // Korea search and Decide picks. Free up to 100,000 calls a day per endpoint (2 KRW a call
+    // after), which a monthly price can't express — so it's tracked as calls with no budget.
+    'kakao_local' => [
+        'label' => 'Kakao Local (free up to 100,000 calls a day each)',
+        'monthly_budget_usd' => 0,
+        'endpoints' => [
+            'keyword' => ['label' => 'Keyword search', 'usd_per_1000' => 0, 'free_per_month' => 0],
+            'category' => ['label' => 'Restaurant category search', 'usd_per_1000' => 0, 'free_per_month' => 0],
+        ],
+    ],
+
     'google_places' => [
         'label' => 'Google Places',
         'monthly_budget_usd' => (float) env('ADMIN_BUDGET_GOOGLE_PLACES_USD', 100),

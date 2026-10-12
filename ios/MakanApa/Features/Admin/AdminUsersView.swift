@@ -28,8 +28,8 @@ struct AdminUsersView: View {
 
             ForEach(filteredUsers) { user in
                 NavigationLink {
-                    AdminUserDetailView(user: user, onRevoked: { revoked in
-                        handleRevoked(revoked)
+                    AdminUserDetailView(user: user, onStatusChanged: { id, status in
+                        handleStatusChanged(id, status)
                     })
                 } label: {
                     HStack {
@@ -76,15 +76,15 @@ struct AdminUsersView: View {
         }
     }
 
-    private func handleRevoked(_ userId: Int) {
+    private func handleStatusChanged(_ userId: Int, _ status: String) {
         if let index = users.firstIndex(where: { $0.id == userId }) {
             let existing = users[index]
             users[index] = AdminUser(
-                id: existing.id, email: existing.email, role: existing.role, status: "revoked",
+                id: existing.id, email: existing.email, role: existing.role, status: status,
                 createdAt: existing.createdAt, affiliationType: existing.affiliationType, university: existing.university
             )
         }
-        BetaCredentialStore.shared.clear(id: userId)
+        if status != "active" { BetaCredentialStore.shared.clear(id: userId) }
     }
 
     @MainActor
@@ -94,6 +94,7 @@ struct AdminUsersView: View {
         do {
             let response = try await APIClient.listBetaUsers()
             users = response.users
+            errorMessage = nil
         } catch APIError.unauthorized {
             AuthStore.shared.handleUnauthorized()
         } catch {
@@ -104,16 +105,17 @@ struct AdminUsersView: View {
 
 private struct AdminUserDetailView: View {
     let user: AdminUser
-    let onRevoked: (Int) -> Void
+    let onStatusChanged: (Int, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var showRevokeConfirmation = false
     @State private var isRevoking = false
     @State private var status: String
+    @State private var errorMessage: String?
 
-    init(user: AdminUser, onRevoked: @escaping (Int) -> Void) {
+    init(user: AdminUser, onStatusChanged: @escaping (Int, String) -> Void) {
         self.user = user
-        self.onRevoked = onRevoked
+        self.onStatusChanged = onStatusChanged
         _status = State(initialValue: user.status)
     }
 
@@ -133,7 +135,7 @@ private struct AdminUserDetailView: View {
                 HStack {
                     Text("Created")
                     Spacer()
-                    Text(user.createdAt).foregroundStyle(.secondary)
+                    Text(Self.formatted(user.createdAt)).foregroundStyle(.secondary)
                 }
             }
 
@@ -161,6 +163,24 @@ private struct AdminUserDetailView: View {
             if let credential = BetaCredentialStore.shared.credential(for: user.id) {
                 Section("Temporary credentials") {
                     BetaCredentialsSection(email: credential.email, password: credential.password)
+                }
+            }
+
+            if let errorMessage {
+                Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
+            }
+
+            // "revoked" is the old status; the server moves those to "suspended".
+            if status == "suspended" || status == "revoked" {
+                Section {
+                    Button {
+                        Task { await reactivate() }
+                    } label: {
+                        if isRevoking { ProgressView() } else { Text("Restore access") }
+                    }
+                    .disabled(isRevoking)
+                } footer: {
+                    Text("They can sign in again. Their old sessions stay signed out.")
                 }
             }
 
@@ -201,13 +221,35 @@ private struct AdminUserDetailView: View {
         defer { isRevoking = false }
         do {
             _ = try await APIClient.revokeBetaUser(id: user.id)
-            status = "revoked"
-            onRevoked(user.id)
+            status = "suspended"
+            errorMessage = nil
+            onStatusChanged(user.id, status)
         } catch APIError.unauthorized {
             AuthStore.shared.handleUnauthorized()
         } catch {
-            // Stay on screen; user can retry from the danger zone again.
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't revoke access. Try again."
         }
+    }
+
+    @MainActor
+    private func reactivate() async {
+        isRevoking = true
+        defer { isRevoking = false }
+        do {
+            _ = try await APIClient.reactivateBetaUser(id: user.id)
+            status = "active"
+            errorMessage = nil
+            onStatusChanged(user.id, status)
+        } catch APIError.unauthorized {
+            AuthStore.shared.handleUnauthorized()
+        } catch {
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't restore access. Try again."
+        }
+    }
+
+    /// "12 Oct 2026" from the API's ISO date; the raw string if it doesn't parse.
+    private static func formatted(_ iso: String) -> String {
+        (try? Date(iso, strategy: .iso8601)).map { $0.formatted(date: .abbreviated, time: .omitted) } ?? iso
     }
 }
 

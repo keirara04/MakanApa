@@ -5,6 +5,7 @@ import SwiftUI
 /// immediately appears in every user's picker) then marks the request resolved in one action —
 /// dismissing just closes it out with no side effect, for junk/duplicate requests.
 struct CommunityRequestsView: View {
+    @State private var dismissTarget: AdminCommunityRequest?
     @State private var status = "pending"
     @State private var requests: [AdminCommunityRequest] = []
     @State private var isLoading = false
@@ -32,9 +33,25 @@ struct CommunityRequestsView: View {
                 Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
             }
 
+            if isLoading && requests.isEmpty {
+                ProgressView().frame(maxWidth: .infinity)
+            } else if requests.isEmpty && errorMessage == nil {
+                Text("Nothing here.").font(.makanBody(13)).foregroundStyle(.secondary)
+            }
+
             ForEach(requests) { request in
                 row(for: request)
             }
+        }
+        .confirmationDialog(
+            "Dismiss \(dismissTarget?.name ?? "")?",
+            isPresented: Binding(get: { dismissTarget != nil }, set: { if !$0 { dismissTarget = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Dismiss", role: .destructive) { if let target = dismissTarget { Task { await dismiss(target) } } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The request closes without adding anything.")
         }
         .navigationTitle("Community Requests")
         .navigationBarTitleDisplayMode(.inline)
@@ -62,7 +79,7 @@ struct CommunityRequestsView: View {
                         addContext = AddContext(request: request)
                     }
                     .font(.makanBody(13))
-                    Button("Dismiss", role: .destructive) { Task { await dismiss(request) } }
+                    Button("Dismiss", role: .destructive) { dismissTarget = request }
                         .font(.makanBody(13))
                 }
                 .padding(.top, 2)
@@ -73,13 +90,17 @@ struct CommunityRequestsView: View {
 
     @MainActor
     private func load() async {
+        let requested = status
         isLoading = true
         defer { isLoading = false }
         do {
-            let response = try await APIClient.adminListCommunityRequests(status: status)
+            let response = try await APIClient.adminListCommunityRequests(status: requested)
+            guard requested == status else { return }
             requests = response.requests
+            errorMessage = nil
         } catch {
-            errorMessage = "Couldn't load requests."
+            guard requested == status else { return }
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't load requests."
         }
     }
 
@@ -89,7 +110,7 @@ struct CommunityRequestsView: View {
             _ = try await APIClient.adminDismissCommunityRequest(id: request.id)
             await load()
         } catch {
-            errorMessage = "Couldn't dismiss. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't dismiss. Try again."
         }
     }
 }
@@ -105,6 +126,9 @@ private struct AddCommunitySheet: View {
     @State private var shortName = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
+    /// Set once the university/area exists, so a retry after a failed resolve doesn't create it
+    /// again (and hit "short name already taken").
+    @State private var created = false
 
     init(request: AdminCommunityRequest, onHandled: @escaping () async -> Void) {
         self.request = request
@@ -149,16 +173,20 @@ private struct AddCommunitySheet: View {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         let trimmedShortName = shortName.trimmingCharacters(in: .whitespaces)
         do {
-            if request.type == "university" {
-                _ = try await APIClient.adminCreateUniversity(name: trimmedName, shortName: trimmedShortName)
-            } else {
-                _ = try await APIClient.adminCreateArea(name: trimmedName, shortName: trimmedShortName)
+            if !created {
+                if request.type == "university" {
+                    _ = try await APIClient.adminCreateUniversity(name: trimmedName, shortName: trimmedShortName)
+                } else {
+                    _ = try await APIClient.adminCreateArea(name: trimmedName, shortName: trimmedShortName)
+                }
+                created = true
             }
             _ = try await APIClient.adminResolveCommunityRequest(id: request.id)
             await onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't add. Check the short name isn't already taken."
+            errorMessage = (error as? APIError)?.serverMessage
+                ?? (created ? "Added, but couldn't close the request. Tap Add again." : "Couldn't add. Check the short name isn't already taken.")
         }
     }
 }

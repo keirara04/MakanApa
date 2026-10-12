@@ -8,11 +8,14 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Models\AdminAuditLog;
 use App\Models\Area;
 use App\Models\Restaurant;
+use App\Models\RestaurantFieldOverride;
 use App\Models\RestaurantSubmission;
 use App\Models\University;
 use App\Models\User;
+use App\Services\PlacesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -44,6 +47,47 @@ class AdminPanelActionsTest extends TestCase
 
         $this->assertFalse($restaurant->fresh()->is_active);
         $this->assertSame(1, AdminAuditLog::where('action', 'restaurant.remove')->count());
+    }
+
+    public function test_an_admin_edit_to_a_google_place_survives_the_next_sync(): void
+    {
+        config(['services.places.provider' => 'google', 'services.places.google_api_key' => 'fake-key']);
+        $restaurant = Restaurant::create([
+            'name' => 'Wrong Name', 'latitude' => 2.9284, 'longitude' => 101.7802, 'is_active' => true,
+            'provider' => 'google', 'provider_place_id' => 'ChIJ-edit',
+        ]);
+        $this->actingAs($this->superadmin(), 'web');
+
+        Livewire::test(EditRestaurant::class, ['record' => $restaurant->id])
+            ->fillForm(['name' => 'Right Name'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(['name'], RestaurantFieldOverride::where('restaurant_id', $restaurant->id)->pluck('field')->all());
+        $this->assertSame(1, AdminAuditLog::where('action', 'restaurant.edit')->count());
+
+        Http::fake(['*searchNearby*' => Http::response(['places' => [[
+            'id' => 'ChIJ-edit', 'displayName' => ['text' => 'Wrong Name'],
+            'location' => ['latitude' => 2.9284, 'longitude' => 101.7802], 'types' => ['restaurant'],
+        ]]])]);
+        app(PlacesService::class)->nearbyRestaurants(2.9284, 101.7802, 1.0);
+
+        $this->assertNotNull($restaurant->fresh()->last_synced_at); // the sync did reach this row
+        $this->assertSame('Right Name', $restaurant->fresh()->name);
+    }
+
+    public function test_saving_without_changes_pins_nothing(): void
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'Untouched', 'latitude' => 2.9284123, 'longitude' => 101.7802456, 'is_active' => true,
+            'provider' => 'google', 'provider_place_id' => 'ChIJ-same', 'address' => 'Jalan 1', 'price_level' => 2,
+            'opening_hours' => ['open_now' => true, 'periods' => []],
+        ]);
+        $this->actingAs($this->superadmin(), 'web');
+
+        Livewire::test(EditRestaurant::class, ['record' => $restaurant->id])->call('save')->assertHasNoFormErrors();
+
+        $this->assertSame(0, RestaurantFieldOverride::where('restaurant_id', $restaurant->id)->count());
     }
 
     public function test_approve_action_on_submissions_list(): void

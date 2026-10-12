@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'user_id', 'university_id', 'area_id', 'client_token', 'mode', 'latitude', 'longitude', 'budget_max',
     'max_distance', 'selected_restaurant_id', 'discovery_mode', 'vibe', 'installation_id', 'halal_only',
-    'session_id', 'algorithm_version', 'taste_profile_version', 'selera_stage', 'intent_type', 'lens', 'tunes',
+    'session_id', 'algorithm_version', 'taste_profile_version', 'selera_stage', 'intent_type', 'intent_matched', 'lens', 'tunes',
     'context_snapshot', 'weight_snapshot', 'candidate_count', 'funnel', 'exploration_level', 'fatigue_mode',
     'reason_catalog_version', 'client_choice_id', 'search_context', 'kakao_pick',
 ])]
@@ -23,6 +23,7 @@ class Decision extends Model
     protected function casts(): array
     {
         return [
+            'intent_matched' => 'boolean',
             'halal_only' => 'boolean',
             'tunes' => 'array',
             'context_snapshot' => 'array',

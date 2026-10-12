@@ -164,4 +164,19 @@ class AccountSuspensionTest extends TestCase
         $this->assertTrue($guest->fresh()->isGuest());
         $this->assertSame('suspended', $guest->fresh()->status);
     }
+
+    public function test_revoking_from_the_app_is_an_audited_suspend_the_panel_can_undo(): void
+    {
+        $admin = User::factory()->create(['role' => 'superadmin', 'status' => 'active']);
+        $user = User::factory()->create(['status' => 'active']);
+
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/users/{$user->id}/revoke")->assertOk();
+
+        $this->assertSame('suspended', $user->fresh()->status);
+        $this->assertDatabaseHas('admin_audit_logs', ['action' => 'user.suspend', 'subject_id' => $user->id]);
+
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/users/{$user->id}/reactivate")->assertOk();
+        $this->assertSame('active', $user->fresh()->status);
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/users/{$user->id}/reactivate")->assertStatus(422);
+    }
 }

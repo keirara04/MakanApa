@@ -16,6 +16,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Components\Utilities\Get;
@@ -54,15 +55,15 @@ class HalalActions
                     ]),
                 Textarea::make('reason')->label('Reason (admin-only)')->required()->maxLength(500),
             ])
-            ->action(function (Restaurant $record, array $data) {
+            ->action(function (Restaurant $record, array $data, Action $action) {
                 $status = HalalStatus::from($data['status']);
-                app(HalalVerificationService::class)->recordAdminOverride(
+                self::guarded($action, fn () => app(HalalVerificationService::class)->recordAdminOverride(
                     $record,
                     $status,
                     auth()->user(),
                     $data['reason'],
                     $status === HalalStatus::Certified ? CertificateData::fromArray($data) : null,
-                );
+                ));
             })
             ->successNotificationTitle('Halal status recorded');
     }
@@ -84,8 +85,8 @@ class HalalActions
                 'verification_method' => CertificateVerificationMethod::ManualDirectoryCheck->value,
             ])
             ->schema(self::certificateFields(required: true))
-            ->action(function (RestaurantHalalCertificate $record, array $data) {
-                app(HalalVerificationService::class)->recordRegistryResult($record->restaurant, CertificateData::fromArray($data), auth()->user());
+            ->action(function (RestaurantHalalCertificate $record, array $data, Action $action) {
+                self::guarded($action, fn () => app(HalalVerificationService::class)->recordRegistryResult($record->restaurant, CertificateData::fromArray($data), auth()->user()));
             })
             ->successNotificationTitle('Certificate re-verified');
     }
@@ -134,5 +135,16 @@ class HalalActions
                 : '')
                 ->columnSpanFull(),
         ];
+    }
+
+    /** The service refuses some states (e.g. an admin override is active): say why, not an error page. */
+    private static function guarded(Action $action, \Closure $callback): void
+    {
+        try {
+            $callback();
+        } catch (\DomainException|\RuntimeException $e) {
+            Notification::make()->danger()->title($e->getMessage())->send();
+            $action->cancel();
+        }
     }
 }

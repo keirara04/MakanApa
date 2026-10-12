@@ -83,6 +83,9 @@ class RestaurantSubmissionModerationService
         DB::transaction(function () use ($submission, $restaurantId, $admin) {
             $locked = RestaurantSubmission::whereKey($submission->id)->lockForUpdate()->firstOrFail();
             abort_unless($locked->status === 'pending', 422, 'Submission is no longer pending.');
+            // Linking says "this new place already exists"; on an edit, closure or halal report it
+            // would mark the report approved without applying anything.
+            abort_unless($locked->submission_type === 'new_place', 422, 'Only a new place can be linked to an existing one.');
 
             $locked->update([
                 'status' => 'approved',
@@ -92,6 +95,8 @@ class RestaurantSubmissionModerationService
             ]);
 
             $this->auditLogger->log($admin, 'submission.link', $locked, metadata: ['restaurant_id' => $restaurantId]);
+
+            $this->notifyDecision($locked, 'approved');
         });
     }
 
@@ -459,7 +464,9 @@ class RestaurantSubmissionModerationService
      */
     public function duplicateHint(RestaurantSubmission $submission): ?array
     {
-        if ($submission->latitude === null || $submission->longitude === null) {
+        // Only a new place can duplicate one; edits, closures and halal reports carry their own
+        // restaurant's coordinates and would always "match" it.
+        if ($submission->submission_type !== 'new_place' || $submission->latitude === null || $submission->longitude === null) {
             return null;
         }
 

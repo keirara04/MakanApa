@@ -293,11 +293,15 @@ enum APIClient {
     }
 
     static func createBetaUser(email: String, university: String?) async throws -> CreateBetaUserResponse {
-        try await post("admin/users", body: CreateBetaUserRequestBody(email: email, university: university))
+        try await sendSurfacingMessage("POST", "admin/users", body: CreateBetaUserRequestBody(email: email, university: university))
     }
 
     static func revokeBetaUser(id: Int) async throws -> RevokeUserResponse {
-        try await post("admin/users/\(id)/revoke", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "admin/users/\(id)/revoke", body: EmptyBody())
+    }
+
+    static func reactivateBetaUser(id: Int) async throws -> ReactivateUserResponse {
+        try await sendSurfacingMessage("POST", "admin/users/\(id)/reactivate", body: EmptyBody())
     }
 
     static func listUniversities() async throws -> UniversitiesResponse {
@@ -445,11 +449,11 @@ enum APIClient {
     }
 
     static func adminApproveSubmission(id: Int) async throws -> AdminApproveResponse {
-        try await post("admin/community/submissions/\(id)/approve", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "admin/community/submissions/\(id)/approve", body: EmptyBody())
     }
 
     static func adminApproveHalalReport(id: Int, _ body: AdminApproveHalalRequestBody) async throws -> AdminApproveResponse {
-        try await post("admin/community/submissions/\(id)/approve", body: body)
+        try await sendSurfacingMessage("POST", "admin/community/submissions/\(id)/approve", body: body)
     }
 
     static func adminListHalalQueue() async throws -> AdminSubmissionListResponse {
@@ -460,15 +464,15 @@ enum APIClient {
     }
 
     static func adminLinkSubmission(id: Int, restaurantId: Int) async throws -> AdminLinkResponse {
-        try await post("admin/community/submissions/\(id)/link", body: LinkSubmissionRequestBody(restaurantId: restaurantId))
+        try await sendSurfacingMessage("POST", "admin/community/submissions/\(id)/link", body: LinkSubmissionRequestBody(restaurantId: restaurantId))
     }
 
     static func adminRejectSubmission(id: Int, reviewNote: String) async throws -> AdminRejectResponse {
-        try await post("admin/community/submissions/\(id)/reject", body: ReviewNoteRequestBody(reviewNote: reviewNote))
+        try await sendSurfacingMessage("POST", "admin/community/submissions/\(id)/reject", body: ReviewNoteRequestBody(reviewNote: reviewNote))
     }
 
     static func adminRequestChanges(id: Int, reviewNote: String) async throws -> AdminRequestChangesResponse {
-        try await post("admin/community/submissions/\(id)/request-changes", body: ReviewNoteRequestBody(reviewNote: reviewNote))
+        try await sendSurfacingMessage("POST", "admin/community/submissions/\(id)/request-changes", body: ReviewNoteRequestBody(reviewNote: reviewNote))
     }
 
     static func adminSubmissionPhotos(id: Int) async throws -> AdminSubmissionPhotosResponse {
@@ -480,7 +484,7 @@ enum APIClient {
     }
 
     static func adminRemoveRestaurant(restaurantId: Int) async throws -> AdminRemoveResponse {
-        try await post("admin/community/restaurants/\(restaurantId)/remove", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "admin/community/restaurants/\(restaurantId)/remove", body: EmptyBody())
     }
 
     // MARK: - Admin: community requests + university/area management
@@ -490,11 +494,11 @@ enum APIClient {
     }
 
     static func adminResolveCommunityRequest(id: Int) async throws -> AdminCommunityRequestResolveResponse {
-        try await post("admin/community/requests/\(id)/resolve", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "admin/community/requests/\(id)/resolve", body: EmptyBody())
     }
 
     static func adminDismissCommunityRequest(id: Int) async throws -> AdminCommunityRequestDismissResponse {
-        try await post("admin/community/requests/\(id)/dismiss", body: EmptyBody())
+        try await sendSurfacingMessage("POST", "admin/community/requests/\(id)/dismiss", body: EmptyBody())
     }
 
     static func adminListUniversities() async throws -> AdminUniversityListResponse {
@@ -502,7 +506,7 @@ enum APIClient {
     }
 
     static func adminCreateUniversity(name: String, shortName: String) async throws -> CreateUniversityResponse {
-        try await post("admin/universities", body: CreateUniversityRequestBody(name: name, shortName: shortName))
+        try await sendSurfacingMessage("POST", "admin/universities", body: CreateUniversityRequestBody(name: name, shortName: shortName))
     }
 
     static func adminListAreas() async throws -> AdminAreaListResponse {
@@ -510,7 +514,7 @@ enum APIClient {
     }
 
     static func adminCreateArea(name: String, shortName: String) async throws -> CreateAreaResponse {
-        try await post("admin/areas", body: CreateAreaRequestBody(name: name, shortName: shortName))
+        try await sendSurfacingMessage("POST", "admin/areas", body: CreateAreaRequestBody(name: name, shortName: shortName))
     }
 
     // MARK: - Push notifications

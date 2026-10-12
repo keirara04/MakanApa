@@ -2,6 +2,7 @@
 
 namespace App\Services\Places;
 
+use App\Models\ApiUsageDaily;
 use App\Support\Halal\HalalStatus;
 use App\Support\Region;
 use Illuminate\Support\Facades\Config;
@@ -205,8 +206,10 @@ class KakaoLocalSearch
                     'sort' => 'distance',
                     'category_group_code' => self::RESTAURANT_GROUP,
                     'size' => 15,
-                ])
-                ->throw();
+                ]);
+            // Counted once Kakao answered, like Google's SKUs (System → API costs).
+            ApiUsageDaily::record(ApiUsageDaily::PROVIDER_KAKAO_LOCAL, $endpoint === self::KEYWORD_ENDPOINT ? 'keyword' : 'category');
+            $response->throw();
 
             foreach ($response->json('documents', []) as $place) {
                 $rows[$place['id']] ??= $this->toRow($place);

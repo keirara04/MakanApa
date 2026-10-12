@@ -7,6 +7,7 @@ use App\Models\CommunityRequest;
 use App\Services\AdminAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CommunityRequestController extends Controller
 {
@@ -14,11 +15,12 @@ class CommunityRequestController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $status = $request->query('status', 'pending');
+        $status = $request->validate(['status' => ['nullable', Rule::in(['pending', 'resolved', 'dismissed'])]])['status'] ?? 'pending';
 
         $requests = CommunityRequest::where('status', $status)
             ->with('user')
-            ->orderBy('created_at')
+            ->orderBy('created_at', $status === 'pending' ? 'asc' : 'desc')
+            ->limit(200) // ponytail: cap instead of paging
             ->get()
             ->map(fn (CommunityRequest $r) => [
                 'id' => $r->id,

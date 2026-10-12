@@ -18,6 +18,8 @@ class UsersTable
     {
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['ambassadorUniversity', 'ambassadorArea']))
+            // Newest sign-ups first.
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('email')->label('Email address')->searchable(),
@@ -29,7 +31,7 @@ class UsersTable
                     ->badge()
                     ->color('warning')
                     ->placeholder('—'),
-                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('created_at')->label('Signed up')->dateTime()->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('role')->options(['user' => 'User', 'superadmin' => 'Superadmin']),

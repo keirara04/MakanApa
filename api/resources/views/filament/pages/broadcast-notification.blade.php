@@ -1,11 +1,11 @@
 <x-filament-panels::page>
-    <form wire:submit="send">
+    {{-- Enter opens the confirm step too; send() never runs straight from the form. --}}
+    <form wire:submit="mountAction('send')">
         {{ $this->form }}
 
         <div class="mt-6">
-            <x-filament::button type="submit" icon="heroicon-o-paper-airplane">
-                Send broadcast
-            </x-filament::button>
+            {{ $this->sendAction }}
         </div>
     </form>
+
 </x-filament-panels::page>

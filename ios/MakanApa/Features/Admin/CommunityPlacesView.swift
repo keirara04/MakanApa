@@ -22,9 +22,15 @@ struct CommunityPlacesView: View {
                 Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
             }
 
+            if isLoading && submissions.isEmpty {
+                ProgressView().frame(maxWidth: .infinity)
+            } else if submissions.isEmpty && errorMessage == nil {
+                Text("Nothing here.").font(.makanBody(13)).foregroundStyle(.secondary)
+            }
+
             ForEach(submissions) { submission in
                 NavigationLink {
-                    SubmissionReviewView(submission: submission, onHandled: { load() })
+                    SubmissionReviewView(submission: submission, onHandled: { Task { await load() } })
                 } label: {
                     row(for: submission)
                 }
@@ -44,7 +50,7 @@ struct CommunityPlacesView: View {
                 Spacer()
                 CommunityBadge(affiliationType: submission.submitter.affiliationType, university: submission.submitter.university)
             }
-            Text(submission.sourceType == .google ? "Google" : "Manual")
+            Text("\(Self.typeLabel(submission.submissionType)) · \(submission.sourceType == .google ? "Google" : "Manual")")
                 .font(.makanBody(12))
                 .foregroundStyle(.secondary)
             if let duplicate = submission.possibleDuplicate {
@@ -56,17 +62,32 @@ struct CommunityPlacesView: View {
         .padding(.vertical, 2)
     }
 
+    /// Awaited, so pull-to-refresh waits for it; a reply for a tab the admin already left is dropped.
     @MainActor
-    private func load() {
-        Task {
-            isLoading = true
-            defer { isLoading = false }
-            do {
-                let response = try await APIClient.adminListSubmissions(status: status)
-                submissions = response.submissions
-            } catch {
-                errorMessage = "Couldn't load submissions."
-            }
+    private func load() async {
+        let requested = status
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let response = try await APIClient.adminListSubmissions(status: requested)
+            guard requested == status else { return }
+            // Halal reports have their own queue, which asks for the status to record.
+            submissions = response.submissions.filter { $0.submissionType != .halalReport }
+            errorMessage = nil
+        } catch {
+            guard requested == status else { return }
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't load submissions."
+        }
+    }
+
+    static func typeLabel(_ type: SubmissionType) -> String {
+        switch type {
+        case .newPlace: "New place"
+        case .editPlace: "Edit"
+        case .closure: "Closed down"
+        case .reopen: "Reopened"
+        case .halalReport: "Halal report"
+        case .ownerClaim: "Owner claim"
         }
     }
 }
@@ -80,6 +101,8 @@ private struct SubmissionReviewView: View {
     @State private var showingRejectSheet = false
     @State private var showingChangesSheet = false
     @State private var showingRemoveConfirm = false
+    @State private var showingApproveConfirm = false
+    @State private var linkTarget: PossibleDuplicate?
     @State private var reviewNote = ""
     @State private var errorMessage: String?
     @State private var pendingPhotos: [AdminSubmissionPhoto] = []
@@ -87,8 +110,12 @@ private struct SubmissionReviewView: View {
     var body: some View {
         List {
             Section {
+                HStack { Text("Type"); Spacer(); Text(CommunityPlacesView.typeLabel(submission.submissionType)).foregroundStyle(.secondary) }
                 HStack { Text("Name"); Spacer(); Text(submission.name).foregroundStyle(.secondary) }
                 HStack { Text("Source"); Spacer(); Text(submission.sourceType == .google ? "Google" : "Manual").foregroundStyle(.secondary) }
+                if let contactPhone = submission.contactPhone {
+                    HStack { Text("Contact"); Spacer(); Text(contactPhone).foregroundStyle(.secondary).textSelection(.enabled) }
+                }
             }
 
             // Only fields the submitter actually flagged as changed — the full snapshot is
@@ -107,7 +134,7 @@ private struct SubmissionReviewView: View {
             } else if submission.submissionType == .newPlace {
                 Section("Details") {
                     HStack { Text("Category"); Spacer(); Text(submission.foodCategory ?? "None").foregroundStyle(.secondary) }
-                    HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "None").foregroundStyle(.secondary) }
+                    HStack { Text("Price"); Spacer(); Text(PricePresentation.approximateSpendLabel(for: submission.priceLevel, region: region) ?? "None").foregroundStyle(.secondary) }
                     if let address = submission.address {
                         HStack { Text("Address"); Spacer(); Text(address).foregroundStyle(.secondary) }
                     }
@@ -163,10 +190,10 @@ private struct SubmissionReviewView: View {
                                 Text(duplicate.name).font(.makanBody(13))
                             }
                         }
-                        Button("Link to existing") {
-                            Task { await link(restaurantId: duplicate.id) }
+                        if submission.status == "pending" {
+                            Button("Link to existing") { linkTarget = duplicate }
+                                .font(.makanBody(14))
                         }
-                        .font(.makanBody(14))
                     }
                 }
             }
@@ -175,7 +202,8 @@ private struct SubmissionReviewView: View {
                 Text(errorMessage).font(.makanBody(13)).foregroundStyle(Color.sambalRed)
             }
 
-            if submission.status == "approved", let restaurantId = submission.restaurantId {
+            // Removing deactivates the place itself, so only for a community-added place.
+            if submission.status == "approved", submission.submissionType == .newPlace, let restaurantId = submission.restaurantId {
                 Section("Decision") {
                     Button("Remove from community", role: .destructive) { showingRemoveConfirm = true }
                         .disabled(isProcessing)
@@ -190,9 +218,9 @@ private struct SubmissionReviewView: View {
                 } message: {
                     Text("It stops showing up in Nearby and Community. This doesn't delete its history, and it can come back through the normal reopen flow.")
                 }
-            } else {
+            } else if submission.status == "pending" {
                 Section("Decision") {
-                    Button("Approve") { Task { await approve() } }
+                    Button("Approve") { showingApproveConfirm = true }
                         .disabled(isProcessing)
                     Button("Request changes") { showingChangesSheet = true }
                         .disabled(isProcessing)
@@ -203,6 +231,22 @@ private struct SubmissionReviewView: View {
         }
         .navigationTitle("Review")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("Approve \(CommunityPlacesView.typeLabel(submission.submissionType).lowercased())?", isPresented: $showingApproveConfirm, titleVisibility: .visible) {
+            Button("Approve") { Task { await approve() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(approveMessage)
+        }
+        .confirmationDialog(
+            "Link to \(linkTarget?.name ?? "")?",
+            isPresented: Binding(get: { linkTarget != nil }, set: { if !$0 { linkTarget = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Link") { if let target = linkTarget { Task { await link(restaurantId: target.id) } } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This submission is marked as the same place. Nothing new is added, and the submitter is told it was approved.")
+        }
         .sheet(isPresented: $showingRejectSheet) {
             reviewNoteSheet(title: "Reject", action: reject)
         }
@@ -210,6 +254,20 @@ private struct SubmissionReviewView: View {
             reviewNoteSheet(title: "Request changes", action: requestChanges)
         }
         .task { await loadPhotos() }
+    }
+
+    /// Where the place is, so a Seoul submission reads in won even when the admin is in KL.
+    private var region: Region { .of(latitude: submission.latitude, longitude: submission.longitude) }
+
+    private var approveMessage: String {
+        switch submission.submissionType {
+        case .newPlace: "It goes live in Nearby and Community."
+        case .editPlace: "The proposed changes are applied to the place."
+        case .closure: "The place is marked closed and stops showing up."
+        case .reopen: "The place shows up again."
+        case .ownerClaim: "The submitter is recorded as the owner of this place."
+        case .halalReport: "Use the Halal review queue for halal reports."
+        }
     }
 
     private func fieldLabel(_ field: String) -> String {
@@ -229,7 +287,7 @@ private struct SubmissionReviewView: View {
         case "name": return submission.name
         case "address": return submission.address ?? "None"
         case "food_category": return submission.foodCategory ?? "None"
-        case "price_level": return PricePresentation.approximateSpendLabel(for: submission.priceLevel) ?? "None"
+        case "price_level": return PricePresentation.approximateSpendLabel(for: submission.priceLevel, region: region) ?? "None"
         case "phone": return submission.phone ?? "None"
         case "instagram_handle": return submission.instagramHandle ?? "None"
         case "tiktok_handle": return submission.tiktokHandle ?? "None"
@@ -271,7 +329,7 @@ private struct SubmissionReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't approve. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't approve. Try again."
         }
     }
 
@@ -284,7 +342,7 @@ private struct SubmissionReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't remove. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't remove. Try again."
         }
     }
 
@@ -297,7 +355,7 @@ private struct SubmissionReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't link. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't link. Try again."
         }
     }
 
@@ -311,7 +369,7 @@ private struct SubmissionReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't reject. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't reject. Try again."
         }
     }
 
@@ -325,7 +383,7 @@ private struct SubmissionReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "Couldn't request changes. Try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? "Couldn't request changes. Try again."
         }
     }
 }

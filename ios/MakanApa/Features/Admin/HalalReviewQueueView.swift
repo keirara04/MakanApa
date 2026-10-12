@@ -68,6 +68,7 @@ private struct HalalReportReviewView: View {
     @State private var summary = ""
     @State private var note = ""
     @State private var isProcessing = false
+    @State private var showingRejectConfirm = false
     @State private var errorMessage: String?
 
     private var canApprove: Bool {
@@ -165,9 +166,9 @@ private struct HalalReportReviewView: View {
             Section("Or send back") {
                 TextField("Note to reporter", text: $note, axis: .vertical)
                 Button("Request more evidence") { Task { await requestChanges() } }
-                    .disabled(note.isEmpty || isProcessing)
-                Button("Reject", role: .destructive) { Task { await reject() } }
-                    .disabled(note.isEmpty || isProcessing)
+                    .disabled(trimmedNote.isEmpty || isProcessing)
+                Button("Reject", role: .destructive) { showingRejectConfirm = true }
+                    .disabled(trimmedNote.isEmpty || isProcessing)
             }
 
             if let errorMessage {
@@ -176,9 +177,17 @@ private struct HalalReportReviewView: View {
         }
         .navigationTitle(report.name)
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("Reject this halal report?", isPresented: $showingRejectConfirm, titleVisibility: .visible) {
+            Button("Reject", role: .destructive) { Task { await reject() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The reporter gets your note. The place's halal status doesn't change.")
+        }
         .task {
             resolved = report.halal?.claim ?? .certified
-            authority = report.halal?.certificationAuthority ?? .jakim
+            // JAKIM is only the likely body for a place in Malaysia.
+            authority = report.halal?.certificationAuthority
+                ?? (Region.of(latitude: report.latitude, longitude: report.longitude).isMalaysia ? .jakim : .other)
             certificateNumber = report.halal?.certificateNumber ?? ""
             photos = (try? await APIClient.adminSubmissionPhotos(id: report.id).photos) ?? []
         }
@@ -203,16 +212,18 @@ private struct HalalReportReviewView: View {
 
     @MainActor
     private func requestChanges() async {
-        await perform { _ = try await APIClient.adminRequestChanges(id: report.id, reviewNote: note) }
+        await perform(fallback: "Couldn't send it back. Try again.") { _ = try await APIClient.adminRequestChanges(id: report.id, reviewNote: trimmedNote) }
     }
 
     @MainActor
     private func reject() async {
-        await perform { _ = try await APIClient.adminRejectSubmission(id: report.id, reviewNote: note) }
+        await perform(fallback: "Couldn't reject. Try again.") { _ = try await APIClient.adminRejectSubmission(id: report.id, reviewNote: trimmedNote) }
     }
 
     @MainActor
-    private func perform(_ work: () async throws -> Void) async {
+    private var trimmedNote: String { note.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private func perform(fallback: String = "That didn't go through. Check the certificate details and try again.", _ work: () async throws -> Void) async {
         isProcessing = true
         defer { isProcessing = false }
         do {
@@ -220,7 +231,7 @@ private struct HalalReportReviewView: View {
             onHandled()
             dismiss()
         } catch {
-            errorMessage = "That didn't go through. Check the certificate details and try again."
+            errorMessage = (error as? APIError)?.serverMessage ?? fallback
         }
     }
 }

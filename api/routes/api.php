@@ -54,6 +54,12 @@ Route::prefix('v1')->group(function () {
     // short-lived (30 min), and scoped to one transient Google photo resource name.
     Route::get('places/photo', PhotoController::class)->name('places.photo')->middleware('signed');
 
+    // Pending submission photos for the in-app moderation screens. Same reasoning: AsyncImage
+    // can't send a Bearer token, so the 30-minute signature (minted only in the superadmin-only
+    // submissions photos endpoint) is the auth.
+    Route::get('admin/submission-photos/{photo}', AdminSubmissionPhotoController::class)
+        ->name('admin.submission-photos.show')->middleware('signed');
+
     // Public: installs register a device token before ever logging in (or without ever logging
     // in at all) — this never sets user_id, only claim()/unclaim() below do that.
     Route::post('device-tokens', [DeviceTokenController::class, 'register'])->middleware('throttle:60,1,device-tokens');
@@ -212,6 +218,7 @@ Route::prefix('v1')->group(function () {
             Route::get('users', [AdminUserController::class, 'index']);
             Route::post('users', [AdminUserController::class, 'store']);
             Route::post('users/{user}/revoke', [AdminUserController::class, 'revoke']);
+            Route::post('users/{user}/reactivate', [AdminUserController::class, 'reactivate']);
 
             Route::get('community/submissions', [AdminRestaurantSubmissionController::class, 'index']);
             Route::get('community/submissions/{submission}/photos', [AdminRestaurantSubmissionController::class, 'photos']);
@@ -221,8 +228,6 @@ Route::prefix('v1')->group(function () {
             Route::post('community/submissions/{submission}/request-changes', [AdminRestaurantSubmissionController::class, 'requestChanges']);
             Route::delete('community/restaurants/{restaurant}/field-overrides/{field}', [AdminRestaurantSubmissionController::class, 'releaseFieldOverride']);
             Route::post('community/restaurants/{restaurant}/remove', [AdminRestaurantSubmissionController::class, 'remove']);
-            Route::get('submission-photos/{photo}', AdminSubmissionPhotoController::class)
-                ->name('admin.submission-photos.show')->middleware('signed');
 
             Route::get('community/requests', [AdminCommunityRequestController::class, 'index']);
             Route::post('community/requests/{request}/resolve', [AdminCommunityRequestController::class, 'resolve']);

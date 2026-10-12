@@ -66,7 +66,14 @@ class AdminPanelSmokeTest extends TestCase
 
         $this->actingAs($admin, 'web');
 
+        $seoul = Restaurant::create([
+            'name' => 'Anam Kebab', 'latitude' => 37.5894, 'longitude' => 127.0276,
+            'is_active' => true, 'provider' => 'user_submitted',
+        ]);
+
         Livewire::test(ListRestaurants::class)->assertOk();
+        Livewire::test(ListRestaurants::class)->filterTable('region', 'KR')
+            ->assertCanSeeTableRecords([$seoul])->assertCanNotSeeTableRecords([$restaurant]);
         Livewire::test(EditRestaurant::class, ['record' => $restaurant->id])->assertOk();
     }
 

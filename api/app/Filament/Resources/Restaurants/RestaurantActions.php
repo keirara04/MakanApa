@@ -8,6 +8,7 @@ use App\Services\RestaurantSubmissionModerationService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 
 /**
  * Shared between RestaurantsTable's row actions and the Edit page's header actions — one
@@ -69,9 +70,15 @@ class RestaurantActions
             ])
             ->requiresConfirmation()
             ->modalDescription('Saves, vibe votes, menu items, photos, submissions, and recommendations move to the kept restaurant. This one is never deleted — just marked as merged.')
-            ->action(function (Restaurant $record, array $data) {
+            ->action(function (Restaurant $record, array $data, Action $action) {
                 $keep = Restaurant::findOrFail($data['mergeIntoId']);
-                app(RestaurantMergeService::class)->merge($keep, $record, auth()->user());
+                try {
+                    app(RestaurantMergeService::class)->merge($keep, $record, auth()->user());
+                } catch (\RuntimeException $e) {
+                    // e.g. merged in another tab meanwhile: say why instead of an error page.
+                    Notification::make()->danger()->title($e->getMessage())->send();
+                    $action->cancel();
+                }
             })
             ->successNotificationTitle('Restaurants merged');
     }

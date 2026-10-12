@@ -16,6 +16,8 @@ class ApiUsageDaily extends Model
 {
     public const PROVIDER_GOOGLE_PLACES = 'google_places';
 
+    public const PROVIDER_KAKAO_LOCAL = 'kakao_local';
+
     protected $table = 'api_usage_daily';
 
     protected function casts(): array

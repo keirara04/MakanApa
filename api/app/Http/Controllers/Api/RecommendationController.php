@@ -132,9 +132,11 @@ class RecommendationController extends Controller
 
         $result = $this->recommendationService->recommend($restaurants, $preference);
 
+        $moodMatch = $this->moodMatch($restaurants, $preference);
         $decision = Decision::create([
             ...$attributes,
             'selected_restaurant_id' => $result['pick']['restaurant']['id'] ?? null,
+            'intent_matched' => $moodMatch['matched'] ?? $result['craving']['matched'] ?? null,
         ]);
 
         foreach ($data['moods'] ?? [] as $mood) {
@@ -172,7 +174,7 @@ class RecommendationController extends Controller
                 ? $this->presentCandidate($result['pick'], $this->enrichWinner($result['pick']['restaurant']))
                 : null,
             'craving' => $result['craving'],
-            'moodMatch' => $this->moodMatch($restaurants, $preference),
+            'moodMatch' => $moodMatch,
         ];
 
         if (config('recommendation.debug')) {
@@ -219,8 +221,13 @@ class RecommendationController extends Controller
                 ...$this->brainPayload($decision, $result['winnerRow'], withTrace: true),
             ] : null,
             'craving' => $result['craving'],
-            'moodMatch' => $this->moodMatch($restaurants, $preference),
+            'moodMatch' => $moodMatch = $this->moodMatch($restaurants, $preference),
         ];
+        // For the admin's per-campus match rate (see PickMatchWidget).
+        $intentMatched = $moodMatch['matched'] ?? $result['craving']['matched'] ?? null;
+        if ($intentMatched !== null) {
+            $decision->update(['intent_matched' => $intentMatched]);
+        }
 
         if (config('recommendation.debug')) {
             $response['debug'] = [

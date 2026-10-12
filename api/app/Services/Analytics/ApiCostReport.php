@@ -41,7 +41,8 @@ class ApiCostReport
         $scale = $now->daysInMonth / max(1, $now->day);
 
         return [
-            ApiUsageDaily::PROVIDER_GOOGLE_PLACES => $this->provider('google_places', $this->googleLines($start, $now, $scale)),
+            ApiUsageDaily::PROVIDER_GOOGLE_PLACES => $this->provider('google_places', $this->usageLines(ApiUsageDaily::PROVIDER_GOOGLE_PLACES, $start, $now, $scale)),
+            ApiUsageDaily::PROVIDER_KAKAO_LOCAL => $this->provider('kakao_local', $this->usageLines(ApiUsageDaily::PROVIDER_KAKAO_LOCAL, $start, $now, $scale)),
             'openrouter' => $this->provider('openrouter', $this->openRouterLines($start, $now, $scale)),
         ];
     }
@@ -68,17 +69,17 @@ class ApiCostReport
     }
 
     /** @return list<array{label: string, units: int, unitLabel: string, cost: float, projected: float}> */
-    private function googleLines(CarbonInterface $start, CarbonInterface $now, float $scale): array
+    private function usageLines(string $provider, CarbonInterface $start, CarbonInterface $now, float $scale): array
     {
         $calls = ApiUsageDaily::query()
-            ->where('provider', ApiUsageDaily::PROVIDER_GOOGLE_PLACES)
+            ->where('provider', $provider)
             ->whereBetween('date', [$start->toDateString(), $now->toDateString()])
             ->selectRaw('endpoint, sum(calls) as total')
             ->groupBy('endpoint')
             ->pluck('total', 'endpoint')
             ->map(fn ($total) => (int) $total);
 
-        $endpoints = (array) Config::get('admin_budgets.google_places.endpoints', []);
+        $endpoints = (array) Config::get("admin_budgets.{$provider}.endpoints", []);
 
         // Configured SKUs first (stable order), then anything counted but not yet priced.
         return collect($endpoints)->keys()->merge($calls->keys())->unique()

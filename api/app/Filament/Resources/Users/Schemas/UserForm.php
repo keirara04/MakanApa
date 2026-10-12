@@ -26,7 +26,7 @@ class UserForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('name'),
-                        TextInput::make('email')->label('Email address')->email()->required(),
+                        TextInput::make('email')->label('Email address')->email()->required()->unique(ignoreRecord: true),
                         TextInput::make('avatar_url')->url(),
                     ]),
 

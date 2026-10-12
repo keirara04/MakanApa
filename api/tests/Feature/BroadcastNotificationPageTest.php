@@ -54,4 +54,22 @@ class BroadcastNotificationPageTest extends TestCase
         Notification::assertSentTo($optedIn, ReleaseAnnouncement::class);
         Notification::assertNotSentTo($optedOut, ReleaseAnnouncement::class);
     }
+
+    public function test_sending_waits_for_the_confirm_step(): void
+    {
+        Notification::fake();
+        $this->actingAs($this->superadmin(), 'web');
+        $recipient = User::factory()->create();
+        $recipient->deviceTokens()->create(['installation_id' => 'i-1', 'token' => 'tok-1', 'platform' => 'ios', 'environment' => 'development']);
+
+        $page = Livewire::test(BroadcastNotification::class)
+            ->fillForm(['category' => 'account_admin', 'title' => 'Heads up', 'body' => 'Something changed'])
+            ->mountAction('send')
+            ->assertActionMounted('send')
+            ->assertMountedActionModalSee('It goes to 1 person');
+        Notification::assertNothingSent();
+
+        $page->callMountedAction();
+        Notification::assertSentTo($recipient, AccountAdminNotice::class);
+    }
 }

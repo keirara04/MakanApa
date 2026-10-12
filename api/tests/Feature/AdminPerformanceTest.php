@@ -99,6 +99,30 @@ class AdminPerformanceTest extends TestCase
             ->duplicateHint($this->newPlaceSubmission($this->makeUser(), 'Pelita', 2.9284, 101.7802)));
     }
 
+    public function test_reports_about_a_place_never_flag_that_place_as_a_duplicate_or_link_to_it(): void
+    {
+        $restaurant = $this->makeRestaurant();
+        $report = $this->makeHalalReport($restaurant, $this->makeUser(), HalalStatus::MuslimFriendly);
+        $moderation = app(RestaurantSubmissionModerationService::class);
+
+        $this->assertNull($moderation->duplicateHint($report));
+        $this->actingAs($this->makeAdmin(), 'sanctum')
+            ->postJson("/api/v1/admin/community/submissions/{$report->id}/link", ['restaurantId' => $restaurant->id])
+            ->assertStatus(422);
+        $this->assertSame('pending', $report->fresh()->status);
+    }
+
+    public function test_the_app_cannot_approve_a_halal_report_without_choosing_a_status(): void
+    {
+        $report = $this->makeHalalReport($this->makeRestaurant(), $this->makeUser(), HalalStatus::MuslimFriendly);
+        $admin = $this->makeAdmin();
+
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/community/submissions/{$report->id}/approve")
+            ->assertStatus(422)->assertJsonPath('message', 'Review halal reports in the Halal review queue and choose the status to record.');
+        $this->actingAs($admin, 'sanctum')->postJson("/api/v1/admin/community/submissions/{$report->id}/approve", ['resolvedStatus' => 'muslim_friendly'])
+            ->assertOk();
+    }
+
     public function test_evidence_photo_route_needs_a_signed_url_and_a_superadmin_session(): void
     {
         $submission = $this->makeHalalReport($this->makeRestaurant(), $this->makeUser(), HalalStatus::Certified);
@@ -113,6 +137,18 @@ class AdminPerformanceTest extends TestCase
         $this->actingAs($this->makeAdmin(), 'web')->get($signed)
             ->assertOk()
             ->assertHeader('Content-Type', 'image/jpeg');
+    }
+
+    public function test_app_photo_route_works_from_the_signature_alone(): void
+    {
+        $submission = $this->makeHalalReport($this->makeRestaurant(), $this->makeUser(), HalalStatus::Certified);
+        $photo = $this->pendingEvidencePhoto($submission);
+
+        // AsyncImage in the app can't send a Bearer token.
+        $this->get(URL::temporarySignedRoute('admin.submission-photos.show', now()->addMinutes(30), ['photo' => $photo->id]))
+            ->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+        $this->get(route('admin.submission-photos.show', ['photo' => $photo->id]))->assertForbidden();
+        $this->get(URL::temporarySignedRoute('admin.submission-photos.show', now()->subMinute(), ['photo' => $photo->id]))->assertForbidden();
     }
 
     public function test_submission_page_links_private_evidence_instead_of_inlining_it(): void
