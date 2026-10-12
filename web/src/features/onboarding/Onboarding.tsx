@@ -4,6 +4,7 @@ import { authApi } from '../../api/auth'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
+import { useRegion, type Region } from '../../lib/region'
 import { getStored, setStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
@@ -34,10 +35,19 @@ export function Onboarding() {
   )
 }
 
+/** The taped example pick: a dish that's easy to find where the person is. */
+const EXAMPLE: Record<Region, [dish: string, line: string]> = {
+  MY: ['Nasi kandar', 'Open now, 6 minutes away, about RM12'],
+  KR: ['Kebab', 'Open now, 4 minutes away, about ₩10,000'],
+  US: ['Chicken over rice', 'Open now, 4 minutes away, about $12'],
+  OTHER: ['Kebab', 'Open now, 4 minutes away'],
+}
+
 const title = 'font-display text-4xl font-bold leading-[1.08] tracking-tight md:text-5xl'
 const lead = 'mt-4 text-lg leading-relaxed text-kicap-soft'
 
 function Hello({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void }) {
+  const [dish, line] = EXAMPLE[useRegion()]
   return (
     <StepLayout
       art={
@@ -46,8 +56,8 @@ function Hello({ onNext, onSignIn }: { onNext: () => void; onSignIn: () => void 
           <div className="sketch -rotate-2 px-6 pb-6 pt-7" style={{ ['--sketch-radius' as string]: '22px' }} aria-hidden="true">
             <span className="tape -top-3 left-1/2 -translate-x-1/2 rotate-2" />
             <p className="text-sm font-semibold text-sambal-deep">Picked for you</p>
-            <p className="mt-1 font-display text-3xl font-bold leading-tight md:text-4xl">Nasi kandar</p>
-            <p className="mt-2 pr-16 text-kicap-soft">Open now, 6 minutes away, about RM12</p>
+            <p className="mt-1 font-display text-3xl font-bold leading-tight md:text-4xl">{dish}</p>
+            <p className="mt-2 pr-16 text-kicap-soft">{line}</p>
           </div>
           <Mascot mood="wave" size={120} className="absolute -bottom-16 -right-3 rotate-6 md:h-36 md:w-36" />
         </div>
@@ -113,6 +123,7 @@ function Halal({ onDone }: { onDone: () => void }) {
   const { setUser } = useSession()
   const [busy, setBusy] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const abroad = useRegion() !== 'MY'
 
   async function choose(halalOnly: boolean) {
     setBusy(halalOnly)
@@ -155,7 +166,9 @@ function Halal({ onDone }: { onDone: () => void }) {
     >
       <h1 className={title}>Do you only eat halal?</h1>
       <p className={lead}>
-        We’ll hide places known to be non-halal. Places we haven’t verified yet still show, clearly marked. Change it anytime in settings.
+        {abroad
+          ? 'Halal food is harder to find here. We hide places known to serve pork or alcohol. Places we haven’t verified yet still show, clearly marked. Change it anytime in settings.'
+          : 'We’ll hide places known to be non-halal. Places we haven’t verified yet still show, clearly marked. Change it anytime in settings.'}
       </p>
       <p className="mt-3 text-sm text-kicap-soft">Halal info comes from the community. Always double-check at the restaurant.</p>
       {error && (

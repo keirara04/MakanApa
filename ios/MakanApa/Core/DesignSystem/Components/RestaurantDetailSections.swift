@@ -178,6 +178,8 @@ struct PlaceCommunityPhotoStrip: View {
 
 struct PlaceMenuSection: View {
     let items: [MenuItem]
+    /// Where the place is, so a KL menu viewed from Seoul still reads RM.
+    var region: Region = .current
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -186,7 +188,7 @@ struct PlaceMenuSection: View {
                     Text(item.name).font(.makanBody(14)).foregroundStyle(Color.kicap)
                     Spacer()
                     if let price = item.price {
-                        Text("RM\(price, specifier: "%.2f")").font(.makanBody(13)).foregroundStyle(.secondary)
+                        Text(region.price(price)).font(.makanBody(13)).foregroundStyle(.secondary)
                     }
                 }
             }

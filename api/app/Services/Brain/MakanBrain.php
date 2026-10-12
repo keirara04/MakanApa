@@ -9,6 +9,7 @@ use App\Models\TasteEvent;
 use App\Models\User;
 use App\Services\Community\CommunityPickStats;
 use App\Services\RecommendationService;
+use App\Support\Region;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
@@ -153,6 +154,9 @@ class MakanBrain
                 'facts' => [
                     'distanceKm' => round($candidate['distanceKm'], 3),
                     'priceLevel' => $restaurant['price_level'] ?? null,
+                    'region' => isset($restaurant['latitude'], $restaurant['longitude'])
+                        ? Region::at((float) $restaurant['latitude'], (float) $restaurant['longitude'])->value
+                        : null,
                     'rating' => $restaurant['rating'] ?? null,
                     'userRatingCount' => $restaurant['user_rating_count'] ?? null,
                     'category' => $restaurant['food_category'] ?? null,

@@ -1,7 +1,7 @@
 import type { Lens, SoloRequest } from '../../api/decide'
 import type { User } from '../../api/types'
 import { getPosition } from '../../lib/location'
-import { budgetAmount } from '../../lib/presentation'
+import { budgetAmount, withinLabel } from '../../lib/presentation'
 import { getStored } from '../../lib/storage'
 import type { AskedFor } from './state'
 
@@ -42,7 +42,7 @@ export async function buildSoloRequest(answers: Answers, user: User | null): Pro
     asked: {
       mood: craving ? ('tag' in craving ? craving.label : request.craving!) : 'Anything',
       budget: amount ? `${amount} per person` : 'No budget limit',
-      distance: `Within ${maxDistanceKm} km`,
+      distance: withinLabel(maxDistanceKm),
     },
   }
 }

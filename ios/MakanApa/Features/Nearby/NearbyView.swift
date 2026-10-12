@@ -31,7 +31,7 @@ struct NearbyView: View {
     @State private var pendingDeepLink = PendingDeepLink.shared
     private var preferences = PlacePreferencesStore.shared
 
-    private static let searchPlaceholderExamples = ["nasi lemak", "mamak", "coffee", "chicken rice"]
+    private static var searchPlaceholderExamples: [String] { Region.current.searchExamples }
     private static let areaPanelHintKey = "NearbyView.hasShownAreaPanelHint"
     private static let halalNoticeDismissedKey = "NearbyView.halalNoticeDismissed"
 
@@ -281,7 +281,7 @@ struct NearbyView: View {
                     viewModel.openNowFilter.toggle()
                     rerunSearch()
                 }
-                filterChip(label: "≤ RM20", isOn: viewModel.budgetMaxFilter == 2) {
+                filterChip(label: Region.current.budgetFilterLabel, isOn: viewModel.budgetMaxFilter == 2) {
                     viewModel.budgetMaxFilter = viewModel.budgetMaxFilter == 2 ? nil : 2
                     rerunSearch()
                 }
@@ -932,7 +932,7 @@ struct NearbyView: View {
                                 Label(String(format: "%.1f", rating), systemImage: "star.fill")
                                     .foregroundStyle(Color.kunyit)
                             }
-                            if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel) {
+                            if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel, region: .of(latitude: place.latitude, longitude: place.longitude)) {
                                 Text(spend)
                             }
                             if let category = summary?.category ?? details?.foodCategory.map({ $0.replacingOccurrences(of: "_", with: " ").capitalized }) {
@@ -1025,7 +1025,7 @@ struct NearbyView: View {
                     if !details.menuItems.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("MENU").font(.makanBody(11)).foregroundStyle(.secondary).tracking(0.5)
-                            PlaceMenuSection(items: details.menuItems)
+                            PlaceMenuSection(items: details.menuItems, region: .of(latitude: place.latitude, longitude: place.longitude))
                         }
                     }
                     if !details.reviews.isEmpty {
@@ -1110,7 +1110,8 @@ struct NearbyView: View {
         guard let user = userCoordinate else { return nil }
         let meters = CLLocation(latitude: user.latitude, longitude: user.longitude)
             .distance(from: CLLocation(latitude: place.latitude, longitude: place.longitude))
-        return meters < 1000 ? "\(Int((meters / 10).rounded()) * 10) m away" : String(format: "%.1f km away", meters / 1000)
+        let km = meters / 1000
+        return Region.current.distance(km: km, kmText: meters < 1000 ? "\(Int((meters / 10).rounded()) * 10) m" : String(format: "%.1f km", km)) + " away"
     }
 
     @ViewBuilder
@@ -1369,7 +1370,7 @@ private struct NearbyGuideArt: View {
             HStack(spacing: 8) {
                 GuideChip(text: Copy.nearbyGuideChipHalal, isOn: true)
                 GuideChip(text: Copy.nearbyGuideChipOpen).guideTapHint(cornerRadius: 18)
-                GuideChip(text: Copy.nearbyGuideChipBudget)
+                GuideChip(text: Region.current.budgetFilterLabel)
             }
             HStack(spacing: 14) {
                 ratingPin("4.6")
@@ -1398,7 +1399,7 @@ private struct NearbyGuideArt: View {
                     .shadow(color: .black.opacity(0.1), radius: 3, y: 1)
                     .guideTapHint(cornerRadius: 22)
                 HStack(spacing: 8) {
-                    Text(Copy.nearbyGuideSearchExample).font(.makanBody(14)).foregroundStyle(Color.kicap)
+                    Text(Region.current.searchExamples[0]).font(.makanBody(14)).foregroundStyle(Color.kicap)
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 14)

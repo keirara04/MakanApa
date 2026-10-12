@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { setStored } from '../lib/storage'
 import { changedFields, priceLevelFromSpend, spendFromPriceLevel, type DetailsForm } from './submissions'
 
 describe('spend and price level', () => {
+  beforeEach(() => setStored('region', 'MY'))
+
   it('buckets ringgit into tiers like iOS', () => {
     expect(priceLevelFromSpend('')).toBeNull()
     expect(priceLevelFromSpend('0')).toBeNull()

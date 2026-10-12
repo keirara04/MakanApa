@@ -32,7 +32,7 @@ class StoreRestaurantSubmissionRequest extends FormRequest
             'menuItems' => ['nullable', 'array', 'max:100'],
             'menuItems.*.name' => ['required_with:menuItems', 'string', 'max:120'],
             'menuItems.*.description' => ['nullable', 'string', 'max:255'],
-            'menuItems.*.price' => ['nullable', 'numeric', 'between:0,9999.99'],
+            'menuItems.*.price' => ['nullable', 'numeric', 'between:0,999999.99'],
             'menuItems.*.category' => ['nullable', 'string', 'max:60'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

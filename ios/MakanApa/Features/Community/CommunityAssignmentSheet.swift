@@ -307,7 +307,7 @@ private struct CommunityRequestSheet: View {
     }
 
     private var placeholder: String {
-        type == "university" ? Copy.communityRequestUniversityPlaceholder : Copy.communityRequestAreaPlaceholder
+        type == "university" ? Region.current.formExamples.university : Region.current.formExamples.area
     }
 
     @MainActor

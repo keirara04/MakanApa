@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import type { Recommendation } from '../api/decide'
 import { directionsUrl } from './maps'
 import { categoryLabel, detailsLine, distanceLabel, kindLabel, mealGreeting, priceLabel } from './presentation'
+import { setStored } from './storage'
+
+beforeEach(() => setStored('region', 'MY'))
 
 const pick = (overrides: Partial<Recommendation> = {}) =>
   ({ foodCategory: 'ramen', cuisines: ['japanese'], priceLevel: 2, distanceKm: 0.4, openStatus: 'open', closesAt: '10:00 PM', ...overrides }) as Recommendation

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { Region } from './region'
 
 /**
  * Everything the app keeps on the device, in one versioned localStorage entry: the web
@@ -55,6 +56,8 @@ export interface Stored {
   installationId?: string
   onboarded?: boolean
   halalOnly?: boolean
+  /** Region of the last location fix, so a cold start doesn't flash Malaysian prices abroad. */
+  region?: Region
   mapsApp?: 'google' | 'waze' | 'naver' | 'kakao'
   /** Last 5 accepted picks, newest first. */
   recent?: RecentPick[]

@@ -7,7 +7,8 @@ import { errorMessage } from '../../lib/errors'
 import type { Coordinates } from '../../lib/location'
 import { directionsUrl } from '../../lib/maps'
 import { resizeForUpload } from '../../lib/photos'
-import { categoryLabel, priceLabel } from '../../lib/presentation'
+import { categoryLabel, kmLabel, menuPrice, priceLabel } from '../../lib/presentation'
+import { currentRegion } from '../../lib/region'
 import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { PhotoViewer, viewerPhotos } from '../../ui/PhotoViewer'
@@ -44,7 +45,7 @@ export function PlaceSheet({ place, search, origin = null, user: me, onClose, on
   const status = (summary?.openStatus ?? details?.openStatus ?? place.openStatus)
   const closesAt = summary?.closesAt ?? details?.closesAt
   const away = me ? distanceKm(me, place) : null
-  const where = [away === null ? null : away < 1 ? `${Math.round((away * 1000) / 10) * 10} m away` : `${away.toFixed(1)} km away`, summary?.address].filter(Boolean)
+  const where = [away === null ? null : away < 1 && currentRegion() !== 'US' ? `${Math.round((away * 1000) / 10) * 10} m away` : `${kmLabel(away)} away`, summary?.address].filter(Boolean)
   const category = summary?.category ?? categoryLabel(details?.foodCategory ?? null)
   const halal = details?.halal?.display ?? place.halal?.display
 
@@ -63,7 +64,7 @@ export function PlaceSheet({ place, search, origin = null, user: me, onClose, on
           {where.length > 0 && <p className="text-sm text-kicap-soft">{where.join(', ')}</p>}
           <p className="flex flex-wrap gap-x-3 text-sm">
             {place.rating !== null && <span className="font-semibold">★ {place.rating.toFixed(1)}</span>}
-            {priceLabel(place.priceLevel) && <span>{priceLabel(place.priceLevel)}</span>}
+            {priceLabel(place.priceLevel, place) && <span>{priceLabel(place.priceLevel, place)}</span>}
             {category && <span>{category}</span>}
           </p>
           {halal && <HalalBadge halal={{ display: halal }} />}
@@ -296,7 +297,7 @@ function DetailBody({ details }: { details: PlaceDetails }) {
             {details.menuItems.map((item) => (
               <li key={`${item.name}-${item.price}`} className="flex justify-between gap-4 py-2">
                 <span>{item.name}</span>
-                {item.price !== null && <span className="font-semibold">RM{item.price.toFixed(2)}</span>}
+                {item.price !== null && <span className="font-semibold">{menuPrice(item.price, details)}</span>}
               </li>
             ))}
           </ul>

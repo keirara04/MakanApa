@@ -2,6 +2,7 @@
 
 namespace App\Services\Brain;
 
+use App\Support\Region;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
@@ -29,7 +30,7 @@ class ContextEngine
         }
 
         $now ??= Carbon::now();
-        $local = $now->copy()->setTimezone(Config::get('brain.timezone'));
+        $local = $now->copy()->setTimezone(Region::timezoneAt($lat, $lon));
         $ramadan = $halalOnly && self::isRamadan($local);
         $slot = self::slotFor($local, $ramadan);
 

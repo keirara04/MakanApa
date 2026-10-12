@@ -104,6 +104,16 @@ class KakaoDecideTest extends TestCase
         $this->assertSame('nasi goreng', Decision::latest('id')->first()->kakao_pick['query']);
     }
 
+    public function test_a_korea_mood_searches_kakao_by_its_keyword(): void
+    {
+        $this->fakeProviders(['k1']);
+
+        $this->solo(['moods' => ['middle_eastern']])->assertOk()->assertJsonPath('kakaoPick.kakaoPlaceId', 'k1');
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'keyword.json') && $r['query'] === '케밥');
+        $this->assertSame('kebab', Decision::latest('id')->first()->kakao_pick['query']);
+    }
+
     public function test_clients_without_the_flag_get_the_normal_pick(): void
     {
         $this->fakeProviders(['k1'], googleCount: 1);

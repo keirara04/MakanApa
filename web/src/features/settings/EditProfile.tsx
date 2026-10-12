@@ -5,6 +5,7 @@ import { accountApi, AVATARS, avatarSrc, type Community } from '../../api/accoun
 import { authApi } from '../../api/auth'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
+import { FORM_EXAMPLES, useRegion } from '../../lib/region'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
 import { Sheet } from '../../ui/Sheet'
@@ -174,6 +175,7 @@ export function CommunityPicker({ open, onClose }: { open: boolean; onClose: () 
 
 function RequestCommunity({ type, onClose }: { type: 'university' | 'area' | null; onClose: () => void }) {
   const { gate, run } = useContributionGate('request a new community')
+  const region = useRegion()
   const [name, setName] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -212,7 +214,7 @@ function RequestCommunity({ type, onClose }: { type: 'university' | 'area' | nul
             value={name}
             onChange={(event) => setName(event.target.value)}
             maxLength={150}
-            placeholder={type === 'university' ? 'e.g. Universiti Malaya' : 'e.g. Shah Alam, Cheras, your neighbourhood'}
+            placeholder={type === 'university' ? FORM_EXAMPLES[region].university : FORM_EXAMPLES[region].area}
           />
         )}
         {error && <p role="alert" className="text-sambal-deep">{error}</p>}

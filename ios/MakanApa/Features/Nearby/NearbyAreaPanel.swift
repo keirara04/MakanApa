@@ -254,7 +254,7 @@ struct NearbyAreaPanel: View {
         HStack(spacing: 20) {
             countLabel("\(summary.placeCount)", "places")
             countLabel("\(summary.openNowCount)", "open now")
-            countLabel("\(summary.budgetFriendlyCount)", "under RM20")
+            countLabel("\(summary.budgetFriendlyCount)", Region.current.budgetFriendlyLabel)
         }
     }
 

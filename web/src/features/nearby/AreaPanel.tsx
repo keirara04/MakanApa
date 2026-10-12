@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { centreOf, distanceKm, type NearbyPlace } from '../../api/nearby'
+import { BUDGET_COUNT, useRegion } from '../../lib/region'
 import { useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { useNearby } from './state'
@@ -20,6 +21,7 @@ export function AreaPanel({ onOpen, onPick, picking, inPanel = false }: { onOpen
   const { summary, filtered, places, loading, viewport } = useNearby()
   // The summary comes from the server; places hidden with "Don't suggest" leave its lists too.
   const excluded = useStored('excluded') ?? []
+  const region = useRegion()
   const topRated = summary?.topRated.filter((place) => !excluded.includes(place.id)) ?? []
   const communityFinds = summary?.communityFinds.filter((place) => !excluded.includes(place.id)) ?? []
   const [sort, setSort] = useState<Sort>('default')
@@ -64,7 +66,7 @@ export function AreaPanel({ onOpen, onPick, picking, inPanel = false }: { onOpen
           {[
             [summary.placeCount, 'places'],
             [summary.openNowCount, 'open now'],
-            [summary.budgetFriendlyCount, 'under RM20'],
+            [summary.budgetFriendlyCount, BUDGET_COUNT[region]],
           ].map(([count, label]) => (
             <div key={label} className={`rounded-row px-2 py-3 ${inPanel ? 'bg-cream' : 'bg-surface'}`}>
               <dt className="sr-only">{label}</dt>

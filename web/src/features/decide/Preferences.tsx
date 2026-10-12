@@ -4,14 +4,20 @@ import type { Lens } from '../../api/decide'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
-import { BUDGETS, DISTANCES } from '../../lib/presentation'
+import { budgets, distanceAmount, distances } from '../../lib/presentation'
+import { useRegion, type Region } from '../../lib/region'
 import { setStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { ContextStrip } from './ContextStrip'
 import { buildSoloRequest, LocationNeeded, type Answers } from './request'
 import { useDecide } from './state'
 
-const CRAVINGS = [
+type Mood = readonly [tag: string, label: string, subtitle: string, image: string]
+
+const HEALTHY: Mood = ['healthy', 'Healthy', 'Something lighter', 'mood-light.svg']
+const QUICK: Mood = ['quick', 'Quick', 'Fast and convenient', 'mood-quick.svg']
+
+const MY_CRAVINGS: Mood[] = [
   ['nasi_kandar', 'Nasi Kandar', 'Kandar power', 'mood-nasikandar.webp'],
   ['ayam_gepuk', 'Ayam Gepuk', 'Smashed, spicy, delicious', 'mood-ayamgepuk.webp'],
   ['nasi_padang', 'Nasi Padang', 'Rendang, gulai, the works', 'mood-nasipadang.webp'],
@@ -20,9 +26,26 @@ const CRAVINGS = [
   ['char_kuey_teow', 'Char Kuey Teow', 'Smoky and satisfying', 'mood-charkueyteow.webp'],
   ['banana_leaf_rice', 'Banana Leaf Rice', 'Drowned in curry, no regrets', 'mood-bananaleafrice.webp'],
   ['dim_sum', 'Dim Sum', 'Small plates, big satisfaction', 'mood-dimsum.webp'],
-  ['healthy', 'Healthy', 'Something lighter', 'mood-light.svg'],
-  ['quick', 'Quick', 'Fast and convenient', 'mood-quick.svg'],
-] as const
+  HEALTHY,
+  QUICK,
+]
+
+const ABROAD: Mood[] = [
+  ['indian', 'Indian', 'Curry with rice or naan', 'mood-bananaleafrice.webp'],
+  ['malay', 'Taste of home', 'Malaysian and Indonesian', 'mood-nasipadang.webp'],
+  ['chicken', 'Fried chicken', 'Crispy, best shared', 'mood-ayamgepuk.webp'],
+]
+const KEBAB: Mood = ['middle_eastern', 'Kebab', 'Wraps, rice plates, grills', 'mood-kebab.webp']
+const BURGER: Mood = ['burger', 'Burger', 'Quick and filling', 'mood-burger.webp']
+const PIZZA: Mood = ['pizza', 'Pizza', 'By the slice or the pie', 'mood-pizza.webp']
+
+/** Mood chips by region; the API scores every key the same everywhere. */
+const CRAVINGS: Record<Region, Mood[]> = {
+  MY: MY_CRAVINGS,
+  KR: [KEBAB, ...ABROAD, ['korean', 'Korean', 'Rice bowls, stews, noodles', 'mood-bibimbap.webp'], BURGER, HEALTHY, QUICK],
+  US: [['middle_eastern', 'Halal cart', 'Chicken over rice, gyros', 'mood-kebab.webp'], ...ABROAD, BURGER, PIZZA, HEALTHY, QUICK],
+  OTHER: [KEBAB, ...ABROAD, BURGER, PIZZA, HEALTHY, QUICK],
+}
 
 type Craving = Answers['craving'] | 'anything'
 type Step = 0 | 1 | 2
@@ -33,6 +56,7 @@ export function Preferences() {
   const { decide } = useDecide()
   const navigate = useNavigate()
   const location = useLocation()
+  const region = useRegion()
   const [step, setStep] = useState<Step>(0)
   const [craving, setCraving] = useState<Craving | undefined>(undefined)
   const [typed, setTyped] = useState('')
@@ -81,7 +105,7 @@ export function Preferences() {
     else void findFood()
   }
 
-  const answers = [cravingLabel, budget === null ? 'Anything' : BUDGETS.find((option) => option.value === budget)?.amount, `${distance} km`]
+  const answers = [cravingLabel, budget === null ? 'Anything' : budgets(region).find((option) => option.value === budget)?.amount, distanceAmount(distance, region)]
 
   return (
     <form onSubmit={next} className="flex flex-1 flex-col pt-2">
@@ -149,7 +173,7 @@ export function Preferences() {
 
             <p className="mt-6 font-hand text-2xl text-kicap-soft">Or pick one</p>
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" role="radiogroup" aria-label="Cravings">
-              {CRAVINGS.map(([tag, label, subtitle, image]) => {
+              {CRAVINGS[region].map(([tag, label, subtitle, image]) => {
                 const selected = craving !== undefined && craving !== null && craving !== 'anything' && 'tag' in craving && craving.tag === tag
                 return (
                   <button
@@ -178,7 +202,7 @@ export function Preferences() {
         {step === 1 && (
           <Section title="What’s the budget?" subtitle="Per person. Good food at every budget.">
             <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Budget">
-              {BUDGETS.map((option) => (
+              {budgets(region).map((option) => (
                 <Choice
                   key={option.value}
                   selected={budget === option.value}
@@ -214,7 +238,7 @@ export function Preferences() {
         {step === 2 && (
           <Section title="How far will you go?" subtitle="Stay nearby or go a little further for good food.">
             <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Distance">
-              {DISTANCES.map((option) => (
+              {distances(region).map((option) => (
                 <Choice
                   key={option.km}
                   selected={distance === option.km}

@@ -6,7 +6,7 @@ import { nearbyApi, type SearchResult } from '../../api/nearby'
 import { useSession } from '../../auth/session'
 import { useLocation } from '../../lib/location'
 import { directionsUrl } from '../../lib/maps'
-import { priceLabel } from '../../lib/presentation'
+import { kmLabel, priceLabel } from '../../lib/presentation'
 import { getStored, setStored, useStored, type SavedPlace } from '../../lib/storage'
 import { SubPage } from './SubPage'
 
@@ -42,7 +42,7 @@ export function SavedPlaces() {
                 <a href={directionsUrl(place, getStored('mapsApp'))} target="_blank" rel="noreferrer" className="flex min-h-16 flex-1 flex-col justify-center py-3">
                   <span className="font-semibold">{place.name}</span>
                   <span className="text-sm text-kicap-soft">
-                    {[place.rating != null ? `★ ${place.rating.toFixed(1)}` : null, priceLabel(place.priceLevel ?? null)].filter(Boolean).join(', ')}
+                    {[place.rating != null ? `★ ${place.rating.toFixed(1)}` : null, priceLabel(place.priceLevel ?? null, place)].filter(Boolean).join(', ')}
                   </span>
                 </a>
                 <button type="button" onClick={() => toggle(place, true)} aria-label={`Remove ${place.name} from saved`} className="press h-11 w-11 text-kicap-soft">
@@ -158,7 +158,7 @@ function SaveSearch({ query, saved }: { query: string; saved: SavedPlace[] }) {
                 <span className="flex-1">
                   <span className="block font-semibold">{result.name}</span>
                   <span className="text-sm text-kicap-soft">
-                    {[result.category, result.distanceKm !== null ? `${result.distanceKm.toFixed(1)} km` : null, result.address].filter(Boolean).join(', ')}
+                    {[result.category, result.distanceKm !== null ? kmLabel(result.distanceKm) : null, result.address].filter(Boolean).join(', ')}
                   </span>
                 </span>
                 <button

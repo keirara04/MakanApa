@@ -133,7 +133,7 @@ struct CommunityRestaurantDetailSheet: View {
             .foregroundStyle(.secondary)
 
             if !item.cuisines.isEmpty {
-                Text(item.cuisines.joined(separator: " · ").capitalized)
+                Text(item.cuisines.joined(separator: " · ").replacingOccurrences(of: "_", with: " ").capitalized)
                     .font(.makanBody(12))
                     .foregroundStyle(.secondary)
             }

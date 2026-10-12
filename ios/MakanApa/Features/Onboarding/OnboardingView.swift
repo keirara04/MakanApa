@@ -190,12 +190,33 @@ private struct PickDemoCard: View {
         let meta: String
     }
 
-    private let samples = [
+    /// Runs before location, so the region here is the time-zone guess.
+    private let samples: [Sample] = switch Region.current {
+    case .malaysia: [
         Sample(image: "MoodNasiLemak", name: "Nasi lemak", meta: "350 m · ≈ RM10/person"),
         Sample(image: "MoodCharKueyTeow", name: "Char kuey teow", meta: "800 m · ≈ RM10/person"),
         Sample(image: "MoodDimSum", name: "Dim sum", meta: "1.2 km · ≈ RM20/person"),
         Sample(image: "MoodNasiKandar", name: "Nasi kandar", meta: "600 m · ≈ RM20/person"),
     ]
+    case .korea: [
+        Sample(image: "MoodKebab", name: "Kebab", meta: "300 m · ≈ ₩10,000/person"),
+        Sample(image: "MoodBibimbap", name: "Bibimbap", meta: "450 m · ≈ ₩10,000/person"),
+        Sample(image: "MoodAyamGepuk", name: "Fried chicken", meta: "700 m · ≈ ₩18,000/person"),
+        Sample(image: "MoodBananaLeafRice", name: "Indian curry", meta: "1.1 km · ≈ ₩18,000/person"),
+    ]
+    case .unitedStates: [
+        Sample(image: "MoodKebab", name: "Chicken over rice", meta: "0.2 mi · ≈ $12/person"),
+        Sample(image: "MoodBurger", name: "Burger", meta: "0.4 mi · ≈ $12/person"),
+        Sample(image: "MoodPizza", name: "Pizza", meta: "0.3 mi · ≈ $12/person"),
+        Sample(image: "MoodBananaLeafRice", name: "Indian curry", meta: "0.7 mi · ≈ $25/person"),
+    ]
+    case .other: [
+        Sample(image: "MoodKebab", name: "Kebab", meta: "300 m · Budget"),
+        Sample(image: "MoodBurger", name: "Burger", meta: "450 m · Budget"),
+        Sample(image: "MoodAyamGepuk", name: "Fried chicken", meta: "700 m · Mid-range"),
+        Sample(image: "MoodBananaLeafRice", name: "Indian curry", meta: "1.1 km · Mid-range"),
+    ]
+    }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var index = 0
@@ -405,7 +426,7 @@ private struct OnboardingHalalPage: View {
                     .accessibilityHidden(true)
             },
             headline: Copy.onboardingHalalTitle,
-            subtext: Copy.onboardingHalalSubtext,
+            subtext: Region.current.isMalaysia ? Copy.onboardingHalalSubtext : Copy.onboardingHalalSubtextAbroad,
             footnote: OnboardingFootnote(icon: "info.circle.fill", text: Copy.onboardingHalalFootnote),
             primaryTitle: Copy.onboardingHalalYes,
             primaryAction: {

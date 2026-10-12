@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { DiscoveryMode, Vibe } from '../../api/nearby'
+import { BUDGET_CHIP, useRegion } from '../../lib/region'
 import { setStored, useStored } from '../../lib/storage'
 import { useNearby } from './state'
 
@@ -23,6 +24,7 @@ const VIBES: [Vibe, string][] = [
 /** The iOS Nearby ribbon: filters, then a mode; a vibe row appears for the non-default modes. */
 export function FilterRibbon({ trailing }: { trailing?: ReactNode }) {
   const { filters, setFilters, resetFilters } = useNearby()
+  const region = useRegion()
   const changed = filters.openNow || filters.budgetMax !== null || filters.minRating !== null || filters.mode !== 'normal' || filters.vibe !== null
   const moreMode = MORE_MODES.find(([mode]) => mode === filters.mode)
 
@@ -37,7 +39,7 @@ export function FilterRibbon({ trailing }: { trailing?: ReactNode }) {
             Open now
           </Chip>
           <Chip on={filters.budgetMax === 2} onClick={() => setFilters({ budgetMax: filters.budgetMax === 2 ? null : 2 })}>
-            ≤ RM20
+            {BUDGET_CHIP[region]}
           </Chip>
           <Chip on={filters.minRating === 4.5} onClick={() => setFilters({ minRating: filters.minRating === 4.5 ? null : 4.5 })}>
             4.5+ ★

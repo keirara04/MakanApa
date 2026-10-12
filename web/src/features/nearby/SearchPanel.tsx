@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { nearbyApi, type NearbyPlace, type SearchResponse, type SearchResult } from '../../api/nearby'
 import { errorMessage } from '../../lib/errors'
+import { distanceAmount, kmLabel } from '../../lib/presentation'
+import { currentRegion, SEARCH_EXAMPLES } from '../../lib/region'
 import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { HalalBadge } from '../decide/PickParts'
 import { useNearby } from './state'
 
-const TRY = ['nasi lemak', 'mamak', 'coffee', 'chicken rice']
 const RADIUS_KM = 6
 
 export interface SearchContext {
@@ -40,7 +41,8 @@ export function SearchPanel({ centre, onClose, onSelect }: {
   const [loading, setLoading] = useState(false)
   const [resolving, setResolving] = useState<string | null>(null)
   const input = useRef<HTMLInputElement>(null)
-  const [placeholder] = useState(() => TRY[Math.floor(Math.random() * TRY.length)])
+  const [examples] = useState(() => SEARCH_EXAMPLES[currentRegion()])
+  const [placeholder] = useState(() => examples[Math.floor(Math.random() * examples.length)])
 
   useEffect(() => input.current?.focus(), [])
 
@@ -101,7 +103,7 @@ export function SearchPanel({ centre, onClose, onSelect }: {
   }
 
   const results = (response?.results ?? []).filter((result) => result.id === null || !excluded.includes(result.id))
-  const radius = (km: number) => `${Number(km.toFixed(1))} km`
+  const radius = (km: number) => distanceAmount(Number(km.toFixed(1)))
   const fallbackName = response?.meta.fallback === 'kakao' ? 'Kakao Map' : 'Google'
   const hasKakao = results.some((result) => result.provenance === 'kakao')
 
@@ -156,7 +158,7 @@ export function SearchPanel({ centre, onClose, onSelect }: {
             <div>
               <h2 className="text-sm font-semibold text-kicap-soft">Try</h2>
               <div className="mt-2 flex flex-wrap gap-2">
-                {TRY.map((query) => (
+                {examples.map((query) => (
                   <button key={query} type="button" onClick={() => setText(query)} className="press min-h-10 rounded-full border-2 border-hairline bg-surface px-4 font-semibold">
                     {query}
                   </button>
@@ -237,7 +239,7 @@ export function SearchPanel({ centre, onClose, onSelect }: {
                       <span className="block font-semibold">{highlight(result.name, run.query)}</span>
                       <span className="block text-sm text-kicap-soft">
                         {/* Kakao addresses are Korean; the English cuisine says what the place serves. */}
-                        {[isKakao ? result.cuisine : (result.address ?? result.category ?? result.cuisine), result.distanceKm !== null ? `${result.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
+                        {[isKakao ? result.cuisine : (result.address ?? result.category ?? result.cuisine), result.distanceKm !== null ? kmLabel(result.distanceKm) : null].filter(Boolean).join(', ')}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                         {result.openStatus === 'open' && <span className="font-semibold text-pandan">{result.closesAt ? `Open, closes ${result.closesAt}` : 'Open'}</span>}

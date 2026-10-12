@@ -111,7 +111,6 @@ struct AddPlaceFlow: View {
     @State private var submitError: String?
     @State private var createdSubmission: MySubmission?
 
-    private static let categorySuggestions = ["Mamak", "Nasi campur", "Kopitiam", "Cafe", "Western", "Chinese", "Indian", "Warung", "Dessert", "Street food"]
 
     var body: some View {
         AccountRequired(feature: "add or edit places") { accountContent }
@@ -637,12 +636,13 @@ struct AddPlaceFlow: View {
     }
 
     /// Bucketed for the API (`priceLevel` 1-3), asked as a plain "how much do you spend" number
-    /// instead — nobody thinks of a warung in RM/RM²/RM³ tiers, they think in ringgit.
+    /// instead — nobody thinks of a warung in RM/RM²/RM³ tiers, they think in ringgit (or won, or dollars).
     private var derivedPriceLevel: Int? {
         guard let value = Double(averageSpend), value > 0 else { return nil }
+        let (cheap, normal) = Region.current.spendLevelCeilings
         switch value {
-        case ..<15: return 1
-        case ..<30: return 2
+        case ..<cheap: return 1
+        case ..<normal: return 2
         default: return 3
         }
     }
@@ -653,12 +653,8 @@ struct AddPlaceFlow: View {
     }
 
     private func spendString(for priceLevel: Int?) -> String {
-        switch priceLevel {
-        case 1: return "10"
-        case 2: return "20"
-        case 3: return "35"
-        default: return ""
-        }
+        guard let priceLevel, (1...3).contains(priceLevel) else { return "" }
+        return Region.current.spendExamples.levels[priceLevel - 1]
     }
 
     // MARK: - Step 2: Details
@@ -675,18 +671,18 @@ struct AddPlaceFlow: View {
 
                 VStack(alignment: .leading, spacing: 18) {
                     FormField(label: "Place name", isRequired: true, error: triedContinue && trimmedName.isEmpty ? "Add a name so people can find it." : nil) {
-                        TextField("e.g. Restoran Nasi Kandar Pelita", text: $name)
+                        TextField(Region.current.formExamples.placeName, text: $name)
                             .textInputAutocapitalization(.words)
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
                         FormField(label: "Category") {
-                            TextField("e.g. Mamak", text: $foodCategory)
+                            TextField(Region.current.formExamples.category, text: $foodCategory)
                                 .textInputAutocapitalization(.words)
                         }
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(Self.categorySuggestions, id: \.self) { suggestion in
+                                ForEach(Region.current.formExamples.categories, id: \.self) { suggestion in
                                     let selected = foodCategory.caseInsensitiveCompare(suggestion) == .orderedSame
                                     Button {
                                         foodCategory = selected ? "" : suggestion
@@ -713,8 +709,8 @@ struct AddPlaceFlow: View {
                         error: showSpendError ? Copy.communitySpendErrorInline : nil
                     ) {
                         HStack(spacing: 6) {
-                            Text("RM").foregroundStyle(.secondary)
-                            TextField("15", text: $averageSpend)
+                            Text(Region.current.currencySymbol).foregroundStyle(.secondary)
+                            TextField(Region.current.spendExamples.placeholder, text: $averageSpend)
                                 .keyboardType(.decimalPad)
                                 .onChange(of: averageSpend) { _, _ in showSpendError = false }
                         }
@@ -731,7 +727,7 @@ struct AddPlaceFlow: View {
                     ) {
                         VStack(alignment: .leading, spacing: 16) {
                             FormField(label: "Address") { TextField("Street, area", text: $address) }
-                            FormField(label: "Phone") { TextField("012-345 6789", text: $phone).keyboardType(.phonePad) }
+                            FormField(label: "Phone") { TextField(Region.current.formExamples.phone, text: $phone).keyboardType(.phonePad) }
                             FormField(label: "Instagram") {
                                 TextField("@handle", text: $instagramHandle).textInputAutocapitalization(.never).autocorrectionDisabled()
                             }
@@ -760,7 +756,7 @@ struct AddPlaceFlow: View {
                                     Text(item.name).font(.makanBody(15)).foregroundStyle(Color.kicap)
                                     Spacer()
                                     if let price = item.price {
-                                        Text("RM\(price, specifier: "%.2f")").font(.makanBody(14)).foregroundStyle(.secondary)
+                                        Text(Region.current.price(price)).font(.makanBody(14)).foregroundStyle(.secondary)
                                     }
                                     Button {
                                         withAnimation(.easeOut(duration: 0.18)) {
@@ -1282,8 +1278,8 @@ private struct UploadedPhotoState: Identifiable {
 
 private func distanceText(_ km: Double?) -> String? {
     guard let km else { return nil }
-    return Measurement(value: km, unit: UnitLength.kilometers)
-        .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+    return Region.current.distance(km: km, kmText: Measurement(value: km, unit: UnitLength.kilometers)
+        .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1)))))
 }
 
 private extension String {
@@ -1601,8 +1597,8 @@ private struct AddMenuItemRow: View {
                 .focused($nameFocused)
                 .fieldChrome(isFocused: nameFocused)
             HStack(spacing: 4) {
-                Text("RM").foregroundStyle(.secondary)
-                TextField("0.00", text: $price).keyboardType(.decimalPad)
+                Text(Region.current.currencySymbol).foregroundStyle(.secondary)
+                TextField(Region.current == .korea ? "0" : "0.00", text: $price).keyboardType(.decimalPad)
             }
             .frame(width: 96)
             .fieldChrome()

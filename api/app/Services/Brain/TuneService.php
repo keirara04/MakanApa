@@ -8,6 +8,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Support\Halal\HalalStatus;
 use App\Support\RecommendationHeadline;
+use App\Support\Region;
 use App\Support\TuneDirection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -133,15 +134,9 @@ class TuneService
     {
         $labels = array_map(fn ($t) => self::LABELS[$t] ?? $t, $tunes);
         $head = ucfirst(implode(' + ', $labels));
-        $meters = (int) round(($facts['distanceKm'] ?? 0) * 1000);
-        $distance = $meters < 1000 ? (int) (round($meters / 50) * 50).' m' : sprintf('%.1f km', $meters / 1000);
-        $price = match ($facts['priceLevel'] ?? null) {
-            0, 1 => 'under RM15',
-            2 => 'around RM15–30',
-            3 => 'around RM30–60',
-            4 => 'RM60 and up',
-            default => null,
-        };
+        $region = Region::fromFact($facts['region'] ?? null);
+        $distance = $region->distance(($facts['distanceKm'] ?? 0) * 1000);
+        $price = $region->priceBand($facts['priceLevel'] ?? null);
 
         $detail = match (end($tunes)) {
             'closer' => "only {$distance} away",

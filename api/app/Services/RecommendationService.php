@@ -393,7 +393,12 @@ class RecommendationService
         $relevanceTier = 2;
 
         if (! empty($moodTags)) {
-            $components['mood'] = self::tagMatchComponent($moodTags, $restaurant['tags'] ?? []);
+            // Moods match tags, cuisines or the food category: the Malaysian chips are dish tags,
+            // the abroad ones (indian, middle_eastern, burger, …) are cuisines and categories.
+            // The two vocabularies don't overlap, so Malaysian mood scores are unchanged.
+            $components['mood'] = self::tagMatchComponent($moodTags, [
+                ...($restaurant['tags'] ?? []), ...($restaurant['cuisines'] ?? []), ...array_filter([$restaurant['food_category'] ?? null]),
+            ]);
             $activeWeights[] = [$weights['mood'], $components['mood']];
             $relevanceTier = self::tierFromMoodFraction($components['mood']);
         } elseif ($hasCraving) {

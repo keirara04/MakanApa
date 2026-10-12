@@ -72,7 +72,7 @@ class MealNudgeDispatcher
     private function handle(MealNudgeState $state, CarbonImmutable $now, bool $dryRun): array
     {
         $user = $state->user;
-        $localDay = $now->setTimezone((string) Config::get('brain.timezone', 'Asia/Kuala_Lumpur'))->startOfDay();
+        $localDay = $now->setTimezone($this->timing->timezoneFor($user))->startOfDay();
         $slot = $state->next_slot ?? 'lunch';
 
         if ($reason = $this->eligibility->reasonToSkip($user, $state, $now)) {

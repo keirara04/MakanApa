@@ -67,7 +67,7 @@ final class ReasonComposer
         }
         if ($brain->lens !== null) {
             return self::reason('match', 'lens_'.$brain->lens->value, 1.0, [
-                'priceLevel' => $f['priceLevel'], 'distanceM' => (int) round($f['distanceKm'] * 1000), 'community' => $extras['communityLabel'],
+                'priceLevel' => $f['priceLevel'], 'region' => $f['region'] ?? null, 'distanceM' => (int) round($f['distanceKm'] * 1000), 'community' => $extras['communityLabel'],
             ]);
         }
         if ($f['category'] && SeleraScorer::slotAffinity($brain, $f['category']) > 0.3) {
@@ -97,7 +97,7 @@ final class ReasonComposer
             }
 
             $facts = match ($key) {
-                'close' => ['distanceM' => (int) round($f['distanceKm'] * 1000), 'rank' => self::rank($tierPool, $winner, fn ($c) => $c['facts']['distanceKm']), 'poolSize' => $n],
+                'close' => ['distanceM' => (int) round($f['distanceKm'] * 1000), 'region' => $f['region'] ?? null, 'rank' => self::rank($tierPool, $winner, fn ($c) => $c['facts']['distanceKm']), 'poolSize' => $n],
                 'rating' => $f['rating'] === null ? null : ['rating' => $f['rating'], 'rank' => self::rank($tierPool, $winner, fn ($c) => -($c['facts']['rating'] ?? 0)), 'poolSize' => $n],
                 'budget_fit' => $f['priceLevel'] === null ? null : ['priceLevel' => $f['priceLevel'], 'rank' => self::rank($tierPool, $winner, fn ($c) => $c['facts']['priceLevel'] ?? 9), 'poolSize' => $n],
                 'community_picks' => ($extras['communityCounts'][$winner['id']] ?? 0) >= 2
@@ -134,9 +134,9 @@ final class ReasonComposer
         }
 
         $candidates = [
-            ['ctx_rain', $ctx->isActive('rain') && ($c['distance'] ?? 0) >= 0.5, ['confidence' => $ctx->confidence('rain'), 'distanceM' => (int) round($f['distanceKm'] * 1000)]],
+            ['ctx_rain', $ctx->isActive('rain') && ($c['distance'] ?? 0) >= 0.5, ['confidence' => $ctx->confidence('rain'), 'distanceM' => (int) round($f['distanceKm'] * 1000), 'region' => $f['region'] ?? null]],
             ['ctx_sahur', $ctx->isActive('sahur') && $open, []],
-            ['ctx_iftar', $ctx->isActive('iftar'), ['distanceM' => (int) round($f['distanceKm'] * 1000)]],
+            ['ctx_iftar', $ctx->isActive('iftar'), ['distanceM' => (int) round($f['distanceKm'] * 1000), 'region' => $f['region'] ?? null]],
             ['ctx_friday', $ctx->isActive('friday') && $open, []],
             ['ctx_supper', $ctx->isActive('supper') && $open, []],
             ['ctx_month_end', $ctx->isActive('month_end') && ($c['cheapEatsFit'] ?? 0) >= 0.7, ['priceLevel' => $f['priceLevel']]],

@@ -161,7 +161,7 @@ struct SearchWiderBanner: View {
                 .foregroundStyle(Color.kicap)
                 .multilineTextAlignment(.center)
             Button(action: onSearch) {
-                Text(String(format: "Search within %.1f km", adjustment.distanceKm))
+                Text("Search within " + Region.current.distance(km: adjustment.distanceKm, kmText: String(format: "%.1f km", adjustment.distanceKm)))
                     .font(.makanBody(14))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 18)

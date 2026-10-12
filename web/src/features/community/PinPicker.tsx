@@ -1,10 +1,9 @@
 import { APIProvider, Map, Marker, useMap } from '@vis.gl/react-google-maps'
 import { useEffect, useRef, useState } from 'react'
 import type { Coordinates } from '../../lib/location'
+import { currentRegion, PIN_DEFAULT } from '../../lib/region'
 import { Button } from '../../ui/Button'
 import { MAPS_KEY } from '../nearby/NearbyMap'
-
-const KUALA_LUMPUR = { latitude: 3.139, longitude: 101.6869 }
 
 /**
  * Drag the map, not the pin: the pin stays in the middle and its spot is what gets confirmed
@@ -12,7 +11,7 @@ const KUALA_LUMPUR = { latitude: 3.139, longitude: 101.6869 }
  * the web it bills per call, and the coordinates are what the reviewer uses.
  */
 export function PinPicker({ start, onConfirm, onClose }: { start: Coordinates | null; onConfirm: (coords: Coordinates) => void; onClose: () => void }) {
-  const [initial] = useState(() => start ?? KUALA_LUMPUR)
+  const [initial] = useState(() => start ?? PIN_DEFAULT[currentRegion()])
   const centre = useRef(initial)
 
   // A native modal dialog: focus moves in and stays in, the page behind is inert.

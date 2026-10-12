@@ -64,5 +64,5 @@ export function attachedPhotos(claim: HalalClaim, existing: MyHalalReport | null
 /** `2027-03-01` or an ISO timestamp, as "1 Mar 2027". */
 export function halalDate(raw: string): string {
   const date = new Date(raw.length === 10 ? `${raw}T00:00:00` : raw)
-  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+  return Number.isNaN(date.getTime()) ? raw : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }

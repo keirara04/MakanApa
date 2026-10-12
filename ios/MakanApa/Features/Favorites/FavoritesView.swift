@@ -121,7 +121,7 @@ struct FavoritesView: View {
                             Label(String(format: "%.1f", rating), systemImage: "star.fill")
                                 .foregroundStyle(Color.kunyit)
                         }
-                        if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel) {
+                        if let spend = PricePresentation.approximateSpendLabel(for: place.priceLevel, region: .of(latitude: place.latitude, longitude: place.longitude)) {
                             Text("· \(spend)")
                         }
                     }
@@ -342,8 +342,8 @@ struct FavoritesView: View {
 
     private func distanceText(_ km: Double?) -> String? {
         guard let km else { return nil }
-        return Measurement(value: km, unit: UnitLength.kilometers)
-            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+        return Region.current.distance(km: km, kmText: Measurement(value: km, unit: UnitLength.kilometers)
+            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1)))))
     }
 }
 

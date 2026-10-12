@@ -11,6 +11,7 @@ use App\Support\BotUserAgent;
 use App\Support\MarketingUrl;
 use App\Support\OpeningHours;
 use App\Support\RecommendationHeadline;
+use App\Support\Region;
 use App\Support\ShareCardImage;
 use App\Support\ShareLinks;
 use App\Support\WebAppEntry;
@@ -63,7 +64,7 @@ class SharePlaceController extends Controller
         $halal = $this->halalPresenter->summaryFromArray($data);
         $key = ShareLinks::placeKey($restaurant->id, $restaurant->name);
         $canonicalUrl = MarketingUrl::to("/p/{$key}");
-        $price = self::priceLabel($restaurant->price_level);
+        $price = self::priceLabel($restaurant);
         $menuRange = $this->menuPriceRange($restaurant);
         $indexable = (bool) config('marketing.share_indexable') && $restaurant->provider === self::INDEXABLE_PROVIDER;
         $ogImage = $this->cardUrl($restaurant, $halal['display']);
@@ -227,11 +228,17 @@ class SharePlaceController extends Controller
 
     private function menuPriceRange(Restaurant $restaurant): ?string
     {
-        $prices = RestaurantMenuItem::where('restaurant_id', $restaurant->id)->whereNotNull('price')->pluck('price')->map(fn ($p) => (float) $p);
-        if ($prices->isEmpty()) {
+        $items = RestaurantMenuItem::where('restaurant_id', $restaurant->id)->whereNotNull('price')->get(['price', 'currency']);
+        if ($items->isEmpty()) {
             return null;
         }
-        $format = fn (float $price) => 'RM'.rtrim(rtrim(number_format($price, 2, '.', ''), '0'), '.');
+        $prices = $items->map(fn (RestaurantMenuItem $item) => (float) $item->price);
+        $symbol = match ($items->first()->currency) {
+            'KRW' => '₩',
+            'USD' => '$',
+            default => 'RM',
+        };
+        $format = fn (float $price) => $symbol.rtrim(rtrim(number_format($price, 2, '.', ','), '0'), '.');
 
         return $prices->min() === $prices->max() ? $format($prices->min()) : $format($prices->min()).'–'.$format($prices->max());
     }
@@ -268,7 +275,7 @@ class SharePlaceController extends Controller
             'url' => $url,
             'image' => $image,
             'address' => $restaurant->address
-                ? ['@type' => 'PostalAddress', 'streetAddress' => $restaurant->address, 'addressCountry' => 'MY']
+                ? ['@type' => 'PostalAddress', 'streetAddress' => $restaurant->address, 'addressCountry' => self::regionOf($restaurant)->countryCode()]
                 : null,
             'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float) $restaurant->latitude, 'longitude' => (float) $restaurant->longitude],
             'servesCuisine' => $cuisines ?: ($category ? [$category] : null),
@@ -317,10 +324,10 @@ class SharePlaceController extends Controller
         if ($halalColors !== null) {
             $pills[] = ['label' => $halal['shortLabel'], 'background' => $halalColors[0], 'text' => $halalColors[1]];
         }
-        $price = self::priceLabel($restaurant->price_level);
+        $price = self::priceLabel($restaurant);
         if ($price !== null) {
-            // The card font has no "≈" glyph.
-            $pills[] = ['label' => str_replace('≈', '~', $price), 'background' => [250, 225, 176], 'text' => [43, 28, 20]];
+            // The card font has no "≈" or "₩" glyph.
+            $pills[] = ['label' => str_replace(['≈', '₩'], ['~', 'KRW '], $price), 'background' => [250, 225, 176], 'text' => [43, 28, 20]];
         }
 
         return [
@@ -334,13 +341,13 @@ class SharePlaceController extends Controller
     }
 
     /** Mirrors the app's PricePresentation so the page and the app say the same thing. */
-    public static function priceLabel(?int $priceLevel): ?string
+    public static function priceLabel(Restaurant $restaurant): ?string
     {
-        return match ($priceLevel) {
-            1 => '≈ RM10/person',
-            2 => '≈ RM20/person',
-            3 => '≈ RM35+/person',
-            default => null,
-        };
+        return self::regionOf($restaurant)->approximateSpend($restaurant->price_level);
+    }
+
+    private static function regionOf(Restaurant $restaurant): Region
+    {
+        return Region::at((float) $restaurant->latitude, (float) $restaurant->longitude);
     }
 }

@@ -103,6 +103,17 @@ class MealNudgeTest extends TestCase
         $this->assertSame('dinner', $timing->next($user, $this->local('2026-09-23 12:30'))['slot']);
     }
 
+    public function test_abroad_users_are_nudged_on_their_local_clock(): void
+    {
+        $user = $this->optedInUser();
+        $this->decisionAt($user, $this->local('2026-09-20 20:00'), 37.5894, 127.0276); // Korea University
+        $timing = app(MealNudgeTiming::class);
+        $seoul = fn (string $at) => CarbonImmutable::parse($at, 'Asia/Seoul');
+
+        $this->assertSame('Asia/Seoul', $timing->timezoneFor($user));
+        $this->assertEquals($seoul('2026-09-23 12:00')->utc(), $timing->next($user, $seoul('2026-09-23 09:00'))['at']);
+    }
+
     public function test_personal_timing_is_the_median_decision_minute_minus_the_lead(): void
     {
         $user = $this->optedInUser();

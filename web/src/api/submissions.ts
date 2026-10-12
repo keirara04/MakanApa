@@ -1,3 +1,4 @@
+import { currentRegion, type Region } from '../lib/region'
 import { api } from './client'
 
 /** Adding a place or suggesting an edit. Every change is a submission an admin reviews. */
@@ -97,16 +98,19 @@ export const submissionsApi = {
   mine: () => api<{ submissions: Submission[] }>('community/submissions/mine'),
 }
 
-/** People think in ringgit, the API in tiers 1–3 (iOS derivedPriceLevel). */
-export function priceLevelFromSpend(spend: string): number | null {
+/** People think in local money, the API in tiers 1–3 (iOS derivedPriceLevel). */
+export function priceLevelFromSpend(spend: string, region = currentRegion()): number | null {
   const value = Number(spend)
   if (!spend.trim() || !Number.isFinite(value) || value <= 0) return null
-  return value < 15 ? 1 : value < 30 ? 2 : 3
+  const [cheap, mid] = region === 'KR' ? [12000, 25000] : [15, 30]
+  return value < cheap ? 1 : value < mid ? 2 : 3
 }
 
+const TYPICAL_SPEND: Record<Region, string[]> = { MY: ['10', '20', '35'], KR: ['10000', '18000', '30000'], US: ['12', '25', '40'], OTHER: ['12', '25', '40'] }
+
 /** A tier back to a typical spend, to prefill the field. */
-export function spendFromPriceLevel(level: number | null): string {
-  return level === 1 ? '10' : level === 2 ? '20' : level === 3 ? '35' : ''
+export function spendFromPriceLevel(level: number | null, region = currentRegion()): string {
+  return level === 1 || level === 2 || level === 3 ? TYPICAL_SPEND[region][level - 1] : ''
 }
 
 export interface DetailsForm {

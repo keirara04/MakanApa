@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { BUDGETS, DISTANCES } from '../../lib/presentation'
+import { budgets, DISTANCES, priceLabel } from '../../lib/presentation'
+import { currentRegion, useRegion } from '../../lib/region'
 import { Button } from '../../ui/Button'
 
 /**
@@ -43,16 +44,42 @@ function MiniPick({ name, lines }: { name: string; lines: string[] }) {
   )
 }
 
+/** Made-up places for the demos: Malaysian names at home, the food students look for abroad. */
+const DEMO_PLACES = {
+  home: {
+    pick: ['Warung Mak Teh', 'Malay'],
+    cafe: ['Kedai Kopi Seri', 'Café'],
+    third: ['Dim Sum Corner', 'Chinese'],
+    start: 'Restoran Seri Melur',
+    cheaper: 'Gerai Pak Mat',
+    safer: 'Dapur Tok Wan',
+  },
+  abroad: {
+    pick: ['Sultan Kebab', 'Middle Eastern'],
+    cafe: ['Corner Coffee', 'Café'],
+    third: ['Saffron Curry House', 'Indian'],
+    start: 'Bosphorus Grill',
+    cheaper: 'Shawarma Stop',
+    safer: 'Anatolia Kitchen',
+  },
+} as const
+
+function demoPlaces() {
+  return currentRegion() === 'MY' ? DEMO_PLACES.home : DEMO_PLACES.abroad
+}
+
 function QuickDemo() {
   const [step, setStep] = useState<'idle' | 'busy' | 'done'>('idle')
   const finish = useLater(900, () => setStep('done'))
+  useRegion()
+  const { pick } = demoPlaces()
 
   return (
     <Stage hint={step === 'done' ? 'That’s the whole thing.' : 'Try it: tap Pick for me'}>
       <div aria-live="polite" className="flex w-full flex-col items-center gap-2">
         {step === 'done' ? (
           <>
-            <MiniPick name="Warung Mak Teh" lines={['Malay, ≈ RM10/person', '6 min walk', 'Open until 11:00 PM']} />
+            <MiniPick name={pick[0]} lines={[`${pick[1]}, ${priceLabel(1)}`, '6 min walk', 'Open until 11:00 PM']} />
             <Button variant="quiet" onClick={() => setStep('idle')}>
               Try again
             </Button>
@@ -102,6 +129,7 @@ function CravingDemo() {
   const [dish, setDish] = useState(1)
   const [budget, setBudget] = useState(1)
   const [distance, setDistance] = useState(1)
+  const amounts = budgets(useRegion())
 
   return (
     <Stage hint="Try it: change any of them">
@@ -120,7 +148,7 @@ function CravingDemo() {
         ))}
       </div>
       <div className="flex flex-wrap justify-center gap-1.5" role="group" aria-label="Budget">
-        {BUDGETS.map((option, index) => (
+        {amounts.map((option, index) => (
           <Choice key={option.value} on={budget === index} onClick={() => setBudget(index)}>
             {option.amount}
           </Choice>
@@ -134,7 +162,7 @@ function CravingDemo() {
         ))}
       </div>
       <p aria-live="polite" className="text-center text-sm">
-        MakanApa picks <strong>{DEMO_DISHES[dish][0]}</strong>, around {BUDGETS[budget].amount.replace('~', '')}, {distance === 2 ? 'at any distance' : `within ${DISTANCES[distance].short}`}.
+        MakanApa picks <strong>{DEMO_DISHES[dish][0]}</strong>, around {amounts[budget].amount.replace('~', '')}, {distance === 2 ? 'at any distance' : `within ${DISTANCES[distance].short}`}.
       </p>
     </Stage>
   )
@@ -145,12 +173,13 @@ const REASONS = ['Open now, until 11:00 PM', '4.5 stars from 820 reviews', '6 mi
 function WhyDemo() {
   const [shown, setShown] = useState(false)
   const [going, setGoing] = useState(false)
+  useRegion()
 
   return (
     <Stage hint={shown ? 'Then tap Let’s eat' : 'Try it: tap See why'}>
       <div className="w-full max-w-64 rounded-row border border-hairline bg-surface p-4 shadow-sm">
-        <p className="font-display text-lg font-bold">Kedai Kopi Seri</p>
-        <p className="text-sm text-kicap-soft">Café, ≈ RM10/person</p>
+        <p className="font-display text-lg font-bold">{demoPlaces().cafe[0]}</p>
+        <p className="text-sm text-kicap-soft">{demoPlaces().cafe[1]}, {priceLabel(1)}</p>
         <div aria-live="polite">
           {shown ? (
             <ul className="mt-3 flex flex-col gap-1.5">
@@ -181,16 +210,22 @@ function WhyDemo() {
   )
 }
 
-const TUNES = {
-  start: { name: 'Restoran Seri Melur', lines: ['Malay, ≈ RM20/person', '14 min walk', '4.1 stars'], changed: -1 },
-  closer: { name: 'Warung Mak Teh', lines: ['Malay, ≈ RM20/person', '4 min walk', '4.2 stars'], changed: 1 },
-  cheaper: { name: 'Gerai Pak Mat', lines: ['Malay, ≈ RM10/person', '12 min walk', '4.0 stars'], changed: 0 },
-  safer: { name: 'Dapur Tok Wan', lines: ['Malay, ≈ RM20/person', '15 min walk', '4.7 stars from 2,300 reviews'], changed: 2 },
-} as const
+/** Built per render so names and prices follow the region. */
+const tunes = () => {
+  const places = demoPlaces()
+  const cuisine = places.pick[1]
+  return {
+    start: { name: places.start, lines: [`${cuisine}, ${priceLabel(2)}`, '14 min walk', '4.1 stars'], changed: -1 },
+    closer: { name: places.pick[0], lines: [`${cuisine}, ${priceLabel(2)}`, '4 min walk', '4.2 stars'], changed: 1 },
+    cheaper: { name: places.cheaper, lines: [`${cuisine}, ${priceLabel(1)}`, '12 min walk', '4.0 stars'], changed: 0 },
+    safer: { name: places.safer, lines: [`${cuisine}, ${priceLabel(2)}`, '15 min walk', '4.7 stars from 2,300 reviews'], changed: 2 },
+  }
+}
 
 function TuneDemo() {
-  const [tune, setTune] = useState<keyof typeof TUNES>('start')
-  const pick = TUNES[tune]
+  const [tune, setTune] = useState<keyof ReturnType<typeof tunes>>('start')
+  useRegion()
+  const pick = tunes()[tune]
 
   return (
     <Stage hint={tune === 'start' ? 'Try it: tap Closer, Cheaper or Safer bet' : 'Same list, one thing better'}>
@@ -219,13 +254,17 @@ function TuneDemo() {
   )
 }
 
-const DECK = ['Dim Sum Corner', 'Warung Mak Teh', 'Kedai Kopi Seri']
+const deck = () => {
+  const { third, pick, cafe } = demoPlaces()
+  return [third[0], pick[0], cafe[0]]
+}
 const DECK_TINTS = ['bg-kunyit text-kicap', 'bg-pandan text-white', 'bg-sambal text-white']
 
 function SavedDemo() {
   const [step, setStep] = useState<'idle' | 'shuffling' | 'dealt'>('idle')
   const [dealt, setDealt] = useState(0)
   const deal = useLater(1200, () => setStep('dealt'))
+  const DECK = deck()
 
   function shuffle() {
     setDealt((current) => (current + 1 + Math.floor(Math.random() * (DECK.length - 1))) % DECK.length)
@@ -267,13 +306,17 @@ function SavedDemo() {
   )
 }
 
-const RECENT = [
-  ['Warung Mak Teh', 'Malay, yesterday'],
-  ['Dim Sum Corner', 'Chinese, Friday'],
-  ['Kedai Kopi Seri', 'Café, Thursday'],
-] as const
+const recentRows = () => {
+  const { pick, third, cafe } = demoPlaces()
+  return [
+    [pick[0], `${pick[1]}, yesterday`],
+    [third[0], `${third[1]}, Friday`],
+    [cafe[0], `${cafe[1]}, Thursday`],
+  ] as const
+}
 
 function RecentDemo() {
+  const [RECENT] = useState(recentRows)
   const [rows, setRows] = useState<readonly (typeof RECENT)[number][]>(RECENT)
   const [opened, setOpened] = useState<string | null>(null)
 

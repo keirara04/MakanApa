@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { noteLocation } from './region'
 
 export interface Coordinates {
   latitude: number
@@ -20,7 +21,10 @@ export function getPosition(): Promise<Coordinates> {
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+      (position) => {
+        noteLocation(position.coords.latitude, position.coords.longitude)
+        resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude })
+      },
       reject,
       { enableHighAccuracy: false, maximumAge: 60_000, timeout: 15_000 },
     )

@@ -6,6 +6,7 @@ use App\Models\Decision;
 use App\Models\DecisionRecommendation;
 use App\Models\TasteEvent;
 use App\Models\User;
+use App\Support\Region;
 use App\Support\TuneDirection;
 use App\Support\WhyNotReason;
 use Illuminate\Support\Carbon;
@@ -239,7 +240,7 @@ class TasteEventRecorder
         }
 
         $now = Carbon::now();
-        $local = $now->copy()->setTimezone(Config::get('brain.timezone'));
+        $local = $now->copy()->setTimezone(Region::timezoneAt($decision->latitude !== null ? (float) $decision->latitude : null, $decision->longitude !== null ? (float) $decision->longitude : null));
         $slot = ContextEngine::slotFor($local, false);
         $weekend = $local->isWeekend();
 

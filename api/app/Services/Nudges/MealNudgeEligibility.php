@@ -35,7 +35,7 @@ class MealNudgeEligibility
             return 'no_device';
         }
 
-        $local = $now->setTimezone((string) Config::get('brain.timezone', 'Asia/Kuala_Lumpur'));
+        $local = $now->setTimezone($this->timing->timezoneFor($user));
         if ($this->timing->inQuietHours($local)) {
             return 'quiet_hours';
         }

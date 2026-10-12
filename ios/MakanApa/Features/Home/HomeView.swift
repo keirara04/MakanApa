@@ -78,7 +78,7 @@ struct HomeView: View {
                 PreferenceLoadingView(
                     mood: Copy.anythingLabel,
                     budget: quickPickBudgetLabel,
-                    distance: "Within \(soloViewModel.maxDistanceKm.formatted()) km",
+                    distance: "Within \(Region.current.radius(soloViewModel.maxDistanceKm))",
                     onCancel: cancelQuickPick
                 )
                 .transition(.opacity)

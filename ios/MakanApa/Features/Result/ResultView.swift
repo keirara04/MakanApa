@@ -311,7 +311,7 @@ struct ResultView: View {
     private func kakaoDetailsLine(for kakao: RecommendationResponse.KakaoPick) -> String {
         let distance = kakao.distanceKm < 1.5
             ? "\(walkingMinutes(for: kakao.distanceKm)) min walk"
-            : "\(kakao.distanceKm.formatted(.number.precision(.fractionLength(1)))) km"
+            : Region.current.distance(km: kakao.distanceKm, kmText: "\(kakao.distanceKm.formatted(.number.precision(.fractionLength(1)))) km")
         return [kakao.cuisine, distance].compactMap { $0 }.joined(separator: " · ")
     }
 
@@ -371,16 +371,16 @@ struct ResultView: View {
     /// "Cafe · ≈ RM10/person · 12 min walk · Open until 10 PM" — unknown hours are left out, not
     /// announced.
     private func detailsLine(for pick: RecommendationResponse.Recommendation) -> String {
-        let kind = categorySubtitleLabel(pick.foodCategory) ?? pick.cuisines.first?.capitalized
+        let kind = categorySubtitleLabel(pick.foodCategory) ?? pick.cuisines.first?.replacingOccurrences(of: "_", with: " ").capitalized
         let distance = pick.distanceKm < 1.5
             ? "\(walkingMinutes(for: pick.distanceKm)) min walk"
-            : "\(pick.distanceKm.formatted(.number.precision(.fractionLength(1)))) km"
+            : Region.current.distance(km: pick.distanceKm, kmText: "\(pick.distanceKm.formatted(.number.precision(.fractionLength(1)))) km")
         let hours: String? = switch pick.openStatus {
         case "open": pick.closesAt.map { "Open until \($0)" } ?? "Open"
         case "closed": "Closed"
         default: nil
         }
-        return [kind, PricePresentation.approximateSpendLabel(for: pick.priceLevel), distance, hours]
+        return [kind, PricePresentation.approximateSpendLabel(for: pick.priceLevel, region: .of(latitude: pick.latitude, longitude: pick.longitude)), distance, hours]
             .compactMap { $0 }
             .joined(separator: " · ")
     }
@@ -609,7 +609,7 @@ struct ResultView: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.kicapSecondary)
 
-            PlaceMenuSection(items: pick.menuItems)
+            PlaceMenuSection(items: pick.menuItems, region: .of(latitude: pick.latitude, longitude: pick.longitude))
 
             Text("Shared by the MakanApa community. It may not be complete or up to date.")
                 .font(.makanBody(10))
@@ -855,7 +855,7 @@ struct ResultView: View {
                     .multilineTextAlignment(.center)
             }
             if let wider = viewModel.widerDistanceKm {
-                MakanPrimaryButton(title: "Search within \(wider.formatted()) km") {
+                MakanPrimaryButton(title: "Search within \(Region.current.radius(wider))") {
                     Task { await viewModel.searchWider() }
                 }
                 .padding(.horizontal)

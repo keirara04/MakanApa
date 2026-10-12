@@ -16,6 +16,8 @@ import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { resizeForUpload } from '../../lib/photos'
 import { getPosition, useLocation, type Coordinates } from '../../lib/location'
+import { kmLabel, menuPrice } from '../../lib/presentation'
+import { CURRENCY, currentRegion, FORM_EXAMPLES, useRegion } from '../../lib/region'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
 import { Mascot } from '../../ui/Mascot'
@@ -33,7 +35,6 @@ export interface AddPlaceState {
 
 type Step = 'find' | 'details' | 'location' | 'review'
 const STEP_TITLES: Record<Step, string> = { find: 'Find', details: 'Details', location: 'Location', review: 'Review' }
-const CATEGORIES = ['Mamak', 'Nasi campur', 'Kopitiam', 'Cafe', 'Western', 'Chinese', 'Indian', 'Warung', 'Dessert', 'Street food']
 const MAX_PHOTOS = 5
 const EMPTY: DetailsForm = { name: '', address: '', foodCategory: '', spend: '', phone: '', instagramHandle: '', tiktokHandle: '', websiteUrl: '', menuItems: [] }
 
@@ -440,7 +441,7 @@ function Wizard() {
           <ReviewCard title="Details" onEdit={() => go('details')}>
             <ReviewRow label="Name" value={details.name} />
             <ReviewRow label="Category" value={details.foodCategory} />
-            <ReviewRow label="Spend" value={form.spend.trim() ? `≈ RM${form.spend.trim()} / person` : null} />
+            <ReviewRow label="Spend" value={form.spend.trim() ? `≈ ${CURRENCY[currentRegion()]}${form.spend.trim()} / person` : null} />
             <ReviewRow label="Address" value={details.address} />
             <ReviewRow label="Contact" value={[details.phone, details.instagramHandle, details.tiktokHandle, details.websiteUrl].filter(Boolean).join(', ') || null} />
             <ReviewRow label="Menu" value={form.menuItems.length ? `${form.menuItems.length} item${form.menuItems.length === 1 ? '' : 's'}` : null} />
@@ -539,7 +540,7 @@ function isUrl(value: string): boolean {
 function validate(form: DetailsForm): Partial<Record<keyof DetailsForm, string>> {
   const errors: Partial<Record<keyof DetailsForm, string>> = {}
   if (!form.name.trim()) errors.name = 'Add a name so people can find it.'
-  if (form.spend.trim() && !(Number(form.spend) > 0)) errors.spend = 'Enter an estimated spend per person, like 15.'
+  if (form.spend.trim() && !(Number(form.spend) > 0)) errors.spend = `Enter an estimated spend per person, like ${FORM_EXAMPLES[currentRegion()].spend}.`
   if (form.websiteUrl.trim() && !isUrl(form.websiteUrl.trim())) errors.websiteUrl = 'Enter the full address, starting with https://'
   return errors
 }
@@ -737,7 +738,7 @@ function ResultRow({
   tone: 'kunyit' | 'sambal'
   onClick: () => void
 }) {
-  const meta = [category, distanceKm !== null ? (distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`) : null].filter(Boolean).join(', ')
+  const meta = [category, distanceKm !== null ? (distanceKm < 1 && currentRegion() !== 'US' ? `${Math.round(distanceKm * 1000)} m` : kmLabel(distanceKm)) : null].filter(Boolean).join(', ')
   return (
     <button type="button" onClick={onClick} className="press flex items-center gap-3 rounded-row border border-hairline bg-surface px-4 py-3 text-left">
       <span className="min-w-0 flex-1">
@@ -774,6 +775,9 @@ function DetailsStep({
   onContinue: () => void
 }) {
   const set = (key: keyof DetailsForm) => (event: React.ChangeEvent<HTMLInputElement>) => onChange({ ...form, [key]: event.target.value })
+  const region = useRegion()
+  const currency = CURRENCY[region]
+  const examples = FORM_EXAMPLES[region]
   const extras = [form.address, form.phone, form.instagramHandle, form.tiktokHandle, form.websiteUrl].filter((value) => value.trim()).length
   const extrasHaveError = Boolean(errors.address || errors.phone || errors.instagramHandle || errors.tiktokHandle || errors.websiteUrl)
 
@@ -784,11 +788,11 @@ function DetailsStep({
         title={isEdit ? 'What should change?' : 'Tell us about this place'}
         subtitle={isEdit ? 'Fix anything that’s wrong or missing. Only what you change gets reviewed.' : 'Just the basics. Everything else is optional.'}
       />
-      <Field label="Place name" value={form.name} onChange={set('name')} placeholder="e.g. Restoran Nasi Kandar Pelita" autoCapitalize="words" required error={errors.name} />
+      <Field label="Place name" value={form.name} onChange={set('name')} placeholder={examples.placeName} autoCapitalize="words" required error={errors.name} />
       <div className="flex flex-col gap-2">
-        <Field label="Category" value={form.foodCategory} onChange={set('foodCategory')} placeholder="e.g. Mamak" autoCapitalize="words" error={errors.foodCategory} />
+        <Field label="Category" value={form.foodCategory} onChange={set('foodCategory')} placeholder={examples.category} autoCapitalize="words" error={errors.foodCategory} />
         <div className="flex flex-wrap gap-2" role="group" aria-label="Category suggestions">
-          {CATEGORIES.map((category) => {
+          {examples.categories.map((category) => {
             const selected = form.foodCategory.trim().toLowerCase() === category.toLowerCase()
             return (
               <button
@@ -805,18 +809,18 @@ function DetailsStep({
         </div>
       </div>
       <Field
-        label="Spend per person (RM)"
+        label={currency ? `Spend per person (${currency})` : 'Spend per person'}
         value={form.spend}
         onChange={set('spend')}
         inputMode="decimal"
-        placeholder="15"
+        placeholder={examples.spend}
         error={errors.spend}
         hint={googleSpend ? 'Estimated from Google. Change it if you know better.' : 'Usually around how much per person?'}
       />
 
       <Disclosure title="Add more details" subtitle={extras ? `${extras} added` : 'Address, phone and socials'} open={extrasHaveError}>
         <Field label="Address" value={form.address} onChange={set('address')} placeholder="Street, area" error={errors.address} />
-        <Field label="Phone" value={form.phone} onChange={set('phone')} type="tel" placeholder="012-345 6789" error={errors.phone} />
+        <Field label="Phone" value={form.phone} onChange={set('phone')} type="tel" placeholder={examples.phone} error={errors.phone} />
         <Field label="Instagram" value={form.instagramHandle} onChange={set('instagramHandle')} placeholder="@handle" autoCapitalize="none" autoCorrect="off" error={errors.instagramHandle} />
         <Field label="TikTok" value={form.tiktokHandle} onChange={set('tiktokHandle')} placeholder="@handle" autoCapitalize="none" autoCorrect="off" error={errors.tiktokHandle} />
         <Field label="Website" value={form.websiteUrl} onChange={set('websiteUrl')} type="url" placeholder="https://" error={errors.websiteUrl} />
@@ -829,7 +833,7 @@ function DetailsStep({
             {form.menuItems.map((item, at) => (
               <li key={`${item.name}-${at}`} className="flex min-h-12 items-center gap-3">
                 <span className="flex-1 font-semibold">{item.name}</span>
-                {item.price !== null && <span className="tabular-nums text-kicap-soft">RM{item.price.toFixed(2)}</span>}
+                {item.price !== null && <span className="tabular-nums text-kicap-soft">{menuPrice(item.price)}</span>}
                 <button
                   type="button"
                   aria-label={`Remove ${item.name}`}
@@ -896,8 +900,11 @@ function AddMenuItem({ onAdd }: { onAdd: (item: { name: string; price: number | 
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const nameInput = useRef<HTMLInputElement>(null)
+  const region = useRegion()
+  const currency = CURRENCY[region]
+  const examples = FORM_EXAMPLES[region]
   const value = Number(price)
-  const ok = name.trim() !== '' && (!price.trim() || (Number.isFinite(value) && value >= 0 && value < 10000))
+  const ok = name.trim() !== '' && (!price.trim() || (Number.isFinite(value) && value >= 0 && value < 1000000))
 
   function add() {
     if (!ok) return
@@ -917,18 +924,18 @@ function AddMenuItem({ onAdd }: { onAdd: (item: { name: string; price: number | 
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && add()}
           maxLength={120}
-          placeholder="Nasi lemak ayam"
+          placeholder={examples.dish}
           className="min-h-12 rounded-row border-2 border-hairline bg-surface px-3 placeholder:text-kicap-soft focus:border-kicap focus:outline-none"
         />
       </label>
       <label className="flex w-24 flex-col gap-1.5">
-        <span className="text-sm font-semibold">Price (RM)</span>
+        <span className="text-sm font-semibold">{currency ? `Price (${currency})` : 'Price'}</span>
         <input
           value={price}
           onChange={(event) => setPrice(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && add()}
           inputMode="decimal"
-          placeholder="0.00"
+          placeholder={currency === '₩' ? '0' : '0.00'}
           className="min-h-12 rounded-row border-2 border-hairline bg-surface px-3 placeholder:text-kicap-soft focus:border-kicap focus:outline-none"
         />
       </label>

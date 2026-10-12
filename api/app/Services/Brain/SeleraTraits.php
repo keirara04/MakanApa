@@ -2,10 +2,12 @@
 
 namespace App\Services\Brain;
 
+use App\Models\Decision;
 use App\Models\TasteEvent;
 use App\Models\TasteProfile;
 use App\Models\User;
 use App\Support\RecommendationHeadline;
+use App\Support\Region;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 
@@ -79,7 +81,7 @@ class SeleraTraits
         // Distance habit.
         $distance = $memory['distance'] ?? [];
         if (($distance['ewma'] ?? null) !== null && ($distance['n'] ?? 0) >= 3 && ! $hidden('distance:close')) {
-            $traits[] = $this->trait('distance:close', '📍', sprintf('Usually stays within %.1f km', $distance['ewma']), $distance['n'], sprintf('Averaged over your last %d picks', $distance['n']));
+            $traits[] = $this->trait('distance:close', '📍', 'Usually stays within '.$this->regionOf($owner)->radius($distance['ewma']), $distance['n'], sprintf('Averaged over your last %d picks', $distance['n']));
         }
 
         // Meal-slot habits ("Supper = mamak").
@@ -152,5 +154,13 @@ class SeleraTraits
             ->limit(20)
             ->pluck('dimension_key')
             ->all();
+    }
+
+    /** Where the owner last decided, so distances read in miles for US students. */
+    private function regionOf(TasteOwner $owner): Region
+    {
+        $last = $owner->scope(Decision::query())->whereNotNull('latitude')->latest('id')->first(['latitude', 'longitude']);
+
+        return $last === null ? Region::Malaysia : Region::at((float) $last->latitude, (float) $last->longitude);
     }
 }

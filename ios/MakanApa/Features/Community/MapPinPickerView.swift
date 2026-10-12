@@ -18,7 +18,7 @@ struct MapPinPickerView: View {
     init(initialCoordinate: CLLocationCoordinate2D?, onConfirm: @escaping (CLLocationCoordinate2D) -> Void) {
         self.initialCoordinate = initialCoordinate
         self.onConfirm = onConfirm
-        let start = initialCoordinate ?? CLLocationCoordinate2D(latitude: 3.1390, longitude: 101.6869)
+        let start = initialCoordinate ?? Region.current.pinDefault
         _cameraPosition = State(initialValue: .region(MKCoordinateRegion(center: start, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))))
         _centerCoordinate = State(initialValue: start)
     }

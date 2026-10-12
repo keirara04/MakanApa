@@ -22,7 +22,11 @@ enum LocationState: Equatable {
 @MainActor
 @Observable
 final class LocationService: NSObject, CLLocationManagerDelegate {
-    private(set) var state: LocationState = .notDetermined
+    private(set) var state: LocationState = .notDetermined {
+        didSet {
+            if case .authorized(let coordinate) = state { Region.remember(coordinate) }
+        }
+    }
     /// The raw permission, tracked apart from `state` — `state` stays `.notDetermined` while an
     /// already-allowed app waits for its first fix, which would otherwise read as "never asked."
     private(set) var authorization: CLAuthorizationStatus = .notDetermined

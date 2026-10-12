@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { decideApi } from '../../api/decide'
 import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
-import { detailsLine } from '../../lib/presentation'
+import { detailsLine, kmLabel, withinLabel } from '../../lib/presentation'
 import { pushSupported } from '../../lib/push'
 import { getStored, setStored } from '../../lib/storage'
 import { NotificationPriming } from '../notifications/Notifications'
@@ -132,14 +132,14 @@ function NoResult() {
       <h1 className="font-display text-3xl font-bold">No spots found nearby</h1>
       <p className="max-w-sm text-kicap-soft">
         {km !== undefined
-          ? `Nothing matched within ${km} km. Go a bit further, or loosen the filters.`
+          ? `Nothing matched ${withinLabel(km).toLowerCase()}. Go a bit further, or loosen the filters.`
           : source === 'nearby'
             ? 'Nothing on the map fits right now. Try moving the map or clearing a filter.'
             : 'None of your saved places can be picked right now. They may be closed, or hidden by halal-only.'}
       </p>
       <div className="flex w-full max-w-xs flex-col gap-2">
         {request && asked && wider && (
-          <Button onClick={() => void decide({ ...request, maxDistanceKm: wider }, { ...asked, distance: `Within ${wider} km` })}>Search within {wider} km</Button>
+          <Button onClick={() => void decide({ ...request, maxDistanceKm: wider }, { ...asked, distance: withinLabel(wider) })}>Search {withinLabel(wider).toLowerCase()}</Button>
         )}
         <Button variant="quiet" onClick={() => navigate(request ? '/decide' : source === 'nearby' ? '/nearby' : '/')}>
           {request ? 'Change preferences' : source === 'nearby' ? 'Back to Nearby' : 'Back home'}
@@ -238,11 +238,11 @@ function PickView() {
               onClick={() =>
                 void decide(
                   { ...request, maxDistanceKm: widen.suggestedAdjustment!.distanceKm, ...(widen.suggestedAdjustment!.budgetMax ? { budgetMax: widen.suggestedAdjustment!.budgetMax } : {}) },
-                  { ...asked!, distance: `Within ${widen.suggestedAdjustment!.distanceKm} km` },
+                  { ...asked!, distance: withinLabel(widen.suggestedAdjustment!.distanceKm) },
                 )
               }
             >
-              Search within {widen.suggestedAdjustment.distanceKm.toFixed(1)} km
+              Search within {kmLabel(widen.suggestedAdjustment.distanceKm)}
             </Button>
           </section>
         ) : (

@@ -336,8 +336,8 @@ final class OpenRouterJudgmentEngine implements JudgmentEngine
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
-            You are a careful judgment component inside the MakanApa food app (Malaysia). You never
-            write prose. For each question you return probabilities in the exact structure requested.
+            You are a careful judgment component inside the MakanApa food app, used in Malaysia and
+            by Malaysian and Muslim students abroad (Korea, the US). You never write prose. For each question you return probabilities in the exact structure requested.
 
             Rules:
             - Judge only what the state supports. If the evidence is thin or ambiguous, spread
@@ -347,7 +347,7 @@ final class OpenRouterJudgmentEngine implements JudgmentEngine
             - Sections labelled CONTEXT ONLY describe the current listing or automatic checks. They
               may be wrong or out of date. Do not assume they are correct; new evidence may
               legitimately contradict them. Never treat existing status as evidence for itself.
-            - Text may be in English, Malay, Manglish or Chinese dialect terms.
+            - Text may be in English, Malay, Manglish, Chinese dialect terms or Korean.
             PROMPT;
     }
 

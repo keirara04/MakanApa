@@ -5,7 +5,7 @@ import { communityApi, type CommunityTag, type Post } from '../../api/community'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
 import { useLocation } from '../../lib/location'
-import { categoryLabel, priceLabel } from '../../lib/presentation'
+import { categoryLabel, kmLabel, priceLabel } from '../../lib/presentation'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 import { useToast } from '../../ui/Toast'
@@ -149,7 +149,7 @@ export function Community() {
                         <span className="truncate font-semibold">{item.name}</span>
                         <span className="truncate text-xs text-kicap-soft">{kind(item)}</span>
                         <span className="mt-auto pt-2 text-xs">
-                          {[item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? `${item.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
+                          {[item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? kmLabel(item.distanceKm) : null].filter(Boolean).join(', ')}
                         </span>
                       </button>
                     </li>
@@ -203,7 +203,7 @@ export function Community() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-display text-base font-semibold">{item.name}</span>
                           <span className="block truncate text-sm text-kicap-soft">
-                            {[kind(item), item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? `${item.distanceKm.toFixed(1)} km` : null, priceLabel(item.priceLevel)]
+                            {[kind(item), item.rating !== null ? `★ ${item.rating.toFixed(1)}` : null, item.distanceKm !== null ? kmLabel(item.distanceKm) : null, priceLabel(item.priceLevel)]
                               .filter(Boolean)
                               .join(', ')}
                           </span>

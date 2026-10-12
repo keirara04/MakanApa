@@ -19,7 +19,7 @@ struct NearbySearchResultsPanel: View {
     let onRetry: () -> Void
     let onAddPlace: () -> Void
 
-    private static let quickSuggestions = ["nasi lemak", "mamak", "coffee", "chicken rice"]
+    private static var quickSuggestions: [String] { Region.current.searchExamples }
 
     private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
 
@@ -268,7 +268,7 @@ struct NearbySearchResultsPanel: View {
     }
 
     static func radiusLabel(_ km: Double) -> String {
-        "\(km.formatted(.number.precision(.fractionLength(0...1)))) km"
+        Region.current.distance(km: km, kmText: "\(km.formatted(.number.precision(.fractionLength(0...1)))) km")
     }
 }
 
@@ -300,7 +300,7 @@ struct SearchResultRow: View {
                         Text(status.text)
                             .foregroundStyle(status.color)
                     }
-                    if let spend = PricePresentation.approximateSpendLabel(for: result.priceLevel) {
+                    if let spend = PricePresentation.approximateSpendLabel(for: result.priceLevel, region: .of(latitude: result.latitude, longitude: result.longitude)) {
                         Text(spend).foregroundStyle(.secondary)
                     }
                     if let halal = result.halal?.display, result.halal?.status != .unknown {
@@ -340,7 +340,7 @@ struct SearchResultRow: View {
     private var locationLine: String? {
         // Kakao addresses are Korean; the English cuisine says what the place serves.
         let lead = result.provenance == .kakao ? result.cuisine : (result.address ?? result.category ?? result.cuisine)
-        let distance = result.distanceKm.map { String(format: "%.1f km", $0) }
+        let distance = result.distanceKm.map { Region.current.distance(km: $0, kmText: String(format: "%.1f km", $0)) }
         let parts = [lead, distance].compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

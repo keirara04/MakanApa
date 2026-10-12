@@ -4,6 +4,7 @@ import { PhotoViewer, viewerPhotos } from '../../ui/PhotoViewer'
 import type { AddPlaceState } from '../community/AddPlace'
 import { decideApi, type Decision, type HalalInfo, type Recommendation, type TuneDirection, type WhatIfRow, type WhyNotDetail, type WhyNotReason } from '../../api/decide'
 import { errorMessage } from '../../lib/errors'
+import { kmLabel, menuPrice } from '../../lib/presentation'
 import { getStored, setStored, useStored } from '../../lib/storage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
@@ -281,7 +282,7 @@ export function WhatIf({ decision, open, onClose, onSwitch }: { decision: Decisi
 export function SendToFriends({ decision, pick }: { decision: Decision; pick: Recommendation }) {
   const [copied, setCopied] = useState(false)
   const category = pick.foodCategory ? `, ${pick.foodCategory.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())}` : ''
-  const message = `Want to eat here? ${pick.name}${category} (${pick.distanceKm.toFixed(1)} km)`
+  const message = `Want to eat here? ${pick.name}${category} (${kmLabel(pick.distanceKm)})`
   const record = () => {
     void decideApi.interaction(decision, 'shared').catch(() => {})
     void decideApi.shareEvent(pick.id).catch(() => {})
@@ -344,7 +345,7 @@ export function Menu({ pick }: { pick: Recommendation }) {
               <span className="font-semibold">{item.name}</span>
               {item.description && <span className="block text-sm text-kicap-soft">{item.description}</span>}
             </span>
-            {item.price !== null && <span className="shrink-0 font-semibold">RM{item.price.toFixed(2)}</span>}
+            {item.price !== null && <span className="shrink-0 font-semibold">{menuPrice(item.price, pick)}</span>}
           </li>
         ))}
       </ul>

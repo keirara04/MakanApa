@@ -30,7 +30,7 @@ struct PreferenceView: View {
                     PreferenceLoadingView(
                         mood: selectedMoodLabel,
                         budget: selectedBudgetLabel,
-                        distance: "Within \(viewModel.maxDistanceKm.formatted()) km",
+                        distance: "Within \(Region.current.radius(viewModel.maxDistanceKm))",
                         onCancel: cancelThinking
                     )
                 } else {
@@ -252,7 +252,7 @@ struct PreferenceView: View {
                 ForEach(SoloViewModel.distanceOptions, id: \.km) { option in
                     PreferenceChoiceRow(
                         illustration: option.illustration,
-                        title: "Within \(option.km.formatted()) km",
+                        title: "Within \(Region.current.radius(option.km))",
                         subtitle: option.subtext,
                         isSelected: viewModel.maxDistanceKm == option.km
                     ) {

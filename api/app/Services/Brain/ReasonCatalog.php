@@ -3,6 +3,7 @@
 namespace App\Services\Brain;
 
 use App\Support\RecommendationHeadline;
+use App\Support\Region;
 
 /**
  * Stored reason facts → plain-English sentences, at response time. The variant is chosen by
@@ -119,7 +120,8 @@ final class ReasonCatalog
     {
         $cat = RecommendationHeadline::categoryLabel($f['category'] ?? null);
         $catLower = $cat ? mb_strtolower($cat) : null;
-        $distance = isset($f['distanceM']) ? self::distance($f['distanceM']) : null;
+        $region = Region::fromFact($f['region'] ?? null);
+        $distance = isset($f['distanceM']) ? $region->distance($f['distanceM']) : null;
         $pool = $f['poolSize'] ?? null;
         $community = $f['community'] ?? null;
 
@@ -129,7 +131,7 @@ final class ReasonCatalog
             'selera_slot' => $catLower ? [ucfirst($f['slot']).' = '.$catLower.', as usual', "Your usual {$f['slot']} go-to: {$catLower}"] : [],
             'pulse' => $catLower ? ["You've been into {$catLower} lately", "Riding your {$catLower} wave"] : [],
             'selera_match' => $catLower ? ["Your kind of place: you love {$catLower}", "Very your Selera: {$catLower}"] : ['Very your Selera'],
-            'lens_cheap_today' => ['Cheap today: '.(self::price($f['priceLevel'] ?? null) ?? 'easy on the wallet')],
+            'lens_cheap_today' => ['Cheap today: '.($region->priceBand($f['priceLevel'] ?? null) ?? 'easy on the wallet')],
             'lens_treat_myself' => ['Treat yourself, you deserve it'],
             'lens_surprise_me' => ['Surprise! Something you wouldn\'t usually pick'],
             'lens_quick_one' => ['Quick one: '.($distance ?? 'close by').' and ready to go'],
@@ -162,22 +164,6 @@ final class ReasonCatalog
             'wildcard' => ['Bit of a wildcard. You\'ve been playing safe', 'Wildcard pick. Trust me on this one'],
             'pulse_reject' => $catLower ? ["Not feeling {$catLower}? Trying something different", "No {$catLower} then. How about this?"] : ['Okay, trying something different'],
             default => [],
-        };
-    }
-
-    private static function distance(int $meters): string
-    {
-        return $meters < 1000 ? (int) (round($meters / 50) * 50).' m' : sprintf('%.1f km', $meters / 1000);
-    }
-
-    private static function price(?int $level): ?string
-    {
-        return match ($level) {
-            0, 1 => 'under RM15',
-            2 => 'around RM15–30',
-            3 => 'around RM30–60',
-            4 => 'RM60 and up',
-            default => null,
         };
     }
 }

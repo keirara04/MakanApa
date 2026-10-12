@@ -272,10 +272,10 @@ struct AmbassadorPickCard: View {
 
     /// "Malay · ≈ RM10/person · 1.2 km"
     private var details: String {
-        let kind = pick.cuisines.first?.capitalized ?? pick.foodCategory?.replacingOccurrences(of: "_", with: " ").capitalized
+        let kind = pick.cuisines.first?.replacingOccurrences(of: "_", with: " ").capitalized ?? pick.foodCategory?.replacingOccurrences(of: "_", with: " ").capitalized
         // A university/area board isn't anchored on the viewer — a far-off reading (travelling, a
         // simulator's default location) is noise, not information.
-        let distance = pick.distanceKm.flatMap { $0 < 50 ? "\($0.formatted(.number.precision(.fractionLength(1)))) km" : nil }
+        let distance = pick.distanceKm.flatMap { $0 < 50 ? Region.current.distance(km: $0, kmText: "\($0.formatted(.number.precision(.fractionLength(1)))) km") : nil }
         return [kind, PricePresentation.approximateSpendLabel(for: pick.priceLevel), distance]
             .compactMap { $0 }
             .joined(separator: " · ")

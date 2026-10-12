@@ -27,7 +27,7 @@ export function DecideHome() {
   return (
     <div className="flex flex-col gap-8 pt-2">
       <header>
-        <p className="text-kicap-soft">{now.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+        <p className="text-kicap-soft">{now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
         <h1 className="mt-1 font-display text-5xl font-bold tracking-tight md:text-6xl">{mealGreeting(now.getHours())}</h1>
       </header>
 
@@ -357,7 +357,7 @@ function Recent() {
                 <span className="min-w-0">
                   <span className="block truncate font-display text-lg font-semibold">{item.name}</span>
                   <span className="block text-sm text-kicap-soft">
-                    {[categoryLabel(item.foodCategory), priceLabel(item.priceLevel), relativeDay(item.at)].filter(Boolean).join(', ')}
+                    {[categoryLabel(item.foodCategory), priceLabel(item.priceLevel, item), relativeDay(item.at)].filter(Boolean).join(', ')}
                   </span>
                 </span>
               </a>

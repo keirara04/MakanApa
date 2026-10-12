@@ -391,8 +391,8 @@ struct SavedPickRevealView: View {
     }
 
     private static func distanceText(_ km: Double) -> String {
-        Measurement(value: km, unit: UnitLength.kilometers)
-            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1))))
+        Region.current.distance(km: km, kmText: Measurement(value: km, unit: UnitLength.kilometers)
+            .formatted(.measurement(width: .abbreviated, usage: .road, numberFormatStyle: .number.precision(.fractionLength(0...1)))))
     }
 
     /// Walking pace (~5 km/h) up to 2 km, plain distance beyond; nothing without real location.

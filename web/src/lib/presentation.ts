@@ -3,11 +3,12 @@
  * (ResultView details line, PricePresentation, Copy.homeGreeting).
  */
 import type { Recommendation } from '../api/decide'
+import { currentRegion, CURRENCY, regionOf, type Region } from './region'
 
 export const BUDGETS = [
-  { value: 1, amount: '~RM10', title: 'Save a bit', image: '/choices/budget-save.svg' },
-  { value: 2, amount: '~RM20', title: 'Normal', image: '/choices/budget-normal.svg' },
-  { value: 3, amount: '~RM35+', title: 'Treat myself', image: '/choices/budget-treat.svg' },
+  { value: 1, title: 'Save a bit', image: '/choices/budget-save.svg' },
+  { value: 2, title: 'Normal', image: '/choices/budget-normal.svg' },
+  { value: 3, title: 'Treat myself', image: '/choices/budget-treat.svg' },
 ] as const
 
 export const DISTANCES = [
@@ -16,22 +17,70 @@ export const DISTANCES = [
   { km: 5, title: 'Within 5 km', subtitle: 'Worth the trip', short: 'Don’t mind', image: '/choices/distance-car.svg' },
 ] as const
 
-export function budgetAmount(budget: number | null | undefined): string | null {
-  return BUDGETS.find((option) => option.value === budget)?.amount ?? null
+/** Budget tile amounts for price levels 1–3. */
+const BUDGET_AMOUNTS: Record<Region, readonly string[]> = {
+  MY: ['~RM10', '~RM20', '~RM35+'],
+  KR: ['~₩10,000', '~₩18,000', '~₩30,000+'],
+  US: ['~$12', '~$25', '~$40+'],
+  OTHER: ['$', '$$', '$$$'],
+}
+
+/** Approximate spend for price levels 1–3. */
+const SPEND: Record<Region, readonly string[]> = {
+  MY: ['≈ RM10/person', '≈ RM20/person', '≈ RM35+/person'],
+  KR: ['≈ ₩10,000/person', '≈ ₩18,000/person', '≈ ₩30,000+/person'],
+  US: ['≈ $12/person', '≈ $25/person', '≈ $40+/person'],
+  OTHER: ['Budget', 'Mid-range', 'Pricey'],
+}
+
+const MILES_PER_KM = 0.621371
+/** The wizard's 1/2/5 km in rounded miles. */
+const MILES: Record<number, string> = { 1: '0.6', 2: '1.2', 5: '3' }
+
+export function budgets(region = currentRegion()) {
+  return BUDGETS.map((option, index) => ({ ...option, amount: BUDGET_AMOUNTS[region][index] }))
+}
+
+export function distances(region = currentRegion()) {
+  return DISTANCES.map((option) => ({ ...option, title: withinLabel(option.km, region) }))
+}
+
+export function budgetAmount(budget: number | null | undefined, region = currentRegion()): string | null {
+  return budgets(region).find((option) => option.value === budget)?.amount ?? null
 }
 
 export function distanceShort(km: number): string {
-  return DISTANCES.find((option) => option.km === km)?.short ?? `${km} km`
+  return DISTANCES.find((option) => option.km === km)?.short ?? distanceAmount(km)
 }
 
-/** `≈ RM20/person` for price levels 1–3, nothing otherwise. */
-export function priceLabel(priceLevel: number | null): string | null {
-  return priceLevel === 1 ? '≈ RM10/person' : priceLevel === 2 ? '≈ RM20/person' : priceLevel === 3 ? '≈ RM35+/person' : null
+/** A radius as asked: "2 km", or "1.2 mi" in the US. */
+export function distanceAmount(km: number, region = currentRegion()): string {
+  return region === 'US' ? `${MILES[km] ?? Number((km * MILES_PER_KM).toFixed(1))} mi` : `${km} km`
 }
 
-/** Walking minutes under 1.5 km (about 12 minutes a km), kilometres beyond. */
-export function distanceLabel(km: number): string {
-  return km < 1.5 ? `${Math.max(1, Math.round(km * 12))} min walk` : `${km.toFixed(1)} km`
+export function withinLabel(km: number, region = currentRegion()): string {
+  return `Within ${distanceAmount(km, region)}`
+}
+
+/** A measured distance: "3.3 km", or "2.0 mi" in the US. */
+export function kmLabel(km: number, region = currentRegion()): string {
+  return region === 'US' ? `${(km * MILES_PER_KM).toFixed(1)} mi` : `${km.toFixed(1)} km`
+}
+
+/** `≈ RM20/person` for price levels 1–3, nothing otherwise. Priced in the place's own region when it has coordinates. */
+export function priceLabel(priceLevel: number | null, place?: { latitude?: number | null; longitude?: number | null }): string | null {
+  return priceLevel === 1 || priceLevel === 2 || priceLevel === 3 ? SPEND[regionOf(place)][priceLevel - 1] : null
+}
+
+/** A menu price in the place's currency: "RM12.50", "₩12,000", "$9.00", or a bare "9.00". */
+export function menuPrice(price: number, place?: { latitude?: number | null; longitude?: number | null }): string {
+  const region = regionOf(place)
+  return region === 'KR' ? `₩${Math.round(price).toLocaleString('en-US')}` : `${CURRENCY[region]}${price.toFixed(2)}`
+}
+
+/** Walking minutes under 1.5 km (about 12 minutes a km), kilometres (miles in the US) beyond. */
+export function distanceLabel(km: number, region = currentRegion()): string {
+  return km < 1.5 ? `${Math.max(1, Math.round(km * 12))} min walk` : kmLabel(km, region)
 }
 
 export function hoursLabel(pick: Pick<Recommendation, 'openStatus' | 'closesAt'>): string | null {
@@ -65,7 +114,7 @@ export function categoryLabel(foodCategory: string | null): string | null {
 
 /** The line under the name: kind, price, distance, hours, whichever are known. */
 export function detailsLine(pick: Recommendation): string[] {
-  return [kindLabel(pick), priceLabel(pick.priceLevel), distanceLabel(pick.distanceKm), hoursLabel(pick)].filter(
+  return [kindLabel(pick), priceLabel(pick.priceLevel, pick), distanceLabel(pick.distanceKm), hoursLabel(pick)].filter(
     (part): part is string => Boolean(part),
   )
 }
@@ -85,6 +134,6 @@ export function relativeDay(timestamp: number, now = Date.now()): string {
   if (diff <= 0) return 'Today'
   if (diff === 1) return 'Yesterday'
   const date = new Date(timestamp)
-  if (diff < 7) return date.toLocaleDateString('en-MY', { weekday: 'long' })
-  return date.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })
+  if (diff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' })
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }

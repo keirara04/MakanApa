@@ -29,6 +29,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -951,7 +952,7 @@ class PlacesService
         // Memoized per service instance — a 7-tile sync upserts up to 140 places that share a
         // handful of cuisines/tags, which used to be one firstOrCreate() query per place each.
         $cuisineIds = collect($data['cuisines'])->map(
-            fn (string $slug) => $this->cuisineIds[$slug] ??= Cuisine::firstOrCreate(['slug' => $slug], ['name' => ucfirst($slug)])->id
+            fn (string $slug) => $this->cuisineIds[$slug] ??= Cuisine::firstOrCreate(['slug' => $slug], ['name' => Str::headline($slug)])->id
         );
         $restaurant->cuisines()->sync($cuisineIds);
 

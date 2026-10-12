@@ -46,6 +46,17 @@ class SharePlaceTest extends TestCase
             ->assertSee('name="robots" content="noindex"', false);
     }
 
+    public function test_a_korean_place_prices_in_won(): void
+    {
+        $restaurant = $this->makeRestaurant(['name' => 'Anam Kebab', 'latitude' => 37.5894, 'longitude' => 127.0276, 'provider_place_id' => 'ChIJ-anam']);
+        $item = $restaurant->menuItems()->create(['name' => 'Chicken kebab', 'price' => 9000]);
+
+        $this->assertSame('KRW', $item->currency);
+        $this->visit('/p/'.ShareLinks::placeKey($restaurant->id, $restaurant->name))->assertOk()
+            ->assertSee('≈ ₩18,000/person')
+            ->assertSee('₩9,000');
+    }
+
     public function test_smart_app_banner_opens_the_shared_place_in_the_app(): void
     {
         $restaurant = $this->makeRestaurant();

@@ -23,7 +23,7 @@ describe('photoLimits', () => {
 
 describe('halalDate', () => {
   it('reads plain dates as local days', () => {
-    expect(halalDate('2027-03-01')).toBe('1 Mar 2027')
+    expect(halalDate('2027-03-01')).toBe(new Date(2027, 2, 1).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }))
     expect(halalDate('nonsense')).toBe('nonsense')
   })
 })

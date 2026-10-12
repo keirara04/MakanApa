@@ -24,6 +24,7 @@ enum Copy {
     static let onboardingLocationConfirmed = "Location is on"
     static let onboardingHalalTitle = "Do you only eat halal?"
     static let onboardingHalalSubtext = "We'll hide places known to be non-halal. Places we haven't verified yet still show, clearly marked. Change it anytime from the map."
+    static let onboardingHalalSubtextAbroad = "Halal food is harder to find here. We hide places known to serve pork or alcohol. Places we haven't verified yet still show, clearly marked. Change it anytime from the map."
     static let onboardingHalalFootnote = "Halal info comes from the community. Always double-check at the restaurant."
     static let onboardingHalalYes = "Yes, hide non-halal"
     static let onboardingHalalNo = "No, show everything"
@@ -125,6 +126,14 @@ enum Copy {
     static let moodCharKueyTeowSubtext = "Smoky and satisfying"
     static let moodBananaLeafRiceSubtext = "Drowned in curry, no regrets"
     static let moodDimSumSubtext = "Small plates, big satisfaction"
+    static let moodKebabSubtext = "Wraps, rice plates, grills"
+    static let moodHalalCartSubtext = "Chicken over rice, gyros"
+    static let moodIndianSubtext = "Curry with rice or naan"
+    static let moodTasteOfHomeSubtext = "Malaysian and Indonesian"
+    static let moodFriedChickenSubtext = "Crispy, best shared"
+    static let moodKoreanSubtext = "Rice bowls, stews, noodles"
+    static let moodBurgerSubtext = "Quick and filling"
+    static let moodPizzaSubtext = "By the slice or the pie"
     static let moodCustomCravingPlaceholder = "Tell me what you're craving..."
 
     static let thinking = "Thinking so you don't have to..."
@@ -229,8 +238,6 @@ enum Copy {
     // Same inline-title-truncation reasoning as communityChooseCommunityTitle above — flanked
     // by "Cancel" and "Send request", so it needs to stay short.
     static let communityRequestSheetTitle = "Request"
-    static let communityRequestUniversityPlaceholder = "e.g. Universiti Malaya"
-    static let communityRequestAreaPlaceholder = "e.g. Shah Alam, Cheras, your neighbourhood"
     static let communityRequestSubmit = "Send request"
     static let communityRequestSentConfirmation = "Thanks, we'll take a look!"
 
@@ -361,7 +368,7 @@ enum Copy {
     static let nearbyGuideMapTitle = "Move around the map"
     static let nearbyGuideMapBody = "Each pin is a place with its rating. Move the map, then tap Search this area to load what's there."
     static let nearbyGuideFilterTitle = "Filter what you see"
-    static let nearbyGuideFilterBody = "Hide non-halal places, show only what's open, or keep it under RM 20. Places that don't fit fade out."
+    static let nearbyGuideFilterBody = "Hide non-halal places, show only what's open, or keep it cheap. Places that don't fit fade out."
     static let nearbyGuideModeTitle = "Try a mode"
     static let nearbyGuideModeBody = "Switch between For you, Popular, Low-key and more to see different kinds of places."
     static let nearbyGuideSearchTitle = "Search a dish or a place"
@@ -373,11 +380,9 @@ enum Copy {
     static let nearbyGuideSearchThisArea = "Search this area"
     static let nearbyGuideChipHalal = "Hide non-halal"
     static let nearbyGuideChipOpen = "Open now"
-    static let nearbyGuideChipBudget = "≤ RM20"
     static let nearbyGuideModeForYou = "For you"
     static let nearbyGuideModeLowKey = "Low-key"
     static let nearbyGuideModeCafe = "Cafe"
-    static let nearbyGuideSearchExample = "nasi lemak"
 
     // MARK: - Become an ambassador
 

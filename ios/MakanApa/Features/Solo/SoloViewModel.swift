@@ -78,7 +78,30 @@ final class SoloViewModel {
         let subtext: String
     }
 
-    static let moodOptions: [MoodOption] = [
+    /// Malaysia gets its dish moods; abroad, moods are cuisines and categories the API matches
+    /// against a place's cuisines and food category (RecommendationService).
+    static var moodOptions: [MoodOption] { moodOptions(for: .current) }
+
+    static func moodOptions(for region: Region) -> [MoodOption] {
+        guard !region.isMalaysia else { return malaysiaMoodOptions }
+        let healthyAndQuick = malaysiaMoodOptions.filter { $0.tag == "healthy" || $0.tag == "quick" }
+        let kebab = region == .unitedStates
+            ? MoodOption(tag: "middle_eastern", illustration: "MoodKebab", label: "Halal cart", subtext: Copy.moodHalalCartSubtext)
+            : MoodOption(tag: "middle_eastern", illustration: "MoodKebab", label: "Kebab", subtext: Copy.moodKebabSubtext)
+        let shared = [
+            kebab,
+            MoodOption(tag: "indian", illustration: "MoodBananaLeafRice", label: "Indian", subtext: Copy.moodIndianSubtext),
+            MoodOption(tag: "malay", illustration: "MoodNasiPadang", label: "Taste of home", subtext: Copy.moodTasteOfHomeSubtext),
+            MoodOption(tag: "chicken", illustration: "MoodAyamGepuk", label: "Fried chicken", subtext: Copy.moodFriedChickenSubtext),
+        ]
+        let burger = MoodOption(tag: "burger", illustration: "MoodBurger", label: "Burger", subtext: Copy.moodBurgerSubtext)
+        let local = region == .korea
+            ? [MoodOption(tag: "korean", illustration: "MoodBibimbap", label: "Korean", subtext: Copy.moodKoreanSubtext), burger]
+            : [burger, MoodOption(tag: "pizza", illustration: "MoodPizza", label: "Pizza", subtext: Copy.moodPizzaSubtext)]
+        return shared + local + healthyAndQuick
+    }
+
+    private static let malaysiaMoodOptions: [MoodOption] = [
         MoodOption(tag: "nasi_kandar", illustration: "MoodNasiKandar", label: "Nasi Kandar", subtext: Copy.moodNasiKandarSubtext),
         MoodOption(tag: "ayam_gepuk", illustration: "MoodAyamGepuk", label: "Ayam Gepuk", subtext: Copy.moodAyamGepukSubtext),
         MoodOption(tag: "nasi_padang", illustration: "MoodNasiPadang", label: "Nasi Padang", subtext: Copy.moodNasiPadangSubtext),
@@ -91,11 +114,14 @@ final class SoloViewModel {
         MoodOption(tag: "quick", illustration: "MoodQuick", label: "Quick", subtext: Copy.moodQuickSubtext),
     ]
 
-    static let budgetOptions: [BudgetOption] = [
-        BudgetOption(tier: 1, illustration: "BudgetSave", amount: "~RM10", label: "Save a bit"),
-        BudgetOption(tier: 2, illustration: "BudgetNormal", amount: "~RM20", label: "Normal"),
-        BudgetOption(tier: 3, illustration: "BudgetTreat", amount: "~RM35+", label: "Treat myself"),
-    ]
+    static var budgetOptions: [BudgetOption] {
+        let amounts = Region.current.budgetAmounts
+        return [
+            BudgetOption(tier: 1, illustration: "BudgetSave", amount: amounts[0], label: "Save a bit"),
+            BudgetOption(tier: 2, illustration: "BudgetNormal", amount: amounts[1], label: "Normal"),
+            BudgetOption(tier: 3, illustration: "BudgetTreat", amount: amounts[2], label: "Treat myself"),
+        ]
+    }
 
     static let distanceOptions: [DistanceOption] = [
         DistanceOption(km: 1.0, illustration: "DistanceNear", label: "5 min", subtext: "Close by"),
@@ -148,7 +174,7 @@ final class SoloViewModel {
         let savedDistance = defaults.double(forKey: Self.lastDistanceKey)
         let distanceKm = savedDistance > 0 ? savedDistance : 2.0
         let budget = Self.budgetOptions.first { $0.tier == budgetTier }?.amount ?? "Any budget"
-        let distance = Self.distanceOptions.first { $0.km == distanceKm }?.label ?? "\(distanceKm.formatted()) km"
+        let distance = Self.distanceOptions.first { $0.km == distanceKm }?.label ?? Region.current.radius(distanceKm)
         return [Copy.anythingLabel, budget, distance]
     }
 

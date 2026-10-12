@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Restaurants\RelationManagers;
 
+use App\Support\Region;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -23,7 +24,7 @@ class MenuItemsRelationManager extends RelationManager
             ->components([
                 TextInput::make('name')->required()->maxLength(255),
                 TextInput::make('description'),
-                TextInput::make('price')->numeric()->prefix('RM'),
+                TextInput::make('price')->numeric()->prefix(fn (): string => Region::at((float) $this->getOwnerRecord()->latitude, (float) $this->getOwnerRecord()->longitude)->currency()),
                 TextInput::make('category'),
                 Toggle::make('is_available')->default(true),
             ]);
@@ -37,7 +38,7 @@ class MenuItemsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('category'),
-                TextColumn::make('price')->money('MYR'),
+                TextColumn::make('price')->money(fn ($record): string => $record->currency ?? 'MYR'),
                 IconColumn::make('is_available')->boolean(),
             ])
             ->headerActions([

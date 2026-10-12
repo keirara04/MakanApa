@@ -20,6 +20,31 @@ class KakaoDecide
 {
     public function __construct(private readonly RecommendationService $recommendations) {}
 
+    /**
+     * Kakao keyword for the Korea mood chips (KakaoLocalSearch translates them). Moods without
+     * one (korean, healthy, quick) keep the plain restaurant category search.
+     */
+    private const MOOD_QUERIES = [
+        'middle_eastern' => 'kebab',
+        'indian' => 'indian',
+        'malay' => 'malaysian',
+        'chicken' => 'fried chicken',
+        'burger' => 'burger',
+        'thai' => 'thai',
+    ];
+
+    /** @param  string[]  $moods */
+    private static function moodQuery(array $moods): ?string
+    {
+        foreach ($moods as $mood) {
+            if (isset(self::MOOD_QUERIES[$mood])) {
+                return self::MOOD_QUERIES[$mood];
+            }
+        }
+
+        return null;
+    }
+
     /** Kakao takes over when fewer than `services.kakao.decide_min_pool` places qualify, or none match the craving. */
     public function wanted(array $restaurants, array $preference, ?CravingIntent $craving): bool
     {
@@ -37,7 +62,7 @@ class KakaoDecide
      */
     public function decide(KakaoLocalSearch $kakao, array $attributes, array $preference, ?CravingIntent $craving): ?array
     {
-        $query = $craving !== null && trim($craving->raw) !== '' ? trim($craving->raw) : null;
+        $query = $craving !== null && trim($craving->raw) !== '' ? trim($craving->raw) : self::moodQuery($preference['moodTags'] ?? []);
         $pick = $this->pickFrom($kakao, $query, (float) $preference['latitude'], (float) $preference['longitude'], (float) $preference['maxDistanceKm'], (bool) $preference['halalOnly'], []);
 
         if ($pick === null) {

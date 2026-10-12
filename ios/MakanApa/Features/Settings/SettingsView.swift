@@ -459,11 +459,16 @@ struct SettingsView: View {
                     .labelsHidden()
                     .tint(.sambalRed)
             }
+            SettingsRow(icon: "ladybug.fill", tint: .kunyit, title: "Use USA test location", subtitle: "Penn State, State College (miles, $)") {
+                Toggle("", isOn: debugLocationBinding(get: { DebugLocationOverride.isUSAEnabled }, set: { DebugLocationOverride.isUSAEnabled = $0 }))
+                    .labelsHidden()
+                    .tint(.sambalRed)
+            }
         }
     }
 
-    /// The two test locations exclude each other (see DebugLocationOverride), so `debugLocationTick`
-    /// makes both toggles re-read after either one changes.
+    /// The test locations exclude each other (see DebugLocationOverride), so `debugLocationTick`
+    /// makes every toggle re-read after any one changes.
     private func debugLocationBinding(get: @escaping () -> Bool, set: @escaping (Bool) -> Void) -> Binding<Bool> {
         Binding(
             get: { _ = debugLocationTick; return get() },

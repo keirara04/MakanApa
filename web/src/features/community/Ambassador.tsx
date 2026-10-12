@@ -8,7 +8,7 @@ import { nearbyApi } from '../../api/nearby'
 import type { User } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { errorMessage } from '../../lib/errors'
-import { priceLabel } from '../../lib/presentation'
+import { kmLabel, priceLabel } from '../../lib/presentation'
 import { Button } from '../../ui/Button'
 import { Mascot } from '../../ui/Mascot'
 import { Sheet } from '../../ui/Sheet'
@@ -82,7 +82,7 @@ function PickCard({ pick, mine, onOpen, onRemoved }: { pick: AmbassadorPickItem;
   const { data } = useQuery({ queryKey: ['place', pick.id], queryFn: ({ signal }) => nearbyApi.details(pick.id, signal), enabled: !pick.photoUrl, staleTime: 25 * 60_000 })
   const photo = pick.photoUrl ?? data?.photos[0]?.url ?? null
   const kind = pick.cuisines[0]?.replace(/_/g, ' ') ?? pick.foodCategory?.replace(/_restaurant$/, '').replace(/_/g, ' ') ?? null
-  const details = [kind && kind.charAt(0).toUpperCase() + kind.slice(1), priceLabel(pick.priceLevel), pick.distanceKm !== null && pick.distanceKm < 50 ? `${pick.distanceKm.toFixed(1)} km` : null].filter(Boolean)
+  const details = [kind && kind.charAt(0).toUpperCase() + kind.slice(1), priceLabel(pick.priceLevel), pick.distanceKm !== null && pick.distanceKm < 50 ? kmLabel(pick.distanceKm) : null].filter(Boolean)
 
   return (
     <li className="w-60 shrink-0 snap-start">

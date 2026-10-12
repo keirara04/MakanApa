@@ -3,6 +3,7 @@
 namespace App\Services\Places;
 
 use App\Support\Halal\HalalStatus;
+use App\Support\Region;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
@@ -145,7 +146,7 @@ class KakaoLocalSearch
     /** Rough South Korea box (takes in some sea, harmless) — where Kakao replaces the Google fallback. */
     public static function covers(float $latitude, float $longitude): bool
     {
-        return $latitude >= 33.0 && $latitude <= 38.7 && $longitude >= 124.5 && $longitude <= 131.0;
+        return Region::at($latitude, $longitude) === Region::Korea;
     }
 
     /** The Korean form of $query, or null when the dictionary changes nothing. */

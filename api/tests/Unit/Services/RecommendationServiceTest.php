@@ -136,6 +136,22 @@ class RecommendationServiceTest extends TestCase
         $this->assertGreaterThan($scoreNonMatching, $scoreMatching);
     }
 
+    public function test_abroad_moods_match_cuisine_and_food_category(): void
+    {
+        $indian = $this->makeRestaurant(['id' => 1, 'cuisines' => ['indian'], 'tags' => ['spicy']]);
+        $burger = $this->makeRestaurant(['id' => 2, 'food_category' => 'burger']);
+        $neither = $this->makeRestaurant(['id' => 3, 'cuisines' => ['korean']]);
+
+        $this->assertGreaterThan(
+            $this->service->score($neither, $this->makePreference(['moodTags' => ['indian']]), 0),
+            $this->service->score($indian, $this->makePreference(['moodTags' => ['indian']]), 0),
+        );
+        $this->assertGreaterThan(
+            $this->service->score($neither, $this->makePreference(['moodTags' => ['burger']]), 0),
+            $this->service->score($burger, $this->makePreference(['moodTags' => ['burger']]), 0),
+        );
+    }
+
     public function test_anything_preference_normalizes_weights_to_100_max(): void
     {
         $restaurant = $this->makeRestaurant(['rating' => 5.0]);

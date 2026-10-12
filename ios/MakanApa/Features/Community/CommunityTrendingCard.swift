@@ -36,7 +36,7 @@ struct CommunityTrendingCard: View {
                             Text("· \(spend)")
                         }
                         if let distanceKm = item.distanceKm {
-                            Text("· \(String(format: "%.1f", distanceKm)) km")
+                            Text("· " + Region.current.distance(km: distanceKm, kmText: String(format: "%.1f km", distanceKm)))
                         }
                     }
                     .font(.makanBody(12))
@@ -88,6 +88,6 @@ struct CommunityTrendingCard: View {
         if let foodCategory = item.foodCategory, !foodCategory.isEmpty {
             return foodCategory
         }
-        return item.cuisines.isEmpty ? nil : item.cuisines.joined(separator: " · ").capitalized
+        return item.cuisines.isEmpty ? nil : item.cuisines.joined(separator: " · ").replacingOccurrences(of: "_", with: " ").capitalized
     }
 }

@@ -76,7 +76,7 @@ struct SendToGengButton: View {
     static func message(name: String, whereText: String?, distanceKm: Double?) -> String {
         var line = "Want to eat here? \(name)"
         if let whereText, !whereText.isEmpty { line += " · \(whereText)" }
-        if let distanceKm { line += String(format: " (%.1f km)", distanceKm) }
+        if let distanceKm { line += " (\(Region.current.distance(km: distanceKm, kmText: String(format: "%.1f km", distanceKm))))" }
         return line
     }
 }
