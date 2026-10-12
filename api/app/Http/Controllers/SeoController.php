@@ -36,7 +36,9 @@ class SeoController extends Controller
 
     public function sitemap(): Response
     {
-        $xml = Cache::remember('marketing:sitemap:v1', self::CACHE_SECONDS, fn () => view('seo.sitemap', [
+        // The XML declaration lives here, not in the view: with short_open_tag on (as in prod), Blade
+        // reads "<?xml" as PHP, skips compiling the template and the render dies with a ParseError.
+        $xml = Cache::remember('marketing:sitemap:v1', self::CACHE_SECONDS, fn () => '<?xml version="1.0" encoding="UTF-8"?>'."\n".view('seo.sitemap', [
             'pages' => $this->pages(),
             'places' => $this->places(),
         ])->render());
