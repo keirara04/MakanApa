@@ -55,6 +55,17 @@ struct ResultView: View {
         // is the headline here, nothing should sit above it. The photo runs up under the bar.
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        // Back returns to the preferences; this skips straight home.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.popToRoot()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel(Copy.backHome)
+            }
+        }
         .sensoryFeedback(.success, trigger: revealTick)
         .sensoryFeedback(.impact(weight: .light), trigger: rerollTaps)
         .sensoryFeedback(.impact(weight: .medium), trigger: rejectTaps)
