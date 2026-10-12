@@ -46,13 +46,16 @@ class RetentionReport
      */
     private function compute(int $weeks, string $segment): array
     {
+        // The app's clock, not Postgres now(): created_at is naive UTC (Postgres now() would shift by the
+        // session time zone), and tests freeze time with travelTo(). Our own formatted date, so safe to inline.
+        $now = "'".now()->utc()->toDateTimeString()."'::timestamp";
         $selects = [];
         foreach (self::WINDOWS as $key => [$start, $length]) {
             $end = $start + $length;
             // Eligible = the window has fully elapsed. Retained = at least one session inside it
             // (served by the app_sessions (user_id, started_at) index).
-            $selects[] = "count(*) filter (where u.created_at <= now() - interval '{$end} days') as {$key}_eligible";
-            $selects[] = "count(*) filter (where u.created_at <= now() - interval '{$end} days' and exists (
+            $selects[] = "count(*) filter (where u.created_at <= {$now} - interval '{$end} days') as {$key}_eligible";
+            $selects[] = "count(*) filter (where u.created_at <= {$now} - interval '{$end} days' and exists (
                 select 1 from app_sessions s
                 where s.user_id = u.id
                   and s.started_at >= u.created_at + interval '{$start} days'
@@ -70,7 +73,7 @@ class RetentionReport
             "select date_trunc('week', u.created_at) as cohort, count(*) as size, ".implode(', ', $selects)."
             from users u
             where u.deleted_at is null
-              and u.created_at >= date_trunc('week', now()) - make_interval(weeks => ?) {$segmentFilter}
+              and u.created_at >= date_trunc('week', {$now}) - make_interval(weeks => ?) {$segmentFilter}
             group by 1
             order by 1 desc",
             [$weeks - 1],
