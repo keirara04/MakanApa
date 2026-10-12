@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { PhotoViewer, viewerPhotos } from '../../ui/PhotoViewer'
 import type { AddPlaceState } from '../community/AddPlace'
-import { decideApi, type Decision, type HalalInfo, type Recommendation, type TuneDirection, type WhatIfRow, type WhyNotDetail, type WhyNotReason } from '../../api/decide'
+import { decideApi, type Decision, type Recommendation, type TuneDirection, type WhatIfRow, type WhyNotDetail, type WhyNotReason } from '../../api/decide'
 import { errorMessage } from '../../lib/errors'
 import { kmLabel, menuPrice } from '../../lib/presentation'
 import { getStored, setStored, useStored } from '../../lib/storage'
@@ -45,17 +45,7 @@ export function Photos({ pick }: { pick: Recommendation }) {
   )
 }
 
-const TONE: Record<HalalInfo['display']['tone'], string> = {
-  certified: 'bg-pandan text-white',
-  friendly: 'bg-pandan/15 text-pandan',
-  neutral: 'bg-hairline text-kicap',
-  warning: 'bg-kunyit/40 text-kicap',
-  non_halal: 'bg-kicap text-cream',
-}
-
-export function HalalBadge({ halal }: { halal: { display: Pick<HalalInfo['display'], 'shortLabel' | 'tone'> } }) {
-  return <span className={`inline-flex min-h-8 items-center rounded-full px-3 text-sm font-semibold ${TONE[halal.display.tone]}`}>{halal.display.shortLabel}</span>
-}
+export { HalalBadge } from '../../ui/HalalBadge'
 
 /** Heart toggle: saves on this device and on the account, like iOS's PlacePreferencesStore. */
 export function SaveButton({ pick }: { pick: Recommendation }) {

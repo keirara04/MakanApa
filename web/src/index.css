@@ -252,6 +252,19 @@
   }
 }
 
+/* Onboarding's diagram arrows: drawn in once, in order (--len is the path length, --delay its turn). */
+.draw-in {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: draw-in 520ms ease-out var(--delay, 0ms) forwards;
+}
+
+@keyframes draw-in {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 /* Saved-places deck: cards fan out, then riffle while the pick is being made. */
 .deck-card {
   --spread: calc((var(--i) - (var(--n) - 1) / 2) * 7deg);
@@ -286,8 +299,13 @@
   .spoon-spin,
   .tape-in,
   .trace-line,
-  .deck-card {
+  .deck-card,
+  .draw-in {
     animation: none;
+  }
+
+  .draw-in {
+    stroke-dashoffset: 0;
   }
 
   .press,

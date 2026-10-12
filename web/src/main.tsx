@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { lazy, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { SessionProvider, useSession } from './auth/session'
 import { ForgotPassword, ResetPassword } from './features/auth/PasswordReset'
@@ -45,7 +45,6 @@ const queryClient = new QueryClient({
 
 function AppRoutes() {
   const { session, retry, signOutHere } = useSession()
-  const { pathname, search } = useLocation()
   // Every page change below animates; the routes render this location, not the live one.
   const shown = useTransitionedLocation()
 
@@ -94,7 +93,9 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         {/* Where the link was going comes along, so signing in lands there. */}
-        <Route path="*" element={<Navigate to={getStored('onboarded') ? '/sign-in' : '/welcome'} replace state={pathname === '/' ? undefined : { from: pathname + search }} />} />
+        {/* `shown`, not the live URL: during a page transition the live URL is already /welcome, and
+            `from: '/welcome'` sent onboarding back to its own start after the halal question. */}
+        <Route path="*" element={<Navigate to={getStored('onboarded') ? '/sign-in' : '/welcome'} replace state={shown.pathname === '/' ? undefined : { from: shown.pathname + shown.search }} />} />
       </Routes>
     )
   }
