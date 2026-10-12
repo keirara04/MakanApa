@@ -42,6 +42,7 @@ class PlaceNormalizer
         'cafe' => ['cuisines' => ['western'], 'tags' => ['cafe']],
         'vegetarian_restaurant' => ['cuisines' => [], 'tags' => ['healthy', 'vegetarian']],
         'vegan_restaurant' => ['cuisines' => [], 'tags' => ['healthy', 'vegetarian']],
+        'salad_shop' => ['cuisines' => [], 'tags' => ['healthy']],
     ];
 
     /**

@@ -57,7 +57,7 @@ class MoodSearchTest extends TestCase
 
         $this->solo('indian')->assertOk()
             ->assertJsonPath('recommendation.name', 'Place curry')
-            ->assertJsonPath('moodMatch', ['mood' => 'indian', 'matched' => true]);
+            ->assertJsonPath('moodMatch', ['mood' => 'indian', 'label' => 'Indian', 'matched' => true]);
 
         Http::assertSent(fn (Request $r) => str_contains($r->url(), 'searchText') && $r['includedType'] === 'indian_restaurant');
     }
@@ -99,18 +99,41 @@ class MoodSearchTest extends TestCase
 
         $this->solo('indian')->assertOk()
             ->assertJsonPath('recommendation.name', 'Place burger')
-            ->assertJsonPath('moodMatch', ['mood' => 'indian', 'matched' => false]);
+            ->assertJsonPath('moodMatch', ['mood' => 'indian', 'label' => 'Indian', 'matched' => false]);
     }
 
-    public function test_malaysian_dish_moods_are_unchanged(): void
+    public function test_malaysian_dish_moods_search_by_dish_name(): void
     {
         Http::fake([
             '*searchNearby*' => Http::response(['places' => [self::place('burger', ['hamburger_restaurant', 'restaurant'])]]),
+            '*searchText*' => Http::response(['places' => [array_merge(self::place('kandar', ['restaurant']), ['displayName' => ['text' => 'Nasi Kandar Pelita']])]]),
+        ]);
+
+        $this->solo('nasi_kandar')->assertOk()
+            ->assertJsonPath('recommendation.name', 'Nasi Kandar Pelita')
+            ->assertJsonPath('moodMatch', ['mood' => 'nasi_kandar', 'label' => 'nasi kandar', 'matched' => true]);
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'searchText') && $r['textQuery'] === 'nasi kandar');
+    }
+
+    public function test_another_one_stays_with_the_mood_while_it_can(): void
+    {
+        Http::fake([
+            '*searchNearby*' => Http::response(['places' => [
+                self::place('curry1', ['indian_restaurant', 'restaurant']),
+                self::place('curry2', ['indian_restaurant', 'restaurant']),
+                self::place('burger1', ['hamburger_restaurant', 'restaurant']),
+                self::place('burger2', ['hamburger_restaurant', 'restaurant']),
+                self::place('burger3', ['hamburger_restaurant', 'restaurant']),
+            ]]),
             '*searchText*' => Http::response(['places' => []]),
         ]);
 
-        $this->solo('nasi_kandar')->assertOk()->assertJsonPath('moodMatch', null);
+        $decision = $this->solo('indian')->assertOk();
+        $first = $decision->json('recommendation.name');
+        $this->assertStringStartsWith('Place curry', $first);
 
-        Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'searchText'));
+        $next = $this->postJson("/api/v1/decisions/{$decision->json('decisionId')}/reroll", [], ['X-Decision-Token' => $decision->json('clientToken')])->assertOk();
+        $this->assertSame($first === 'Place curry1' ? 'Place curry2' : 'Place curry1', $next->json('recommendation.name'));
     }
 }

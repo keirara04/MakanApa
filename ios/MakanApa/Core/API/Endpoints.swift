@@ -699,8 +699,7 @@ struct RecommendationResponse: Decodable, Equatable {
         let shareUrl: String?
     }
 
-    /// Whether the typed craving (if any) matched something nearby — decoded but not yet
-    /// surfaced in UI; a future pass can render an honest "couldn't find an exact match" state.
+    /// Whether the typed craving (if any) matched something nearby; a miss shows Copy.missNote.
     struct CravingMatch: Decodable, Equatable {
         let query: String
         let matched: Bool
@@ -729,11 +728,13 @@ struct RecommendationResponse: Decodable, Equatable {
     /// Set instead of `recommendation` for a Kakao pick.
     let kakaoPick: KakaoPick?
     let craving: CravingMatch?
-    /// Abroad cuisine moods only: whether anything nearby matched. Missing on older backends.
+    /// Whether the mood matched anything nearby that fits. Missing on older backends.
     let moodMatch: MoodMatch?
 
     struct MoodMatch: Decodable, Equatable {
         let mood: String
+        /// Finishes "Nothing … nearby fits right now" ("Indian", "nasi kandar").
+        let label: String?
         let matched: Bool
     }
 }

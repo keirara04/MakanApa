@@ -756,20 +756,41 @@ class RecommendationService
     }
 
     /**
-     * Whether an abroad cuisine mood ("indian") matched anything that qualifies, so the result can
-     * say "no Indian places nearby" instead of passing off an unrelated pick. Null for Malaysia's
-     * dish moods and no mood.
+     * Whether the mood matched anything that qualifies, so the result can say "Nothing Indian
+     * nearby fits right now" instead of passing off an unrelated pick. Null with no mood.
      *
      * @param  array<int, array{restaurant: array<string, mixed>}>  $candidates
      * @param  string[]  $moods
-     * @return array{mood: string, matched: bool}|null
+     * @return array{mood: string, label: string, matched: bool}|null
      */
+    /**
+     * Reroll's pool: the candidates that match the mood or craving (minus the one being replaced),
+     * or everyone when none do — "Another one" after an Indian pick stays Indian while it can.
+     *
+     * @param  array<int, array{restaurant: array<string, mixed>}>  $candidates
+     * @param  string[]  $moods
+     * @return array<int, array{restaurant: array<string, mixed>}>
+     */
+    public function preferMatching(array $candidates, array $moods, ?CravingIntent $craving, ?array $current): array
+    {
+        if ($moods === [] && ($craving === null || trim($craving->raw) === '')) {
+            return $candidates;
+        }
+        $matching = array_values(array_filter($candidates, fn (array $candidate) => ($current === null || $candidate['restaurant']['id'] !== $current['restaurant']['id'])
+            && ($moods !== []
+                ? self::tagMatchComponent($moods, MoodSearch::vocabulary($candidate['restaurant'])) > 0
+                : self::relevanceComponent($craving, $candidate['restaurant']) > 0)));
+
+        return $matching !== [] ? $matching : $candidates;
+    }
+
     public function moodMatchStatus(array $candidates, array $moods): ?array
     {
         $mood = MoodSearch::first($moods);
 
         return $mood === null ? null : [
             'mood' => $mood,
+            'label' => MoodSearch::MOODS[$mood]['label'],
             'matched' => MoodSearch::anyMatches(array_column($candidates, 'restaurant'), $mood),
         ];
     }

@@ -135,24 +135,18 @@ export interface Decision {
   recommendation: Recommendation | null
   /** Set instead of `recommendation` for a Kakao pick. */
   kakaoPick?: KakaoPick | null
-  /** Abroad cuisine moods only: whether anything nearby matched. Missing on older backends. */
-  moodMatch?: { mood: string; matched: boolean } | null
+  /** Whether the mood matched anything nearby that fits; `label` finishes the miss note. Missing on older backends. */
+  moodMatch?: { mood: string; label?: string; matched: boolean } | null
+  /** The typed craving, when there was one. */
+  craving?: { query: string; matched: boolean } | null
 }
 
-const MOOD_CUISINES: Record<string, string> = {
-  middle_eastern: 'Middle Eastern',
-  indian: 'Indian',
-  malay: 'Malaysian or Indonesian',
-  chicken: 'fried chicken',
-  korean: 'Korean',
-  burger: 'burger',
-  pizza: 'pizza',
-}
-
-/** "Nothing Indian nearby fits right now, …" when an abroad cuisine mood found nothing open that fits. */
-export function moodMissNote(match: Decision['moodMatch']): string | null {
-  const cuisine = match && !match.matched ? MOOD_CUISINES[match.mood] : undefined
-  return cuisine ? `Nothing ${cuisine} nearby fits right now, so here’s something else.` : null
+/** "Nothing Indian nearby fits right now, …" when the mood or typed craving found nothing open that fits. */
+export function missNote(decision: Pick<Decision, 'moodMatch' | 'craving'> | null | undefined): string | null {
+  const what =
+    (decision?.moodMatch && !decision.moodMatch.matched ? decision.moodMatch.label : undefined) ??
+    (decision?.craving && !decision.craving.matched ? decision.craving.query : undefined)
+  return what ? `Nothing ${what} nearby fits right now, so here’s something else.` : null
 }
 
 export type Lens = 'cheap_today' | 'treat_myself' | 'quick_one' | 'surprise_me' | 'community_favs'

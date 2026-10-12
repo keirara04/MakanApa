@@ -44,7 +44,7 @@ final class SoloViewModel {
     /// A live Kakao Map pick (Korea) in place of `currentPick`. Shown, never stored.
     private(set) var kakaoPick: RecommendationResponse.KakaoPick?
     private(set) var apiError: APIError?
-    /// "Nothing Indian nearby fits right now, …" when an abroad cuisine mood found nothing that fits.
+    /// "Nothing Indian nearby fits right now, …" when the mood or typed craving found nothing that fits.
     private(set) var moodMissNote: String?
     private(set) var isEmptyResult = false
     /// Set when Tune ran out of better options in the stored pool — the UI offers to search wider.
@@ -210,7 +210,8 @@ final class SoloViewModel {
             clientToken = response.clientToken
             currentPick = response.recommendation
             kakaoPick = response.kakaoPick
-            moodMissNote = response.moodMatch.flatMap { $0.matched ? nil : Copy.moodMissNote(tag: $0.mood) }
+            moodMissNote = response.moodMatch.flatMap { $0.matched ? nil : $0.label.map(Copy.missNote) }
+                ?? response.craving.flatMap { $0.matched ? nil : Copy.missNote($0.query) }
             isEmptyResult = response.recommendation == nil && response.kakaoPick == nil
         } catch let error as APIError {
             apiError = error

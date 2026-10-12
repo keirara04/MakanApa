@@ -31,6 +31,9 @@ class TasteEventRecorder
         'cafe' => ['Cafe', [['category', 'cafe', 1.0]]],
         'korean' => ['Korean', [['cuisine', 'korean', 1.0]]],
         'malay' => ['Malay', [['cuisine', 'malay', 1.0]]],
+        // Abroad's chips (Korea, the US, elsewhere).
+        'middle_eastern' => ['Middle Eastern', [['cuisine', 'middle_eastern', 1.0]]],
+        'indian' => ['Indian', [['cuisine', 'indian', 1.0]]],
         'dessert' => ['Dessert', [['category', 'dessert', 1.0]]],
         'cheap_eats' => ['Cheap eats', [['price', '1', 1.0]]],
         'late_night' => ['Late night', [['vibe', 'late_night', 1.0]]],

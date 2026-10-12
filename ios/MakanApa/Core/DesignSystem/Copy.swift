@@ -83,8 +83,10 @@ enum Copy {
     static func tastePickedCount(_ count: Int, of max: Int) -> String { "\(count) of \(max) picked" }
     static func tasteLabel(_ key: String) -> String {
         switch key {
-        case "malay": return "Malay"
+        case "malay": return Region.current.isMalaysia ? "Malay" : "Malaysian"
         case "mamak": return "Mamak"
+        case "middle_eastern": return "Middle Eastern"
+        case "indian": return "Indian"
         case "korean": return "Korean"
         case "cafe": return "Cafe"
         case "dessert": return "Dessert"
@@ -134,21 +136,9 @@ enum Copy {
     static let moodKoreanSubtext = "Rice bowls, stews, noodles"
     static let moodBurgerSubtext = "Quick and filling"
     static let moodPizzaSubtext = "By the slice or the pie"
-    /// Shown on the result when an abroad cuisine mood matched nothing nearby that is open and fits
-    /// the budget and halal choice.
-    static func moodMissNote(tag: String) -> String? {
-        let cuisine: String? = switch tag {
-        case "middle_eastern": "Middle Eastern"
-        case "indian": "Indian"
-        case "malay": "Malaysian or Indonesian"
-        case "chicken": "fried chicken"
-        case "korean": "Korean"
-        case "burger": "burger"
-        case "pizza": "pizza"
-        default: nil
-        }
-        return cuisine.map { "Nothing \($0) nearby fits right now, so here's something else." }
-    }
+    /// Shown on the result when the mood or typed craving matched nothing nearby that is open
+    /// and fits the budget and halal choice.
+    static func missNote(_ what: String) -> String { "Nothing \(what) nearby fits right now, so here's something else." }
 
     static let moodCustomCravingPlaceholder = "Tell me what you're craving..."
 

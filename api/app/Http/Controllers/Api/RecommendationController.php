@@ -144,6 +144,10 @@ class RecommendationController extends Controller
                 'value' => $mood,
             ]);
         }
+        // So "Another one" can keep to the craving (reroll re-resolves it; the resolver caches).
+        if ($cravingIntent !== null && trim($cravingIntent->raw) !== '') {
+            DecisionPreference::create(['decision_id' => $decision->id, 'preference_type' => 'craving', 'value' => $cravingIntent->raw]);
+        }
 
         foreach ($result['candidates'] as $rank => $candidate) {
             $isWinner = $result['pick'] && $candidate['restaurant']['id'] === $result['pick']['restaurant']['id'];
@@ -285,7 +289,14 @@ class RecommendationController extends Controller
                 ? collect($candidates)->first(fn ($c) => $c['_row']->id === $currentRow->id)
                 : null;
 
-            $next = $this->recommendationService->pick($candidates, $currentCandidate);
+            $preferences = $decision->preferences()->get(['preference_type', 'value']);
+            $cravingRaw = $preferences->firstWhere('preference_type', 'craving')?->value;
+            $next = $this->recommendationService->pick($this->recommendationService->preferMatching(
+                $candidates,
+                $preferences->where('preference_type', 'mood')->pluck('value')->all(),
+                $cravingRaw !== null ? $this->cravingResolver->resolve($cravingRaw) : null,
+                $currentCandidate,
+            ), $currentCandidate);
 
             if ($currentRow) {
                 $currentRow->update(['rejected_at' => now()]);

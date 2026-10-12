@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
-import { decideApi, moodMissNote } from '../../api/decide'
+import { decideApi, missNote as missNoteFor } from '../../api/decide'
 import { ApiError } from '../../api/client'
 import { errorMessage } from '../../lib/errors'
 import { detailsLine, kmLabel, withinLabel } from '../../lib/presentation'
 import { pushSupported } from '../../lib/push'
+import { useRegion, type Region } from '../../lib/region'
 import { getStored, setStored } from '../../lib/storage'
 import { NotificationPriming } from '../notifications/Notifications'
 import { Button } from '../../ui/Button'
@@ -151,7 +152,7 @@ function NoResult() {
 
 function PickView() {
   const { decision, pick, asked, skipped, tunesUsed, widen, fresh, request, tune, choose, reroll, accept, decide, notice } = useDecide()
-  const missNote = moodMissNote(decision?.moodMatch)
+  const missNote = missNoteFor(decision)
   const trace = fresh ? (pick?.thinkingTrace ?? []) : []
   const [tracing, setTracing] = useState(trace.length > 0)
   const [whatIfOpen, setWhatIfOpen] = useState(false)
@@ -295,25 +296,37 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
   )
 }
 
-const TASTES = {
-  Food: [
-    ['malay', 'Malay'],
-    ['mamak', 'Mamak'],
-    ['korean', 'Korean'],
-    ['cafe', 'Cafe'],
-    ['dessert', 'Dessert'],
-  ],
+/** Abroad, the cuisines students look for there; Malaysia keeps its own. */
+const tastes = (region: Region) => ({
+  Food:
+    region === 'MY'
+      ? [
+          ['malay', 'Malay'],
+          ['mamak', 'Mamak'],
+          ['korean', 'Korean'],
+          ['cafe', 'Cafe'],
+          ['dessert', 'Dessert'],
+        ]
+      : [
+          ['middle_eastern', 'Middle Eastern'],
+          ['indian', 'Indian'],
+          ['malay', 'Malaysian'],
+          ['korean', 'Korean'],
+          ['cafe', 'Cafe'],
+          ['dessert', 'Dessert'],
+        ],
   Style: [
     ['cheap_eats', 'Cheap eats'],
     ['late_night', 'Late night'],
     ['anything', 'Anything'],
   ],
-} as const
+})
 
 /** After the first accepted pick: "Want sharper picks?" Seeds Selera once. */
 function TastePrompt({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [picked, setPicked] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+  const region = useRegion()
 
   function finish() {
     setStored('tasteAsked', true)
@@ -329,7 +342,7 @@ function TastePrompt({ open, onClose }: { open: boolean; onClose: () => void }) 
   return (
     <Sheet open={open} onClose={finish} title="Want sharper picks?">
       <p className="text-kicap-soft">Choose up to 4 things you usually go for. We’ll lean that way.</p>
-      {Object.entries(TASTES).map(([group, options]) => (
+      {Object.entries(tastes(region)).map(([group, options]) => (
         <fieldset key={group}>
           <legend className="font-display font-semibold">{group}</legend>
           <div className="mt-2 flex flex-wrap gap-2">

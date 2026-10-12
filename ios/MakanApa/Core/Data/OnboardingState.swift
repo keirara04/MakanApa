@@ -22,7 +22,12 @@ final class OnboardingState {
     static let anythingPick = "anything"
     /// Stored picks are the server's keys (api TasteEventRecorder::ONBOARDING_SEEDS, which
     /// allowlists them) — labels live in `Copy.tasteLabel(_:)` so copy can change freely.
-    static let foodPicks = ["malay", "mamak", "korean", "cafe", "dessert"]
+    /// Abroad, the cuisines students look for there; Malaysia keeps its own.
+    static var foodPicks: [String] {
+        Region.current.isMalaysia
+            ? ["malay", "mamak", "korean", "cafe", "dessert"]
+            : ["middle_eastern", "indian", "malay", "korean", "cafe", "dessert"]
+    }
     static let stylePicks = ["cheap_eats", "late_night"]
 
     private(set) var hasCompletedOnboarding: Bool
