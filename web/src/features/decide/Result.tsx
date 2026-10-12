@@ -38,7 +38,63 @@ export function Result() {
   if (decide.status === 'rerolling') return <Rerolling onCancel={decide.cancelReroll} />
   if (decide.status === 'error') return <Failure error={decide.error} onRetry={() => void decide.retry()} canRetry={decide.request !== null} />
   if (decide.status === 'none') return <NoResult />
+  if (decide.kakao) return <KakaoPickView />
   return <PickView />
+}
+
+/**
+ * A live pick from Kakao Map (Korea, where MakanApa knows few places yet). Kakao's terms allow
+ * keeping only its id and link, so there's no MakanApa page behind it: no photos, tuning or
+ * saving. "Let's eat" opens Kakao Map's own page, which has directions, photos and the menu.
+ */
+function KakaoPickView() {
+  const { kakao, request, reroll, accept, notice } = useDecide()
+  const [askPush, setAskPush] = useState(false)
+  if (!kakao) return null
+
+  function letsEat() {
+    accept()
+    if (!getStored('primingSeen') && pushSupported()) setAskPush(true)
+  }
+
+  return (
+    <article className="flex flex-col gap-6 pb-24 pt-2 md:mx-auto md:max-w-xl">
+      <header className="tape-in">
+        <p className="text-sm font-semibold text-sambal-deep">Picked for you, from Kakao Map</p>
+        <h1 className="mt-1 font-display text-4xl font-bold leading-tight tracking-tight">{kakao.name}</h1>
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-kicap-soft">
+          {[kakao.cuisine, `${kakao.distanceKm.toFixed(1)} km away`].filter(Boolean).map((part) => (
+            <li key={part}>{part}</li>
+          ))}
+        </ul>
+        {kakao.address && <p className="mt-1 text-sm text-kicap-soft">{kakao.address}</p>}
+      </header>
+
+      {notice && (
+        <p role="alert" className="rounded-row bg-sambal/10 px-4 py-3 text-sambal-deep">
+          Couldn’t get another one. {notice}
+        </p>
+      )}
+
+      <p className="rounded-row bg-kunyit/25 px-4 py-4">
+        MakanApa doesn’t know many places around here yet, so this pick comes from Kakao Map. Open it there for photos, the menu and opening hours.
+        {request?.halal && ' Its halal status is unknown, so check before you go.'}
+      </p>
+
+      <div className="fixed inset-x-0 bottom-[calc(var(--tab-bar)+0.5rem)] z-10 px-5 md:sticky md:bottom-4 md:px-0">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-full bg-surface/95 p-2 shadow-lift backdrop-blur md:max-w-md">
+          <Button onClick={letsEat} className="flex-1">
+            Let’s eat
+          </Button>
+          <IconButton label="Another one" onClick={() => void reroll()}>
+            <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.6L4 16M4 20v-4h4" />
+          </IconButton>
+        </div>
+      </div>
+
+      <NotificationPriming open={askPush} onClose={() => setAskPush(false)} />
+    </article>
+  )
 }
 
 function Failure({ error, onRetry, canRetry }: { error: unknown; onRetry: () => void; canRetry: boolean }) {

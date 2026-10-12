@@ -4,6 +4,7 @@ enum MapProvider: String, CaseIterable, Identifiable {
     case apple
     case google
     case naver
+    case kakao
 
     var id: String { rawValue }
 
@@ -12,6 +13,7 @@ enum MapProvider: String, CaseIterable, Identifiable {
         case .apple: "Apple Maps"
         case .google: "Google Maps"
         case .naver: "Naver Maps"
+        case .kakao: "Kakao Map"
         }
     }
 }

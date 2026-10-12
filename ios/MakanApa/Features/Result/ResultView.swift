@@ -33,6 +33,8 @@ struct ResultView: View {
         Group {
             if !isRerolling, viewModel.apiError == nil, let pick = viewModel.currentPick {
                 resultContent(for: pick)
+            } else if !isRerolling, viewModel.apiError == nil, let kakao = viewModel.kakaoPick {
+                kakaoContent(for: kakao)
             } else {
                 VStack(spacing: 20) {
                     if isRerolling {
@@ -224,6 +226,93 @@ struct ResultView: View {
                 insertion: .opacity,
                 removal: reduceMotion ? .opacity : .move(edge: exitEdge).combined(with: .opacity)
             ))
+        }
+    }
+
+    // MARK: - Kakao pick
+
+    /// A live pick from Kakao Map (Korea, where MakanApa knows few places yet). Kakao's terms
+    /// allow keeping only its id and link, so there's no MakanApa page behind it: no photo,
+    /// tuning or saving. "Let's eat" opens Kakao Map's own page (directions, photos, menu).
+    private func kakaoContent(for kakao: RecommendationResponse.KakaoPick) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(Copy.kakaoPickedForYou, systemImage: "checkmark.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color.sambalRed)
+
+                    Text(kakao.name)
+                        .font(.title.weight(.bold))
+                        .foregroundStyle(Color.kicap)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.8)
+                        .accessibilityAddTraits(.isHeader)
+
+                    Text(kakaoDetailsLine(for: kakao))
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.kicapSecondary)
+
+                    if let address = kakao.address {
+                        Text(address)
+                            .font(.footnote)
+                            .foregroundStyle(Color.kicapSecondary)
+                            .textSelection(.enabled)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(HalalPreference.isOn ? "\(Copy.kakaoPickNote) \(Copy.kakaoPickHalalUnknown)" : Copy.kakaoPickNote)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.kicap)
+                    .padding(16)
+                    .panel()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(spacing: 12) {
+                MakanPrimaryButton(title: Copy.resultGo) {
+                    openKakao(kakao)
+                }
+                barButton("arrow.triangle.2.circlepath", label: "Another one") {
+                    rerollTaps += 1
+                    exitEdge = .leading
+                    withAnimation(Motion.standard) { startReroll() }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background(Color.nasiCream)
+            .overlay(alignment: .top) {
+                Color.hairline.frame(height: 1)
+            }
+        }
+        .transition(.opacity)
+    }
+
+    /// "Indian · 12 min walk" — Kakao gives no price or hours.
+    private func kakaoDetailsLine(for kakao: RecommendationResponse.KakaoPick) -> String {
+        let distance = kakao.distanceKm < 1.5
+            ? "\(walkingMinutes(for: kakao.distanceKm)) min walk"
+            : "\(kakao.distanceKm.formatted(.number.precision(.fractionLength(1)))) km"
+        return [kakao.cuisine, distance].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private func openKakao(_ kakao: RecommendationResponse.KakaoPick) {
+        viewModel.logInteraction("directions_opened")
+        Task { await viewModel.acceptCurrentPick() }
+        // Notifications only: the taste prompt would learn from a place MakanApa doesn't know.
+        if !NotificationPrimingState.shared.hasSeenPriming {
+            showNotificationPriming = true
+        }
+        if let url = URL(string: kakao.kakaoUrl) {
+            UIApplication.shared.open(url)
         }
     }
 

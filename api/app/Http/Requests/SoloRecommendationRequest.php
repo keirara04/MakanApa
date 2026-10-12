@@ -38,6 +38,8 @@ class SoloRecommendationRequest extends FormRequest
             // Places the user tapped "Not this" on. Kept on the device, so sent with every pick.
             'excludedPlaceIds' => ['nullable', 'array', 'max:500'],
             'excludedPlaceIds.*' => ['integer'],
+            // Sent by clients that can show a live Kakao pick (Korea) — see KakaoDecide.
+            'kakao' => ['nullable', 'boolean'],
         ];
     }
 

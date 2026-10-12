@@ -7,7 +7,21 @@ import { useSyncExternalStore } from 'react'
  */
 const KEY = 'makanapa:v1'
 
-export interface RecentPick {
+export type RecentPick = PlaceRecentPick | KakaoRecentPick
+
+/**
+ * A Kakao pick (Korea). Kakao's terms allow keeping only the id and link, so Recent shows it
+ * as "A place on Kakao Map". `id` is "kakao-<kakaoPlaceId>", never a MakanApa id.
+ */
+export interface KakaoRecentPick {
+  kind: 'kakao'
+  id: string
+  kakaoUrl: string
+  at: number
+}
+
+export interface PlaceRecentPick {
+  kind?: undefined
   id: number
   name: string
   latitude: number
@@ -41,7 +55,7 @@ export interface Stored {
   installationId?: string
   onboarded?: boolean
   halalOnly?: boolean
-  mapsApp?: 'google' | 'waze' | 'naver'
+  mapsApp?: 'google' | 'waze' | 'naver' | 'kakao'
   /** Last 5 accepted picks, newest first. */
   recent?: RecentPick[]
   saved?: SavedPlace[]

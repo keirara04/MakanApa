@@ -1,5 +1,5 @@
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { decideApi, type Decision, type Recommendation, type SoloRequest, type TuneDirection, type TuneResponse } from '../../api/decide'
+import { decideApi, type Decision, type KakaoPick, type Recommendation, type SoloRequest, type TuneDirection, type TuneResponse } from '../../api/decide'
 import { errorMessage } from '../../lib/errors'
 import { directionsUrl } from '../../lib/maps'
 import { getStored, setStored } from '../../lib/storage'
@@ -19,6 +19,8 @@ interface DecideState {
   asked: AskedFor | null
   decision: Decision | null
   pick: Recommendation | null
+  /** A live Kakao Map pick (Korea) in place of `pick`. Shown, never stored. */
+  kakao: KakaoPick | null
   error: unknown
   /** Name of the place just skipped with "Another one", for the why-not question. */
   skipped: string | null
@@ -48,7 +50,7 @@ interface DecideContextValue extends DecideState {
 }
 
 const MIN_THINKING_MS = 700
-const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false, source: 'solo', notice: null }
+const initial: DecideState = { status: 'idle', request: null, asked: null, decision: null, pick: null, kakao: null, error: null, skipped: null, tunesUsed: [], widen: null, fresh: false, source: 'solo', notice: null }
 
 const DecideContext = createContext<DecideContextValue | null>(null)
 
@@ -76,7 +78,8 @@ export function DecideProvider({ children }: { children: ReactNode }) {
     try {
       const decision = await atLeast(decideApi.solo(request), MIN_THINKING_MS)
       if (run !== generation.current) return
-      setState((state) => ({ ...state, decision, pick: decision.recommendation, status: decision.recommendation ? 'ready' : 'none', fresh: true }))
+      const kakao = decision.kakaoPick ?? null
+      setState((state) => ({ ...state, decision, pick: decision.recommendation, kakao, status: decision.recommendation || kakao ? 'ready' : 'none', fresh: true }))
     } catch (error) {
       if (run === generation.current) setState((state) => ({ ...state, status: 'error', error }))
     }
@@ -93,8 +96,23 @@ export function DecideProvider({ children }: { children: ReactNode }) {
   }, [decide])
 
   const reroll = useCallback(async ({ exclude = false }: { exclude?: boolean } = {}) => {
-    const { decision, pick } = current.current
-    if (!decision || !pick) return
+    const { decision, pick, kakao } = current.current
+    if (!decision) return
+    if (kakao) {
+      // The server skips every Kakao place already shown; nothing goes in `excluded`, which
+      // only holds MakanApa ids and is sent with every later pick.
+      const run = ++generation.current
+      setState((state) => ({ ...state, status: 'rerolling', notice: null }))
+      try {
+        const { kakaoPick } = await atLeast(decideApi.reroll(decision), MIN_THINKING_MS)
+        if (run !== generation.current) return
+        setState((state) => ({ ...state, kakao: kakaoPick ?? null, status: kakaoPick ? 'ready' : 'none', fresh: false }))
+      } catch (error) {
+        if (run === generation.current) setState((state) => ({ ...state, status: 'ready', notice: errorMessage(error) }))
+      }
+      return
+    }
+    if (!pick) return
     if (exclude) {
       setStored('excluded', [...new Set([...(getStored('excluded') ?? []), pick.id])])
       setStored('saved', (getStored('saved') ?? []).filter((place) => place.id !== pick.id))
@@ -123,7 +141,7 @@ export function DecideProvider({ children }: { children: ReactNode }) {
 
   const cancelReroll = useCallback(() => {
     rerollCancelled.current = true
-    setState((state) => ({ ...state, status: state.pick ? 'ready' : 'idle' }))
+    setState((state) => ({ ...state, status: state.pick || state.kakao ? 'ready' : 'idle' }))
   }, [])
 
   const tune = useCallback(async (direction: TuneDirection) => {
@@ -147,7 +165,17 @@ export function DecideProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const accept = useCallback(() => {
-    const { decision, pick } = current.current
+    const { decision, pick, kakao } = current.current
+    if (decision && kakao) {
+      // Kakao Map's own page has directions, photos and the menu.
+      window.open(kakao.kakaoUrl, '_blank', 'noopener')
+      void decideApi.interaction(decision, 'directions_opened').catch(() => {})
+      void decideApi.accept(decision).catch(() => {})
+      const id = `kakao-${kakao.kakaoPlaceId}`
+      const recent = (getStored('recent') ?? []).filter((item) => item.id !== id)
+      setStored('recent', [{ kind: 'kakao' as const, id, kakaoUrl: kakao.kakaoUrl, at: Date.now() }, ...recent].slice(0, 5))
+      return
+    }
     if (!decision || !pick) return
     window.open(directionsUrl(pick, getStored('mapsApp')), '_blank', 'noopener')
 

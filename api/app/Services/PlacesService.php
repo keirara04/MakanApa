@@ -13,6 +13,7 @@ use App\Services\Halal\HalalVerificationService;
 use App\Services\Judgment\Definitions\NonHalalSecondOpinionGate;
 use App\Services\Places\FixturePlacesProvider;
 use App\Services\Places\GooglePlacesProvider;
+use App\Services\Places\KakaoLocalSearch;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\Places\ProviderPlace;
 use App\Support\DiscoveryMode;
@@ -107,7 +108,7 @@ class PlacesService
     /**
      * Set by searchPlaces() — how the last search was answered, for PlaceSearchController's `meta`.
      *
-     * @var array{radius_km: float, source: string, google_available: bool, wider_radius_km: ?float, total: int, suggestions: string[]}|array{}
+     * @var array{radius_km: float, source: string, google_available: bool, fallback: ?string, wider_radius_km: ?float, total: int, suggestions: string[]}|array{}
      */
     private array $lastSearchMeta = [];
 
@@ -237,11 +238,15 @@ class PlacesService
      * distance as the final deterministic tiebreak. Likely branches of one chain are then pulled
      * together (see groupBranches()) without hiding any of them.
      *
-     * @return array<int, array<string, mixed>> each tagged 'provenance': canonical|community|google_fallback
+     * $allowKakao: the client can render 'kakao' rows. Builds that predate them decode
+     * provenance strictly, so they keep getting the Google fallback even in Korea.
+     *
+     * @return array<int, array<string, mixed>> each tagged 'provenance': canonical|community|google_fallback|kakao
      */
     public function searchPlaces(
         string $query, float $latitude, float $longitude,
         float $radiusKm = self::SEARCH_RADIUS_KM, bool $halalOnly = false, ?bool $includeGoogle = null,
+        bool $allowKakao = false,
     ): array {
         $normalizedQuery = mb_strtolower(trim($query));
         $local = HalalEligibility::filter($this->searchLocalRestaurants($query, $latitude, $longitude, $radiusKm), $halalOnly);
@@ -255,37 +260,53 @@ class PlacesService
         // because search happens to also read GOOGLE_PLACES_API_KEY from the environment.
         $apiKey = Config::get('services.places.google_api_key');
         $googleConfigured = Config::get('services.places.provider', 'fixture') === 'google' && ! empty($apiKey);
-        $wantsGoogle = $includeGoogle ?? (
+        // Inside South Korea, Kakao Local replaces Google as the fallback — same trigger, same
+        // fixture-mode gate. `includeGoogle` keeps meaning "search outside MakanApa" there.
+        $kakaoSearch = KakaoLocalSearch::at($latitude, $longitude, $allowKakao);
+        $useKakao = $kakaoSearch !== null;
+        $fallbackConfigured = $useKakao || $googleConfigured;
+        $wantsFallback = $includeGoogle ?? (
             $strongLocalMatches < self::GOOGLE_FALLBACK_MIN_STRONG_MATCHES
             && mb_strlen($normalizedQuery) >= self::GOOGLE_FALLBACK_MIN_QUERY_LENGTH
         );
 
         $results = $local;
-        $askedGoogle = false;
-        if ($googleConfigured && $wantsGoogle) {
+        $kakao = [];
+        $askedFallback = false;
+        if ($fallbackConfigured && $wantsFallback) {
             try {
-                $results = array_merge($results, $this->searchGoogleFallback($query, $latitude, $longitude, $radiusKm, $apiKey));
-                $askedGoogle = true;
+                if ($kakaoSearch) {
+                    $kakao = $kakaoSearch->search($query, $latitude, $longitude, $radiusKm, $halalOnly);
+                } else {
+                    $results = array_merge($results, $this->searchGoogleFallback($query, $latitude, $longitude, $radiusKm, $apiKey));
+                }
+                $askedFallback = true;
             } catch (Throwable $e) {
-                Log::warning('Places search: Google text search fallback failed, returning local results only', [
+                Log::warning('Places search: '.($useKakao ? 'Kakao' : 'Google').' fallback failed, returning local results only', [
                     'error' => $e->getMessage(),
                     'query' => $query,
                 ]);
             }
         }
 
-        $ranked = $this->groupBranches($this->rankSearchResults($results, $query));
+        // Kakao rows skip ranking and branch grouping: they carry no rating/open status, and
+        // their Korean names would all normalize to "" and group together. They follow
+        // MakanApa's own rows, nearest first (KakaoLocalSearch already sorted them).
+        $ranked = [...$this->groupBranches($this->rankSearchResults($results, $query)), ...$kakao];
 
         $provenances = array_unique(array_column($ranked, 'provenance'));
-        $hasGoogle = in_array('google_fallback', $provenances, true);
+        $external = array_values(array_intersect($provenances, ['google_fallback', 'kakao']));
         $this->lastSearchMeta = [
             'radius_km' => $radiusKm,
             'source' => match (true) {
-                $hasGoogle && count($provenances) > 1 => 'mixed',
-                $hasGoogle => 'google',
+                $external !== [] && count($provenances) > count($external) => 'mixed',
+                in_array('kakao', $external, true) => 'kakao',
+                $external !== [] => 'google',
                 default => 'local',
             },
-            'google_available' => $googleConfigured && ! $askedGoogle,
+            'google_available' => $fallbackConfigured && ! $askedFallback,
+            // Which outside source google_available offers — lets a client say "Search Kakao Map".
+            'fallback' => $useKakao ? 'kakao' : ($googleConfigured ? 'google' : null),
             'wider_radius_km' => collect(self::SEARCH_RADIUS_LADDER_KM)->first(fn (float $rung) => $rung > $radiusKm),
             'total' => count($ranked),
             'suggestions' => $ranked === [] ? $this->searchSuggestions($normalizedQuery, $latitude, $longitude, $radiusKm) : [],
@@ -294,7 +315,7 @@ class PlacesService
         return $ranked;
     }
 
-    /** @return array{radius_km: float, source: string, google_available: bool, wider_radius_km: ?float, total: int, suggestions: string[]}|array{} */
+    /** @return array{radius_km: float, source: string, google_available: bool, fallback: ?string, wider_radius_km: ?float, total: int, suggestions: string[]}|array{} */
     public function lastSearchMeta(): array
     {
         return $this->lastSearchMeta;

@@ -18,6 +18,8 @@ use App\Services\Brain\ReasonCatalog;
 use App\Services\Brain\TasteEventRecorder;
 use App\Services\Craving\CravingIntent;
 use App\Services\Craving\CravingResolver;
+use App\Services\KakaoDecide;
+use App\Services\Places\KakaoLocalSearch;
 use App\Services\Places\PlaceNormalizer;
 use App\Services\PlacesService;
 use App\Services\RecommendationService;
@@ -46,6 +48,7 @@ class RecommendationController extends Controller
         private readonly BrainStateFactory $brainStates,
         private readonly MakanBrain $brain,
         private readonly TasteEventRecorder $recorder,
+        private readonly KakaoDecide $kakaoDecide,
     ) {}
 
     public function solo(SoloRecommendationRequest $request): JsonResponse
@@ -107,6 +110,21 @@ class RecommendationController extends Controller
             'installation_id' => $data['installationId'] ?? null,
             'halal_only' => $halalOnly,
         ];
+
+        // Korea, for clients that can show a Kakao pick (older builds need `recommendation.id`):
+        // a thin or craving-blind MakanApa pool hands Decide to a live Kakao pick instead.
+        $kakao = KakaoLocalSearch::at((float) $data['latitude'], (float) $data['longitude'], $request->boolean('kakao'));
+        if ($kakao && $this->kakaoDecide->wanted($restaurants, $preference, $cravingIntent)
+            && ($kakaoResult = $this->kakaoDecide->decide($kakao, $attributes, $preference, $cravingIntent))) {
+            return response()->json([
+                'decisionId' => $kakaoResult['decision']->id,
+                'clientToken' => $clientToken,
+                'algorithmVersion' => Decision::KAKAO_ALGORITHM,
+                'recommendation' => null,
+                'kakaoPick' => KakaoDecide::present($kakaoResult['pick']),
+                'craving' => null,
+            ]);
+        }
 
         if (BrainStateFactory::enabled()) {
             return $this->soloWithBrain($request, $data, $restaurants, $preference, $attributes, $cravingIntent);
@@ -218,6 +236,12 @@ class RecommendationController extends Controller
         // predate the user switching halal-only on, or a restaurant being verified non-halal
         // mid-session — neither may leak a non-halal place back out.
         $halalOnly = $decision->halal_only || (bool) $request->user()?->halal_preference;
+
+        if ($decision->isKakaoPick()) {
+            $pick = $this->kakaoDecide->reroll($decision, $halalOnly);
+
+            return response()->json(['recommendation' => null, 'kakaoPick' => $pick ? KakaoDecide::present($pick) : null]);
+        }
 
         if ($decision->isBrainDecision()) {
             return $this->rerollWithBrain($request, $decision, $halalOnly);
@@ -345,6 +369,10 @@ class RecommendationController extends Controller
     public function accept(Request $request, Decision $decision): JsonResponse
     {
         $this->authorizeDecision($request, $decision);
+
+        if ($decision->isKakaoPick()) {
+            return response()->json(['accepted' => $this->kakaoDecide->accept($decision)]);
+        }
 
         // lockForUpdate + a re-check inside the transaction makes this idempotent — a retried
         // accept call (network timeout, client retry) finds accepted_at already non-null and

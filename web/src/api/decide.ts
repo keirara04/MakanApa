@@ -113,11 +113,28 @@ export interface Recommendation {
   fatigue?: boolean
 }
 
+/**
+ * A live pick from Kakao Map (Korea, when MakanApa knows too few places). Kakao's terms allow
+ * keeping only the id and link, so it's shown, never stored: no photos, tuning or saving.
+ */
+export interface KakaoPick {
+  kakaoPlaceId: string
+  kakaoUrl: string
+  name: string
+  cuisine: string | null
+  address: string | null
+  latitude: number
+  longitude: number
+  distanceKm: number
+}
+
 export interface Decision {
   decisionId: number
   clientToken: string
   algorithmVersion: string
   recommendation: Recommendation | null
+  /** Set instead of `recommendation` for a Kakao pick. */
+  kakaoPick?: KakaoPick | null
 }
 
 export type Lens = 'cheap_today' | 'treat_myself' | 'quick_one' | 'surprise_me' | 'community_favs'
@@ -162,14 +179,15 @@ const decisionCall = (decision: Pick<Decision, 'decisionId' | 'clientToken'>, pa
 
 export const decideApi = {
   solo: (request: SoloRequest) =>
-    api<Decision>('recommendations/solo', { method: 'POST', body: { ...request, mode: 'normal', installationId: installationId() } }),
+    // kakao: this client can show a Kakao pick, so in Korea the server may answer with one.
+    api<Decision>('recommendations/solo', { method: 'POST', body: { ...request, mode: 'normal', installationId: installationId(), kakao: true } }),
 
   saved: (request: { latitude: number; longitude: number; savedPlaceIds: number[]; halal: boolean; ignoreContext: string[] }) =>
     api<Decision>('recommendations/saved', { method: 'POST', body: { ...request, installationId: installationId() } }),
 
   reroll: (decision: Decision) => {
     const { path, decisionToken } = decisionCall(decision, 'reroll')
-    return api<{ recommendation: Recommendation | null }>(path, { method: 'POST', body: {}, decisionToken })
+    return api<{ recommendation: Recommendation | null; kakaoPick?: KakaoPick | null }>(path, { method: 'POST', body: {}, decisionToken })
   },
 
   accept: (decision: Decision) => {

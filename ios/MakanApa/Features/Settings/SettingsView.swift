@@ -11,6 +11,10 @@ struct SettingsView: View {
     private var authStore = AuthStore.shared
 
     @State private var showingAboutInfo = false
+    #if DEBUG
+    /// Bumped when a debug test location changes, so both mutually exclusive toggles re-read.
+    @State private var debugLocationTick = 0
+    #endif
     @State private var showingIntro = false
     @State private var showingDeleteAccount = false
     @State private var confirmingLogout = false
@@ -446,19 +450,27 @@ struct SettingsView: View {
     private var debugCard: some View {
         SettingsCard(title: "Development · DEBUG") {
             SettingsRow(icon: "ladybug.fill", tint: .kunyit, title: "Use test location", subtitle: "Bangi, Selangor") {
-                Toggle("", isOn: debugLocationBinding)
+                Toggle("", isOn: debugLocationBinding(get: { DebugLocationOverride.isEnabled }, set: { DebugLocationOverride.isEnabled = $0 }))
+                    .labelsHidden()
+                    .tint(.sambalRed)
+            }
+            SettingsRow(icon: "ladybug.fill", tint: .kunyit, title: "Use Korea test location", subtitle: "Korea University, Seoul (Kakao Map)") {
+                Toggle("", isOn: debugLocationBinding(get: { DebugLocationOverride.isKoreaEnabled }, set: { DebugLocationOverride.isKoreaEnabled = $0 }))
                     .labelsHidden()
                     .tint(.sambalRed)
             }
         }
     }
 
-    private var debugLocationBinding: Binding<Bool> {
+    /// The two test locations exclude each other (see DebugLocationOverride), so `debugLocationTick`
+    /// makes both toggles re-read after either one changes.
+    private func debugLocationBinding(get: @escaping () -> Bool, set: @escaping (Bool) -> Void) -> Binding<Bool> {
         Binding(
-            get: { DebugLocationOverride.isEnabled },
+            get: { _ = debugLocationTick; return get() },
             set: { newValue in
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                DebugLocationOverride.isEnabled = newValue
+                set(newValue)
+                debugLocationTick += 1
                 if case .authorized = locationService.state {
                     locationService.requestLocation()
                 }

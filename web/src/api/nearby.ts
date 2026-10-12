@@ -46,9 +46,12 @@ export interface NearbyFilters {
 }
 
 export interface SearchResult {
-  provenance: 'canonical' | 'community' | 'google_fallback'
+  provenance: 'canonical' | 'community' | 'google_fallback' | 'kakao'
   id: number | null
   googlePlaceId: string | null
+  /** Korea only. Kakao rows are live-only (Kakao's terms): no id, no resolve, link out to kakaoUrl. */
+  kakaoPlaceId: string | null
+  kakaoUrl: string | null
   name: string
   address: string | null
   category: string | null
@@ -69,7 +72,7 @@ export interface SearchResult {
 
 export interface SearchResponse {
   results: SearchResult[]
-  meta: { radiusKm: number; source: 'local' | 'google' | 'mixed'; googleAvailable: boolean; widerRadiusKm: number | null; total: number }
+  meta: { radiusKm: number; source: 'local' | 'google' | 'kakao' | 'mixed'; googleAvailable: boolean; fallback: 'google' | 'kakao' | null; widerRadiusKm: number | null; total: number }
   suggestions: string[]
 }
 
@@ -141,6 +144,8 @@ export const nearbyApi = {
       longitude: String(params.longitude),
       radiusKm: String(params.radiusKm),
       halal: params.halal ? '1' : '0',
+      // This client renders Kakao rows, so the server may use Kakao instead of Google in Korea.
+      kakao: '1',
     })
     if (params.includeGoogle) query.set('includeGoogle', '1')
     return api<SearchResponse>(`places/search?${query}`, { signal })

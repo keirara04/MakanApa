@@ -592,6 +592,13 @@ struct NearbyView: View {
     private func selectSearchResult(_ result: PlaceSearchResult) async {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         searchFieldFocused = false
+        // Kakao rows (Korea) are live-only — no MakanApa place to open, so hand off to Kakao Map.
+        if result.provenance == .kakao {
+            if let query = viewModel.searchSession?.query { RecentSearchStore.record(query) }
+            recentSearches = RecentSearchStore.queries
+            if let url = result.kakaoURL { await UIApplication.shared.open(url) }
+            return
+        }
         guard let place = await viewModel.selectSearchResult(result) else { return }
         recentSearches = RecentSearchStore.queries
         viewModel.placeDetails = nil

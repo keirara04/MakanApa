@@ -102,6 +102,8 @@ export function SearchPanel({ centre, onClose, onSelect }: {
 
   const results = (response?.results ?? []).filter((result) => result.id === null || !excluded.includes(result.id))
   const radius = (km: number) => `${Number(km.toFixed(1))} km`
+  const fallbackName = response?.meta.fallback === 'kakao' ? 'Kakao Map' : 'Google'
+  const hasKakao = results.some((result) => result.provenance === 'kakao')
 
   return (
     <section className="flex flex-col gap-4" aria-label="Search places">
@@ -196,7 +198,7 @@ export function SearchPanel({ centre, onClose, onSelect }: {
             </Button>
             {response.meta.googleAvailable && (
               <Button variant="secondary" className="max-w-xs" onClick={() => setRun({ ...run, includeGoogle: true })}>
-                Search Google for “{run.query}”
+                Search {fallbackName} for “{run.query}”
               </Button>
             )}
             {response.suggestions.length > 0 && (
@@ -227,37 +229,59 @@ export function SearchPanel({ centre, onClose, onSelect }: {
             <ul className="mt-1 divide-y-2 divide-hairline">
               {results.map((result, index) => {
                 const firstOfGroup = result.groupKey && result.groupSize > 1 && results.findIndex((item) => item.groupKey === result.groupKey) === index
-                return (
-                  <li key={result.id ?? result.googlePlaceId ?? index}>
-                    {firstOfGroup && <p className="pt-3 text-xs font-semibold text-kicap-soft">{result.name}, {result.groupSize} nearby</p>}
-                    <button
-                      type="button"
-                      onClick={() => void choose(result)}
-                      disabled={resolving !== null}
-                      aria-busy={resolving === result.googlePlaceId || undefined}
-                      className="flex w-full items-start gap-3 py-3 text-left"
-                    >
-                      <span className="flex-1">
-                        <span className="block font-semibold">{highlight(result.name, run.query)}</span>
-                        <span className="block text-sm text-kicap-soft">
-                          {[result.address ?? result.category ?? result.cuisine, result.distanceKm !== null ? `${result.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
-                        </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                          {result.openStatus === 'open' && <span className="font-semibold text-pandan">{result.closesAt ? `Open, closes ${result.closesAt}` : 'Open'}</span>}
-                          {result.openStatus === 'closed' && <span className="font-semibold text-sambal-deep">Closed</span>}
-                          {result.halal.status !== 'unknown' && <HalalBadge halal={result.halal} />}
-                          {result.isCommunityFind && <span className="font-semibold text-pandan">Community find</span>}
-                        </span>
+                const isKakao = result.provenance === 'kakao'
+                const rowClass = 'flex w-full items-start gap-3 py-3 text-left'
+                const content = (
+                  <>
+                    <span className="flex-1">
+                      <span className="block font-semibold">{highlight(result.name, run.query)}</span>
+                      <span className="block text-sm text-kicap-soft">
+                        {/* Kakao addresses are Korean; the English cuisine says what the place serves. */}
+                        {[isKakao ? result.cuisine : (result.address ?? result.category ?? result.cuisine), result.distanceKm !== null ? `${result.distanceKm.toFixed(1)} km` : null].filter(Boolean).join(', ')}
                       </span>
-                      {result.rating !== null && <span className="font-display font-semibold">★ {result.rating.toFixed(1)}</span>}
-                    </button>
+                      <span className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                        {result.openStatus === 'open' && <span className="font-semibold text-pandan">{result.closesAt ? `Open, closes ${result.closesAt}` : 'Open'}</span>}
+                        {result.openStatus === 'closed' && <span className="font-semibold text-sambal-deep">Closed</span>}
+                        {result.halal.status !== 'unknown' && <HalalBadge halal={result.halal} />}
+                        {result.isCommunityFind && <span className="font-semibold text-pandan">Community find</span>}
+                        {isKakao && <span className="text-kicap-soft">From Kakao Map ↗</span>}
+                      </span>
+                    </span>
+                    {result.rating !== null && <span className="font-display font-semibold">★ {result.rating.toFixed(1)}</span>}
+                  </>
+                )
+                return (
+                  <li key={result.id ?? result.googlePlaceId ?? result.kakaoPlaceId ?? index}>
+                    {firstOfGroup && <p className="pt-3 text-xs font-semibold text-kicap-soft">{result.name}, {result.groupSize} nearby</p>}
+                    {isKakao ? (
+                      // Kakao's terms allow storing only the id and link, so there's no MakanApa
+                      // place to open: the row opens Kakao Map's own page (photos, menu, directions).
+                      <a href={result.kakaoUrl ?? undefined} target="_blank" rel="noopener noreferrer" className={rowClass}>
+                        {content}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void choose(result)}
+                        disabled={resolving !== null}
+                        aria-busy={resolving === result.googlePlaceId || undefined}
+                        className={rowClass}
+                      >
+                        {content}
+                      </button>
+                    )}
                   </li>
                 )
               })}
             </ul>
             {response.meta.googleAvailable && !run.includeGoogle && (
               <Button variant="quiet" className="-ml-3" onClick={() => setRun({ ...run, includeGoogle: true })}>
-                More nearby places: search Google
+                More nearby places: search {fallbackName}
+              </Button>
+            )}
+            {hasKakao && (
+              <Button variant="quiet" className="-ml-3" onClick={() => navigate(`/community/add?q=${encodeURIComponent(run.query)}`, { state: { from: '/nearby' } })}>
+                Found a good one on Kakao Map? Add it to MakanApa
               </Button>
             )}
           </div>

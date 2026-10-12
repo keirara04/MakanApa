@@ -22,6 +22,8 @@ enum PreferredMapsLauncher {
             UIApplication.shared.open(googleURL(for: destination))
         case .naver:
             open(appURL: naverAppURL(destination), webURL: naverWebURL(destination))
+        case .kakao:
+            if let url = kakaoRouteURL(destination) { UIApplication.shared.open(url) }
         }
     }
 
@@ -59,6 +61,13 @@ enum PreferredMapsLauncher {
             URLQueryItem(name: "appname", value: Bundle.main.bundleIdentifier),
         ]
         return components.url
+    }
+
+    /// Kakao's documented web link ("map.kakao.com/link/to/name,lat,lng") — directions to the
+    /// place; no app scheme, so no LSApplicationQueriesSchemes entry needed.
+    static func kakaoRouteURL(_ destination: MapDestination) -> URL? {
+        let name = destination.name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: ","))) ?? ""
+        return URL(string: "https://map.kakao.com/link/to/\(name),\(destination.coordinate.latitude),\(destination.coordinate.longitude)")
     }
 
     static func naverWebURL(_ destination: MapDestination) -> URL? {

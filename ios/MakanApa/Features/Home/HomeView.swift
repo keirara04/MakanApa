@@ -514,6 +514,10 @@ struct HomeView: View {
     }
 
     private func pickAgain(_ decision: RecentDecision) {
+        if let kakaoURL = decision.kakaoURL.flatMap(URL.init(string:)) {
+            UIApplication.shared.open(kakaoURL)
+            return
+        }
         let destination = MapDestination(
             coordinate: CLLocationCoordinate2D(latitude: decision.latitude, longitude: decision.longitude),
             name: decision.name,

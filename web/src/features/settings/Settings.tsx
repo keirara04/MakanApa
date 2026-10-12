@@ -17,6 +17,7 @@ const MAPS_APPS: { value: NonNullable<Stored['mapsApp']>; label: string }[] = [
   { value: 'google', label: 'Google Maps' },
   { value: 'waze', label: 'Waze' },
   { value: 'naver', label: 'Naver Map' },
+  { value: 'kakao', label: 'Kakao Map' },
 ]
 const SUPPORT_EMAIL = 'hakeemiridza@gmail.com'
 

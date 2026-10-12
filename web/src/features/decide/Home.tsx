@@ -320,7 +320,30 @@ function Recent() {
         <p className="mt-2 rounded-card border border-dashed border-kicap/25 px-5 py-4 text-kicap-soft">Places you pick will show up here.</p>
       ) : (
         <ul className="mt-3 divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface shadow-sm">
-          {recent.map((item) => (
+          {recent.map((item) => item.kind === 'kakao' ? (
+            // Kakao's terms allow keeping only the link, not the place's name.
+            <li key={item.id} className="flex items-center gap-1 pr-2">
+              <a href={item.kakaoUrl} target="_blank" rel="noreferrer" className="flex min-h-18 flex-1 items-center gap-3 py-3 pl-4">
+                <span aria-hidden="true" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-row bg-cream font-display text-lg font-bold text-sambal-deep">
+                  K
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-lg font-semibold">A place on Kakao Map</span>
+                  <span className="block text-sm text-kicap-soft">{relativeDay(item.at)}</span>
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => remove(item)}
+                aria-label="Remove this Kakao Map place from Recent"
+                className="press flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-kicap-soft/70 hover:bg-cream"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M18 6 6 18" />
+                </svg>
+              </button>
+            </li>
+          ) : (
             <li key={item.id} className="flex items-center gap-1 pr-2">
               <a
                 href={directionsUrl(item, getStored('mapsApp'))}

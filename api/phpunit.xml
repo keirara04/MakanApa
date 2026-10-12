@@ -44,6 +44,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <!-- Tests never call OpenRouter for real: an empty key selects NullJudgmentEngine unless a test opts in with Http::fake(). -->
         <env name="OPENROUTER_API_KEY" value=""/>
+        <!-- Same for Kakao Local: tests opt in with config() + Http::fake(). -->
+        <env name="KAKAO_REST_KEY" value=""/>
         <env name="JUDGMENT_RETRY_BACKOFF_MS" value="0"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

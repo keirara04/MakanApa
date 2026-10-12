@@ -45,6 +45,14 @@ return [
         'details_cache_minutes' => env('PLACES_DETAILS_CACHE_MINUTES', 10),
     ],
 
+    // Kakao Local — search fallback inside South Korea (see KakaoLocalSearch). Live-only: Kakao's
+    // terms allow storing just a place's id and place_url.
+    'kakao' => [
+        'rest_key' => env('KAKAO_REST_KEY'),
+        // Decide in Korea picks live from Kakao when fewer MakanApa places than this qualify.
+        'decide_min_pool' => (int) env('KAKAO_DECIDE_MIN_POOL', 5),
+    ],
+
     'openrouter' => [
         'api_key' => env('OPENROUTER_API_KEY'),
         // OpenRouter's free-tier catalog changes frequently — verify this model is still

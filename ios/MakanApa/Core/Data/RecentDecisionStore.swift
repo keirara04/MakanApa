@@ -10,7 +10,10 @@ struct RecentDecision: Codable, Identifiable, Equatable {
     let priceLevel: Int?
     let rating: Double?
     let timestamp: Date
-    let source: String // "solo" | "nearby" | "search" | "saved"
+    let source: String // "solo" | "nearby" | "search" | "saved" | "kakao"
+    /// Set for a Kakao pick (Korea): Kakao's terms allow keeping only the link, so `name` is
+    /// `Copy.kakaoRecentName`, `id` is the negated Kakao id and the coordinates are unused zeros.
+    var kakaoURL: String? = nil
 }
 
 /// Last few accepted picks, most recent first, for Home's "Recent" block. Deliberately capped

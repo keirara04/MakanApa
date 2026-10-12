@@ -71,6 +71,8 @@ enum APIClient {
             URLQueryItem(name: "longitude", value: String(longitude)),
             URLQueryItem(name: "radiusKm", value: String(radiusKm)),
             URLQueryItem(name: "halal", value: HalalPreference.isOn ? "1" : "0"),
+            // This build renders `.kakao` rows, so the server may use Kakao instead of Google in Korea.
+            URLQueryItem(name: "kakao", value: "1"),
         ]
         if let includeGoogle {
             items.append(URLQueryItem(name: "includeGoogle", value: includeGoogle ? "1" : "0"))

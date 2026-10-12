@@ -12,11 +12,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'max_distance', 'selected_restaurant_id', 'discovery_mode', 'vibe', 'installation_id', 'halal_only',
     'session_id', 'algorithm_version', 'taste_profile_version', 'selera_stage', 'intent_type', 'lens', 'tunes',
     'context_snapshot', 'weight_snapshot', 'candidate_count', 'funnel', 'exploration_level', 'fatigue_mode',
-    'reason_catalog_version', 'client_choice_id', 'search_context',
+    'reason_catalog_version', 'client_choice_id', 'search_context', 'kakao_pick',
 ])]
 class Decision extends Model
 {
     const UPDATED_AT = null;
+
+    public const KAKAO_ALGORITHM = 'kakao_live';
 
     protected function casts(): array
     {
@@ -27,6 +29,7 @@ class Decision extends Model
             'weight_snapshot' => 'array',
             'funnel' => 'array',
             'search_context' => 'array',
+            'kakao_pick' => 'array',
             'fatigue_mode' => 'boolean',
             'exploration_level' => 'float',
             'created_at' => 'datetime',
@@ -60,6 +63,12 @@ class Decision extends Model
 
     public function isBrainDecision(): bool
     {
-        return $this->algorithm_version !== null && $this->algorithm_version !== 'v1';
+        return $this->algorithm_version !== null && ! in_array($this->algorithm_version, ['v1', self::KAKAO_ALGORITHM], true);
+    }
+
+    /** A live-only Kakao pick (Korea) — no decision_recommendations rows, no Brain trace. */
+    public function isKakaoPick(): bool
+    {
+        return $this->kakao_pick !== null;
     }
 }

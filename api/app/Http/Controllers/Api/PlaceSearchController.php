@@ -37,6 +37,8 @@ class PlaceSearchController extends Controller
             'radiusKm' => ['nullable', 'numeric', 'between:1,25'],
             'halal' => ['nullable', 'boolean'],
             'includeGoogle' => ['nullable', 'boolean'],
+            // Sent by clients that can render provenance 'kakao' rows (Korea).
+            'kakao' => ['nullable', 'boolean'],
         ]);
 
         $query = trim($data['query']);
@@ -50,6 +52,7 @@ class PlaceSearchController extends Controller
             radiusKm: (float) ($data['radiusKm'] ?? 6.0),
             halalOnly: $halalOnly,
             includeGoogle: $request->filled('includeGoogle') ? $request->boolean('includeGoogle') : null,
+            allowKakao: $request->boolean('kakao'),
         );
         $meta = $this->placesService->lastSearchMeta();
 
@@ -63,6 +66,7 @@ class PlaceSearchController extends Controller
                 'radiusKm' => $meta['radius_km'],
                 'source' => $meta['source'],
                 'googleAvailable' => $meta['google_available'],
+                'fallback' => $meta['fallback'],
                 'widerRadiusKm' => $meta['wider_radius_km'],
                 'total' => $meta['total'],
             ],
@@ -109,6 +113,9 @@ class PlaceSearchController extends Controller
             'provenance' => $result['provenance'],
             'id' => $result['id'] ?? null,
             'googlePlaceId' => $result['google_place_id'] ?? null,
+            // provenance 'kakao' (Korea): live-only, no resolve path — the client links out to kakaoUrl.
+            'kakaoPlaceId' => $result['kakao_place_id'] ?? null,
+            'kakaoUrl' => $result['kakao_url'] ?? null,
             'name' => $result['name'],
             'address' => $result['address'] ?? null,
             'category' => RecommendationHeadline::categoryLabel($result['food_category'] ?? null),

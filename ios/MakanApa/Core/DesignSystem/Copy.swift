@@ -147,6 +147,11 @@ enum Copy {
     /// One label for "this is your pick" — result eyebrow and the onboarding demo badge.
     static let pickedForYou = "Picked for you"
     static let resultGo = "Let's eat"
+    static let kakaoPickedForYou = "Picked for you, from Kakao Map"
+    static let kakaoPickNote = "MakanApa doesn't know many places around here yet, so this pick comes from Kakao Map. Open it there for photos, the menu and opening hours."
+    static let kakaoPickHalalUnknown = "Its halal status is unknown, so check before you go."
+    /// Kakao's terms allow keeping only a place's link, not its name, so Recent says this instead.
+    static let kakaoRecentName = "A place on Kakao Map"
     static let resultFatigue = "Okay, enough choosing"
     static let anythingLabel = "Anything"
 

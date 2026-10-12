@@ -633,6 +633,8 @@ struct SoloRecommendationRequestBody: Encodable {
     var ignoreContext: [String]? = nil
     /// Places the user tapped "Not this" on — kept on the device, so sent with every pick.
     var excludedPlaceIds: [Int]? = nil
+    /// This build can show a Kakao pick, so in Korea the server may answer with one.
+    var kakao: Bool = true
 }
 
 struct RecommendationResponse: Decodable, Equatable {
@@ -707,15 +709,31 @@ struct RecommendationResponse: Decodable, Equatable {
         let confidence: Double?
     }
 
+    /// A live pick from Kakao Map (Korea, when MakanApa knows too few places). Kakao's terms
+    /// allow keeping only the id and link, so it is shown, never stored.
+    struct KakaoPick: Decodable, Equatable {
+        let kakaoPlaceId: String
+        let kakaoUrl: String
+        let name: String
+        let cuisine: String?
+        let address: String?
+        let latitude: Double
+        let longitude: Double
+        let distanceKm: Double
+    }
+
     let decisionId: Int
     let clientToken: String
     let algorithmVersion: String
     let recommendation: Recommendation?
+    /// Set instead of `recommendation` for a Kakao pick.
+    let kakaoPick: KakaoPick?
     let craving: CravingMatch?
 }
 
 struct RerollResponse: Decodable {
     let recommendation: RecommendationResponse.Recommendation?
+    let kakaoPick: RecommendationResponse.KakaoPick?
 }
 
 struct AcceptResponse: Decodable {
@@ -780,6 +798,9 @@ enum PlaceSearchProvenance: String, Decodable {
     case canonical
     case community
     case googleFallback = "google_fallback"
+    /// Korea only, live from Kakao Local. Kakao's terms allow storing only the id and link, so
+    /// there is no restaurant to open: selecting it opens `kakaoURL` in Kakao Map.
+    case kakao
 }
 
 struct PlaceSearchResult: Decodable, Identifiable, Equatable {
@@ -788,6 +809,9 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
     let restaurantId: Int?
     /// Present only for `.googleFallback`.
     let googlePlaceId: String?
+    /// Present only for `.kakao`.
+    let kakaoPlaceId: String?
+    let kakaoURL: URL?
     let name: String
     /// Short street/area address ("Jalan Reko, Kajang") — what tells branches apart. Nil for
     /// rows synced before addresses were stored.
@@ -809,10 +833,10 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
     let longitude: Double
     let shareUrl: String?
 
-    var id: String { restaurantId.map(String.init) ?? googlePlaceId ?? name }
+    var id: String { restaurantId.map(String.init) ?? googlePlaceId ?? kakaoPlaceId.map { "kakao-\($0)" } ?? name }
 
     private enum CodingKeys: String, CodingKey {
-        case provenance, id, restaurantId, googlePlaceId, name, address, category, cuisine, distanceKm
+        case provenance, id, restaurantId, googlePlaceId, kakaoPlaceId, kakaoUrl, name, address, category, cuisine, distanceKm
         case priceLevel, rating, openStatus, closesAt, halal, isCommunityFind, groupKey, groupSize
         case latitude, longitude, shareUrl
     }
@@ -823,6 +847,8 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
         // `id` is the canonical key; `restaurantId` is what older backends sent.
         restaurantId = try c.decodeIfPresent(Int.self, forKey: .id) ?? c.decodeIfPresent(Int.self, forKey: .restaurantId)
         googlePlaceId = try c.decodeIfPresent(String.self, forKey: .googlePlaceId)
+        kakaoPlaceId = try c.decodeIfPresent(String.self, forKey: .kakaoPlaceId)
+        kakaoURL = try c.decodeIfPresent(String.self, forKey: .kakaoUrl).flatMap(URL.init(string:))
         name = try c.decode(String.self, forKey: .name)
         address = try c.decodeIfPresent(String.self, forKey: .address)
         category = try c.decodeIfPresent(String.self, forKey: .category)
@@ -853,10 +879,15 @@ struct PlaceSearchResult: Decodable, Identifiable, Equatable {
 
 struct PlaceSearchMeta: Decodable, Equatable {
     let radiusKm: Double
-    /// local | google | mixed
+    /// local | google | kakao | mixed
     let source: String
-    /// Google wasn't asked this time but could be — the list offers "Search Google".
+    /// The outside source wasn't asked this time but could be — the list offers "Search Google".
     let googleAvailable: Bool
+    /// Which outside source `googleAvailable` means: "google" or "kakao" (Korea). Nil from older backends.
+    let fallback: String?
+
+    /// "Kakao Map" in Korea, else "Google" — the name on the "Search …" buttons.
+    var fallbackName: String { fallback == "kakao" ? "Kakao Map" : "Google" }
     /// The next "Search wider" radius, nil once at the widest.
     let widerRadiusKm: Double?
     let total: Int

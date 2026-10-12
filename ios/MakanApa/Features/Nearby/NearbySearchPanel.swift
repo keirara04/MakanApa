@@ -146,7 +146,7 @@ struct NearbySearchResultsPanel: View {
 
             if session.meta?.googleAvailable == true {
                 Button(action: onSearchGoogle) {
-                    Label("Search Google for “\(session.query)”", systemImage: "globe")
+                    Label("Search \(session.meta?.fallbackName ?? "Google") for “\(session.query)”", systemImage: "globe")
                         .font(.makanBody(13))
                         .foregroundStyle(Color.sambalRed)
                 }
@@ -213,7 +213,7 @@ struct NearbySearchResultsPanel: View {
                     .font(.makanBody(13))
                     .foregroundStyle(.secondary)
                 Button(action: onSearchGoogle) {
-                    Label("Search Google", systemImage: "globe")
+                    Label("Search \(session.meta?.fallbackName ?? "Google")", systemImage: "globe")
                         .font(.makanBody(14))
                         .foregroundStyle(Color.sambalRed)
                 }
@@ -309,6 +309,10 @@ struct SearchResultRow: View {
                     if result.isCommunityFind {
                         Text("◇ Community find").foregroundStyle(Color.pandan)
                     }
+                    if result.provenance == .kakao {
+                        Label("Kakao Map", systemImage: "arrow.up.right.square")
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .font(.makanBody(12))
                 .lineLimit(1)
@@ -334,7 +338,8 @@ struct SearchResultRow: View {
     /// Address · distance, else category · distance, else distance — never a line that starts
     /// with a stray separator.
     private var locationLine: String? {
-        let lead = result.address ?? result.category ?? result.cuisine
+        // Kakao addresses are Korean; the English cuisine says what the place serves.
+        let lead = result.provenance == .kakao ? result.cuisine : (result.address ?? result.category ?? result.cuisine)
         let distance = result.distanceKm.map { String(format: "%.1f km", $0) }
         let parts = [lead, distance].compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")

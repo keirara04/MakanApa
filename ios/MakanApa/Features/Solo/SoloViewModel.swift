@@ -41,6 +41,8 @@ final class SoloViewModel {
     private(set) var decisionId: Int?
     private var clientToken: String?
     private(set) var currentPick: RecommendationResponse.Recommendation?
+    /// A live Kakao Map pick (Korea) in place of `currentPick`. Shown, never stored.
+    private(set) var kakaoPick: RecommendationResponse.KakaoPick?
     private(set) var apiError: APIError?
     private(set) var isEmptyResult = false
     /// Set when Tune ran out of better options in the stored pool — the UI offers to search wider.
@@ -179,7 +181,8 @@ final class SoloViewModel {
             decisionId = response.decisionId
             clientToken = response.clientToken
             currentPick = response.recommendation
-            isEmptyResult = response.recommendation == nil
+            kakaoPick = response.kakaoPick
+            isEmptyResult = response.recommendation == nil && response.kakaoPick == nil
         } catch let error as APIError {
             apiError = error
         } catch {
@@ -215,6 +218,12 @@ final class SoloViewModel {
         let previous = currentPick?.name
         do {
             let response = try await APIClient.reroll(decisionId: decisionId, clientToken: clientToken)
+            if kakaoPick != nil {
+                // The server skips every Kakao place already shown.
+                kakaoPick = response.kakaoPick
+                isEmptyResult = response.kakaoPick == nil
+                return
+            }
             rerolledAwayFrom = response.recommendation == nil ? nil : previous
             currentPick = response.recommendation
             isEmptyResult = response.recommendation == nil
@@ -234,6 +243,16 @@ final class SoloViewModel {
         guard let decisionId, let clientToken else { return }
         _ = try? await APIClient.accept(decisionId: decisionId, clientToken: clientToken)
         GuestUpgradeNudge.shared.recordAcceptedPick(decisionId: decisionId)
+
+        if let kakao = kakaoPick {
+            // No vibe question: there's no MakanApa place to tag.
+            RecentDecisionStore.shared.record(RecentDecision(
+                id: -(Int(kakao.kakaoPlaceId) ?? 0), name: Copy.kakaoRecentName, latitude: 0, longitude: 0,
+                foodCategory: nil, priceLevel: nil, rating: nil, timestamp: Date(), source: "kakao",
+                kakaoURL: kakao.kakaoUrl
+            ))
+            return
+        }
 
         if let pick = currentPick {
             PendingVibePromptStore.shared.recordAccept(decisionId: decisionId, clientToken: clientToken, restaurantName: pick.name)
@@ -332,6 +351,7 @@ final class SoloViewModel {
         self.decisionId = decisionId
         self.clientToken = clientToken
         currentPick = recommendation
+        kakaoPick = nil
         apiError = error
         isEmptyResult = recommendation == nil && error == nil
     }
